@@ -29,6 +29,10 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
         .modal-overlay { background-color: rgba(0, 0, 0, 0.5); }
+        
+        /* Table Sticky Headers */
+        .sticky-col { position: sticky; left: 0; background-color: white; z-index: 10; }
+        .sticky-header { position: sticky; top: 0; z-index: 20; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden">
@@ -63,7 +67,7 @@
         <div class="flex items-center justify-center h-full text-slate-400"><div class="animate-spin mr-2"><i data-lucide="loader-2"></i></div>데이터 불러오는 중...</div>
     </main>
 
-    <div id="modal-container" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay p-4"></div>
+    <div id="modal-container" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto"></div>
 
     <!-- Firebase SDK & App Logic -->
     <script type="module">
@@ -71,7 +75,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // --- 1. Firebase Configuration (★중요: 본인의 Firebase 설정으로 채우세요★) ---
+        // --- 1. Firebase Configuration ---
         const firebaseConfig = {
             apiKey: "AIzaSyAx1EJ_7kawHTzsNS97ts5FjCaTJRqJTdM",
             authDomain: "cj-base.firebaseapp.com",
@@ -87,11 +91,12 @@
             const fbApp = initializeApp(firebaseConfig);
             db = getFirestore(fbApp);
             auth = getAuth(fbApp);
-            // 자동 익명 로그인
-            signInAnonymously(auth).catch(console.error);
+            signInAnonymously(auth).catch((error) => {
+                console.error("익명 로그인 실패:", error);
+                alert("로그인 실패: 인터넷 연결을 확인해주세요.");
+            });
         } catch (e) {
-            console.error("Firebase 초기화 실패: 설정값을 확인하세요.", e);
-            alert("Firebase 설정이 필요합니다. 코드를 열어 firebaseConfig 부분을 수정해주세요.");
+            console.error("Firebase 초기화 실패:", e);
         }
 
         // --- 3. Constants & State ---
@@ -100,7 +105,8 @@
             STATUS_LIST: ['이용', '장기부재', '종결'],
             CARE_LEVEL_LIST: ['일반', '중점'],
             ECONOMIC_LIST: ['일반(저소득)', '기초수급', '조건부 기초수급', '차상위'],
-            HOUSEHOLD_LIST: ['독거세대', '부부세대', '동거', '자녀동거세대', '조손동거세대']
+            HOUSEHOLD_LIST: ['독거세대', '부부세대', '동거', '자녀동거세대', '조손동거세대'],
+            PROVIDE_METHOD_LIST: ['전화', '방문', '내방', '기타']
         };
 
         const state = {
@@ -108,10 +114,11 @@
             clients: [],
             services: [],
             logs: [],
+            editingServiceId: null,
             filters: {
-                client: { status: '', level: '', region: '', search: '' },
-                log: { start: '', end: '', search: '', category: '' },
-                stats: { start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], end: new Date().toISOString().split('T')[0], type: 'detail' }
+                client: { status: '', level: '', region: '', gender: '', search: '' },
+                log: { start: '', end: '', search: '', category: '', service: '' },
+                stats: { start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], end: new Date().toISOString().split('T')[0], type: 'detail', region: '', name: '' }
             }
         };
 
@@ -129,21 +136,22 @@
         // --- 5. Data Sync (Real-time) ---
         function initDataSync() {
             if (!db) return;
-            // Clients Sync
+            const handleErr = (e) => { if(e.code === 'permission-denied') console.warn("권한 부족: 규칙을 확인하세요."); };
+
             onSnapshot(query(collection(db, "clients"), orderBy("createdAt", "desc")), (snap) => {
                 state.clients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (state.activeTab === 'clients' || state.activeTab === 'dashboard') render();
-            });
-            // Services Sync
+                render();
+            }, handleErr);
+            
             onSnapshot(collection(db, "services"), (snap) => {
                 state.services = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (state.activeTab === 'services' || state.activeTab === 'dashboard') render();
-            });
-            // Logs Sync
+                render();
+            }, handleErr);
+            
             onSnapshot(query(collection(db, "logs"), orderBy("date", "desc")), (snap) => {
                 state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                render(); // Logs affect almost all tabs
-            });
+                render();
+            }, handleErr);
         }
 
         // --- 6. Render Logic ---
@@ -151,35 +159,45 @@
             const today = new Date().toISOString().split('T')[0];
             const todayLogs = state.logs.filter(l => l.date === today).length;
             const highFocus = state.clients.filter(c => c.careLevel === '중점').length;
+            const general = state.clients.filter(c => c.careLevel === '일반').length;
+
             return `
                 <div class="space-y-6 animate-fade-in">
                     <div class="flex justify-between items-center">
-                        <h2 class="text-2xl font-bold text-slate-800">홈</h2>
-                        <div class="text-sm text-emerald-600 flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>실시간 공유 중</div>
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">홈</h2>
+                        <div class="text-xs md:text-sm text-emerald-600 flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>공유 중</div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+                        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
                             <div class="p-3 bg-blue-100 text-blue-600 rounded-lg"><i data-lucide="users"></i></div>
-                            <div><p class="text-sm text-slate-500">총 대상자</p><p class="text-2xl font-bold text-slate-800">${state.clients.length}명</p></div>
+                            <div>
+                                <p class="text-sm text-slate-500">총 대상자</p>
+                                <p class="text-2xl font-bold text-slate-800">${state.clients.length}<span class="text-sm font-normal text-slate-500">명</span></p>
+                                <p class="text-xs text-slate-400 mt-1">(중점: <span class="text-pink-600 font-bold">${highFocus}</span> / 일반: <span class="text-blue-600 font-bold">${general}</span>)</p>
+                            </div>
                         </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
                             <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg"><i data-lucide="file-text"></i></div>
-                            <div><p class="text-sm text-slate-500">오늘 일지</p><p class="text-2xl font-bold text-slate-800">${todayLogs}건</p></div>
+                            <div><p class="text-sm text-slate-500">오늘 일지</p><p class="text-2xl font-bold text-slate-800">${todayLogs}<span class="text-sm font-normal text-slate-500">건</span></p></div>
                         </div>
-                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
                             <div class="p-3 bg-purple-100 text-purple-600 rounded-lg"><i data-lucide="settings"></i></div>
-                            <div><p class="text-sm text-slate-500">제공 서비스</p><p class="text-2xl font-bold text-slate-800">${state.services.length}개</p></div>
+                            <div><p class="text-sm text-slate-500">제공 서비스</p><p class="text-2xl font-bold text-slate-800">${state.services.length}<span class="text-sm font-normal text-slate-500">개</span></p></div>
                         </div>
                     </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 md:p-6">
                         <h3 class="text-lg font-bold text-slate-800 mb-4">최근 활동</h3>
-                        <div class="space-y-4">
+                        <div class="space-y-3">
                         ${state.logs.length === 0 ? '<p class="text-center text-slate-400 py-4">데이터 없음</p>' : state.logs.slice(0,5).map(log => `
-                            <div class="flex items-start gap-4 pb-4 border-b last:border-0 p-2 hover:bg-slate-50 rounded">
-                                <div class="mt-1 text-slate-500"><i data-lucide="check-circle" size="16"></i></div>
-                                <div>
-                                    <p class="font-medium text-slate-800"><span class="text-emerald-600 font-bold">${log.clientName}</span>님 - ${log.serviceName}</p>
-                                    <p class="text-sm text-slate-500 mt-1">${log.date} | ${log.content.substring(0,40)}...</p>
+                            <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 pb-3 border-b last:border-0 p-2 hover:bg-slate-50 rounded">
+                                <div class="hidden sm:block mt-1 text-slate-500"><i data-lucide="check-circle" size="16"></i></div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-slate-800 text-sm md:text-base">
+                                        <span class="text-emerald-600 font-bold">${log.clientName}</span>님 
+                                        <span class="text-xs text-slate-400 mx-1">|</span>
+                                        ${log.serviceName}
+                                    </p>
+                                    <p class="text-xs md:text-sm text-slate-500 mt-1 line-clamp-2">${log.date} | ${log.content}</p>
                                 </div>
                             </div>`).join('')}
                         </div>
@@ -188,48 +206,100 @@
         }
 
         function renderClientManager() {
-            const { search, status, level, region } = state.filters.client;
+            const { search, status, level, region, gender } = state.filters.client;
+            
+            const totalCount = state.clients.length;
+            const highFocusCount = state.clients.filter(c => c.careLevel === '중점').length;
+            const generalCount = state.clients.filter(c => c.careLevel === '일반').length;
+            const maleCount = state.clients.filter(c => c.gender === '남성').length;
+            const femaleCount = state.clients.filter(c => c.gender === '여성').length;
+
             const filtered = state.clients.filter(c => 
                 (!search || c.name.includes(search)) &&
                 (!status || c.status === status) &&
                 (!level || c.careLevel === level) &&
-                (!region || c.region === region)
-            );
+                (!region || c.region === region) &&
+                (!gender || c.gender === gender)
+            ).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
 
             return `
                 <div class="space-y-6 animate-fade-in">
-                    <div class="flex flex-col md:flex-row justify-between items-center gap-2">
-                        <h2 class="text-2xl font-bold text-slate-800">대상자 관리</h2>
-                        <div class="flex gap-2">
-                            <button onclick="app.downloadTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm flex items-center gap-1"><i data-lucide="download" size="14"></i> 양식</button>
-                            <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm flex items-center gap-1 cursor-pointer"><i data-lucide="upload" size="14"></i> 엑셀등록<input type="file" class="hidden" onchange="app.uploadExcel(this)"></label>
-                            <button onclick="app.openClientModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-1"><i data-lucide="plus" size="16"></i> 등록</button>
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">대상자 관리</h2>
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <button onclick="app.downloadTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="download" size="14"></i> 양식</button>
+                            <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 cursor-pointer flex-1 sm:flex-none justify-center"><i data-lucide="upload" size="14"></i> 엑셀등록<input type="file" class="hidden" onchange="app.uploadExcel(this)"></label>
+                            <button onclick="app.openClientModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="plus" size="16"></i> 등록</button>
                         </div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap gap-2 items-center">
-                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2"><i data-lucide="filter" size="14"></i> 필터</div>
-                        <input class="input-field py-1.5 text-sm w-32" placeholder="이름" value="${search}" oninput="app.setFilter('client','search',this.value)">
-                        <select class="input-field py-1.5 text-sm w-32" onchange="app.setFilter('client','status',this.value)"><option value="">상태(전체)</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}</select>
-                        <select class="input-field py-1.5 text-sm w-32" onchange="app.setFilter('client','region',this.value)"><option value="">동(전체)</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}</select>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
+                          <div><p class="text-xs text-slate-500">총 대상자</p><p class="text-xl font-bold text-slate-800">${totalCount}명</p></div>
+                          <div class="p-2 bg-slate-50 rounded-full text-slate-400"><i data-lucide="users" size="20"></i></div>
+                       </div>
+                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                          <p class="text-xs text-slate-500">등급별</p>
+                          <div class="flex gap-2 mt-2 items-center text-sm">
+                            <span class="text-pink-600 font-bold">중점 ${highFocusCount}</span> <span class="text-slate-300">|</span> <span class="text-blue-600 font-bold">일반 ${generalCount}</span>
+                          </div>
+                       </div>
+                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                          <p class="text-xs text-slate-500">성별</p>
+                          <div class="flex gap-2 mt-2 items-center text-sm">
+                            <span class="text-blue-500 font-bold">남 ${maleCount}</span> <span class="text-slate-300">|</span> <span class="text-red-500 font-bold">여 ${femaleCount}</span>
+                          </div>
+                       </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${filtered.map(c => `
-                        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 relative group hover:shadow-md transition-shadow">
-                            <div class="flex justify-between items-start mb-2">
-                                <div class="font-bold text-lg">${c.name} <span class="text-sm font-normal text-slate-500">(${calculateAge(c.birthDate)}세/${c.gender})</span></div>
-                                <div class="flex gap-1">
-                                    <button onclick="app.openClientModal('${c.id}')" class="text-slate-300 hover:text-blue-500"><i data-lucide="edit" size="16"></i></button>
-                                    <button onclick="app.deleteData('clients','${c.id}')" class="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" size="16"></i></button>
+
+                    <!-- Responsive Filter Bar -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row flex-wrap gap-2 items-start sm:items-center">
+                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 mb-1 sm:mb-0 w-full sm:w-auto"><i data-lucide="filter" size="14"></i> 필터</div>
+                        <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto flex-1">
+                            <input class="input-field py-2 text-sm w-full sm:w-40 col-span-2 sm:col-span-1 min-w-[120px]" placeholder="이름 검색" value="${search}" oninput="app.setFilter('client','search',this.value)">
+                            <select class="input-field py-2 text-sm w-full sm:w-32 min-w-[90px]" onchange="app.setFilter('client','status',this.value)"><option value="">상태(전체)</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}</select>
+                            <select class="input-field py-2 text-sm w-full sm:w-32 min-w-[90px]" onchange="app.setFilter('client','level',this.value)"><option value="">등급(전체)</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}</select>
+                            <select class="input-field py-2 text-sm w-full sm:w-32 min-w-[90px]" onchange="app.setFilter('client','region',this.value)"><option value="">동(전체)</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}</select>
+                            <select class="input-field py-2 text-sm w-full sm:w-32 min-w-[90px]" onchange="app.setFilter('client','gender',this.value)"><option value="">성별(전체)</option><option value="남성" ${gender==='남성'?'selected':''}>남성</option><option value="여성" ${gender==='여성'?'selected':''}>여성</option></select>
+                        </div>
+                        <button onclick="app.resetFilters('client')" class="w-full sm:w-auto mt-2 sm:mt-0 text-slate-400 hover:text-slate-600 text-xs flex items-center justify-center gap-1"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                    </div>
+
+                    <!-- Client List (Updated to Rows) -->
+                    <div class="space-y-2">
+                        ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
+                        filtered.map(c => `
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group hover:bg-slate-50 transition-colors">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-bold text-lg text-slate-800">${c.name}</span>
+                                    <span class="text-sm font-bold ${c.gender==='남성'?'text-blue-500':'text-red-500'}">(${calculateAge(c.birthDate)}세/${c.gender})</span>
+                                    <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">${c.region}</span>
+                                </div>
+                                <div class="flex flex-wrap gap-2 text-sm text-slate-600 items-center">
+                                    <span class="flex items-center gap-1"><i data-lucide="phone" size="12"></i> ${c.phone||'-'}</span>
+                                    <span class="hidden sm:inline text-slate-300">|</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="home" size="12"></i> ${c.address||'-'}</span>
                                 </div>
                             </div>
-                            <div class="flex flex-wrap gap-1 mb-3">
-                                <span class="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded">${c.region}</span>
-                                <span class="${c.careLevel==='중점'?'bg-pink-100 text-pink-700':'bg-blue-100 text-blue-700'} text-xs px-2 py-1 rounded">${c.careLevel}</span>
-                                <span class="${c.status==='이용'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-500'} text-xs px-2 py-1 rounded">${c.status}</span>
-                            </div>
-                            <div class="text-sm text-slate-600 space-y-1">
-                                <p class="flex items-center gap-2"><i data-lucide="phone" size="14"></i> ${c.phone||'-'}</p>
-                                <p class="flex items-center gap-2"><i data-lucide="home" size="14"></i> ${c.address||'-'}</p>
+                            
+                            <div class="flex flex-row sm:flex-col md:flex-row items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+                                <div class="flex gap-1">
+                                    <span class="text-xs px-2 py-1 rounded ${c.careLevel==='중점'?'bg-pink-100 text-pink-700':'bg-blue-100 text-blue-700'}">${c.careLevel}</span>
+                                    <span class="text-xs px-2 py-1 rounded ${c.status==='이용'?'bg-green-100 text-green-700':'bg-slate-100 text-slate-500'}">${c.status}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    ${c.status !== '종결' ? `
+                                    <button onclick="app.getAiRecommendation('${c.id}')" class="text-purple-600 hover:bg-purple-50 p-1.5 rounded" title="AI 제안">
+                                        <i data-lucide="sparkles" size="18"></i>
+                                    </button>` : ''}
+                                    <button onclick="app.openClientModal('${c.id}')" class="text-slate-400 hover:text-blue-500 p-1.5 rounded" title="수정">
+                                        <i data-lucide="edit" size="18"></i>
+                                    </button>
+                                    <button onclick="app.deleteData('clients','${c.id}')" class="text-slate-400 hover:text-red-500 p-1.5 rounded" title="삭제">
+                                        <i data-lucide="trash-2" size="18"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>`).join('')}
                     </div>
@@ -237,46 +307,94 @@
         }
 
         function renderLogManager() {
-            const { start, end, search, category } = state.filters.log;
+            const { start, end, search, category, service } = state.filters.log;
             const filtered = state.logs.filter(l => 
                 (!start || l.date >= start) && (!end || l.date <= end) && (!search || l.clientName.includes(search)) && 
-                (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category)))
+                (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
+                (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))
             );
             const categories = [...new Set(state.services.map(s => s.category))];
+            const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
 
             return `
                 <div class="space-y-6 animate-fade-in">
                     <div class="flex justify-between items-center">
-                        <h2 class="text-2xl font-bold text-slate-800">서비스 일지</h2>
-                        <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><i data-lucide="plus" size="16"></i> 작성</button>
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
+                        <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium"><i data-lucide="plus" size="16"></i> 작성</button>
                     </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap gap-2 items-center">
-                        <input type="date" class="input-field py-1.5 w-32" value="${start}" onchange="app.setFilter('log','start',this.value)">
-                        <span class="text-slate-400">~</span>
-                        <input type="date" class="input-field py-1.5 w-32" value="${end}" onchange="app.setFilter('log','end',this.value)">
-                        <input class="input-field py-1.5 w-32" placeholder="이름" value="${search}" oninput="app.setFilter('log','search',this.value)">
-                        <select class="input-field py-1.5 w-32" onchange="app.setFilter('log','category',this.value)"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row flex-wrap gap-2 items-start sm:items-center">
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <input type="date" class="input-field py-1.5 w-full sm:w-32 text-sm" value="${start}" onchange="app.setFilter('log','start',this.value)">
+                            <span class="text-slate-400">~</span>
+                            <input type="date" class="input-field py-1.5 w-full sm:w-32 text-sm" value="${end}" onchange="app.setFilter('log','end',this.value)">
+                        </div>
+                        <input class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="이름" value="${search}" oninput="app.setFilter('log','search',this.value)">
+                        <div class="flex gap-2 w-full sm:w-auto flex-1">
+                            <select class="input-field py-1.5 w-full sm:w-32 text-sm" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');">
+                                <option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}
+                            </select>
+                            <select class="input-field py-1.5 w-full sm:w-32 text-sm" onchange="app.setFilter('log','service',this.value)">
+                                <option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <button onclick="app.resetFilters('log')" class="w-full sm:w-auto text-slate-400 hover:text-slate-600 text-xs flex items-center justify-center gap-1"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                     </div>
                     <div class="space-y-4">
-                        ${filtered.map(l => {
+                        ${filtered.length === 0 ? '<div class="text-center py-12 text-slate-400">검색 결과가 없습니다.</div>' : filtered.map(l => {
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
-                            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4">
-                                <div class="md:w-48 border-r border-slate-100 pr-4">
-                                    <div class="text-sm text-slate-500">${l.date}</div>
-                                    <div class="font-bold text-lg">${l.clientName}</div>
-                                    <div class="text-xs text-slate-500">${c ? `${calculateAge(c.birthDate)}세 | ${c.careLevel}` : ''}</div>
-                                    <div class="mt-2 flex flex-wrap gap-1">
-                                        ${l.serviceItems ? l.serviceItems.map(i => `<span class="bg-emerald-50 text-emerald-700 text-xs px-2 py-1 rounded">${i.serviceName}</span>`).join('') : ''}
+                            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow">
+                                <!-- Left Column: Adjusted width to 1/3 (md:w-1/3) -->
+                                <div class="md:w-1/3 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6 flex-shrink-0">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm text-slate-500 font-medium flex items-center gap-1"><i data-lucide="calendar" size="14"></i> ${l.date}</span>
+                                        <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full font-medium">${l.provideMethod || '방문'}</span>
+                                    </div>
+                                    <div class="mb-4">
+                                        <div class="flex items-baseline gap-2">
+                                            <span class="text-lg font-bold text-slate-800">${l.clientName}</span>
+                                            <span class="text-xs text-slate-500">${c ? `(${calculateAge(c.birthDate)}세/${c.gender})` : ''}</span>
+                                        </div>
+                                        ${c ? `<div class="text-xs text-slate-400 mt-0.5">${c.region} | ${c.careLevel}</div>` : ''}
+                                    </div>
+                                    
+                                    <div class="space-y-2">
+                                        ${l.serviceItems ? l.serviceItems.map(i => `
+                                            <div class="bg-emerald-50/50 border border-emerald-100 rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-xs">
+                                                <span class="font-bold text-emerald-800 whitespace-nowrap flex-shrink-0 flex items-center gap-1">
+                                                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                                    ${i.category} > ${i.serviceName}
+                                                </span>
+                                                ${i.detailNote ? `
+                                                    <span class="text-slate-300 mx-1">|</span>
+                                                    <span class="text-slate-600 truncate min-w-0" title="${i.detailNote}">${i.detailNote}</span>
+                                                ` : ''}
+                                            </div>
+                                        `).join('') : ''}
                                     </div>
                                 </div>
-                                <div class="flex-1 relative">
+
+                                <!-- Right Column: Content Area -->
+                                <div class="flex-1 relative min-w-0 flex flex-col">
                                     <div class="absolute top-0 right-0 flex gap-1">
-                                        <button onclick="app.duplicateLog('${l.id}')" class="p-1 text-slate-300 hover:text-emerald-500"><i data-lucide="copy" size="16"></i></button>
-                                        <button onclick="app.openLogModal('${l.id}')" class="p-1 text-slate-300 hover:text-blue-500"><i data-lucide="edit" size="16"></i></button>
-                                        <button onclick="app.deleteData('logs','${l.id}')" class="p-1 text-slate-300 hover:text-red-500"><i data-lucide="trash-2" size="16"></i></button>
+                                        <button onclick="app.duplicateLog('${l.id}')" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="복사"><i data-lucide="copy" size="16"></i></button>
+                                        <button onclick="app.openLogModal('${l.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="수정"><i data-lucide="edit" size="16"></i></button>
+                                        <button onclick="app.deleteData('logs','${l.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="16"></i></button>
                                     </div>
-                                    <p class="text-slate-600 whitespace-pre-wrap mt-6 md:mt-0">${l.content}</p>
+
+                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                        <i data-lucide="file-text" size="12"></i> 진행 내용
+                                    </div>
+                                    
+                                    <div class="flex-1">
+                                        <p class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap line-clamp-3 hover:line-clamp-none transition-all cursor-pointer p-1 -ml-1 rounded hover:bg-slate-50" title="클릭하여 전체보기" onclick="this.classList.toggle('line-clamp-3')">${l.content}</p>
+                                    </div>
+
+                                    <div class="mt-4 pt-3 border-t border-slate-50 flex justify-end">
+                                        <span class="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded flex items-center gap-1">
+                                            <i data-lucide="user" size="12"></i> 작성자: <span class="text-slate-600 font-medium">${l.provider || '미지정'}</span>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>`
                         }).join('')}
@@ -284,44 +402,234 @@
                 </div>`;
         }
 
+        function renderStatistics() {
+            const { start, end, type, region, name } = state.filters.stats;
+            const targetClients = state.clients.filter(c => 
+                (!region || c.region === region) && 
+                (!name || c.name.includes(name))
+            );
+
+            let serviceHeaders = [];
+            let headerGroups = {}; 
+
+            if (type === 'category') {
+                serviceHeaders = [...new Set(state.services.map(s => s.category))].filter(Boolean).sort();
+            } else {
+                state.services.forEach(s => {
+                    const cat = s.category || '기타';
+                    if (!headerGroups[cat]) headerGroups[cat] = [];
+                    if (!headerGroups[cat].includes(s.name)) headerGroups[cat].push(s.name);
+                });
+                serviceHeaders = Object.keys(headerGroups).sort().flatMap(cat => headerGroups[cat]);
+            }
+
+            const dataMap = {}; 
+            
+            targetClients.forEach(c => {
+                dataMap[c.id] = { name: c.name, total: 0, counts: {} };
+                serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0);
+            });
+
+            state.logs.forEach(l => {
+                if (l.date < start || l.date > end) return;
+                let cid = l.clientId;
+                if (!dataMap[cid] && l.clientName) {
+                    const found = targetClients.find(c => c.name === l.clientName);
+                    if(found) cid = found.id;
+                }
+
+                if (dataMap[cid]) {
+                    const items = l.serviceItems || [{ serviceName: l.serviceName, category: l.serviceCategory }];
+                    items.forEach(item => {
+                        let key = type === 'category' ? item.category : item.serviceName;
+                        if (!key && item.serviceName && type === 'category') {
+                            const s = state.services.find(svc => svc.name === item.serviceName);
+                            if(s) key = s.category;
+                        }
+                        
+                        if (key && dataMap[cid].counts[key] !== undefined) {
+                            dataMap[cid].counts[key]++;
+                            dataMap[cid].total++;
+                        }
+                    });
+                }
+            });
+
+            const rows = Object.values(dataMap).filter(r => r.total >= 0).sort((a,b) => b.total - a.total);
+            const colTotals = {};
+            serviceHeaders.forEach(k => colTotals[k] = rows.reduce((sum, r) => sum + (r.counts[k]||0), 0));
+            const grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
+
+            let theadHTML = '';
+            if (type === 'category') {
+                theadHTML = `<tr>
+                    <th class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 text-xs sm:text-sm">대상자</th>
+                    <th class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] text-xs sm:text-sm">합계</th>
+                    ${serviceHeaders.map(k => `<th class="p-3 border-b border-r min-w-[80px] text-xs sm:text-sm">${k}</th>`).join('')}
+                </tr>`;
+            } else {
+                const categories = Object.keys(headerGroups).sort();
+                theadHTML = `<tr>
+                    <th rowspan="2" class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 z-30 text-xs sm:text-sm">대상자</th>
+                    <th rowspan="2" class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] z-30 text-xs sm:text-sm">합계</th>
+                    ${categories.map(cat => `<th colspan="${headerGroups[cat].length}" class="p-2 border-b border-r bg-slate-100 text-center text-xs">${cat}</th>`).join('')}
+                </tr><tr>
+                    ${categories.map(cat => headerGroups[cat].map(svc => `<th class="p-2 border-b border-r font-normal text-xs min-w-[80px]">${svc}</th>`).join('')).join('')}
+                </tr>`;
+            }
+
+            return `
+                <div class="space-y-6 animate-fade-in">
+                    <h2 class="text-2xl font-bold text-slate-800">서비스 제공 통계</h2>
+                    <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm">
+                        <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
+                            <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
+                            <button onclick="app.setFilter('stats','type','detail')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='detail'?'bg-white shadow':''}">상세별</button>
+                        </div>
+                        <div class="flex w-full sm:w-auto gap-2">
+                            <input type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${start}" onchange="app.setFilter('stats','start',this.value)" max="9999-12-31">
+                            <input type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${end}" onchange="app.setFilter('stats','end',this.value)" max="9999-12-31">
+                        </div>
+                        <div class="flex w-full sm:w-auto gap-2 flex-1">
+                            <input class="input-field w-full sm:w-24 py-1 text-sm" placeholder="이름" value="${name}" oninput="app.setFilter('stats','name',this.value)">
+                            <select class="input-field w-full sm:w-24 py-1 text-sm" onchange="app.setFilter('stats','region',this.value)"><option value="">전체 동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}</select>
+                        </div>
+                        <button onclick="app.downloadStatsExcel()" class="w-full sm:w-auto bg-emerald-600 text-white p-2 rounded flex justify-center"><i data-lucide="download" size="16"></i></button>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-auto max-h-[600px]">
+                        <table class="w-full text-sm text-left border-collapse whitespace-nowrap">
+                            <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20">${theadHTML}</thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="bg-slate-50 font-bold sticky top-0 z-10">
+                                    <td class="p-3 sticky-col border-r bg-slate-50">총계</td>
+                                    <td class="p-3 text-center border-r bg-emerald-50 text-emerald-700">${grandTotal}</td>
+                                    ${serviceHeaders.map(k => `<td class="p-3 text-center border-r">${colTotals[k]}</td>`).join('')}
+                                </tr>
+                                ${rows.map(r => `
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="p-3 sticky-col bg-white border-r group-hover:bg-slate-50">${r.name}</td>
+                                        <td class="p-3 text-center font-bold bg-emerald-50 border-r text-emerald-600">${r.total}</td>
+                                        ${serviceHeaders.map(k => `<td class="p-3 text-center border-r ${r.counts[k]>0?'bg-blue-50 font-medium text-blue-600 text-slate-800':'text-slate-300'}">${r.counts[k]||'-'}</td>`).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- ServiceManager (Updated) ---
+        function renderServiceManager() {
+            const isEditing = !!state.editingServiceId;
+            const editData = isEditing ? state.services.find(s => s.id === state.editingServiceId) : {};
+
+            return `
+                <div class="space-y-6 animate-fade-in">
+                    <h2 class="text-2xl font-bold text-slate-800">서비스 목록 설정</h2>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <form onsubmit="app.addService(event)" class="flex flex-col sm:flex-row flex-wrap gap-4 items-end">
+                            <div class="w-full sm:flex-1 min-w-[140px]">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">서비스 대분류</label>
+                                <input name="majorCategory" class="input-field" placeholder="예: 위기관리" value="${editData.majorCategory || ''}" list="list-major" autocomplete="off">
+                                <datalist id="list-major">${[...new Set(state.services.map(s=>s.majorCategory).filter(Boolean))].sort().map(v=>`<option value="${v}">`).join('')}</datalist>
+                            </div>
+                            <div class="w-full sm:flex-1 min-w-[140px]">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">서비스</label>
+                                <input name="category" class="input-field" placeholder="예: 사례관리" required value="${editData.category || ''}" list="list-cat" autocomplete="off">
+                                <datalist id="list-cat">${[...new Set(state.services.map(s=>s.category).filter(Boolean))].sort().map(v=>`<option value="${v}">`).join('')}</datalist>
+                            </div>
+                            <div class="w-full sm:flex-1 min-w-[140px]">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">서비스 상세내용</label>
+                                <input name="name" class="input-field" placeholder="예: 초기상담" required value="${editData.name || ''}">
+                            </div>
+                            <div class="w-full sm:flex-1 min-w-[140px]">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">예시</label>
+                                <input name="example" class="input-field" placeholder="예: 가정방문" value="${editData.example || ''}">
+                            </div>
+                            <div class="w-full sm:w-auto flex gap-2">
+                                ${isEditing ? `<button type="button" onclick="app.cancelEditService()" class="flex-1 sm:flex-none bg-slate-200 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-300 h-[42px] whitespace-nowrap">취소</button>` : ''}
+                                <button type="submit" class="flex-1 sm:flex-none bg-slate-800 text-white px-6 py-2 rounded-lg hover:bg-slate-700 h-[42px] whitespace-nowrap">${isEditing ? '수정' : '추가'}</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden overflow-x-auto">
+                        <table class="w-full text-left min-w-[800px]">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="p-4 font-semibold text-slate-600 whitespace-nowrap w-[20%]">서비스 대분류</th>
+                                    <th class="p-4 font-semibold text-slate-600 whitespace-nowrap w-[20%]">서비스</th>
+                                    <th class="p-4 font-semibold text-slate-600 whitespace-nowrap w-[25%]">서비스 상세내용</th>
+                                    <th class="p-4 font-semibold text-slate-600 whitespace-nowrap w-[25%]">예시</th>
+                                    <th class="p-4 font-semibold text-slate-600 text-right whitespace-nowrap w-[10%]">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody>${state.services.map(s => `
+                                <tr class="border-t border-slate-100 hover:bg-slate-50 ${state.editingServiceId === s.id ? 'bg-slate-100' : ''}">
+                                    <td class="p-4 text-slate-800">${s.majorCategory || '-'}</td>
+                                    <td class="p-4 text-slate-500"><span class="bg-slate-100 px-2 py-1 rounded text-xs">${s.category}</span></td>
+                                    <td class="p-4 text-slate-800 font-medium">${s.name}</td>
+                                    <td class="p-4 text-slate-600 text-sm">${s.example || '-'}</td>
+                                    <td class="p-4 text-right flex justify-end gap-1">
+                                        <button onclick="app.editService('${s.id}')" class="text-slate-400 hover:text-blue-500 p-1"><i data-lucide="edit" size="18"></i></button>
+                                        <button onclick="app.deleteData('services','${s.id}')" class="text-slate-400 hover:text-red-600 p-1"><i data-lucide="trash-2" size="18"></i></button>
+                                    </td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
         // --- 7. Modal & Form Logic ---
         window.app = {
             setTab: (t) => { state.activeTab = t; render(); document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('sidebar-overlay').classList.add('hidden'); },
             setFilter: (s, k, v) => { state.filters[s][k] = v; render(); },
             
+            // --- Reset Filters Logic ---
+            resetFilters: (scope) => {
+                const defaults = {
+                    client: { status: '', level: '', region: '', gender: '', search: '' },
+                    log: { start: '', end: '', search: '', category: '', service: '' }
+                };
+                state.filters[scope] = defaults[scope];
+                render();
+            },
+
             // --- Client Modal ---
             openClientModal: (id) => {
                 const c = id ? state.clients.find(x => x.id === id) : {};
                 const html = `
-                <div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto">
+                <div class="bg-white w-full max-w-4xl p-4 sm:p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto mx-2">
                     <h3 class="font-bold text-lg mb-4">${c.id ? '수정' : '등록'}</h3>
                     <form onsubmit="app.saveClient(event, '${c.id || ''}')" class="space-y-4">
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div><label class="text-sm">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div>
-                            <div><label class="text-sm">성별</label><select name="gender" class="input-field"><option value="남성">남성</option><option value="여성" ${c.gender==='여성'?'selected':''}>여성</option></select></div>
-                            <div><label class="text-sm">생년월일</label><input type="date" name="birthDate" class="input-field" value="${c.birthDate||''}"></div>
-                            <div><label class="text-sm">상태</label><select name="status" class="input-field">${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                            <div><label class="text-sm block mb-1">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div>
+                            <div><label class="text-sm block mb-1">성별</label><select name="gender" class="input-field"><option value="남성">남성</option><option value="여성" ${c.gender==='여성'?'selected':''}>여성</option></select></div>
+                            <div><label class="text-sm block mb-1">생년월일</label><input type="date" name="birthDate" class="input-field" value="${c.birthDate||''}" max="9999-12-31"></div>
+                            <div><label class="text-sm block mb-1">상태</label><select name="status" class="input-field">${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="text-sm">연락처</label><input name="phone" class="input-field" value="${c.phone||''}"></div>
-                            <div><label class="text-sm">보호자 연락처</label><div class="flex gap-2"><input name="guardianRelation" class="input-field w-20" placeholder="관계" value="${c.guardianRelation||''}"><input name="guardianPhone" class="input-field flex-1" placeholder="번호" value="${c.guardianPhone||''}"></div></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div><label class="text-sm block mb-1">연락처</label><input name="phone" class="input-field" value="${c.phone||''}"></div>
+                            <div><label class="text-sm block mb-1">보호자 연락처</label><div class="flex gap-2"><input name="guardianRelation" class="input-field w-20" placeholder="관계" value="${c.guardianRelation||''}"><input name="guardianPhone" class="input-field flex-1" placeholder="번호" value="${c.guardianPhone||''}"></div></div>
                         </div>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div><label class="text-sm">행정동</label><select name="region" class="input-field">${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${c.region===d?'selected':''}>${d}</option>`).join('')}</select></div>
-                            <div class="col-span-3"><label class="text-sm">주소</label><input name="address" class="input-field" value="${c.address||''}"></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                            <div><label class="text-sm block mb-1">행정동</label><select name="region" class="input-field">${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${c.region===d?'selected':''}>${d}</option>`).join('')}</select></div>
+                            <div class="sm:col-span-3"><label class="text-sm block mb-1">주소</label><input name="address" class="input-field" value="${c.address||''}"></div>
                         </div>
-                        <div class="grid grid-cols-3 gap-4">
-                            <div><label class="text-sm">등급</label><select name="careLevel" class="input-field">${CONSTANTS.CARE_LEVEL_LIST.map(v=>`<option value="${v}" ${c.careLevel===v?'selected':''}>${v}</option>`).join('')}</select></div>
-                            <div><label class="text-sm">경제상황</label><select name="economicStatus" class="input-field">${CONSTANTS.ECONOMIC_LIST.map(v=>`<option value="${v}" ${c.economicStatus===v?'selected':''}>${v}</option>`).join('')}</select></div>
-                            <div><label class="text-sm">세대유형</label><select name="householdType" class="input-field">${CONSTANTS.HOUSEHOLD_LIST.map(v=>`<option value="${v}" ${c.householdType===v?'selected':''}>${v}</option>`).join('')}</select></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div><label class="text-sm block mb-1">등급</label><select name="careLevel" class="input-field">${CONSTANTS.CARE_LEVEL_LIST.map(v=>`<option value="${v}" ${c.careLevel===v?'selected':''}>${v}</option>`).join('')}</select></div>
+                            <div><label class="text-sm block mb-1">경제상황</label><select name="economicStatus" class="input-field">${CONSTANTS.ECONOMIC_LIST.map(v=>`<option value="${v}" ${c.economicStatus===v?'selected':''}>${v}</option>`).join('')}</select></div>
+                            <div><label class="text-sm block mb-1">세대유형</label><select name="householdType" class="input-field">${CONSTANTS.HOUSEHOLD_LIST.map(v=>`<option value="${v}" ${c.householdType===v?'selected':''}>${v}</option>`).join('')}</select></div>
                         </div>
-                         <div class="grid grid-cols-3 gap-4">
-                            <div><label class="text-sm">시작일</label><input type="date" name="serviceStartDate" class="input-field" value="${c.serviceStartDate||''}"></div>
-                            <div><label class="text-sm">부재기간</label><input name="absencePeriod" class="input-field" value="${c.absencePeriod||''}"></div>
-                            <div><label class="text-sm">종결일</label><input type="date" name="endDate" class="input-field" value="${c.endDate||''}"></div>
+                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div><label class="text-sm block mb-1">시작일</label><input type="date" name="serviceStartDate" class="input-field" value="${c.serviceStartDate||''}" max="9999-12-31"></div>
+                            <div><label class="text-sm block mb-1">부재기간</label><input name="absencePeriod" class="input-field" value="${c.absencePeriod||''}"></div>
+                            <div><label class="text-sm block mb-1">종결일</label><input type="date" name="endDate" class="input-field" value="${c.endDate||''}" max="9999-12-31"></div>
                         </div>
-                        <div><label class="text-sm">비고</label><textarea name="note" class="input-field" rows="2">${c.note||''}</textarea></div>
-                        <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600">취소</button><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">저장</button></div>
+                        <div><label class="text-sm block mb-1">비고</label><textarea name="note" class="input-field" rows="2">${c.note||''}</textarea></div>
+                        <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg">취소</button><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">저장</button></div>
                     </form>
                 </div>`;
                 showModal(html);
@@ -340,24 +648,55 @@
 
             // --- Log Modal ---
             openLogModal: (id) => {
-                const l = id ? state.logs.find(x => x.id === id) : { date: new Date().toISOString().split('T')[0], serviceItems: [{id: Date.now(), category:'', serviceName:'', detailNote:''}] };
+                const l = id ? state.logs.find(x => x.id === id) : { date: new Date().toISOString().split('T')[0], provideMethod: '방문', provider: '', serviceItems: [{id: Date.now(), category:'', serviceName:'', detailNote:''}] };
                 const c = state.clients.find(x => x.name === l.clientName) || {};
-                
-                // 전역 임시 저장 (서비스 항목)
                 window.tempServiceItems = l.serviceItems || [{id: Date.now(), category:'', serviceName:'', detailNote:''}];
 
                 const html = `
-                <div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto">
+                <div class="bg-white w-full max-w-4xl p-4 sm:p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto mx-2">
                     <h3 class="font-bold text-lg mb-4">${l.id ? '수정' : '작성'}</h3>
                     <form onsubmit="app.saveLog(event, '${l.id || ''}')" class="space-y-4">
-                        <div class="grid grid-cols-4 gap-4 bg-slate-50 p-4 rounded">
-                            <div><label class="text-sm">날짜</label><input type="date" name="date" class="input-field" value="${l.date}" required></div>
-                            <div><label class="text-sm">대상자</label><input list="cl-list" name="clientName" class="input-field" value="${l.clientName||''}" required onchange="app.fillClientInfo(this)"><datalist id="cl-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist></div>
-                            <div class="col-span-2 flex gap-2">
-                                <input id="d-birth" class="input-field" readonly value="${c.birthDate||''}" placeholder="생년월일">
-                                <input id="d-region" class="input-field" readonly value="${c.region||''}" placeholder="행정동">
+                        <!-- Row 1: Date, Method, Provider -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">날짜</label>
+                                <input type="date" name="date" class="input-field" value="${l.date}" required max="9999-12-31">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">제공방법</label>
+                                <select name="provideMethod" class="input-field">
+                                    ${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${l.provideMethod===m?'selected':''}>${m}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">제공자</label>
+                                <input name="provider" class="input-field" value="${l.provider || ''}" placeholder="담당자">
                             </div>
                         </div>
+
+                        <!-- Row 2: Client Search & Auto Info -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded mt-2">
+                            <div class="md:col-span-1">
+                                <label class="block text-sm font-medium mb-1">대상자 검색</label>
+                                <input list="cl-list" name="clientName" class="input-field" value="${l.clientName||''}" required onchange="app.fillClientInfo(this)" autocomplete="off">
+                                <datalist id="cl-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist>
+                            </div>
+                            <div class="md:col-span-3 flex flex-col sm:flex-row gap-2">
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium mb-1 text-slate-500">생년월일</label>
+                                    <input id="d-birth" class="input-field bg-slate-100" readonly value="${c.birthDate||''}">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium mb-1 text-slate-500">행정동</label>
+                                    <input id="d-region" class="input-field bg-slate-100" readonly value="${c.region||''}">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium mb-1 text-slate-500">관리등급</label>
+                                    <input id="d-level" class="input-field bg-slate-100" readonly value="${c.careLevel||''}">
+                                </div>
+                            </div>
+                        </div>
+
                         <div>
                             <div class="flex justify-between mb-2"><label class="font-bold text-sm">서비스 (최대 6개)</label><button type="button" onclick="app.addSvcRow()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">추가</button></div>
                             <div id="svc-container" class="space-y-2"></div>
@@ -366,7 +705,7 @@
                             <div class="flex justify-between mb-1"><label class="text-sm">내용</label><button type="button" onclick="app.aiDraft()" class="text-xs bg-purple-100 text-purple-700 px-2 rounded">AI 다듬기</button></div>
                             <textarea id="log-content" name="content" class="input-field h-32" required>${l.content||''}</textarea>
                         </div>
-                        <div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600">취소</button><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">저장</button></div>
+                        <div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg">취소</button><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">저장</button></div>
                     </form>
                 </div>`;
                 showModal(html);
@@ -376,8 +715,13 @@
             fillClientInfo: (input) => {
                 const c = state.clients.find(x => x.name === input.value);
                 if(c) {
-                    document.getElementById('d-birth').value = c.birthDate;
-                    document.getElementById('d-region').value = c.region;
+                    document.getElementById('d-birth').value = c.birthDate || '';
+                    document.getElementById('d-region').value = c.region || '';
+                    document.getElementById('d-level').value = c.careLevel || '';
+                } else {
+                    document.getElementById('d-birth').value = '';
+                    document.getElementById('d-region').value = '';
+                    document.getElementById('d-level').value = '';
                 }
             },
             addSvcRow: () => {
@@ -392,7 +736,6 @@
                 const cName = fd.get('clientName');
                 const client = state.clients.find(x => x.name === cName);
                 
-                // DOM에서 서비스 항목 수집
                 const items = Array.from(document.querySelectorAll('.svc-row')).map(row => ({
                     category: row.querySelector('.cat-sel').value,
                     serviceName: row.querySelector('.svc-sel').value,
@@ -403,11 +746,13 @@
 
                 const data = {
                     date: fd.get('date'),
+                    provideMethod: fd.get('provideMethod'),
+                    provider: fd.get('provider'),
                     clientName: cName,
                     clientId: client ? client.id : 'unknown',
                     content: fd.get('content'),
                     serviceItems: items,
-                    serviceName: items.map(i=>i.serviceName).join(', ') // 대표 표시용
+                    serviceName: items.map(i=>i.serviceName).join(', ') 
                 };
 
                 try {
@@ -419,7 +764,7 @@
             duplicateLog: async (id) => {
                 const l = state.logs.find(x => x.id === id);
                 if(l) {
-                    const { id, ...data } = l; // ID 제외 복사
+                    const { id, ...data } = l; 
                     data.date = new Date().toISOString().split('T')[0];
                     await addDoc(collection(db, "logs"), data);
                 }
@@ -438,10 +783,32 @@
             closeModal: () => closeModal(),
             
             // --- Service Settings & Excel ---
+            editService: (id) => {
+                state.editingServiceId = id;
+                render();
+            },
+            cancelEditService: () => {
+                state.editingServiceId = null;
+                render();
+            },
             addService: async (e) => {
                 e.preventDefault();
-                await addDoc(collection(db, "services"), Object.fromEntries(new FormData(e.target)));
-                e.target.reset();
+                const data = Object.fromEntries(new FormData(e.target));
+                
+                try {
+                    if (state.editingServiceId) {
+                        await updateDoc(doc(db, "services", state.editingServiceId), data);
+                        state.editingServiceId = null;
+                        alert("서비스가 수정되었습니다.");
+                    } else {
+                        await addDoc(collection(db, "services"), data);
+                        alert("서비스가 추가되었습니다.");
+                    }
+                    e.target.reset();
+                    render();
+                } catch (err) {
+                    alert("오류 발생: " + err.message);
+                }
             },
             downloadTemplate: () => {
                 const ws = XLSX.utils.aoa_to_sheet([['이름','성별','생년월일','행정동','연락처','상태']]);
@@ -462,6 +829,14 @@
                     alert("등록이 시작되었습니다. 잠시 후 새로고침 됩니다.");
                 };
                 reader.readAsBinaryString(input.files[0]);
+            },
+            downloadStatsExcel: () => {
+                const ws = XLSX.utils.json_to_sheet(state.logs.map(l => ({
+                    날짜: l.date, 대상자: l.clientName, 서비스: l.serviceName, 내용: l.content
+                })));
+                const wb = XLSX.utils.book_new(); 
+                XLSX.utils.book_append_sheet(wb, ws, "통계");
+                XLSX.writeFile(wb, "통계데이터.xlsx");
             }
         };
 
@@ -476,18 +851,19 @@
         function renderSvcRow(item) {
             const cats = [...new Set(state.services.map(s => s.category))];
             const div = document.createElement('div');
-            div.className = "svc-row flex gap-2 mb-2";
+            div.className = "svc-row flex flex-col sm:flex-row gap-2 mb-2 p-2 border rounded bg-white sm:bg-transparent sm:border-0";
             div.id = `row-${item.id || Date.now()}`;
             div.innerHTML = `
-                <select class="cat-sel input-field w-1/3" onchange="app.updateOpts(this)">
+                <select class="cat-sel input-field w-full sm:w-1/4" onchange="app.updateOpts(this)">
                     <option value="">분류</option>${cats.map(c=>`<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
                 </select>
-                <select class="svc-sel input-field w-1/3"><option value="${item.serviceName}">${item.serviceName||'선택'}</option></select>
-                <input class="det-inp input-field flex-1" placeholder="메모" value="${item.detailNote||''}">
-                <button type="button" onclick="app.removeSvcRow('${div.id.split('-')[1]}')" class="text-red-400"><i data-lucide="minus-circle"></i></button>
+                <select class="svc-sel input-field w-full sm:w-1/3"><option value="${item.serviceName}">${item.serviceName||'선택'}</option></select>
+                <div class="flex w-full sm:flex-1 gap-2">
+                    <input class="det-inp input-field flex-1" placeholder="메모" value="${item.detailNote||''}">
+                    <button type="button" onclick="app.removeSvcRow('${div.id.split('-')[1]}')" class="text-red-400 p-1"><i data-lucide="minus-circle"></i></button>
+                </div>
             `;
             document.getElementById('svc-container').appendChild(div);
-            // Trigger option update if category exists
             if(item.category) {
                 const sel = div.querySelector('.svc-sel');
                 const svcs = state.services.filter(s => s.category === item.category);
@@ -500,7 +876,6 @@
             el.nextElementSibling.innerHTML = svcs.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
         };
 
-        // Render Functions
         function render() {
             const main = document.getElementById('main-content');
             document.querySelectorAll('.nav-item').forEach(b => {
@@ -511,35 +886,11 @@
             if (state.activeTab === 'dashboard') main.innerHTML = renderDashboard();
             else if (state.activeTab === 'clients') main.innerHTML = renderClientManager();
             else if (state.activeTab === 'logs') main.innerHTML = renderLogManager();
-            else if (state.activeTab === 'services') {
-                main.innerHTML = `
-                <div class="space-y-6">
-                    <h2 class="text-2xl font-bold">서비스 설정</h2>
-                    <div class="bg-white p-6 rounded-xl shadow-sm">
-                        <form onsubmit="app.addService(event)" class="flex gap-4 items-end">
-                            <div><label class="text-sm">대분류</label><input name="majorCategory" class="input-field" placeholder="위기관리"></div>
-                            <div><label class="text-sm">분류</label><input name="category" class="input-field" placeholder="사례관리" required></div>
-                            <div><label class="text-sm">서비스명</label><input name="name" class="input-field" placeholder="상담" required></div>
-                            <div class="flex-1"><label class="text-sm">예시</label><input name="example" class="input-field" placeholder="방문"></div>
-                            <button class="bg-slate-800 text-white px-4 py-2 rounded">추가</button>
-                        </form>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm p-4">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-50"><tr><th class="p-2">분류</th><th class="p-2">서비스명</th><th class="p-2">예시</th><th class="p-2">삭제</th></tr></thead>
-                            <tbody>${state.services.map(s=>`<tr class="border-t"><td class="p-2">${s.category}</td><td class="p-2 font-bold">${s.name}</td><td class="p-2 text-sm">${s.example||''}</td><td class="p-2"><button onclick="app.deleteData('services','${s.id}')" class="text-red-400"><i data-lucide="trash-2" size="16"></i></button></td></tr>`).join('')}</tbody>
-                        </table>
-                    </div>
-                </div>`;
-            } else if (state.activeTab === 'statistics') {
-                // Simple Stats View
-                main.innerHTML = `<div class="p-12 text-center text-slate-500">통계 기능 준비 중... (엑셀 다운로드는 가능)</div>`;
-            }
+            else if (state.activeTab === 'statistics') main.innerHTML = renderStatistics();
+            else if (state.activeTab === 'services') main.innerHTML = renderServiceManager();
             lucide.createIcons();
         }
 
-        // --- Init ---
-        // 모바일 메뉴
         document.getElementById('mobile-menu-btn').addEventListener('click', () => {
             const s = document.getElementById('sidebar');
             if(s.classList.contains('-translate-x-full')) { s.classList.remove('-translate-x-full'); document.getElementById('sidebar-overlay').classList.remove('hidden'); }
@@ -547,7 +898,6 @@
         });
         document.getElementById('sidebar-overlay').addEventListener('click', () => { document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('sidebar-overlay').classList.add('hidden'); });
 
-        // Start
         initDataSync();
     </script>
 </body>
