@@ -5,12 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>청전광장 - 사회복지 통합관리 시스템</title>
     
+    <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Lucide Icons (CDN) -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- SheetJS (Excel Library) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+    <!-- Custom Styles -->
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
@@ -26,6 +30,7 @@
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
             background-color: white;
+            font-size: 0.875rem; /* text-sm */
         }
 
         .input-field:focus {
@@ -70,6 +75,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden">
 
+    <!-- Mobile Header -->
     <div class="md:hidden fixed top-0 left-0 right-0 bg-slate-800 text-white p-4 flex justify-between items-center z-50 h-16">
         <h1 class="font-bold flex items-center gap-2 text-lg">
             <i data-lucide="book-open" class="text-emerald-400"></i>
@@ -80,6 +86,7 @@
         </button>
     </div>
 
+    <!-- Sidebar -->
     <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-800 text-white transform -translate-x-full md:relative md:translate-x-0 sidebar-transition flex flex-col pt-16 md:pt-0">
         <div class="p-6 hidden md:flex items-center justify-between">
             <h1 class="text-xl font-bold flex items-center gap-2">
@@ -115,14 +122,20 @@
         </div>
     </aside>
 
+    <!-- Overlay for Mobile Sidebar -->
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
 
+    <!-- Main Content -->
     <main class="flex-1 p-4 md:p-8 pt-20 md:pt-8 overflow-y-auto w-full relative" id="main-content">
-        </main>
+        <!-- Dynamic Content will be injected here -->
+    </main>
 
+    <!-- Modal Container -->
     <div id="modal-container" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay p-4">
-        </div>
+        <!-- Modal Content -->
+    </div>
 
+    <!-- Javascript Logic -->
     <script type="module">
         // --- 1. Mock Data & Constants (Firebase 대체용 로컬 데이터) ---
         const CONSTANTS = {
@@ -187,7 +200,7 @@
         }
 
         function callGeminiAPI(prompt) {
-            // 실제 API 호출 대신 모의 응답 (API 키가 없으므로)
+            // 실제 API 호출 대신 모의 응답
             return new Promise(resolve => {
                 setTimeout(() => {
                     resolve(`[AI 모의 응답]\n요청하신 내용에 대한 분석 결과입니다.\n\n해당 대상자는 현재 복합적인 욕구를 가지고 있으며, 정서적 지지와 경제적 지원이 동반되어야 할 것으로 보입니다.\n\n추천 서비스:\n1. 정기적인 안부 확인 (주 2회)\n2. 지역사회 자원 연계 (반찬 서비스)\n3. 심리 상담 프로그램 연계`);
@@ -298,6 +311,7 @@
                         </div>
                     </div>
 
+                    <!-- Search & Filter Bar -->
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row flex-wrap items-center gap-2">
                         <div class="flex items-center gap-1 text-slate-600 mr-2 font-bold text-sm"><i data-lucide="filter" size="16"></i> 필터</div>
                         <input type="text" placeholder="이름 검색" class="input-field py-2 text-sm flex-1 min-w-[120px]" 
@@ -314,6 +328,7 @@
                         <button onclick="app.resetFilters('client')" class="text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                     </div>
 
+                    <!-- List -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         ${filtered.length === 0 ? `<div class="col-span-full text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` : 
                         filtered.map(c => `
@@ -349,7 +364,7 @@
             `;
         }
 
-        // 4.3 Log Manager
+        // 4.3 LogManager (UI Logic Updated)
         function renderLogManager() {
             const { start, end, search, category, service } = state.filters.log;
             const filtered = state.logs.filter(l => {
@@ -509,7 +524,7 @@
                     <h2 class="text-2xl font-bold text-slate-800">서비스 목록 설정</h2>
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                         <form onsubmit="app.addService(event)" class="flex flex-col lg:flex-row gap-4 items-end">
-                            <div class="w-full lg:w-1/5"><label class="block text-sm font-medium text-slate-700 mb-1">대분류</label><input name="major" class="input-field" placeholder="위기관리"></div>
+                            <div class="w-full lg:w-1/5"><label class="block text-sm font-medium text-slate-700 mb-1">대분류</label><input name="majorCategory" class="input-field" placeholder="위기관리"></div>
                             <div class="w-full lg:w-1/5"><label class="block text-sm font-medium text-slate-700 mb-1">서비스</label><input name="category" class="input-field" placeholder="사례관리" required></div>
                             <div class="w-full lg:w-1/4"><label class="block text-sm font-medium text-slate-700 mb-1">상세내용</label><input name="name" class="input-field" placeholder="초기상담" required></div>
                             <div class="flex-1 w-full"><label class="block text-sm font-medium text-slate-700 mb-1">예시</label><input name="example" class="input-field" placeholder="가정방문"></div>
@@ -567,6 +582,7 @@
         // --- 6. Modal Functions (UI Generation) ---
         function getClientFormHTML(client = {}) {
             const isEdit = !!client.id;
+            // 빈 문자열로 초기화하여 undefined 방지
             const values = {
                 name: client.name || '',
                 gender: client.gender || '남성',
@@ -577,6 +593,12 @@
                 careLevel: client.careLevel || '일반',
                 address: client.address || '',
                 economicStatus: client.economicStatus || '일반(저소득)',
+                householdType: client.householdType || '독거세대',
+                guardianRelation: client.guardianRelation || '',
+                guardianPhone: client.guardianPhone || '',
+                serviceStartDate: client.serviceStartDate || '',
+                absencePeriod: client.absencePeriod || '',
+                endDate: client.endDate || '',
                 note: client.note || ''
             };
             
@@ -584,21 +606,49 @@
                 <div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto">
                     <h3 class="font-bold text-lg mb-4">${isEdit ? '대상자 수정' : '대상자 등록'}</h3>
                     <form onsubmit="app.saveClient(event, '${client.id || ''}')" class="space-y-4">
+                        
+                        <!-- Row 1 -->
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div class="col-span-1"><label class="block text-sm font-medium mb-1">이름</label><input name="name" class="input-field" value="${values.name}" required></div>
                             <div class="col-span-1"><label class="block text-sm font-medium mb-1">성별</label><select name="gender" class="input-field"><option value="남성" ${values.gender==='남성'?'selected':''}>남성</option><option value="여성" ${values.gender==='여성'?'selected':''}>여성</option></select></div>
                             <div class="col-span-1"><label class="block text-sm font-medium mb-1">생년월일</label><input type="date" name="birthDate" class="input-field" value="${values.birthDate}" required></div>
-                            <div class="col-span-1"><label class="block text-sm font-medium mb-1">상태</label><select name="status" class="input-field">${CONSTANTS.STATUS_LIST.map(s => `<option value="${s}" ${values.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                            <div class="col-span-1"><label class="block text-sm font-medium mb-1">서비스 상태</label><select name="status" class="input-field">${CONSTANTS.STATUS_LIST.map(s => `<option value="${s}" ${values.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
                         </div>
+
+                        <!-- Row 2 -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-sm font-medium mb-1">연락처</label><input name="phone" class="input-field" value="${values.phone}"></div>
-                            <div><label class="block text-sm font-medium mb-1">행정동</label><select name="region" class="input-field">${CONSTANTS.DONG_LIST.map(s => `<option value="${s}" ${values.region===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                             <div><label class="block text-sm font-medium mb-1">연락처</label><input name="phone" class="input-field" value="${values.phone}" placeholder="010-0000-0000"></div>
+                             <div>
+                                <label class="block text-sm font-medium mb-1">보호자 연락처</label>
+                                <div class="flex gap-2">
+                                    <input name="guardianRelation" class="input-field w-24 text-center" value="${values.guardianRelation}" placeholder="관계">
+                                    <input name="guardianPhone" class="input-field flex-1" value="${values.guardianPhone}" placeholder="010-0000-0000">
+                                </div>
+                             </div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-sm font-medium mb-1">주소</label><input name="address" class="input-field" value="${values.address}"></div>
-                            <div><label class="block text-sm font-medium mb-1">관리등급</label><select name="careLevel" class="input-field">${CONSTANTS.CARE_LEVEL_LIST.map(s => `<option value="${s}" ${values.careLevel===s?'selected':''}>${s}</option>`).join('')}</select></div>
+
+                        <!-- Row 3 -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                             <div class="col-span-1"><label class="block text-sm font-medium mb-1">행정동</label><select name="region" class="input-field">${CONSTANTS.DONG_LIST.map(s => `<option value="${s}" ${values.region===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                             <div class="col-span-3"><label class="block text-sm font-medium mb-1">상세 주소</label><input name="address" class="input-field" value="${values.address}" placeholder="상세 주소 입력"></div>
                         </div>
-                        <div><label class="block text-sm font-medium mb-1">비고</label><textarea name="note" class="input-field" rows="3">${values.note}</textarea></div>
+
+                        <!-- Row 4 -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label class="block text-sm font-medium mb-1">관리 등급</label><select name="careLevel" class="input-field">${CONSTANTS.CARE_LEVEL_LIST.map(s => `<option value="${s}" ${values.careLevel===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                            <div><label class="block text-sm font-medium mb-1">경제 상황</label><select name="economicStatus" class="input-field">${CONSTANTS.ECONOMIC_LIST.map(s => `<option value="${s}" ${values.economicStatus===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                            <div><label class="block text-sm font-medium mb-1">세대 유형</label><select name="householdType" class="input-field">${CONSTANTS.HOUSEHOLD_LIST.map(s => `<option value="${s}" ${values.householdType===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                        </div>
+
+                        <!-- Row 5 (Added Fields) -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label class="block text-sm font-medium mb-1">서비스 시작일</label><input type="date" name="serviceStartDate" class="input-field" value="${values.serviceStartDate}"></div>
+                            <div><label class="block text-sm font-medium mb-1">장기부재 기간</label><input name="absencePeriod" class="input-field" value="${values.absencePeriod}" placeholder="예: 2023.10.01~2023.10.31"></div>
+                            <div><label class="block text-sm font-medium mb-1">종결 일자</label><input type="date" name="endDate" class="input-field" value="${values.endDate}"></div>
+                        </div>
+
+                        <div><label class="block text-sm font-medium mb-1">비고</label><textarea name="note" class="input-field" rows="3" placeholder="특이사항 메모">${values.note}</textarea></div>
+                        
                         <div class="flex justify-end gap-2 mt-4">
                             <button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">취소</button>
                             <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">저장</button>
@@ -612,12 +662,21 @@
             const isEdit = !!log.id;
             const today = new Date().toISOString().split('T')[0];
             const categories = [...new Set(state.services.map(s => s.category))];
-            const currentItems = log.serviceItems || (isEdit ? [] : [{ id: Date.now(), category: '', serviceName: '', detailNote: '' }]);
-
-            // Note: Complex nested dynamic forms are hard in pure HTML string.
-            // Simplified: Single service selection for this demo, or basic multi-line
-            // For stability in "single file", we will use a simpler structure:
             
+            // For simple reconstruction
+            let category = '';
+            let serviceName = '';
+            
+            if(log.serviceItems && log.serviceItems.length > 0) {
+                 category = log.serviceItems[0].category;
+                 serviceName = log.serviceItems[0].serviceName;
+            } else if (log.serviceName) {
+                 serviceName = log.serviceName;
+                 // Try to find category
+                 const s = state.services.find(svc => svc.name === serviceName);
+                 if(s) category = s.category;
+            }
+
             return `
                 <div class="bg-white w-full max-w-3xl p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto">
                     <h3 class="font-bold text-lg mb-4">${isEdit ? '일지 수정' : '일지 작성'}</h3>
@@ -630,15 +689,17 @@
                             </div>
                         </div>
                         
+                        <!-- Service Item (Simplified to one item for robustness in vanilla js form) -->
                         <div class="p-4 bg-slate-50 rounded-lg">
                             <label class="block text-sm font-bold text-slate-700 mb-2">제공 서비스</label>
                             <div class="flex gap-2 mb-2">
                                 <select id="svc-cat" class="input-field flex-1" onchange="app.updateServiceOptions(this.value)">
                                     <option value="">분류 선택</option>
-                                    ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+                                    ${categories.map(c => `<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}
                                 </select>
                                 <select name="serviceName" id="svc-name" class="input-field flex-1" required>
-                                    <option value="${log.serviceName || ''}">${log.serviceName || '서비스 선택'}</option>
+                                    <option value="${serviceName}">${serviceName || '서비스 선택'}</option>
+                                    ${category ? state.services.filter(s => s.category === category).map(s => `<option value="${s.name}" ${s.name===serviceName?'selected':''}>${s.name}</option>`).join('') : ''}
                                 </select>
                             </div>
                         </div>
@@ -722,7 +783,7 @@
             updateServiceOptions: (category) => {
                 const select = document.getElementById('svc-name');
                 const services = state.services.filter(s => s.category === category);
-                select.innerHTML = services.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+                select.innerHTML = '<option value="">서비스 선택</option>' + services.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
             },
             saveLog: (e, id) => {
                 e.preventDefault();
@@ -811,7 +872,12 @@
 
             // Excel Functions
             downloadTemplate: () => {
-                const ws = XLSX.utils.aoa_to_sheet([['이름', '성별', '생년월일', '행정동', '연락처', '상태']]);
+                const header = [
+                    '이름', '성별', '생년월일(YYYY-MM-DD)', '행정동', '연락처', '서비스상태', 
+                    '주소', '관리등급', '경제상황', '세대유형', '보호자관계', '보호자연락처', 
+                    '서비스시작일', '장기부재기간', '종결일자', '비고'
+                ];
+                const ws = XLSX.utils.aoa_to_sheet([header]);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "양식");
                 XLSX.writeFile(wb, "대상자등록양식.xlsx");
@@ -828,8 +894,13 @@
                         if(row[0]) {
                             state.clients.push({
                                 id: generateId(),
-                                name: row[0], gender: row[1]||'남성', birthDate: row[2]||'', region: row[3]||'대연동',
-                                phone: row[4]||'', status: row[5]||'이용', careLevel: '일반', createdAt: new Date().toISOString()
+                                name: String(row[0]||''), gender: String(row[1]||'남성'), birthDate: String(row[2]||''), 
+                                region: String(row[3]||'대연동'), phone: String(row[4]||''), status: String(row[5]||'이용'), 
+                                address: String(row[6]||''), careLevel: String(row[7]||'일반'), economicStatus: String(row[8]||'일반(저소득)'),
+                                householdType: String(row[9]||'독거세대'), guardianRelation: String(row[10]||''), guardianPhone: String(row[11]||''),
+                                serviceStartDate: String(row[12]||''), absencePeriod: String(row[13]||''), endDate: String(row[14]||''),
+                                note: String(row[15]||''),
+                                createdAt: new Date().toISOString()
                             });
                             count++;
                         }
@@ -842,7 +913,6 @@
             },
             downloadStatsExcel: () => {
                 alert('통계 엑셀 다운로드가 시작됩니다.');
-                // (실제 구현 시 state.logs 기반으로 aoa 생성 후 XLSX.writeFile 호출)
                 const ws = XLSX.utils.json_to_sheet(state.logs);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "활동로그");
