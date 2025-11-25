@@ -217,10 +217,12 @@
                 if (!matchBasic) return false;
                 if (targetMonth) {
                     const [y, m] = targetMonth.split('-');
+                    const startOfMonth = `${y}-${m}-01`;
+                    const endOfMonth = `${y}-${m}-31`; 
                     const sDate = c.serviceStartDate || '9999-99-99';
                     const eDate = c.endDate || '9999-99-99';
-                    if (sDate > `${y}-${m}-31`) return false;
-                    if (eDate < `${y}-${m}-01`) return false;
+                    if (sDate > endOfMonth) return false;
+                    if (eDate < startOfMonth) return false;
                 }
                 return true;
             }).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
@@ -286,6 +288,7 @@
                         <button onclick="app.resetFilters('client')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 whitespace-nowrap"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                     </div>
 
+                    <!-- Client List -->
                     <div class="space-y-2">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
                         filtered.map(c => `
@@ -298,9 +301,9 @@
                                     ${targetMonth ? `<span class="text-xs text-emerald-600 bg-emerald-50 px-1.5 rounded border border-emerald-100 ml-1">이용중</span>` : ''}
                                 </div>
                                 <div class="flex flex-wrap gap-2 text-sm text-slate-600 items-center">
-                                    <span class="flex items-center gap-1"><i data-lucide="phone" size="12"></i> ${c.phone||'-'}</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="phone" size="10"></i> ${c.phone||'-'}</span>
                                     <span class="text-slate-300">|</span>
-                                    <span class="flex items-center gap-1"><i data-lucide="home" size="12"></i> ${c.address||'-'}</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="home" size="10"></i> ${c.address||'-'}</span>
                                 </div>
                             </div>
                             
@@ -517,21 +520,17 @@
                 <div class="space-y-6 animate-fade-in">
                     <h2 class="text-2xl font-bold text-slate-800">서비스 제공 통계</h2>
                     <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm">
-                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0">
-                            <i data-lucide="filter" size="14"></i> 필터
-                        </div>
-                        
-                        <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center flex-1">
+                        <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
                             <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
                             <button onclick="app.setFilter('stats','type','detail')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='detail'?'bg-white shadow':''}">상세별</button>
                         </div>
-                        <div class="flex w-full sm:w-auto gap-2 flex-1">
+                        <div class="flex w-full sm:w-auto gap-2">
                             <input type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${start}" onchange="app.setFilter('stats','start',this.value)" max="9999-12-31">
                             <input type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${end}" onchange="app.setFilter('stats','end',this.value)" max="9999-12-31">
                         </div>
                         <div class="flex w-full sm:w-auto gap-2 flex-1">
-                            <input class="input-field w-full sm:w-24 py-1 text-sm flex-1" placeholder="이름" value="${name}" oninput="app.setFilter('stats','name',this.value)">
-                            <select class="input-field w-full sm:w-24 py-1 text-sm flex-1" onchange="app.setFilter('stats','region',this.value)"><option value="">전체 동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}</select>
+                            <input class="input-field w-full sm:w-24 py-1 text-sm" placeholder="이름" value="${name}" oninput="app.setFilter('stats','name',this.value)">
+                            <select class="input-field w-full sm:w-24 py-1 text-sm" onchange="app.setFilter('stats','region',this.value)"><option value="">전체 동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}</select>
                         </div>
                         <button onclick="app.downloadStatsExcel()" class="w-full sm:w-auto bg-emerald-600 text-white p-2 rounded flex justify-center"><i data-lucide="download" size="16"></i></button>
                     </div>
@@ -630,7 +629,7 @@
             // --- Reset Filters Logic ---
             resetFilters: (scope) => {
                 const defaults = {
-                    client: { status: '', level: '', region: '', gender: '', search: '', targetMonth: '' }, // targetMonth -> targetYear 복구
+                    client: { status: '', level: '', region: '', gender: '', search: '', targetMonth: '' },
                     log: { start: '', end: '', search: '', category: '', service: '' }
                 };
                 state.filters[scope] = defaults[scope];
@@ -641,7 +640,7 @@
             downloadClientListExcel: () => {
                 const { search, status, level, region, gender, targetMonth } = state.filters.client;
                 
-                // Filter Logic (Reverted to Month)
+                // Filter Logic
                 const filtered = state.clients.filter(c => {
                     const matchBasic = (!search || c.name.includes(search)) &&
                                        (!status || c.status === status) &&
@@ -1099,9 +1098,9 @@
                     const client = state.clients.find(c => c.id === l.clientId);
                     const servicesHTML = l.serviceItems && l.serviceItems.length > 0 
                         ? l.serviceItems.map(i => 
-                            `<div style="margin-bottom:4px;">
-                                <span style="font-weight:bold;">[${i.category}] ${i.serviceName}</span>
-                                ${i.detailNote ? `<br/><span style="font-size:0.9em; color:#555;">└ ${i.detailNote}</span>` : ''}
+                            `<div>
+                                <b>[${i.category}] ${i.serviceName}</b>
+                                ${i.detailNote ? `<span style="font-size:0.9em; color:#555;"> - ${i.detailNote}</span>` : ''}
                             </div>`
                         ).join('')
                         : '-';
