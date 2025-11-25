@@ -116,7 +116,7 @@
             logs: [],
             editingServiceId: null,
             filters: {
-                client: { status: '', level: '', region: '', gender: '', search: '', targetMonth: '' }, // targetYear -> targetMonth 복구
+                client: { status: '', level: '', region: '', gender: '', search: '', targetMonth: '' },
                 log: { start: '', end: '', search: '', category: '', service: '' },
                 stats: { start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], end: new Date().toISOString().split('T')[0], type: 'detail', region: '', name: '' }
             }
@@ -208,27 +208,19 @@
         function renderClientManager() {
             const { search, status, level, region, gender, targetMonth } = state.filters.client;
             
-            // Filter Logic (Reverted to Month)
             const filtered = state.clients.filter(c => {
                 const matchBasic = (!search || c.name.includes(search)) &&
                                    (!status || c.status === status) &&
                                    (!level || c.careLevel === level) &&
                                    (!region || c.region === region) &&
                                    (!gender || c.gender === gender);
-                
                 if (!matchBasic) return false;
-
-                // Month Filter Logic (Active Clients in selected month)
                 if (targetMonth) {
                     const [y, m] = targetMonth.split('-');
-                    const startOfMonth = `${y}-${m}-01`;
-                    const endOfMonth = `${y}-${m}-31`; 
-                    
                     const sDate = c.serviceStartDate || '9999-99-99';
                     const eDate = c.endDate || '9999-99-99';
-
-                    if (sDate > endOfMonth) return false;
-                    if (eDate < startOfMonth) return false;
+                    if (sDate > `${y}-${m}-31`) return false;
+                    if (eDate < `${y}-${m}-01`) return false;
                 }
                 return true;
             }).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
@@ -270,36 +262,30 @@
                        </div>
                     </div>
 
-                    <!-- Responsive Filter Bar (Reverted: Month Input) -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0">
-                            <i data-lucide="filter" size="14"></i> 필터
-                        </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap gap-2 items-center">
+                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2"><i data-lucide="filter" size="14"></i> 필터</div>
                         
-                        <!-- Month Filter -->
-                        <input type="month" class="input-field py-1.5 text-sm w-36 flex-shrink-0" value="${targetMonth}" onchange="app.setFilter('client','targetMonth',this.value)" title="기준월">
+                        <input type="month" class="input-field py-1.5 text-sm w-32 flex-1" value="${targetMonth}" onchange="app.setFilter('client','targetMonth',this.value)" title="기준월">
+                        <input class="input-field py-1.5 text-sm w-28 flex-1" placeholder="이름" value="${search}" oninput="app.setFilter('client','search',this.value)">
                         
-                        <input class="input-field py-1.5 text-sm w-28 flex-shrink-0" placeholder="이름" value="${search}" oninput="app.setFilter('client','search',this.value)">
-                        
-                        <select class="input-field py-1.5 text-sm w-24 flex-shrink-0" onchange="app.setFilter('client','status',this.value)">
+                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','status',this.value)">
                             <option value="">상태</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}
                         </select>
-                        <select class="input-field py-1.5 text-sm w-24 flex-shrink-0" onchange="app.setFilter('client','level',this.value)">
+                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','level',this.value)">
                             <option value="">등급</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}
                         </select>
-                        <select class="input-field py-1.5 text-sm w-24 flex-shrink-0" onchange="app.setFilter('client','region',this.value)">
+                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','region',this.value)">
                             <option value="">동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}
                         </select>
-                        <select class="input-field py-1.5 text-sm w-24 flex-shrink-0" onchange="app.setFilter('client','gender',this.value)">
+                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','gender',this.value)">
                             <option value="">성별</option>
                             <option value="남성" ${gender==='남성'?'selected':''}>남성</option>
                             <option value="여성" ${gender==='여성'?'selected':''}>여성</option>
                         </select>
                         
-                        <button onclick="app.resetFilters('client')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                        <button onclick="app.resetFilters('client')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 whitespace-nowrap"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                     </div>
 
-                    <!-- Client List -->
                     <div class="space-y-2">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
                         filtered.map(c => `
@@ -362,17 +348,22 @@
                         </div>
                     </div>
                     <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row flex-wrap gap-2 items-start sm:items-center">
+                        
+                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 mb-1 sm:mb-0 w-full sm:w-auto">
+                            <i data-lucide="filter" size="14"></i> 필터
+                        </div>
+
                         <div class="flex items-center gap-2 w-full sm:w-auto">
                             <input type="date" class="input-field py-1.5 w-full sm:w-32 text-sm" value="${start}" onchange="app.setFilter('log','start',this.value)">
                             <span class="text-slate-400">~</span>
                             <input type="date" class="input-field py-1.5 w-full sm:w-32 text-sm" value="${end}" onchange="app.setFilter('log','end',this.value)">
                         </div>
-                        <input class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="이름" value="${search}" oninput="app.setFilter('log','search',this.value)">
+                        <input class="input-field py-1.5 w-full sm:w-32 text-sm flex-1" placeholder="이름" value="${search}" oninput="app.setFilter('log','search',this.value)">
                         <div class="flex gap-2 w-full sm:w-auto flex-1">
-                            <select class="input-field py-1.5 w-full sm:w-32 text-sm" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');">
+                            <select class="input-field py-1.5 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');">
                                 <option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}
                             </select>
-                            <select class="input-field py-1.5 w-full sm:w-32 text-sm" onchange="app.setFilter('log','service',this.value)">
+                            <select class="input-field py-1.5 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)">
                                 <option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}
                             </select>
                         </div>
@@ -526,17 +517,21 @@
                 <div class="space-y-6 animate-fade-in">
                     <h2 class="text-2xl font-bold text-slate-800">서비스 제공 통계</h2>
                     <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm">
-                        <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
+                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0">
+                            <i data-lucide="filter" size="14"></i> 필터
+                        </div>
+                        
+                        <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center flex-1">
                             <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
                             <button onclick="app.setFilter('stats','type','detail')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='detail'?'bg-white shadow':''}">상세별</button>
                         </div>
-                        <div class="flex w-full sm:w-auto gap-2">
+                        <div class="flex w-full sm:w-auto gap-2 flex-1">
                             <input type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${start}" onchange="app.setFilter('stats','start',this.value)" max="9999-12-31">
                             <input type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${end}" onchange="app.setFilter('stats','end',this.value)" max="9999-12-31">
                         </div>
                         <div class="flex w-full sm:w-auto gap-2 flex-1">
-                            <input class="input-field w-full sm:w-24 py-1 text-sm" placeholder="이름" value="${name}" oninput="app.setFilter('stats','name',this.value)">
-                            <select class="input-field w-full sm:w-24 py-1 text-sm" onchange="app.setFilter('stats','region',this.value)"><option value="">전체 동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}</select>
+                            <input class="input-field w-full sm:w-24 py-1 text-sm flex-1" placeholder="이름" value="${name}" oninput="app.setFilter('stats','name',this.value)">
+                            <select class="input-field w-full sm:w-24 py-1 text-sm flex-1" onchange="app.setFilter('stats','region',this.value)"><option value="">전체 동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}</select>
                         </div>
                         <button onclick="app.downloadStatsExcel()" class="w-full sm:w-auto bg-emerald-600 text-white p-2 rounded flex justify-center"><i data-lucide="download" size="16"></i></button>
                     </div>
