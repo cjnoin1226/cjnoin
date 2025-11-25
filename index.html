@@ -116,7 +116,7 @@
             logs: [],
             editingServiceId: null,
             filters: {
-                client: { status: '', level: '', region: '', gender: '', search: '' },
+                client: { status: '', level: '', region: '', gender: '', search: '', targetMonth: '' }, // targetYear -> targetMonth 복구
                 log: { start: '', end: '', search: '', category: '', service: '' },
                 stats: { start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], end: new Date().toISOString().split('T')[0], type: 'detail', region: '', name: '' }
             }
@@ -206,28 +206,46 @@
         }
 
         function renderClientManager() {
-            const { search, status, level, region, gender } = state.filters.client;
+            const { search, status, level, region, gender, targetMonth } = state.filters.client;
             
-            const totalCount = state.clients.length;
-            const highFocusCount = state.clients.filter(c => c.careLevel === '중점').length;
-            const generalCount = state.clients.filter(c => c.careLevel === '일반').length;
-            const maleCount = state.clients.filter(c => c.gender === '남성').length;
-            const femaleCount = state.clients.filter(c => c.gender === '여성').length;
+            // Filter Logic (Reverted to Month)
+            const filtered = state.clients.filter(c => {
+                const matchBasic = (!search || c.name.includes(search)) &&
+                                   (!status || c.status === status) &&
+                                   (!level || c.careLevel === level) &&
+                                   (!region || c.region === region) &&
+                                   (!gender || c.gender === gender);
+                
+                if (!matchBasic) return false;
 
-            const filtered = state.clients.filter(c => 
-                (!search || c.name.includes(search)) &&
-                (!status || c.status === status) &&
-                (!level || c.careLevel === level) &&
-                (!region || c.region === region) &&
-                (!gender || c.gender === gender)
-            ).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
+                // Month Filter Logic (Active Clients in selected month)
+                if (targetMonth) {
+                    const [y, m] = targetMonth.split('-');
+                    const startOfMonth = `${y}-${m}-01`;
+                    const endOfMonth = `${y}-${m}-31`; 
+                    
+                    const sDate = c.serviceStartDate || '9999-99-99';
+                    const eDate = c.endDate || '9999-99-99';
+
+                    if (sDate > endOfMonth) return false;
+                    if (eDate < startOfMonth) return false;
+                }
+                return true;
+            }).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
+
+            const totalCount = filtered.length;
+            const highFocusCount = filtered.filter(c => c.careLevel === '중점').length;
+            const generalCount = filtered.filter(c => c.careLevel === '일반').length;
+            const maleCount = filtered.filter(c => c.gender === '남성').length;
+            const femaleCount = filtered.filter(c => c.gender === '여성').length;
 
             return `
                 <div class="space-y-6 animate-fade-in">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                         <h2 class="text-xl md:text-2xl font-bold text-slate-800">대상자 관리</h2>
                         <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-                            <button onclick="app.downloadTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="download" size="14"></i> 양식</button>
+                            <button onclick="app.downloadClientListExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="download" size="14"></i> 명부 저장</button>
+                            <button onclick="app.downloadTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="file-text" size="14"></i> 양식</button>
                             <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 cursor-pointer flex-1 sm:flex-none justify-center"><i data-lucide="upload" size="14"></i> 엑셀등록<input type="file" class="hidden" onchange="app.uploadExcel(this)"></label>
                             <button onclick="app.openClientModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="plus" size="16"></i> 등록</button>
                         </div>
@@ -235,7 +253,7 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                          <div><p class="text-xs text-slate-500">총 대상자</p><p class="text-xl font-bold text-slate-800">${totalCount}명</p></div>
+                          <div><p class="text-xs text-slate-500">조회 대상자</p><p class="text-xl font-bold text-slate-800">${totalCount}명</p></div>
                           <div class="p-2 bg-slate-50 rounded-full text-slate-400"><i data-lucide="users" size="20"></i></div>
                        </div>
                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
@@ -252,17 +270,33 @@
                        </div>
                     </div>
 
-                    <!-- Responsive Filter Bar -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row flex-wrap gap-2 items-start sm:items-center">
-                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 mb-1 sm:mb-0 w-full sm:w-auto"><i data-lucide="filter" size="14"></i> 필터</div>
-                        <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto flex-1">
-                            <input class="input-field py-2 text-sm w-full sm:w-40 col-span-2 sm:col-span-1 min-w-[120px]" placeholder="이름 검색" value="${search}" oninput="app.setFilter('client','search',this.value)">
-                            <select class="input-field py-2 text-sm w-full sm:w-32 min-w-[90px]" onchange="app.setFilter('client','status',this.value)"><option value="">상태(전체)</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}</select>
-                            <select class="input-field py-2 text-sm w-full sm:w-32 min-w-[90px]" onchange="app.setFilter('client','level',this.value)"><option value="">등급(전체)</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}</select>
-                            <select class="input-field py-2 text-sm w-full sm:w-32 min-w-[90px]" onchange="app.setFilter('client','region',this.value)"><option value="">동(전체)</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}</select>
-                            <select class="input-field py-2 text-sm w-full sm:w-32 min-w-[90px]" onchange="app.setFilter('client','gender',this.value)"><option value="">성별(전체)</option><option value="남성" ${gender==='남성'?'selected':''}>남성</option><option value="여성" ${gender==='여성'?'selected':''}>여성</option></select>
+                    <!-- Responsive Filter Bar (Reverted: Month Input) -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0">
+                            <i data-lucide="filter" size="14"></i> 필터
                         </div>
-                        <button onclick="app.resetFilters('client')" class="w-full sm:w-auto mt-2 sm:mt-0 text-slate-400 hover:text-slate-600 text-xs flex items-center justify-center gap-1"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                        
+                        <!-- Month Filter -->
+                        <input type="month" class="input-field py-1.5 text-sm w-36 flex-shrink-0" value="${targetMonth}" onchange="app.setFilter('client','targetMonth',this.value)" title="기준월">
+                        
+                        <input class="input-field py-1.5 text-sm w-28 flex-shrink-0" placeholder="이름" value="${search}" oninput="app.setFilter('client','search',this.value)">
+                        
+                        <select class="input-field py-1.5 text-sm w-24 flex-shrink-0" onchange="app.setFilter('client','status',this.value)">
+                            <option value="">상태</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}
+                        </select>
+                        <select class="input-field py-1.5 text-sm w-24 flex-shrink-0" onchange="app.setFilter('client','level',this.value)">
+                            <option value="">등급</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}
+                        </select>
+                        <select class="input-field py-1.5 text-sm w-24 flex-shrink-0" onchange="app.setFilter('client','region',this.value)">
+                            <option value="">동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}
+                        </select>
+                        <select class="input-field py-1.5 text-sm w-24 flex-shrink-0" onchange="app.setFilter('client','gender',this.value)">
+                            <option value="">성별</option>
+                            <option value="남성" ${gender==='남성'?'selected':''}>남성</option>
+                            <option value="여성" ${gender==='여성'?'selected':''}>여성</option>
+                        </select>
+                        
+                        <button onclick="app.resetFilters('client')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                     </div>
 
                     <!-- Client List -->
@@ -275,10 +309,11 @@
                                     <span class="font-bold text-lg text-slate-800 cursor-pointer hover:text-blue-600 hover:underline transition-all" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
                                     <span class="text-sm font-bold ${c.gender==='남성'?'text-blue-500':'text-red-500'}">(${calculateAge(c.birthDate)}세/${c.gender})</span>
                                     <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">${c.region}</span>
+                                    ${targetMonth ? `<span class="text-xs text-emerald-600 bg-emerald-50 px-1.5 rounded border border-emerald-100 ml-1">이용중</span>` : ''}
                                 </div>
                                 <div class="flex flex-wrap gap-2 text-sm text-slate-600 items-center">
                                     <span class="flex items-center gap-1"><i data-lucide="phone" size="12"></i> ${c.phone||'-'}</span>
-                                    <span class="hidden sm:inline text-slate-300">|</span>
+                                    <span class="text-slate-300">|</span>
                                     <span class="flex items-center gap-1"><i data-lucide="home" size="12"></i> ${c.address||'-'}</span>
                                 </div>
                             </div>
@@ -600,11 +635,70 @@
             // --- Reset Filters Logic ---
             resetFilters: (scope) => {
                 const defaults = {
-                    client: { status: '', level: '', region: '', gender: '', search: '' },
+                    client: { status: '', level: '', region: '', gender: '', search: '', targetMonth: '' }, // targetMonth -> targetYear 복구
                     log: { start: '', end: '', search: '', category: '', service: '' }
                 };
                 state.filters[scope] = defaults[scope];
                 render();
+            },
+
+            // --- Download Client List (NEW) ---
+            downloadClientListExcel: () => {
+                const { search, status, level, region, gender, targetMonth } = state.filters.client;
+                
+                // Filter Logic (Reverted to Month)
+                const filtered = state.clients.filter(c => {
+                    const matchBasic = (!search || c.name.includes(search)) &&
+                                       (!status || c.status === status) &&
+                                       (!level || c.careLevel === level) &&
+                                       (!region || c.region === region) &&
+                                       (!gender || c.gender === gender);
+                    
+                    if (!matchBasic) return false;
+
+                    // Month Filter
+                    if (targetMonth) {
+                        const [y, m] = targetMonth.split('-');
+                        const startOfMonth = `${y}-${m}-01`;
+                        const endOfMonth = `${y}-${m}-31`;
+                        const sDate = c.serviceStartDate || '9999-99-99';
+                        const eDate = c.endDate || '9999-99-99';
+
+                        if (sDate > endOfMonth) return false;
+                        if (eDate < startOfMonth) return false;
+                    }
+                    return true;
+                }).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
+
+                if (filtered.length === 0) {
+                    alert("다운로드할 대상자가 없습니다.");
+                    return;
+                }
+
+                const excelData = filtered.map(c => ({
+                    '이름': c.name,
+                    '성별': c.gender,
+                    '생년월일': c.birthDate,
+                    '행정동': c.region,
+                    '상세주소': c.address,
+                    '연락처': c.phone,
+                    '보호자관계': c.guardianRelation,
+                    '보호자연락처': c.guardianPhone,
+                    '상태': c.status,
+                    '관리등급': c.careLevel,
+                    '경제상황': c.economicStatus,
+                    '세대유형': c.householdType,
+                    '서비스시작일': c.serviceStartDate,
+                    '장기부재기간': c.absencePeriod,
+                    '종결일자': c.endDate,
+                    '비고': c.note
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(excelData);
+                ws['!cols'] = [{ wch: 10 }, { wch: 6 }, { wch: 12 }, { wch: 8 }, { wch: 30 }, { wch: 13 }, { wch: 10 }, { wch: 13 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 30 }];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "대상자명부");
+                XLSX.writeFile(wb, `대상자명부_${new Date().toISOString().slice(0,10)}.xlsx`);
             },
 
             // --- Client Modal ---
@@ -656,7 +750,7 @@
                 } catch(err) { alert("저장 실패: " + err.message); }
             },
 
-            // --- Log Modal ---
+            // --- Log Modal (Updated with Multi-Client Support + Enter Key) ---
             openLogModal: (id) => {
                 const l = id ? state.logs.find(x => x.id === id) : { date: new Date().toISOString().split('T')[0], provideMethod: '방문', provider: '', serviceItems: [{id: Date.now(), category:'', serviceName:'', detailNote:''}] };
                 const c = id ? (state.clients.find(x => x.name === l.clientName) || {}) : {};
@@ -687,7 +781,7 @@
                             </div>
                         </div>
 
-                        <!-- Row 2: Client Search & Auto Info (Multi-Select) -->
+                        <!-- Row 2: Client Search & Auto Info (Updated for Multi-Select + Enter Key) -->
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded mt-2">
                             <div class="md:col-span-1">
                                 <label class="block text-sm font-medium mb-1">대상자 검색</label>
@@ -789,6 +883,8 @@
                 if(window.tempSelectedClients.length === 0) return alert("대상자를 1명 이상 추가해주세요.");
 
                 const fd = new FormData(e.target);
+                
+                // Collect Service Items
                 const items = Array.from(document.querySelectorAll('.svc-row')).map(row => ({
                     category: row.querySelector('.cat-sel').value,
                     serviceName: row.querySelector('.svc-sel').value,
@@ -797,6 +893,7 @@
 
                 if(items.length === 0) return alert('서비스를 하나 이상 선택하세요.');
 
+                // Base Data
                 const baseData = {
                     date: fd.get('date'),
                     provideMethod: fd.get('provideMethod'),
@@ -807,12 +904,26 @@
                 };
 
                 try {
+                    // Loop through selected clients and create/update logs
                     const promises = window.tempSelectedClients.map(async (cName, idx) => {
                         const client = state.clients.find(x => x.name === cName);
-                        const logData = { ...baseData, clientName: cName, clientId: client ? client.id : 'unknown' };
-                        if (id && idx === 0) return updateDoc(doc(db, "logs", id), logData);
-                        else return addDoc(collection(db, "logs"), logData);
+                        const logData = {
+                            ...baseData,
+                            clientName: cName,
+                            clientId: client ? client.id : 'unknown'
+                        };
+
+                        if (id && idx === 0) {
+                            // In edit mode, update the existing log (first one)
+                            // Multi-client edit isn't supported in standard flow, usually editing applies to the original log only.
+                            // But if user managed to add more people in edit mode (disabled in UI), this logic handles it.
+                            return updateDoc(doc(db, "logs", id), logData);
+                        } else {
+                            // Create new logs
+                            return addDoc(collection(db, "logs"), logData);
+                        }
                     });
+
                     await Promise.all(promises);
                     closeModal();
                 } catch(err) { alert("저장 실패: " + err.message); }
@@ -993,9 +1104,9 @@
                     const client = state.clients.find(c => c.id === l.clientId);
                     const servicesHTML = l.serviceItems && l.serviceItems.length > 0 
                         ? l.serviceItems.map(i => 
-                            `<div>
-                                <b>[${i.category}] ${i.serviceName}</b>
-                                ${i.detailNote ? `<span style="font-size:0.9em; color:#555;"> - ${i.detailNote}</span>` : ''}
+                            `<div style="margin-bottom:4px;">
+                                <span style="font-weight:bold;">[${i.category}] ${i.serviceName}</span>
+                                ${i.detailNote ? `<br/><span style="font-size:0.9em; color:#555;">└ ${i.detailNote}</span>` : ''}
                             </div>`
                         ).join('')
                         : '-';
