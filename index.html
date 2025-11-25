@@ -320,7 +320,11 @@
                 <div class="space-y-6 animate-fade-in">
                     <div class="flex justify-between items-center">
                         <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
-                        <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium"><i data-lucide="plus" size="16"></i> 작성</button>
+                        <div class="flex gap-2">
+                            <button onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
+                            <button onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
+                            <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
+                        </div>
                     </div>
                     <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row flex-wrap gap-2 items-start sm:items-center">
                         <div class="flex items-center gap-2 w-full sm:w-auto">
@@ -344,7 +348,7 @@
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
                             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-6 hover:shadow-md transition-shadow">
-                                <!-- Left Column: Adjusted width to 1/3 (md:w-1/3) -->
+                                <!-- Left Column: ~33% -->
                                 <div class="md:w-1/3 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6 flex-shrink-0">
                                     <div class="flex items-center justify-between mb-2">
                                         <span class="text-sm text-slate-500 font-medium flex items-center gap-1"><i data-lucide="calendar" size="14"></i> ${l.date}</span>
@@ -360,14 +364,15 @@
                                     
                                     <div class="space-y-2">
                                         ${l.serviceItems ? l.serviceItems.map(i => `
-                                            <div class="bg-emerald-50/50 border border-emerald-100 rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-xs">
-                                                <span class="font-bold text-emerald-800 whitespace-nowrap flex-shrink-0 flex items-center gap-1">
-                                                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                            <div class="bg-emerald-50/50 border border-emerald-100 rounded-lg px-2.5 py-1.5 flex flex-col gap-1 text-xs">
+                                                <span class="font-bold text-emerald-800 whitespace-normal break-keep flex items-center gap-1">
+                                                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></div>
                                                     ${i.category} > ${i.serviceName}
                                                 </span>
                                                 ${i.detailNote ? `
-                                                    <span class="text-slate-300 mx-1">|</span>
-                                                    <span class="text-slate-600 truncate min-w-0" title="${i.detailNote}">${i.detailNote}</span>
+                                                    <span class="text-slate-600 whitespace-normal break-words pl-2.5 border-l-2 border-emerald-200 leading-snug">
+                                                        ${i.detailNote}
+                                                    </span>
                                                 ` : ''}
                                             </div>
                                         `).join('') : ''}
@@ -541,7 +546,8 @@
                             </div>
                             <div class="w-full sm:flex-1 min-w-[140px]">
                                 <label class="block text-sm font-medium text-slate-700 mb-1">서비스 상세내용</label>
-                                <input name="name" class="input-field" placeholder="예: 초기상담" required value="${editData.name || ''}">
+                                <input name="name" class="input-field" placeholder="예: 초기상담" required value="${editData.name || ''}" list="list-name" autocomplete="off">
+                                <datalist id="list-name">${[...new Set(state.services.map(s=>s.name).filter(Boolean))].sort().map(v=>`<option value="${v}">`).join('')}</datalist>
                             </div>
                             <div class="w-full sm:flex-1 min-w-[140px]">
                                 <label class="block text-sm font-medium text-slate-700 mb-1">예시</label>
@@ -714,15 +720,8 @@
 
             fillClientInfo: (input) => {
                 const c = state.clients.find(x => x.name === input.value);
-                if(c) {
-                    document.getElementById('d-birth').value = c.birthDate || '';
-                    document.getElementById('d-region').value = c.region || '';
-                    document.getElementById('d-level').value = c.careLevel || '';
-                } else {
-                    document.getElementById('d-birth').value = '';
-                    document.getElementById('d-region').value = '';
-                    document.getElementById('d-level').value = '';
-                }
+                if(c) { document.getElementById('d-birth').value = c.birthDate || ''; document.getElementById('d-region').value = c.region || ''; document.getElementById('d-level').value = c.careLevel || ''; } 
+                else { document.getElementById('d-birth').value = ''; document.getElementById('d-region').value = ''; document.getElementById('d-level').value = ''; }
             },
             addSvcRow: () => {
                 if(document.querySelectorAll('.svc-row').length >= 6) return alert('최대 6개까지입니다.');
@@ -794,21 +793,11 @@
             addService: async (e) => {
                 e.preventDefault();
                 const data = Object.fromEntries(new FormData(e.target));
-                
                 try {
-                    if (state.editingServiceId) {
-                        await updateDoc(doc(db, "services", state.editingServiceId), data);
-                        state.editingServiceId = null;
-                        alert("서비스가 수정되었습니다.");
-                    } else {
-                        await addDoc(collection(db, "services"), data);
-                        alert("서비스가 추가되었습니다.");
-                    }
-                    e.target.reset();
-                    render();
-                } catch (err) {
-                    alert("오류 발생: " + err.message);
-                }
+                    if (state.editingServiceId) { await updateDoc(doc(db, "services", state.editingServiceId), data); state.editingServiceId = null; alert("서비스가 수정되었습니다."); } 
+                    else { await addDoc(collection(db, "services"), data); alert("서비스가 추가되었습니다."); }
+                    e.target.reset(); render();
+                } catch (err) { alert("오류 발생: " + err.message); }
             },
             downloadTemplate: () => {
                 const ws = XLSX.utils.aoa_to_sheet([['이름','성별','생년월일','행정동','연락처','상태']]);
@@ -837,6 +826,155 @@
                 const wb = XLSX.utils.book_new(); 
                 XLSX.utils.book_append_sheet(wb, ws, "통계");
                 XLSX.writeFile(wb, "통계데이터.xlsx");
+            },
+            downloadLogsExcel: () => {
+                const { start, end, search, category, service } = state.filters.log;
+                
+                // 1. Filter data
+                const filtered = state.logs.filter(l => 
+                    (!start || l.date >= start) && (!end || l.date <= end) && 
+                    (!search || l.clientName.includes(search)) && 
+                    (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
+                    (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))
+                ).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                if (filtered.length === 0) {
+                    alert("다운로드할 데이터가 없습니다.");
+                    return;
+                }
+
+                // 2. Flatten data (Log 1 : N Services -> N Rows)
+                const excelData = [];
+
+                filtered.forEach(l => {
+                    const client = state.clients.find(c => c.id === l.clientId);
+                    const baseData = {
+                        '날짜': l.date,
+                        '대상자명': l.clientName,
+                        '생년월일': client ? client.birthDate : '',
+                        '관리등급': client ? client.careLevel : '',
+                        '제공방법': l.provideMethod || '방문',
+                        '제공자': l.provider || '',
+                        '진행 내용': l.content
+                    };
+
+                    if (l.serviceItems && l.serviceItems.length > 0) {
+                        l.serviceItems.forEach(item => {
+                            excelData.push({
+                                ...baseData,
+                                '서비스': item.category,
+                                '서비스 상세내용': item.serviceName,
+                                '메모': item.detailNote || ''
+                            });
+                        });
+                    } else {
+                        excelData.push({
+                            ...baseData,
+                            '서비스': '',
+                            '서비스 상세내용': '',
+                            '메모': ''
+                        });
+                    }
+                });
+
+                // 3. Export
+                const ws = XLSX.utils.json_to_sheet(excelData);
+                ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 50 }, { wch: 15 }, { wch: 20 }, { wch: 20 }];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "서비스일지");
+                XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
+            },
+            
+            // --- 인쇄 기능 (Reverted to Stable Table Layout) ---
+            printLogs: () => {
+                const { start, end, search, category, service } = state.filters.log;
+                
+                const filtered = state.logs.filter(l => 
+                    (!start || l.date >= start) && (!end || l.date <= end) && 
+                    (!search || l.clientName.includes(search)) && 
+                    (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
+                    (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))
+                ).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                if (filtered.length === 0) {
+                    alert("인쇄할 일지가 없습니다.");
+                    return;
+                }
+
+                const printWindow = window.open('', '', 'width=1100,height=800');
+                
+                let rowsHTML = '';
+                filtered.forEach(l => {
+                    const client = state.clients.find(c => c.id === l.clientId);
+                    const servicesHTML = l.serviceItems && l.serviceItems.length > 0 
+                        ? l.serviceItems.map(i => 
+                            `<div style="margin-bottom:4px;">
+                                <span style="font-weight:bold;">[${i.category}] ${i.serviceName}</span>
+                                ${i.detailNote ? `<br/><span style="font-size:0.9em; color:#555;">└ ${i.detailNote}</span>` : ''}
+                            </div>`
+                        ).join('')
+                        : '-';
+
+                    rowsHTML += `
+                        <tr>
+                            <td style="text-align:center;">${l.date}</td>
+                            <td style="text-align:center;">
+                                <b>${l.clientName}</b><br>
+                                <span style="font-size:0.85em; color:#666;">${client ? calculateAge(client.birthDate)+'세' : ''}</span>
+                            </td>
+                            <td style="text-align:center;">${l.provideMethod || '방문'}</td>
+                            <td style="text-align:center;">${l.provider || ''}</td>
+                            <td style="padding:5px;">${servicesHTML}</td>
+                            <td style="white-space:pre-wrap; padding:5px;">${l.content}</td>
+                        </tr>
+                    `;
+                });
+
+                const printDocument = `
+                    <html>
+                    <head>
+                        <title>서비스제공 · 과정상담기록지</title>
+                        <style>
+                            @media print { 
+                                body { -webkit-print-color-adjust: exact; font-size: 12px; } 
+                                table { page-break-inside: auto; }
+                                tr { page-break-inside: avoid; page-break-after: auto; }
+                            }
+                            body { font-family: "Malgun Gothic", sans-serif; padding: 20px; }
+                            h1 { text-align: center; font-size: 20px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #333; }
+                            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                            th, td { border: 1px solid #999; padding: 6px; vertical-align: top; }
+                            th { background-color: #f0f0f0; text-align: center; font-weight: bold; height: 30px; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>서비스제공 · 과정상담기록지</h1>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th width="90">일자</th>
+                                    <th width="80">대상자</th>
+                                    <th width="60">방법</th>
+                                    <th width="70">제공자</th>
+                                    <th width="250">서비스 내용</th>
+                                    <th>진행 내용</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHTML}
+                            </tbody>
+                        </table>
+                        <script>
+                            window.onload = function() { 
+                                setTimeout(function() { window.print(); window.close(); }, 500);
+                            }
+                        <\/script>
+                    </body>
+                    </html>
+                `;
+
+                printWindow.document.write(printDocument);
+                printWindow.document.close();
             }
         };
 
