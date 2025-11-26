@@ -488,18 +488,33 @@
                 (!name || c.name.includes(name))
             );
 
+            // 1. 정렬된 순서 확보 (state.services는 이미 initDataSync에서 대분류 순서로 정렬되어 있음)
+            // 중복 제거하되 순서는 유지
+            const sortedCategories = [];
+            const seenCats = new Set();
+            state.services.forEach(s => {
+                if(s.category && !seenCats.has(s.category)){
+                    seenCats.add(s.category);
+                    sortedCategories.push(s.category);
+                }
+            });
+
             let serviceHeaders = [];
             let headerGroups = {}; 
 
             if (type === 'category') {
-                serviceHeaders = [...new Set(state.services.map(s => s.category))].filter(Boolean).sort();
+                // 카테고리 뷰: 정렬된 순서 그대로 사용
+                serviceHeaders = sortedCategories;
             } else {
+                // 상세 뷰: 정렬된 카테고리 순서에 따라 상세 서비스 배치
                 state.services.forEach(s => {
                     const cat = s.category || '기타';
                     if (!headerGroups[cat]) headerGroups[cat] = [];
+                    // 서비스명도 이미 정렬되어 있으므로 순서대로 추가
                     if (!headerGroups[cat].includes(s.name)) headerGroups[cat].push(s.name);
                 });
-                serviceHeaders = Object.keys(headerGroups).sort().flatMap(cat => headerGroups[cat]);
+                // 정렬된 카테고리 순서대로 헤더 플랫하게 생성
+                serviceHeaders = sortedCategories.flatMap(cat => headerGroups[cat] || []);
             }
 
             const dataMap = {}; 
@@ -521,6 +536,7 @@
                     const items = l.serviceItems || [{ serviceName: l.serviceName, category: l.serviceCategory }];
                     items.forEach(item => {
                         let key = type === 'category' ? item.category : item.serviceName;
+                        // 구 데이터 호환
                         if (!key && item.serviceName && type === 'category') {
                             const s = state.services.find(svc => svc.name === item.serviceName);
                             if(s) key = s.category;
@@ -540,20 +556,22 @@
             const grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
 
             let theadHTML = '';
+            // 스타일: 모든 셀 가운데 정렬 (text-center, align-middle)
             if (type === 'category') {
                 theadHTML = `<tr>
-                    <th class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 text-xs sm:text-sm">대상자</th>
-                    <th class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] text-xs sm:text-sm">합계</th>
-                    ${serviceHeaders.map(k => `<th class="p-3 border-b border-r min-w-[80px] text-xs sm:text-sm">${k}</th>`).join('')}
+                    <th class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 text-xs sm:text-sm text-center align-middle">대상자</th>
+                    <th class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] text-xs sm:text-sm text-center align-middle">합계</th>
+                    ${serviceHeaders.map(k => `<th class="p-3 border-b border-r min-w-[80px] text-xs sm:text-sm text-center align-middle">${k}</th>`).join('')}
                 </tr>`;
             } else {
-                const categories = Object.keys(headerGroups).sort();
+                const categories = sortedCategories.filter(cat => headerGroups[cat] && headerGroups[cat].length > 0);
+                
                 theadHTML = `<tr>
-                    <th rowspan="2" class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 z-30 text-xs sm:text-sm">대상자</th>
-                    <th rowspan="2" class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] z-30 text-xs sm:text-sm">합계</th>
-                    ${categories.map(cat => `<th colspan="${headerGroups[cat].length}" class="p-2 border-b border-r bg-slate-100 text-center text-xs">${cat}</th>`).join('')}
+                    <th rowspan="2" class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 z-30 text-xs sm:text-sm text-center align-middle">대상자</th>
+                    <th rowspan="2" class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] z-30 text-xs sm:text-sm text-center align-middle">합계</th>
+                    ${categories.map(cat => `<th colspan="${headerGroups[cat].length}" class="p-2 border-b border-r bg-slate-100 text-center align-middle text-xs">${cat}</th>`).join('')}
                 </tr><tr>
-                    ${categories.map(cat => headerGroups[cat].map(svc => `<th class="p-2 border-b border-r font-normal text-xs min-w-[80px]">${svc}</th>`).join('')).join('')}
+                    ${categories.map(cat => headerGroups[cat].map(svc => `<th class="p-2 border-b border-r font-normal text-xs min-w-[80px] text-center align-middle">${svc}</th>`).join('')).join('')}
                 </tr>`;
             }
 
@@ -580,15 +598,15 @@
                             <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20">${theadHTML}</thead>
                             <tbody class="divide-y divide-slate-100">
                                 <tr class="bg-slate-50 font-bold sticky top-0 z-10">
-                                    <td class="p-3 sticky-col border-r bg-slate-50">총계</td>
-                                    <td class="p-3 text-center border-r bg-emerald-50 text-emerald-700">${grandTotal}</td>
-                                    ${serviceHeaders.map(k => `<td class="p-3 text-center border-r">${colTotals[k]}</td>`).join('')}
+                                    <td class="p-3 sticky-col border-r bg-slate-50 text-center align-middle">총계</td>
+                                    <td class="p-3 text-center border-r bg-emerald-50 text-emerald-700 align-middle">${grandTotal}</td>
+                                    ${serviceHeaders.map(k => `<td class="p-3 text-center border-r align-middle">${colTotals[k]}</td>`).join('')}
                                 </tr>
                                 ${rows.map(r => `
                                     <tr class="hover:bg-slate-50">
-                                        <td class="p-3 sticky-col bg-white border-r group-hover:bg-slate-50">${r.name}</td>
-                                        <td class="p-3 text-center font-bold bg-emerald-50 border-r text-emerald-600">${r.total}</td>
-                                        ${serviceHeaders.map(k => `<td class="p-3 text-center border-r ${r.counts[k]>0?'bg-blue-50 font-medium text-blue-600 text-slate-800':'text-slate-300'}">${r.counts[k]||'-'}</td>`).join('')}
+                                        <td class="p-3 sticky-col bg-white border-r group-hover:bg-slate-50 text-center align-middle">${r.name}</td>
+                                        <td class="p-3 text-center font-bold bg-emerald-50 border-r text-emerald-600 align-middle">${r.total}</td>
+                                        ${serviceHeaders.map(k => `<td class="p-3 text-center border-r align-middle ${r.counts[k]>0?'bg-blue-50 font-medium text-blue-600 text-slate-800':'text-slate-300'}">${r.counts[k]||'-'}</td>`).join('')}
                                     </tr>
                                 `).join('')}
                             </tbody>
