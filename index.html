@@ -416,15 +416,19 @@
                             <!-- 대상자명 검색 -->
                             <div class="flex items-center gap-2 flex-1 min-w-[180px]">
                                 <span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span>
-                                <!-- [수정됨] oninput(즉시) -> onkeydown(Enter키) 이벤트로 변경 -->
-                                <input class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)">
+                                <!-- [수정됨] 글자를 모두 지우면(빈값) 즉시 필터 초기화 추가 -->
+                                <input class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter)" value="${search}" 
+                                    onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)"
+                                    oninput="if(this.value === '') app.setFilter('client','search','')">
                             </div>
                             
                             <!-- 연락처 검색 -->
                             <div class="flex items-center gap-2 flex-1 min-w-[180px]">
                                 <span class="text-sm font-bold text-slate-600 whitespace-nowrap">연락처</span>
-                                <!-- [수정됨] oninput(즉시) -> onkeydown(Enter키) 이벤트로 변경 -->
-                                <input class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter)" value="${searchPhone}" onkeydown="if(event.key === 'Enter') app.setFilter('client','searchPhone',this.value)">
+                                <!-- [수정됨] 글자를 모두 지우면(빈값) 즉시 필터 초기화 추가 -->
+                                <input class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter)" value="${searchPhone}" 
+                                    onkeydown="if(event.key === 'Enter') app.setFilter('client','searchPhone',this.value)"
+                                    oninput="if(this.value === '') app.setFilter('client','searchPhone','')">
                             </div>
                             
                             <button onclick="app.resetFilters('client')" class="bg-slate-100 text-slate-500 hover:text-slate-700 text-xs flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-lg font-medium transition-colors ml-auto sm:ml-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
@@ -508,11 +512,18 @@
                         </div>
 
                         <div class="flex items-center gap-2 w-full sm:w-auto">
-                            <input type="date" class="input-field py-1.5 w-full sm:w-32 text-sm" value="${start}" onchange="app.setFilter('log','start',this.value)">
+                            <!-- [수정됨] max 속성 추가하여 연도 4자리(9999년) 제한 -->
+                            <input type="date" class="input-field py-1.5 w-full sm:w-32 text-sm" value="${start}" onchange="app.setFilter('log','start',this.value)" max="9999-12-31">
                             <span class="text-slate-400">~</span>
-                            <input type="date" class="input-field py-1.5 w-full sm:w-32 text-sm" value="${end}" onchange="app.setFilter('log','end',this.value)">
+                            <!-- [수정됨] max 속성 추가하여 연도 4자리(9999년) 제한 -->
+                            <input type="date" class="input-field py-1.5 w-full sm:w-32 text-sm" value="${end}" onchange="app.setFilter('log','end',this.value)" max="9999-12-31">
                         </div>
-                        <input class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="이름" value="${search}" oninput="app.setFilter('log','search',this.value)">
+                        
+                        <!-- [수정됨] 서비스 일지 이름 검색: Enter키 검색 & 빈값 자동 초기화 적용 -->
+                        <input class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="이름 (Enter)" value="${search}" 
+                            onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)"
+                            oninput="if(this.value === '') app.setFilter('log','search','')">
+
                         <div class="flex gap-2 w-full sm:w-auto flex-1">
                             <select class="input-field py-1.5 w-full sm:w-32 text-sm" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');">
                                 <option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}
