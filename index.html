@@ -217,6 +217,7 @@
                 
                 if (!matchBasic) return false;
 
+                // Month Filter Logic (Active Clients in selected month)
                 if (targetMonth) {
                     const [y, m] = targetMonth.split('-');
                     const startOfMonth = `${y}-${m}-01`;
@@ -231,6 +232,7 @@
                 return true;
             }).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
 
+            // Stats Calculations
             const totalCount = filtered.length;
             const highFocusCount = filtered.filter(c => c.careLevel === '중점').length;
             const generalCount = filtered.filter(c => c.careLevel === '일반').length;
@@ -249,6 +251,7 @@
                         </div>
                     </div>
 
+                    <!-- Stats Cards (Dynamic based on filter) -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
                           <div><p class="text-xs text-slate-500">조회 대상자</p><p class="text-xl font-bold text-slate-800">${totalCount}명</p></div>
@@ -268,28 +271,35 @@
                        </div>
                     </div>
 
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap gap-2 items-center">
-                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2"><i data-lucide="filter" size="14"></i> 필터</div>
+                    <!-- Responsive Filter Bar (Updated: Single Line Layout) -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0">
+                            <i data-lucide="filter" size="14"></i> 필터
+                        </div>
                         
-                        <input type="month" class="input-field py-1.5 text-sm w-32 flex-1" value="${targetMonth}" onchange="app.setFilter('client','targetMonth',this.value)" title="기준월">
-                        <input class="input-field py-1.5 text-sm w-28 flex-1" placeholder="이름" value="${search}" oninput="app.setFilter('client','search',this.value)">
+                        <!-- Month Filter -->
+                        <input type="month" class="input-field py-1.5 text-sm w-32 flex-shrink-0" value="${targetMonth}" onchange="app.setFilter('client','targetMonth',this.value)" title="기준월">
                         
-                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','status',this.value)">
+                        <!-- Name Search -->
+                        <input class="input-field py-1.5 text-sm w-28 flex-shrink-0" placeholder="이름" value="${search}" oninput="app.setFilter('client','search',this.value)">
+                        
+                        <!-- Dropdowns (Removed '(전체)') -->
+                        <select class="input-field py-1.5 text-sm w-20 flex-shrink-0" onchange="app.setFilter('client','status',this.value)">
                             <option value="">상태</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}
                         </select>
-                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','level',this.value)">
+                        <select class="input-field py-1.5 text-sm w-20 flex-shrink-0" onchange="app.setFilter('client','level',this.value)">
                             <option value="">등급</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}
                         </select>
-                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','region',this.value)">
+                        <select class="input-field py-1.5 text-sm w-20 flex-shrink-0" onchange="app.setFilter('client','region',this.value)">
                             <option value="">동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}
                         </select>
-                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','gender',this.value)">
+                        <select class="input-field py-1.5 text-sm w-20 flex-shrink-0" onchange="app.setFilter('client','gender',this.value)">
                             <option value="">성별</option>
                             <option value="남성" ${gender==='남성'?'selected':''}>남성</option>
                             <option value="여성" ${gender==='여성'?'selected':''}>여성</option>
                         </select>
                         
-                        <button onclick="app.resetFilters('client')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 whitespace-nowrap"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                        <button onclick="app.resetFilters('client')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 whitespace-nowrap flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                     </div>
 
                     <!-- Client List -->
@@ -299,7 +309,7 @@
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group hover:bg-slate-50 transition-colors">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <span class="font-bold text-2xl text-slate-800 cursor-pointer hover:text-blue-600 hover:underline transition-all" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
+                                    <span class="font-bold text-xl text-slate-800 cursor-pointer hover:text-blue-600 hover:underline transition-all" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
                                     <span class="text-base font-bold ${c.gender==='남성'?'text-blue-500':'text-red-500'}">(${calculateAge(c.birthDate)}세/${c.gender})</span>
                                     
                                     <div class="flex items-center gap-1 ml-1">
@@ -309,11 +319,10 @@
                                         ${targetMonth ? `<span class="text-xs text-emerald-600 bg-emerald-50 px-1.5 rounded border border-emerald-100">이용중</span>` : ''}
                                     </div>
                                 </div>
-                                <!-- 아이콘 12px, 글자 text-base -->
                                 <div class="flex flex-wrap gap-4 text-base text-slate-600 items-center">
-                                    <span class="flex items-center gap-1"><i data-lucide="phone" size="12" class="text-slate-400"></i> ${c.phone||'-'}</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="phone" width="12" height="12" class="text-slate-400"></i> ${c.phone||'-'}</span>
                                     <span class="text-slate-300 text-sm">|</span>
-                                    <span class="flex items-center gap-1"><i data-lucide="home" size="12" class="text-slate-400"></i> ${c.address||'-'}</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="home" width="12" height="12" class="text-slate-400"></i> ${c.address||'-'}</span>
                                 </div>
                             </div>
                             
@@ -386,7 +395,7 @@
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
                             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-start gap-6 hover:shadow-md transition-shadow relative">
-                                <!-- Left Column: 33% -->
+                                <!-- Left Column: ~33% -->
                                 <div class="md:w-1/3 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6 flex-shrink-0 w-full">
                                     <div class="flex items-center justify-between mb-2">
                                         <span class="text-sm text-slate-500 font-medium flex items-center gap-1"><i data-lucide="calendar" size="14"></i> ${l.date}</span>
@@ -447,123 +456,6 @@
                         }).join('')}
                     </div>
                 </div>`;
-        }
-
-        function renderStatistics() {
-            const { start, end, type, region, name } = state.filters.stats;
-            const targetClients = state.clients.filter(c => 
-                (!region || c.region === region) && 
-                (!name || c.name.includes(name))
-            );
-
-            let serviceHeaders = [];
-            let headerGroups = {}; 
-
-            if (type === 'category') {
-                serviceHeaders = [...new Set(state.services.map(s => s.category))].filter(Boolean).sort();
-            } else {
-                state.services.forEach(s => {
-                    const cat = s.category || '기타';
-                    if (!headerGroups[cat]) headerGroups[cat] = [];
-                    if (!headerGroups[cat].includes(s.name)) headerGroups[cat].push(s.name);
-                });
-                serviceHeaders = Object.keys(headerGroups).sort().flatMap(cat => headerGroups[cat]);
-            }
-
-            const dataMap = {}; 
-            
-            targetClients.forEach(c => {
-                dataMap[c.id] = { name: c.name, total: 0, counts: {} };
-                serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0);
-            });
-
-            state.logs.forEach(l => {
-                if (l.date < start || l.date > end) return;
-                let cid = l.clientId;
-                if (!dataMap[cid] && l.clientName) {
-                    const found = targetClients.find(c => c.name === l.clientName);
-                    if(found) cid = found.id;
-                }
-
-                if (dataMap[cid]) {
-                    const items = l.serviceItems || [{ serviceName: l.serviceName, category: l.serviceCategory }];
-                    items.forEach(item => {
-                        let key = type === 'category' ? item.category : item.serviceName;
-                        if (!key && item.serviceName && type === 'category') {
-                            const s = state.services.find(svc => svc.name === item.serviceName);
-                            if(s) key = s.category;
-                        }
-                        
-                        if (key && dataMap[cid].counts[key] !== undefined) {
-                            dataMap[cid].counts[key]++;
-                            dataMap[cid].total++;
-                        }
-                    });
-                }
-            });
-
-            const rows = Object.values(dataMap).filter(r => r.total >= 0).sort((a,b) => b.total - a.total);
-            const colTotals = {};
-            serviceHeaders.forEach(k => colTotals[k] = rows.reduce((sum, r) => sum + (r.counts[k]||0), 0));
-            const grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
-
-            let theadHTML = '';
-            if (type === 'category') {
-                theadHTML = `<tr>
-                    <th class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 text-xs sm:text-sm">대상자</th>
-                    <th class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] text-xs sm:text-sm">합계</th>
-                    ${serviceHeaders.map(k => `<th class="p-3 border-b border-r min-w-[80px] text-xs sm:text-sm">${k}</th>`).join('')}
-                </tr>`;
-            } else {
-                const categories = Object.keys(headerGroups).sort();
-                theadHTML = `<tr>
-                    <th rowspan="2" class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 z-30 text-xs sm:text-sm">대상자</th>
-                    <th rowspan="2" class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] z-30 text-xs sm:text-sm">합계</th>
-                    ${categories.map(cat => `<th colspan="${headerGroups[cat].length}" class="p-2 border-b border-r bg-slate-100 text-center text-xs">${cat}</th>`).join('')}
-                </tr><tr>
-                    ${categories.map(cat => headerGroups[cat].map(svc => `<th class="p-2 border-b border-r font-normal text-xs min-w-[80px]">${svc}</th>`).join('')).join('')}
-                </tr>`;
-            }
-
-            return `
-                <div class="space-y-6 animate-fade-in">
-                    <h2 class="text-2xl font-bold text-slate-800">서비스 제공 통계</h2>
-                    <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm">
-                        <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
-                            <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
-                            <button onclick="app.setFilter('stats','type','detail')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='detail'?'bg-white shadow':''}">상세별</button>
-                        </div>
-                        <div class="flex w-full sm:w-auto gap-2">
-                            <input type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${start}" onchange="app.setFilter('stats','start',this.value)" max="9999-12-31">
-                            <input type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${end}" onchange="app.setFilter('stats','end',this.value)" max="9999-12-31">
-                        </div>
-                        <div class="flex w-full sm:w-auto gap-2 flex-1">
-                            <input class="input-field w-full sm:w-24 py-1 text-sm" placeholder="이름" value="${name}" oninput="app.setFilter('stats','name',this.value)">
-                            <select class="input-field w-full sm:w-24 py-1 text-sm" onchange="app.setFilter('stats','region',this.value)"><option value="">전체 동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}</select>
-                        </div>
-                        <button onclick="app.downloadStatsExcel()" class="w-full sm:w-auto bg-emerald-600 text-white p-2 rounded flex justify-center"><i data-lucide="download" size="16"></i></button>
-                    </div>
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-auto max-h-[600px]">
-                        <table class="w-full text-sm text-left border-collapse whitespace-nowrap">
-                            <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20">${theadHTML}</thead>
-                            <tbody class="divide-y divide-slate-100">
-                                <tr class="bg-slate-50 font-bold sticky top-0 z-10">
-                                    <td class="p-3 sticky-col border-r bg-slate-50">총계</td>
-                                    <td class="p-3 text-center border-r bg-emerald-50 text-emerald-700">${grandTotal}</td>
-                                    ${serviceHeaders.map(k => `<td class="p-3 text-center border-r">${colTotals[k]}</td>`).join('')}
-                                </tr>
-                                ${rows.map(r => `
-                                    <tr class="hover:bg-slate-50">
-                                        <td class="p-3 sticky-col bg-white border-r group-hover:bg-slate-50">${r.name}</td>
-                                        <td class="p-3 text-center font-bold bg-emerald-50 border-r text-emerald-600">${r.total}</td>
-                                        ${serviceHeaders.map(k => `<td class="p-3 text-center border-r ${r.counts[k]>0?'bg-blue-50 font-medium text-blue-600 text-slate-800':'text-slate-300'}">${r.counts[k]||'-'}</td>`).join('')}
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
         }
 
         // --- ServiceManager (Updated) ---
