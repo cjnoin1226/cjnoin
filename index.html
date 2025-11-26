@@ -115,14 +115,19 @@
             services: [],
             logs: [],
             editingServiceId: null,
+            // [수정됨] UI 상태 관리를 위한 객체 추가
+            ui: {
+                regionDropdownOpen: false
+            },
             filters: {
                 client: { 
                     status: '이용', 
                     level: '', 
-                    region: '', 
+                    // [수정됨] 다중 선택을 위해 배열로 초기화
+                    region: [], 
                     gender: '', 
                     search: '', 
-                    searchPhone: '', // [추가] 연락처 검색 필터
+                    searchPhone: '', 
                     targetYear: '', 
                     targetMonth: '' 
                 },
@@ -253,7 +258,8 @@
                                    (!searchPhone || (c.phone && c.phone.includes(searchPhone))) && 
                                    (!status || c.status === status) &&
                                    (!level || c.careLevel === level) &&
-                                   (!region || c.region === region) &&
+                                   // [수정됨] 행정동 다중 선택 필터 로직 (배열이 비어있거나 포함되어 있으면 통과)
+                                   (region.length === 0 || region.includes(c.region)) &&
                                    (!gender || c.gender === gender);
                 
                 if (!matchBasic) return false;
@@ -375,9 +381,29 @@
                             <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','level',this.value)">
                                 <option value="">등급</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}
                             </select>
-                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[80px]" onchange="app.setFilter('client','region',this.value)">
-                                <option value="">동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}
-                            </select>
+                            
+                            <!-- [수정됨] 행정동 다중 선택 체크박스 드롭다운 -->
+                            <div class="relative z-30">
+                                <button onclick="app.toggleRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left h-[34px]">
+                                    <span class="truncate max-w-[90px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span>
+                                    <i data-lucide="chevron-down" size="14" class="text-slate-400"></i>
+                                </button>
+                                
+                                ${state.ui.regionDropdownOpen ? `
+                                    <div class="fixed inset-0 z-40" onclick="app.toggleRegionDropdown()"></div>
+                                    <div class="absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">
+                                        ${CONSTANTS.DONG_LIST.map(d => `
+                                            <label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none">
+                                                <input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300"
+                                                    ${region.includes(d) ? 'checked' : ''}
+                                                    onchange="app.toggleRegionFilter('${d}')">
+                                                <span class="text-slate-700">${d}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+
                             <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','gender',this.value)">
                                 <option value="">성별</option>
                                 <option value="남성" ${gender==='남성'?'selected':''}>남성</option>
@@ -760,19 +786,45 @@
             setTab: (t) => { state.activeTab = t; render(); document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('sidebar-overlay').classList.add('hidden'); },
             setFilter: (s, k, v) => { state.filters[s][k] = v; render(); },
             
+            // [추가됨] 행정동 드롭다운 토글 및 필터 로직
+            toggleRegionDropdown: () => {
+                state.ui.regionDropdownOpen = !state.ui.regionDropdownOpen;
+                render();
+            },
+            toggleRegionFilter: (val) => {
+                const currentRegions = state.filters.client.region;
+                const idx = currentRegions.indexOf(val);
+                
+                if (idx > -1) {
+                    currentRegions.splice(idx, 1);
+                } else {
+                    currentRegions.push(val);
+                }
+                
+                // UX 개선: 모든 동을 선택하면 필터를 비워서 '전체'로 처리 (선택적으로 적용)
+                if (currentRegions.length === CONSTANTS.DONG_LIST.length) {
+                    // 선택 유지 or 초기화? 여기서는 선택 유지하되 표시는 전체로 함
+                }
+                
+                render();
+            },
+
             // --- Reset Filters Logic (수정됨: 초기화 시에도 '이용' 상태로 복귀) ---
             resetFilters: (scope) => {
                 const defaults = {
                     client: { 
                         status: '이용', // 기본값 '이용'
-                        level: '', region: '', gender: '', 
-                        search: '', searchPhone: '', // [초기화] 이름, 연락처 검색어 초기화
+                        level: '', 
+                        region: [], // [수정됨] 배열 초기화
+                        gender: '', 
+                        search: '', searchPhone: '', 
                         targetYear: '', 
                         targetMonth: '' 
                     },
                     log: { start: '', end: '', search: '', category: '', service: '' }
                 };
                 state.filters[scope] = defaults[scope];
+                if(scope === 'client') state.ui.regionDropdownOpen = false;
                 render();
             },
 
@@ -799,10 +851,11 @@
                 // Filter Logic
                 const filtered = state.clients.filter(c => {
                     const matchBasic = (!search || c.name.includes(search)) &&
-                                       (!searchPhone || (c.phone && c.phone.includes(searchPhone))) && // [추가] 엑셀 다운로드에도 연락처 검색 반영
+                                       (!searchPhone || (c.phone && c.phone.includes(searchPhone))) && 
                                        (!status || c.status === status) &&
                                        (!level || c.careLevel === level) &&
-                                       (!region || c.region === region) &&
+                                       // [수정됨] 엑셀 다운로드에도 다중 지역 필터 적용
+                                       (region.length === 0 || region.includes(c.region)) &&
                                        (!gender || c.gender === gender);
                     
                     if (!matchBasic) return false;
