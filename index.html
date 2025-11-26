@@ -122,6 +122,7 @@
                     region: '', 
                     gender: '', 
                     search: '', 
+                    searchPhone: '', // [추가] 연락처 검색 필터
                     targetYear: '', 
                     targetMonth: '' 
                 },
@@ -229,7 +230,7 @@
         }
 
         function renderClientManager() {
-            const { search, status, level, region, gender, targetYear, targetMonth } = state.filters.client;
+            const { search, searchPhone, status, level, region, gender, targetYear, targetMonth } = state.filters.client;
             
             // 필터링 기준 날짜 계산
             let filterStart = '0000-01-01';
@@ -249,6 +250,7 @@
             
             const filtered = state.clients.filter(c => {
                 const matchBasic = (!search || c.name.includes(search)) &&
+                                   (!searchPhone || (c.phone && c.phone.includes(searchPhone))) && 
                                    (!status || c.status === status) &&
                                    (!level || c.careLevel === level) &&
                                    (!region || c.region === region) &&
@@ -256,14 +258,11 @@
                 
                 if (!matchBasic) return false;
 
-                // 화면 로직과 동일하게 변경 (전체/종결 선택 시 과거 데이터 포함)
                 const sDate = c.serviceStartDate || '0000-01-01'; 
                 const eDate = c.endDate || '9999-12-31'; 
 
-                // 미래 시작 숨김
                 if (sDate > filterEnd) return false;
 
-                // 특정 활성 상태('이용' 등)일 때만 과거 종료자 숨김
                 if (status && status !== '종결') {
                     if (eDate < filterStart) return false;
                 }
@@ -271,57 +270,38 @@
                 return true;
             }).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
 
-            // [수정됨] 상단 통계용 집계 로직 (오늘 날짜 기준, 전체 DB 대상)
-            // 필터링된 filtered 목록이 아니라 state.clients 전체를 대상으로 계산합니다.
+            // 상단 통계용 집계 로직 (오늘 날짜 기준)
             const today = new Date().toISOString().split('T')[0];
             
             let activeStats = {
                 total: 0,
-                highFocus: 0, // 중점
-                general: 0,   // 일반
-                male: 0,
-                female: 0
+                highFocus: 0, general: 0,
+                male: 0, female: 0
             };
 
             state.clients.forEach(c => {
-                // 오늘 날짜 기준으로 종결 여부 판단
-                // 1. DB 상태가 '종결'
-                // 2. 또는 종결일(endDate)이 존재하고, 오늘보다 이전(어제까지)인 경우 -> 종결 처리
-                //    (endDate가 오늘이면 아직 이용 중으로 간주)
                 const isTerminatedToday = c.status === '종결' || (c.endDate && c.endDate < today);
-                
-                // 아직 서비스 시작 전인 경우 (미래 시작) -> 이용 중 아님
                 const isNotStartedYet = c.serviceStartDate && c.serviceStartDate > today;
 
-                // '이용' 상태이고, 종결되지 않았으며, 서비스가 시작된 경우만 카운트
                 if (c.status === '이용' && !isTerminatedToday && !isNotStartedYet) {
                     activeStats.total++;
-                    
                     if (c.careLevel === '중점') activeStats.highFocus++;
                     else if (c.careLevel === '일반') activeStats.general++;
-                    
                     if (c.gender === '남성') activeStats.male++;
                     else if (c.gender === '여성') activeStats.female++;
                 }
             });
 
-            // 연도 옵션 생성
             const yearOptions = [`<option value="" ${!targetYear ? 'selected' : ''}>전체 기간</option>`];
             for (let y = 2010; y <= 2100; y++) {
                 yearOptions.push(`<option value="${y}" ${parseInt(targetYear) === y ? 'selected' : ''}>${y}년</option>`);
             }
 
-            // 월 옵션 생성
             const monthOptions = [`<option value="" ${!targetMonth ? 'selected' : ''}>전체 월</option>`];
             for (let m = 1; m <= 12; m++) {
                 monthOptions.push(`<option value="${m}" ${parseInt(targetMonth) === m ? 'selected' : ''}>${m}월</option>`);
             }
             
-            // 목록용 필터 텍스트 (통계에는 사용 안 함)
-            const periodText = targetYear 
-                ? `${targetYear}년 ${targetMonth ? targetMonth+'월' : '전체'}` 
-                : '전체 기간';
-
             return `
                 <div class="space-y-6 animate-fade-in">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -334,8 +314,9 @@
                         </div>
                     </div>
 
+                    <!-- [수정됨] 상단 통계 영역 (Grid가 여기서 닫히도록 수정!) -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                       <!-- [수정됨] 첫 번째 칸: 실제 오늘 날짜 기준 -->
+                       <!-- 첫 번째 칸 -->
                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
                           <div>
                               <p class="text-xs text-slate-500">현재 이용 대상자 (오늘 기준)</p>
@@ -344,7 +325,7 @@
                           <div class="p-3 bg-emerald-50 rounded-full text-emerald-500"><i data-lucide="user-check" size="24"></i></div>
                        </div>
                        
-                       <!-- [수정됨] 두 번째 칸: 실제 오늘 날짜 기준 등급/성별 -->
+                       <!-- 두 번째 칸 -->
                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
                           <div class="flex justify-between items-center mb-2">
                               <span class="text-xs text-slate-500 font-medium">등급별</span>
@@ -365,50 +346,68 @@
                           </div>
                        </div>
                        
-                       <!-- 세 번째 칸: 공란 -->
+                       <!-- 세 번째 칸 -->
                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-center text-slate-300 border-dashed">
                           <span class="text-sm flex items-center gap-2"><i data-lucide="plus-circle" size="16"></i> 빈 슬롯</span>
                        </div>
-                    </div>
+                    </div> <!-- 닫는 태그 복구 완료! -->
 
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap gap-2 items-center">
-                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2"><i data-lucide="filter" size="14"></i> 목록 필터</div>
-                        
-                        <!-- 연도 선택 -->
-                        <select class="input-field py-1.5 text-sm w-24 flex-1" onchange="app.setFilter('client','targetYear',this.value)">
-                            ${yearOptions.join('')}
-                        </select>
-                        <!-- 월 선택 -->
-                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','targetMonth',this.value)">
-                            ${monthOptions.join('')}
-                        </select>
+                    <!-- 필터 영역 (레이아웃 정리됨) -->
+                    <div class="bg-white p-3 rounded-xl shadow-sm flex flex-col gap-2">
+                        <!-- 첫 번째 줄: 드롭다운 필터들 -->
+                        <div class="flex flex-wrap items-center gap-1 sm:gap-2 text-sm">
+                            <div class="flex items-center gap-1 text-slate-600 font-bold mr-1 flex-shrink-0"><i data-lucide="filter" size="14"></i></div>
+                            
+                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[90px]" onchange="app.setFilter('client','targetYear',this.value)" title="연도">
+                                ${yearOptions.join('')}
+                            </select>
+                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','targetMonth',this.value)" title="월">
+                                ${monthOptions.join('')}
+                            </select>
 
-                        <input class="input-field py-1.5 text-sm w-28 flex-1" placeholder="이름" value="${search}" oninput="app.setFilter('client','search',this.value)">
-                        
-                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','status',this.value)">
-                            <option value="">전체</option>
-                            ${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}
-                        </select>
+                            <div class="h-4 w-px bg-slate-300 mx-1 hidden sm:block"></div>
 
-                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','level',this.value)">
-                            <option value="">등급</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}
-                        </select>
-                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','region',this.value)">
-                            <option value="">동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}
-                        </select>
-                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','gender',this.value)">
-                            <option value="">성별</option>
-                            <option value="남성" ${gender==='남성'?'selected':''}>남성</option>
-                            <option value="여성" ${gender==='여성'?'selected':''}>여성</option>
-                        </select>
-                        
-                        <button onclick="app.resetFilters('client')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 whitespace-nowrap"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','status',this.value)">
+                                <option value="">전체</option>
+                                ${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}
+                            </select>
+
+                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','level',this.value)">
+                                <option value="">등급</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}
+                            </select>
+                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[80px]" onchange="app.setFilter('client','region',this.value)">
+                                <option value="">동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}
+                            </select>
+                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','gender',this.value)">
+                                <option value="">성별</option>
+                                <option value="남성" ${gender==='남성'?'selected':''}>남성</option>
+                                <option value="여성" ${gender==='여성'?'selected':''}>여성</option>
+                            </select>
+                        </div>
+
+                        <!-- 두 번째 줄: 텍스트 검색 (라벨 추가 및 아이콘 제거) -->
+                        <div class="flex flex-wrap items-center gap-3 w-full mt-1">
+                            <!-- 대상자명 검색 -->
+                            <div class="flex items-center gap-2 flex-1 min-w-[180px]">
+                                <span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span>
+                                <!-- [수정됨] oninput(즉시) -> onkeydown(Enter키) 이벤트로 변경 -->
+                                <input class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)">
+                            </div>
+                            
+                            <!-- 연락처 검색 -->
+                            <div class="flex items-center gap-2 flex-1 min-w-[180px]">
+                                <span class="text-sm font-bold text-slate-600 whitespace-nowrap">연락처</span>
+                                <!-- [수정됨] oninput(즉시) -> onkeydown(Enter키) 이벤트로 변경 -->
+                                <input class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter)" value="${searchPhone}" onkeydown="if(event.key === 'Enter') app.setFilter('client','searchPhone',this.value)">
+                            </div>
+                            
+                            <button onclick="app.resetFilters('client')" class="bg-slate-100 text-slate-500 hover:text-slate-700 text-xs flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-lg font-medium transition-colors ml-auto sm:ml-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                        </div>
                     </div>
 
                     <div class="space-y-2">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
                         filtered.map(c => {
-                            // 조회 시점(월말 기준) 종결 여부 계산
                             const isLogicallyTerminated = c.status === '종결' || (c.endDate && c.endDate <= filterEnd);
                             const displayStatus = isLogicallyTerminated ? '종결' : c.status;
                             const statusColor = displayStatus === '종결' ? 'bg-slate-100 text-slate-500' : 
@@ -428,7 +427,6 @@
                                             <!-- 상태 배지 -->
                                             <span class="text-xs px-2 py-0.5 rounded ${statusColor} font-medium">${displayStatus}</span>
                                             
-                                            <!-- 이용중 추가 배지 (연도 필터가 있고, 종결이 아닐 때만 표시) -->
                                             ${targetYear && !isLogicallyTerminated ? `<span class="text-xs text-emerald-600 bg-emerald-50 px-1.5 rounded border border-emerald-100">이용중</span>` : ''}
                                         </div>
                                     </div>
@@ -766,7 +764,8 @@
                 const defaults = {
                     client: { 
                         status: '이용', // 기본값 '이용'
-                        level: '', region: '', gender: '', search: '', 
+                        level: '', region: '', gender: '', 
+                        search: '', searchPhone: '', // [초기화] 이름, 연락처 검색어 초기화
                         targetYear: '', 
                         targetMonth: '' 
                     },
@@ -778,7 +777,7 @@
 
             // --- Download Client List (수정됨: 월 필터 및 시작일 누락 로직 반영) ---
             downloadClientListExcel: () => {
-                const { search, status, level, region, gender, targetYear, targetMonth } = state.filters.client;
+                const { search, searchPhone, status, level, region, gender, targetYear, targetMonth } = state.filters.client;
                 
                 // 날짜 범위 계산
                 let filterStart = '0000-01-01';
@@ -799,6 +798,7 @@
                 // Filter Logic
                 const filtered = state.clients.filter(c => {
                     const matchBasic = (!search || c.name.includes(search)) &&
+                                       (!searchPhone || (c.phone && c.phone.includes(searchPhone))) && // [추가] 엑셀 다운로드에도 연락처 검색 반영
                                        (!status || c.status === status) &&
                                        (!level || c.careLevel === level) &&
                                        (!region || c.region === region) &&
@@ -806,7 +806,7 @@
                     
                     if (!matchBasic) return false;
 
-                    // [수정됨] 화면 로직과 동일하게 변경 (전체/종결 선택 시 과거 데이터 포함)
+                    // 화면 로직과 동일하게 변경 (전체/종결 선택 시 과거 데이터 포함)
                     const sDate = c.serviceStartDate || '0000-01-01'; 
                     const eDate = c.endDate || '9999-12-31'; 
 
