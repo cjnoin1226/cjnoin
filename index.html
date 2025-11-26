@@ -884,11 +884,21 @@
             addService: async (e) => {
                 e.preventDefault();
                 const data = Object.fromEntries(new FormData(e.target));
+                
                 try {
-                    if (state.editingServiceId) { await updateDoc(doc(db, "services", state.editingServiceId), data); state.editingServiceId = null; alert("서비스가 수정되었습니다."); } 
-                    else { await addDoc(collection(db, "services"), data); alert("서비스가 추가되었습니다."); }
-                    e.target.reset(); render();
-                } catch (err) { alert("오류 발생: " + err.message); }
+                    if (state.editingServiceId) {
+                        await updateDoc(doc(db, "services", state.editingServiceId), data);
+                        state.editingServiceId = null;
+                        // alert("서비스가 수정되었습니다."); // 삭제됨
+                    } else {
+                        await addDoc(collection(db, "services"), data);
+                        // alert("서비스가 추가되었습니다."); // 삭제됨
+                    }
+                    e.target.reset();
+                    render();
+                } catch (err) {
+                    alert("오류 발생: " + err.message);
+                }
             },
             downloadTemplate: () => {
                 const ws = XLSX.utils.aoa_to_sheet([['이름','성별','생년월일','행정동','연락처','상태']]);
