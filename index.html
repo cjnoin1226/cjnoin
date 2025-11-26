@@ -143,8 +143,24 @@
                 render();
             }, handleErr);
             
+            // Services Sync (Updated with Custom Sort: 기타 포함)
             onSnapshot(collection(db, "services"), (snap) => {
-                state.services = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                let loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const sortOrder = ['위기관리체계구축', '욕구기반 위기관리', '위기상황관리 및 긴급지원', '기타'];
+                loaded.sort((a, b) => {
+                    const catA = (a.majorCategory || '').replace(/\s+/g, '');
+                    const catB = (b.majorCategory || '').replace(/\s+/g, '');
+                    const indexA = sortOrder.findIndex(k => k.replace(/\s+/g, '') === catA);
+                    const indexB = sortOrder.findIndex(k => k.replace(/\s+/g, '') === catB);
+                    if (indexA !== -1 && indexB !== -1) {
+                        if (indexA !== indexB) return indexA - indexB;
+                        return (a.category || '').localeCompare(b.category || '');
+                    }
+                    if (indexA !== -1) return -1;
+                    if (indexB !== -1) return 1;
+                    return (a.majorCategory || '').localeCompare(b.majorCategory || '');
+                });
+                state.services = loaded;
                 render();
             }, handleErr);
             
@@ -158,9 +174,7 @@
         function renderDashboard() {
             const today = new Date().toISOString().split('T')[0];
             const todayLogs = state.logs.filter(l => l.date === today).length;
-            const highFocus = state.clients.filter(c => c.careLevel === '중점').length;
-            const general = state.clients.filter(c => c.careLevel === '일반').length;
-
+            
             return `
                 <div class="space-y-6 animate-fade-in">
                     <div class="flex justify-between items-center">
@@ -173,7 +187,6 @@
                             <div>
                                 <p class="text-sm text-slate-500">총 대상자</p>
                                 <p class="text-2xl font-bold text-slate-800">${state.clients.length}<span class="text-sm font-normal text-slate-500">명</span></p>
-                                <p class="text-xs text-slate-400 mt-1">(중점: <span class="text-pink-600 font-bold">${highFocus}</span> / 일반: <span class="text-blue-600 font-bold">${general}</span>)</p>
                             </div>
                         </div>
                         <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
@@ -217,22 +230,18 @@
                 
                 if (!matchBasic) return false;
 
-                // Month Filter Logic (Active Clients in selected month)
                 if (targetMonth) {
                     const [y, m] = targetMonth.split('-');
                     const startOfMonth = `${y}-${m}-01`;
                     const endOfMonth = `${y}-${m}-31`; 
-                    
                     const sDate = c.serviceStartDate || '9999-99-99';
                     const eDate = c.endDate || '9999-99-99';
-
                     if (sDate > endOfMonth) return false;
                     if (eDate < startOfMonth) return false;
                 }
                 return true;
             }).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
 
-            // Stats Calculations
             const totalCount = filtered.length;
             const highFocusCount = filtered.filter(c => c.careLevel === '중점').length;
             const generalCount = filtered.filter(c => c.careLevel === '일반').length;
@@ -251,67 +260,31 @@
                         </div>
                     </div>
 
-                    <!-- Stats Cards (Dynamic based on filter) -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
-                          <div><p class="text-xs text-slate-500">조회 대상자</p><p class="text-xl font-bold text-slate-800">${totalCount}명</p></div>
-                          <div class="p-2 bg-slate-50 rounded-full text-slate-400"><i data-lucide="users" size="20"></i></div>
-                       </div>
-                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                          <p class="text-xs text-slate-500">등급별</p>
-                          <div class="flex gap-2 mt-2 items-center text-sm">
-                            <span class="text-pink-600 font-bold">중점 ${highFocusCount}</span> <span class="text-slate-300">|</span> <span class="text-blue-600 font-bold">일반 ${generalCount}</span>
-                          </div>
-                       </div>
-                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                          <p class="text-xs text-slate-500">성별</p>
-                          <div class="flex gap-2 mt-2 items-center text-sm">
-                            <span class="text-blue-500 font-bold">남 ${maleCount}</span> <span class="text-slate-300">|</span> <span class="text-red-500 font-bold">여 ${femaleCount}</span>
-                          </div>
-                       </div>
+                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between"><div><p class="text-xs text-slate-500">조회 대상자</p><p class="text-xl font-bold text-slate-800">${totalCount}명</p></div><div class="p-2 bg-slate-50 rounded-full text-slate-400"><i data-lucide="users" size="20"></i></div></div>
+                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100"><p class="text-xs text-slate-500">등급별</p><div class="flex gap-2 mt-2 items-center text-sm"><span class="text-pink-600 font-bold">중점 ${highFocusCount}</span> <span class="text-slate-300">|</span> <span class="text-blue-600 font-bold">일반 ${generalCount}</span></div></div>
+                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100"><p class="text-xs text-slate-500">성별</p><div class="flex gap-2 mt-2 items-center text-sm"><span class="text-blue-500 font-bold">남 ${maleCount}</span> <span class="text-slate-300">|</span> <span class="text-red-500 font-bold">여 ${femaleCount}</span></div></div>
                     </div>
 
-                    <!-- Responsive Filter Bar (Updated: Single Line Layout) -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-2 overflow-x-auto whitespace-nowrap">
-                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0">
-                            <i data-lucide="filter" size="14"></i> 필터
-                        </div>
-                        
-                        <!-- Month Filter -->
-                        <input type="month" class="input-field py-1.5 text-sm w-32 flex-shrink-0" value="${targetMonth}" onchange="app.setFilter('client','targetMonth',this.value)" title="기준월">
-                        
-                        <!-- Name Search -->
-                        <input class="input-field py-1.5 text-sm w-28 flex-shrink-0" placeholder="이름" value="${search}" oninput="app.setFilter('client','search',this.value)">
-                        
-                        <!-- Dropdowns (Removed '(전체)') -->
-                        <select class="input-field py-1.5 text-sm w-20 flex-shrink-0" onchange="app.setFilter('client','status',this.value)">
-                            <option value="">상태</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}
-                        </select>
-                        <select class="input-field py-1.5 text-sm w-20 flex-shrink-0" onchange="app.setFilter('client','level',this.value)">
-                            <option value="">등급</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}
-                        </select>
-                        <select class="input-field py-1.5 text-sm w-20 flex-shrink-0" onchange="app.setFilter('client','region',this.value)">
-                            <option value="">동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}
-                        </select>
-                        <select class="input-field py-1.5 text-sm w-20 flex-shrink-0" onchange="app.setFilter('client','gender',this.value)">
-                            <option value="">성별</option>
-                            <option value="남성" ${gender==='남성'?'selected':''}>남성</option>
-                            <option value="여성" ${gender==='여성'?'selected':''}>여성</option>
-                        </select>
-                        
-                        <button onclick="app.resetFilters('client')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 whitespace-nowrap flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap gap-2 items-center">
+                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2"><i data-lucide="filter" size="14"></i> 필터</div>
+                        <input type="month" class="input-field py-1.5 text-sm w-32 flex-1" value="${targetMonth}" onchange="app.setFilter('client','targetMonth',this.value)" title="기준월">
+                        <input class="input-field py-1.5 text-sm w-28 flex-1" placeholder="이름" value="${search}" oninput="app.setFilter('client','search',this.value)">
+                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','status',this.value)"><option value="">상태</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}</select>
+                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','level',this.value)"><option value="">등급</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}</select>
+                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','region',this.value)"><option value="">동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}</select>
+                        <select class="input-field py-1.5 text-sm w-20 flex-1" onchange="app.setFilter('client','gender',this.value)"><option value="">성별</option><option value="남성" ${gender==='남성'?'selected':''}>남성</option><option value="여성" ${gender==='여성'?'selected':''}>여성</option></select>
+                        <button onclick="app.resetFilters('client')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 whitespace-nowrap"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                     </div>
 
-                    <!-- Client List -->
                     <div class="space-y-2">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
                         filtered.map(c => `
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group hover:bg-slate-50 transition-colors">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <span class="font-bold text-xl text-slate-800 cursor-pointer hover:text-blue-600 hover:underline transition-all" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
+                                    <span class="font-bold text-2xl text-slate-800 cursor-pointer hover:text-blue-600 hover:underline transition-all" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
                                     <span class="text-base font-bold ${c.gender==='남성'?'text-blue-500':'text-red-500'}">(${calculateAge(c.birthDate)}세/${c.gender})</span>
-                                    
                                     <div class="flex items-center gap-1 ml-1">
                                         <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">${c.region}</span>
                                         <span class="text-xs px-2 py-0.5 rounded ${c.careLevel==='중점'?'bg-pink-100 text-pink-700':'bg-blue-100 text-blue-700'} font-medium">${c.careLevel}</span>
@@ -325,18 +298,10 @@
                                     <span class="flex items-center gap-1"><i data-lucide="home" width="12" height="12" class="text-slate-400"></i> ${c.address||'-'}</span>
                                 </div>
                             </div>
-                            
                             <div class="flex items-center gap-2 justify-end w-full sm:w-auto">
-                                ${c.status !== '종결' ? `
-                                <button onclick="app.getAiRecommendation('${c.id}')" class="text-purple-600 hover:bg-purple-50 p-1.5 rounded" title="AI 제안">
-                                    <i data-lucide="sparkles" size="18"></i>
-                                </button>` : ''}
-                                <button onclick="app.openClientModal('${c.id}')" class="text-slate-400 hover:text-blue-500 p-1.5 rounded" title="수정">
-                                    <i data-lucide="edit" size="18"></i>
-                                </button>
-                                <button onclick="app.deleteData('clients','${c.id}')" class="text-slate-400 hover:text-red-500 p-1.5 rounded" title="삭제">
-                                    <i data-lucide="trash-2" size="18"></i>
-                                </button>
+                                ${c.status !== '종결' ? `<button onclick="app.getAiRecommendation('${c.id}')" class="text-purple-600 hover:bg-purple-50 p-1.5 rounded" title="AI 제안"><i data-lucide="sparkles" size="18"></i></button>` : ''}
+                                <button onclick="app.openClientModal('${c.id}')" class="text-slate-400 hover:text-blue-500 p-1.5 rounded" title="수정"><i data-lucide="edit" size="18"></i></button>
+                                <button onclick="app.deleteData('clients','${c.id}')" class="text-slate-400 hover:text-red-500 p-1.5 rounded" title="삭제"><i data-lucide="trash-2" size="18"></i></button>
                             </div>
                         </div>`).join('')}
                     </div>
@@ -363,91 +328,50 @@
                             <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
                         </div>
                     </div>
-                    <!-- Filter Bar: Single Line, Auto-sizing -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-2 w-full overflow-x-auto">
-                        <!-- Filter Icon Only -->
-                        <i data-lucide="filter" size="18" class="text-slate-500 flex-shrink-0"></i>
-                        
-                        <!-- Date Range -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0">
+                            <i data-lucide="filter" size="14"></i> 필터
+                        </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
                             <input type="date" class="input-field py-1.5 w-32 text-sm" value="${start}" onchange="app.setFilter('log','start',this.value)">
                             <span class="text-slate-400">~</span>
                             <input type="date" class="input-field py-1.5 w-32 text-sm" value="${end}" onchange="app.setFilter('log','end',this.value)">
                         </div>
-                        
-                        <!-- Flexible Inputs -->
-                        <input class="input-field py-1.5 text-sm w-24 md:flex-1 min-w-[80px]" placeholder="이름" value="${search}" oninput="app.setFilter('log','search',this.value)">
-                        
-                        <select class="input-field py-1.5 text-sm w-28 md:flex-1 min-w-[100px]" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');">
-                            <option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}
-                        </select>
-                        
-                        <select class="input-field py-1.5 text-sm w-28 md:flex-1 min-w-[100px]" onchange="app.setFilter('log','service',this.value)">
-                            <option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}
-                        </select>
-                        
-                        <!-- Reset Button -->
-                        <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 whitespace-nowrap"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                        <input class="input-field py-1.5 w-28 text-sm flex-shrink-0" placeholder="이름" value="${search}" oninput="app.setFilter('log','search',this.value)">
+                        <select class="input-field py-1.5 w-32 text-sm flex-shrink-0" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
+                        <select class="input-field py-1.5 w-32 text-sm flex-shrink-0" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
+                        <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                     </div>
-
                     <div class="space-y-4">
                         ${filtered.length === 0 ? '<div class="text-center py-12 text-slate-400">검색 결과가 없습니다.</div>' : filtered.map(l => {
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
                             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-start gap-6 hover:shadow-md transition-shadow relative">
-                                <!-- Left Column: ~33% -->
                                 <div class="md:w-1/3 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6 flex-shrink-0 w-full">
                                     <div class="flex items-center justify-between mb-2">
                                         <span class="text-sm text-slate-500 font-medium flex items-center gap-1"><i data-lucide="calendar" size="14"></i> ${l.date}</span>
                                         <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full font-medium">${l.provideMethod || '방문'}</span>
                                     </div>
                                     <div class="mb-4">
-                                        <div class="flex items-baseline gap-2">
-                                            <span class="text-lg font-bold text-slate-800">${l.clientName}</span>
-                                            <span class="text-xs text-slate-500">${c ? `(${calculateAge(c.birthDate)}세/${c.gender})` : ''}</span>
-                                        </div>
+                                        <div class="flex items-baseline gap-2"><span class="text-lg font-bold text-slate-800">${l.clientName}</span><span class="text-xs text-slate-500">${c ? `(${calculateAge(c.birthDate)}세/${c.gender})` : ''}</span></div>
                                         ${c ? `<div class="text-xs text-slate-400 mt-0.5">${c.region} | ${c.careLevel}</div>` : ''}
                                     </div>
-                                    
                                     <div class="space-y-2">
-                                        ${l.serviceItems ? l.serviceItems.map(i => `
-                                            <div class="bg-emerald-50/50 border border-emerald-100 rounded-lg px-2.5 py-1.5 flex flex-col items-start gap-1 text-xs">
-                                                <div class="flex items-center gap-1 w-full">
-                                                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></div>
-                                                    <span class="font-bold text-emerald-800 whitespace-nowrap">${i.category} > ${i.serviceName}</span>
-                                                </div>
-                                                ${i.detailNote ? `
-                                                    <div class="text-slate-600 whitespace-normal break-all pl-2.5 border-l-2 border-emerald-200 leading-snug w-full">
-                                                        ${i.detailNote}
-                                                    </div>
-                                                ` : ''}
-                                            </div>
-                                        `).join('') : ''}
+                                        ${l.serviceItems ? l.serviceItems.map(i => `<div class="bg-emerald-50/50 border border-emerald-100 rounded-lg px-2.5 py-1.5 flex flex-col items-start gap-1 text-xs"><div class="flex items-center gap-1 w-full"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></div><span class="font-bold text-emerald-800 whitespace-nowrap">${i.category} > ${i.serviceName}</span></div>${i.detailNote ? `<div class="text-slate-600 whitespace-normal break-all pl-2.5 border-l-2 border-emerald-200 leading-snug w-full">${i.detailNote}</div>` : ''}</div>`).join('') : ''}
                                     </div>
                                 </div>
-
-                                <!-- Right Column: Content Area -->
                                 <div class="flex-1 relative min-w-0 flex flex-col justify-start h-full">
-                                    <!-- Header: Content Label & Actions/Author -->
                                     <div class="flex justify-between items-start mb-1">
-                                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 pt-1">
-                                            <i data-lucide="file-text" size="12"></i> 진행 내용
-                                        </div>
-                                        
-                                        <!-- Right Side: Buttons & Author - Absolute Position for PC -->
+                                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 pt-1"><i data-lucide="file-text" size="12"></i> 진행 내용</div>
                                         <div class="flex flex-col items-end gap-1 md:absolute md:top-0 md:right-0">
                                             <div class="flex gap-1">
                                                 <button onclick="app.duplicateLog('${l.id}')" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="복사"><i data-lucide="copy" size="14"></i></button>
                                                 <button onclick="app.openLogModal('${l.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="수정"><i data-lucide="edit" size="14"></i></button>
                                                 <button onclick="app.deleteData('logs','${l.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
                                             </div>
-                                            <span class="text-xs text-slate-500 bg-slate-50 px-2 py-0.5 rounded flex items-center gap-1">
-                                                <i data-lucide="user" size="12"></i> ${l.provider || '미지정'}
-                                            </span>
+                                            <span class="text-xs text-slate-500 bg-slate-50 px-2 py-0.5 rounded flex items-center gap-1"><i data-lucide="user" size="12"></i> ${l.provider || '미지정'}</span>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Content Body: 클릭 시 수정 모달 열기 -->
                                     <div class="flex-1 mt-0">
                                         <p class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap cursor-pointer p-2 -ml-2 rounded hover:bg-slate-50 hover:text-blue-800 transition-colors mt-0" title="클릭하여 수정하기" onclick="app.openLogModal('${l.id}')">${l.content}</p>
                                     </div>
@@ -456,6 +380,134 @@
                         }).join('')}
                     </div>
                 </div>`;
+        }
+
+        function renderStatistics() {
+            const { start, end, type, region, name } = state.filters.stats;
+            const targetClients = state.clients.filter(c => 
+                (!region || c.region === region) && 
+                (!name || c.name.includes(name))
+            );
+
+            // 1. 정렬된 카테고리 목록 추출 (state.services는 이미 대분류 기준으로 정렬되어 있음)
+            const sortedCategories = [...new Set(state.services.map(s => s.category))].filter(Boolean);
+
+            let serviceHeaders = [];
+            let headerGroups = {}; 
+
+            if (type === 'category') {
+                // 카테고리 뷰: 정렬된 순서 그대로 사용
+                serviceHeaders = sortedCategories;
+            } else {
+                // 상세 뷰: 정렬된 카테고리 순서에 따라 상세 서비스 배치
+                state.services.forEach(s => {
+                    const cat = s.category || '기타';
+                    if (!headerGroups[cat]) headerGroups[cat] = [];
+                    // 서비스명도 이미 정렬되어 있으므로 순서대로 추가
+                    if (!headerGroups[cat].includes(s.name)) headerGroups[cat].push(s.name);
+                });
+                
+                // 정렬된 카테고리 순서대로 헤더 플랫하게 생성
+                serviceHeaders = sortedCategories.flatMap(cat => headerGroups[cat] || []);
+            }
+
+            const dataMap = {}; 
+            
+            targetClients.forEach(c => {
+                dataMap[c.id] = { name: c.name, total: 0, counts: {} };
+                serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0);
+            });
+
+            state.logs.forEach(l => {
+                if (l.date < start || l.date > end) return;
+                let cid = l.clientId;
+                if (!dataMap[cid] && l.clientName) {
+                    const found = targetClients.find(c => c.name === l.clientName);
+                    if(found) cid = found.id;
+                }
+
+                if (dataMap[cid]) {
+                    const items = l.serviceItems || [{ serviceName: l.serviceName, category: l.serviceCategory }];
+                    items.forEach(item => {
+                        let key = type === 'category' ? item.category : item.serviceName;
+                        // 구 데이터 호환
+                        if (!key && item.serviceName && type === 'category') {
+                            const s = state.services.find(svc => svc.name === item.serviceName);
+                            if(s) key = s.category;
+                        }
+                        
+                        if (key && dataMap[cid].counts[key] !== undefined) {
+                            dataMap[cid].counts[key]++;
+                            dataMap[cid].total++;
+                        }
+                    });
+                }
+            });
+
+            const rows = Object.values(dataMap).filter(r => r.total >= 0).sort((a,b) => b.total - a.total);
+            const colTotals = {};
+            serviceHeaders.forEach(k => colTotals[k] = rows.reduce((sum, r) => sum + (r.counts[k]||0), 0));
+            const grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
+
+            let theadHTML = '';
+            if (type === 'category') {
+                theadHTML = `<tr>
+                    <th class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 text-xs sm:text-sm">대상자</th>
+                    <th class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] text-xs sm:text-sm">합계</th>
+                    ${serviceHeaders.map(k => `<th class="p-3 border-b border-r min-w-[80px] text-xs sm:text-sm">${k}</th>`).join('')}
+                </tr>`;
+            } else {
+                // 상세 뷰 헤더 생성 시 정렬된 카테고리 사용
+                const categories = sortedCategories.filter(cat => headerGroups[cat] && headerGroups[cat].length > 0);
+                
+                theadHTML = `<tr>
+                    <th rowspan="2" class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 z-30 text-xs sm:text-sm text-center align-middle">대상자</th>
+                    <th rowspan="2" class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] z-30 text-xs sm:text-sm text-center align-middle">합계</th>
+                    ${categories.map(cat => `<th colspan="${headerGroups[cat].length}" class="p-2 border-b border-r bg-slate-100 text-center text-xs align-middle">${cat}</th>`).join('')}
+                </tr><tr>
+                    ${categories.map(cat => headerGroups[cat].map(svc => `<th class="p-2 border-b border-r font-normal text-xs min-w-[80px] text-center align-middle">${svc}</th>`).join('')).join('')}
+                </tr>`;
+            }
+
+            return `
+                <div class="space-y-6 animate-fade-in">
+                    <h2 class="text-2xl font-bold text-slate-800">서비스 제공 통계</h2>
+                    <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm">
+                        <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
+                            <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
+                            <button onclick="app.setFilter('stats','type','detail')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='detail'?'bg-white shadow':''}">상세별</button>
+                        </div>
+                        <div class="flex w-full sm:w-auto gap-2">
+                            <input type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${start}" onchange="app.setFilter('stats','start',this.value)" max="9999-12-31">
+                            <input type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${end}" onchange="app.setFilter('stats','end',this.value)" max="9999-12-31">
+                        </div>
+                        <div class="flex w-full sm:w-auto gap-2 flex-1">
+                            <input class="input-field w-full sm:w-24 py-1 text-sm" placeholder="이름" value="${name}" oninput="app.setFilter('stats','name',this.value)">
+                            <select class="input-field w-full sm:w-24 py-1 text-sm" onchange="app.setFilter('stats','region',this.value)"><option value="">전체 동</option>${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${region===d?'selected':''}>${d}</option>`).join('')}</select>
+                        </div>
+                        <button onclick="app.downloadStatsExcel()" class="w-full sm:w-auto bg-emerald-600 text-white p-2 rounded flex justify-center"><i data-lucide="download" size="16"></i></button>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-auto max-h-[600px]">
+                        <table class="w-full text-sm text-left border-collapse whitespace-nowrap">
+                            <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20">${theadHTML}</thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="bg-slate-50 font-bold sticky top-0 z-10">
+                                    <td class="p-3 sticky-col border-r bg-slate-50 text-center align-middle">총계</td>
+                                    <td class="p-3 text-center border-r bg-emerald-50 text-emerald-700 align-middle">${grandTotal}</td>
+                                    ${serviceHeaders.map(k => `<td class="p-3 text-center border-r align-middle">${colTotals[k]}</td>`).join('')}
+                                </tr>
+                                ${rows.map(r => `
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="p-3 sticky-col bg-white border-r group-hover:bg-slate-50 text-center align-middle">${r.name}</td>
+                                        <td class="p-3 text-center font-bold bg-emerald-50 border-r text-emerald-600 align-middle">${r.total}</td>
+                                        ${serviceHeaders.map(k => `<td class="p-3 text-center border-r align-middle ${r.counts[k]>0?'bg-blue-50 font-medium text-blue-600 text-slate-800':'text-slate-300'}">${r.counts[k]||'-'}</td>`).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
         }
 
         // --- ServiceManager (Updated) ---
@@ -884,21 +936,11 @@
             addService: async (e) => {
                 e.preventDefault();
                 const data = Object.fromEntries(new FormData(e.target));
-                
                 try {
-                    if (state.editingServiceId) {
-                        await updateDoc(doc(db, "services", state.editingServiceId), data);
-                        state.editingServiceId = null;
-                        // alert("서비스가 수정되었습니다."); // 삭제됨
-                    } else {
-                        await addDoc(collection(db, "services"), data);
-                        // alert("서비스가 추가되었습니다."); // 삭제됨
-                    }
-                    e.target.reset();
-                    render();
-                } catch (err) {
-                    alert("오류 발생: " + err.message);
-                }
+                    if (state.editingServiceId) { await updateDoc(doc(db, "services", state.editingServiceId), data); state.editingServiceId = null; alert("서비스가 수정되었습니다."); } 
+                    else { await addDoc(collection(db, "services"), data); alert("서비스가 추가되었습니다."); }
+                    e.target.reset(); render();
+                } catch (err) { alert("오류 발생: " + err.message); }
             },
             downloadTemplate: () => {
                 const ws = XLSX.utils.aoa_to_sheet([['이름','성별','생년월일','행정동','연락처','상태']]);
@@ -1007,6 +1049,7 @@
                 let rowsHTML = '';
                 filtered.forEach(l => {
                     const client = state.clients.find(c => c.id === l.clientId);
+                    // 서비스 항목 HTML 생성 (여러 개일 경우 줄바꿈)
                     const servicesHTML = l.serviceItems && l.serviceItems.length > 0 
                         ? l.serviceItems.map(i => 
                             `<div>
