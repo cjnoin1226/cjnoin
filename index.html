@@ -132,8 +132,8 @@
                     targetYear: '', 
                     targetMonth: '' 
                 },
-                // [수정됨] 서비스 일지 필터에 region 배열 추가
-                log: { start: '', end: '', search: '', category: '', service: '', region: [] },
+                // [수정됨] 서비스 일지 필터에 region, provider(제공자) 추가
+                log: { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] },
                 stats: { start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], end: new Date().toISOString().split('T')[0], type: 'detail', region: '', name: '' }
             }
         };
@@ -565,8 +565,8 @@
         }
 
         function renderLogManager() {
-            // [수정됨] region 필터 구조 분해 할당 추가
-            const { start, end, search, category, service, region } = state.filters.log;
+            // [수정됨] provider 필터 추가
+            const { start, end, search, provider, category, service, region } = state.filters.log;
             
             const filtered = state.logs.filter(l => {
                 // 대상자 정보 조회 (행정동 확인용)
@@ -576,6 +576,7 @@
                 return (!start || l.date >= start) && 
                        (!end || l.date <= end) && 
                        (!search || l.clientName.includes(search)) && 
+                       (!provider || (l.provider && l.provider.includes(provider))) && // [추가됨] 제공자 검색 로직
                        (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
                        (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service))) &&
                        // [추가됨] 행정동 다중 필터 로직
@@ -614,6 +615,11 @@
                         <input class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="이름 (Enter)" value="${search}" 
                             onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)"
                             oninput="if(this.value === '') app.setFilter('log','search','')">
+
+                        <!-- [추가됨] 제공자 검색 필터 (이름 검색 오른쪽 배치) -->
+                        <input class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" 
+                            onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)"
+                            oninput="if(this.value === '') app.setFilter('log','provider','')">
 
                         <!-- [추가됨] 행정동 다중 선택 드롭다운 (서비스 일지용) -->
                         <div class="relative z-30 w-full sm:w-auto">
@@ -773,8 +779,15 @@
 
             const dataMap = {}; 
             
+            // [수정됨] 데이터 맵 초기화 시 생년월일과 행정동 정보 추가
             targetClients.forEach(c => {
-                dataMap[c.id] = { name: c.name, total: 0, counts: {} };
+                dataMap[c.id] = { 
+                    name: c.name, 
+                    birthDate: c.birthDate || '-', // 생년월일 없으면 '-'
+                    region: c.region || '-',       // 행정동 없으면 '-'
+                    total: 0, 
+                    counts: {} 
+                };
                 serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0);
             });
 
@@ -808,22 +821,26 @@
             serviceHeaders.forEach(k => colTotals[k] = rows.reduce((sum, r) => sum + (r.counts[k]||0), 0));
             const grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
 
-            // [수정됨] 테이블 헤더 가운데 정렬(text-center) 추가
+            // [수정됨] 테이블 헤더 여백 축소 (좌우 여백 px-1 적용)
             let theadHTML = '';
             if (type === 'category') {
                 theadHTML = `<tr>
-                    <th class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 text-xs sm:text-sm text-center">대상자</th>
-                    <th class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] text-xs sm:text-sm text-center">합계</th>
-                    ${serviceHeaders.map(k => `<th class="p-3 border-b border-r min-w-[80px] text-xs sm:text-sm text-center">${k}</th>`).join('')}
+                    <th class="py-1.5 px-1 sticky-col border-b border-r min-w-[60px] bg-slate-50 text-xs text-center font-bold text-slate-700">대상자</th>
+                    <th class="py-1.5 px-1 border-b border-r min-w-[70px] bg-slate-50 text-xs text-center font-bold text-slate-600">생년월일</th>
+                    <th class="py-1.5 px-1 border-b border-r min-w-[50px] bg-slate-50 text-xs text-center font-bold text-slate-600">행정동</th>
+                    <th class="p-1.5 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] text-xs text-center font-bold">합계</th>
+                    ${serviceHeaders.map(k => `<th class="p-1.5 border-b border-r min-w-[80px] text-xs text-center text-slate-600">${k}</th>`).join('')}
                 </tr>`;
             } else {
                 // 상세 보기 헤더 생성 시 orderedCategories 사용
                 theadHTML = `<tr>
-                    <th rowspan="2" class="p-3 sticky-col border-b border-r min-w-[80px] bg-slate-50 z-30 text-xs sm:text-sm text-center">대상자</th>
-                    <th rowspan="2" class="p-3 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] z-30 text-xs sm:text-sm text-center">합계</th>
-                    ${orderedCategories.map(cat => `<th colspan="${headerGroups[cat].length}" class="p-2 border-b border-r bg-slate-100 text-center text-xs text-center">${cat}</th>`).join('')}
+                    <th rowspan="2" class="py-1.5 px-1 sticky-col border-b border-r min-w-[60px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-700">대상자</th>
+                    <th rowspan="2" class="py-1.5 px-1 border-b border-r min-w-[70px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600">생년월일</th>
+                    <th rowspan="2" class="py-1.5 px-1 border-b border-r min-w-[50px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600">행정동</th>
+                    <th rowspan="2" class="p-1.5 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] z-30 text-xs text-center font-bold">합계</th>
+                    ${orderedCategories.map(cat => `<th colspan="${headerGroups[cat].length}" class="p-1 border-b border-r bg-slate-100 text-center text-xs text-center font-semibold text-slate-600">${cat}</th>`).join('')}
                 </tr><tr>
-                    ${orderedCategories.map(cat => headerGroups[cat].map(svc => `<th class="p-2 border-b border-r font-normal text-xs min-w-[80px] text-center">${svc}</th>`).join('')).join('')}
+                    ${orderedCategories.map(cat => headerGroups[cat].map(svc => `<th class="p-1.5 border-b border-r font-normal text-xs min-w-[80px] text-center text-slate-500">${svc}</th>`).join('')).join('')}
                 </tr>`;
             }
 
@@ -847,18 +864,24 @@
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-auto max-h-[600px]">
                         <table class="w-full text-sm text-left border-collapse whitespace-nowrap">
-                            <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20">${theadHTML}</thead>
+                            <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20 shadow-sm">${theadHTML}</thead>
                             <tbody class="divide-y divide-slate-100">
-                                <tr class="bg-slate-50 font-bold sticky top-0 z-10">
-                                    <td class="p-3 sticky-col border-r bg-slate-50 text-center">총계</td>
-                                    <td class="p-3 text-center border-r bg-emerald-50 text-emerald-700">${grandTotal}</td>
-                                    ${serviceHeaders.map(k => `<td class="p-3 text-center border-r">${colTotals[k]}</td>`).join('')}
+                                <tr class="bg-slate-50 font-bold sticky top-0 z-10 shadow-sm">
+                                    <td class="py-1.5 px-1 sticky-col border-r bg-slate-50 text-center text-slate-700">총계</td>
+                                    <!-- [수정됨] 총계 행 빈 셀 추가 (생년월일, 행정동) 여백 축소 -->
+                                    <td class="py-1.5 px-1 border-r bg-slate-50"></td>
+                                    <td class="py-1.5 px-1 border-r bg-slate-50"></td>
+                                    <td class="p-1.5 text-center border-r bg-emerald-50 text-emerald-700">${grandTotal}</td>
+                                    ${serviceHeaders.map(k => `<td class="p-1.5 text-center border-r text-slate-700">${colTotals[k]}</td>`).join('')}
                                 </tr>
                                 ${rows.map(r => `
-                                    <tr class="hover:bg-slate-50">
-                                        <td class="p-3 sticky-col bg-white border-r group-hover:bg-slate-50 text-center">${r.name}</td>
-                                        <td class="p-3 text-center font-bold bg-emerald-50 border-r text-emerald-600">${r.total}</td>
-                                        ${serviceHeaders.map(k => `<td class="p-3 text-center border-r ${r.counts[k]>0?'bg-blue-50 font-medium text-blue-600 text-slate-800':'text-slate-300'}">${r.counts[k]||'-'}</td>`).join('')}
+                                    <tr class="hover:bg-slate-50 group">
+                                        <td class="py-1.5 px-1 sticky-col bg-white border-r group-hover:bg-slate-50 text-center font-medium text-slate-800">${r.name}</td>
+                                        <!-- [수정됨] 데이터 행 여백 축소 -->
+                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs">${r.birthDate}</td>
+                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs">${r.region}</td>
+                                        <td class="p-1.5 text-center font-bold bg-emerald-50 border-r text-emerald-600">${r.total}</td>
+                                        ${serviceHeaders.map(k => `<td class="p-1.5 text-center border-r ${r.counts[k]>0?'bg-blue-50 font-medium text-blue-600':'text-slate-300'}">${r.counts[k]||'-'}</td>`).join('')}
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -983,7 +1006,7 @@
                         targetYear: '', 
                         targetMonth: '' 
                     },
-                    log: { start: '', end: '', search: '', category: '', service: '', region: [] } // [수정됨] region 추가
+                    log: { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] } // [수정됨] region, provider 추가
                 };
                 state.filters[scope] = defaults[scope];
                 if(scope === 'client') state.ui.regionDropdownOpen = false;
