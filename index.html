@@ -43,31 +43,49 @@
         <button id="mobile-menu-btn"><i data-lucide="menu"></i></button>
     </div>
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-800 text-white transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 flex flex-col pt-16 md:pt-0">
+    <!-- Sidebar (수정됨: transition 클래스 추가, id 활용) -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 md:w-64 bg-slate-800 text-white transform -translate-x-full md:relative md:translate-x-0 transition-all duration-300 flex flex-col pt-16 md:pt-0">
+        <!-- [수정됨] 사이드바 헤더: 접기 버튼 추가 -->
         <div class="p-6 hidden md:flex items-center justify-between">
-            <h1 class="text-xl font-bold flex items-center gap-2"><i data-lucide="book-open" class="text-emerald-400"></i> 청전광장</h1>
+            <h1 class="text-xl font-bold flex items-center gap-2 whitespace-nowrap overflow-hidden"><i data-lucide="book-open" class="text-emerald-400"></i> <span class="sidebar-text">청전광장</span></h1>
+            <button onclick="app.toggleSidebar()" class="text-slate-400 hover:text-white transition-colors" title="메뉴 접기">
+                <i data-lucide="chevrons-left"></i>
+            </button>
         </div>
-        <nav class="flex-1 px-4 space-y-2 mt-4 md:mt-0">
-            <button onclick="app.setTab('dashboard')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700" data-tab="dashboard"><i data-lucide="layout-dashboard"></i> 홈</button>
-            <button onclick="app.setTab('clients')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700" data-tab="clients"><i data-lucide="users"></i> 대상자 관리</button>
-            <button onclick="app.setTab('logs')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700" data-tab="logs"><i data-lucide="file-text"></i> 서비스 일지</button>
-            <button onclick="app.setTab('statistics')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700" data-tab="statistics"><i data-lucide="bar-chart-2"></i> 통계</button>
-            <button onclick="app.setTab('services')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700" data-tab="services"><i data-lucide="settings"></i> 서비스 설정</button>
+        
+        <!-- [수정됨] 네비게이션 영역: overflow-x-hidden 추가 (접힐 때 텍스트 잘림 방지) -->
+        <nav class="flex-1 px-4 space-y-2 mt-4 md:mt-0 overflow-x-hidden">
+            <button onclick="app.setTab('dashboard')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 whitespace-nowrap" data-tab="dashboard"><i data-lucide="layout-dashboard" class="flex-shrink-0"></i> <span class="sidebar-text">홈</span></button>
+            <button onclick="app.setTab('clients')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 whitespace-nowrap" data-tab="clients"><i data-lucide="users" class="flex-shrink-0"></i> <span class="sidebar-text">대상자 관리</span></button>
+            <button onclick="app.setTab('logs')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 whitespace-nowrap" data-tab="logs"><i data-lucide="file-text" class="flex-shrink-0"></i> <span class="sidebar-text">서비스 일지</span></button>
+            <button onclick="app.setTab('statistics')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 whitespace-nowrap" data-tab="statistics"><i data-lucide="bar-chart-2" class="flex-shrink-0"></i> <span class="sidebar-text">통계</span></button>
+            <button onclick="app.setTab('services')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 whitespace-nowrap" data-tab="services"><i data-lucide="settings" class="flex-shrink-0"></i> <span class="sidebar-text">서비스 설정</span></button>
         </nav>
-        <div class="p-4 bg-slate-900 text-xs text-slate-400">
-            <div class="flex items-center gap-2 mb-1 text-emerald-400"><i data-lucide="cloud"></i> <span>Firebase 연결됨</span></div>
-            <p>데이터가 실시간 공유됩니다.</p>
+        
+        <!-- [수정됨] 하단 정보 영역: 텍스트 숨김 처리를 위한 클래스 추가 -->
+        <div class="p-4 bg-slate-900 text-xs text-slate-400 overflow-x-hidden">
+            <div class="flex items-center gap-2 mb-1 text-emerald-400"><i data-lucide="cloud" class="flex-shrink-0"></i> <span class="sidebar-text">Firebase 연결됨</span></div>
+            <p class="sidebar-text whitespace-nowrap">데이터가 실시간 공유됩니다.</p>
         </div>
     </aside>
 
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
 
-    <main class="flex-1 p-4 md:p-8 pt-20 md:pt-8 overflow-y-auto w-full relative" id="main-content">
-        <div class="flex items-center justify-center h-full text-slate-400"><div class="animate-spin mr-2"><i data-lucide="loader-2"></i></div>데이터 불러오는 중...</div>
+    <main class="flex-1 p-4 md:p-8 pt-20 md:pt-8 overflow-y-auto w-full relative transition-all duration-300" id="main-content">
+        <!-- [추가됨] 데스크탑용 메뉴 열기 버튼 (초기엔 숨김 상태 md:hidden) -->
+        <button id="desktop-menu-open-btn" onclick="app.toggleSidebar()" class="hidden mb-4 text-slate-500 hover:text-emerald-600 transition-colors flex items-center gap-2 font-medium">
+            <i data-lucide="menu"></i> 메뉴 열기
+        </button>
+
+        <div id="main-content-body" class="h-full">
+            <div class="flex items-center justify-center h-full text-slate-400"><div class="animate-spin mr-2"><i data-lucide="loader-2"></i></div>데이터 불러오는 중...</div>
+        </div>
     </main>
 
     <div id="modal-container" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto"></div>
+
+    <!-- [추가됨] 중복 확인 등 최상위 알림을 위한 다이얼로그 컨테이너 (z-index 60으로 모달보다 위에 배치) -->
+    <div id="dialog-container" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/50 p-4"></div>
 
     <!-- Firebase SDK & App Logic -->
     <script type="module">
@@ -109,19 +127,29 @@
             PROVIDE_METHOD_LIST: ['전화', '방문', '내방', '기타']
         };
 
+        // [수정됨] 오늘 날짜 구하기 (한국 시간 기준 보정)
+        const getTodayStr = () => {
+            const now = new Date();
+            // timezone offset(분)을 빼주어 한국 시간 기준으로 맞춤
+            return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        };
+
         const state = {
             activeTab: 'dashboard',
             clients: [],
             services: [],
             logs: [],
             editingServiceId: null,
-            // [수정됨] UI 상태 관리를 위한 객체 추가 (selectedLogIds, selectedClientIds 추가)
+            // [수정됨] UI 상태 관리를 위한 객체 추가
             ui: {
                 regionDropdownOpen: false,
                 logRegionDropdownOpen: false,
-                selectedLogIds: new Set(), // 선택된 일지 ID
-                selectedClientIds: new Set() // [추가됨] 선택된 대상자 ID
+                selectedLogIds: new Set(),
+                selectedClientIds: new Set()
             },
+            pendingClientData: null, // 중복 대상자 확인용
+            pendingLogData: null,    // 중복 일지 확인용
+            pendingServiceData: null, // [추가됨] 중복 서비스 확인용
             filters: {
                 client: { 
                     status: '이용', 
@@ -136,7 +164,13 @@
                 },
                 // [수정됨] 서비스 일지 필터에 region, provider(제공자) 추가
                 log: { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] },
-                stats: { start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], end: new Date().toISOString().split('T')[0], type: 'detail', region: '', name: '' }
+                // [수정됨] 통계 기간 기본값 변경: Timezone 이슈 해결을 위해 문자열로 직접 지정
+                // start: 올해 1월 1일, end: 오늘 날짜(KST)
+                stats: { 
+                    start: `${new Date().getFullYear()}-01-01`, 
+                    end: getTodayStr(), 
+                    type: 'detail', region: '', name: '' 
+                }
             }
         };
 
@@ -439,7 +473,8 @@
                     </div>
 
                     <!-- 필터 영역 -->
-                    <div class="bg-white p-3 rounded-xl shadow-sm flex flex-col gap-2">
+                    <!-- [수정됨] sticky top-16(모바일 헤더 높이 고려) md:top-0(데스크탑) z-40 적용하여 스크롤 시 상단 고정 -->
+                    <div class="bg-white p-3 rounded-xl shadow-sm flex flex-col gap-2 sticky top-16 md:top-0 z-40 transition-all">
                         <!-- 첫 번째 줄: 드롭다운 필터들 -->
                         <div class="flex flex-wrap items-center gap-1 sm:gap-2 text-sm">
                             <div class="flex items-center gap-1 text-slate-600 font-bold mr-1 flex-shrink-0"><i data-lucide="filter" size="14"></i></div>
@@ -524,13 +559,11 @@
                                               (displayStatus === '이용' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500');
                             
                             // [수정됨] 기간 내 이용 여부 확인 로직
-                            // 조회 기간 시작일보다 종결일이 같거나 크다면, 해당 기간 내에는 이용 이력이 있는 것으로 판단
                             const eDate = c.endDate || '9999-12-31';
                             const wasActiveInPeriod = eDate >= filterStart;
 
                             return `
                             <!-- [수정됨] 여백 축소: p-4 -> p-3 -->
-                            <!-- [수정됨] 그리드 첫 번째 컬럼 너비 증가 (120px -> 140px) : 체크박스 공간 확보 -->
                             <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[140px_140px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
                                 
                                 <!-- 1. 이름 및 기본 정보 (체크박스 추가) -->
@@ -620,7 +653,8 @@
                     </div>
                     
                     <!-- [수정됨] overflow-x-auto 제거 및 flex-wrap 추가 (드롭다운 잘림 방지) -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap items-center gap-2">
+                    <!-- [수정됨] sticky top-16 md:top-0 z-40 적용 -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap items-center gap-2 sticky top-16 md:top-0 z-40 transition-all">
                         <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0">
                             <i data-lucide="filter" size="14"></i> 필터
                         </div>
@@ -716,16 +750,18 @@
                                     
                                     <div class="space-y-2">
                                         ${l.serviceItems ? l.serviceItems.map(i => `
-                                            <div class="bg-emerald-50/50 border border-emerald-100 rounded-lg px-2.5 py-1.5 flex flex-col items-start gap-1 text-xs">
-                                                <div class="flex items-center gap-1 w-full">
+                                            <div class="bg-emerald-50/50 border border-emerald-100 rounded-lg px-2.5 py-2 flex flex-col items-start gap-1 text-xs">
+                                                <!-- 1줄: 서비스(분류) -->
+                                                <div class="flex items-center gap-1.5 w-full">
                                                     <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></div>
-                                                    <span class="font-bold text-emerald-800 whitespace-nowrap">${i.category} > ${i.serviceName}</span>
+                                                    <span class="font-bold text-emerald-800">${i.category}</span>
                                                 </div>
-                                                ${i.detailNote ? `
-                                                    <div class="text-slate-600 whitespace-normal break-all pl-2.5 border-l-2 border-emerald-200 leading-snug w-full">
-                                                        ${i.detailNote}
-                                                    </div>
-                                                ` : ''}
+                                                
+                                                <!-- [수정됨] 2줄: 서비스 상세내용 + 메모(detailNote) 한 줄 배치 -->
+                                                <div class="pl-3 w-full leading-snug text-slate-700">
+                                                    <span class="font-bold">${i.serviceName}</span>
+                                                    ${i.detailNote ? `<span class="text-slate-500 font-normal break-all"> - ${i.detailNote}</span>` : ''}
+                                                </div>
                                             </div>
                                         `).join('') : ''}
                                     </div>
@@ -903,7 +939,8 @@
             return `
                 <div class="space-y-6 animate-fade-in">
                     <h2 class="text-2xl font-bold text-slate-800">서비스 제공 통계</h2>
-                    <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm">
+                    <!-- [수정됨] sticky top-16 md:top-0 z-40 적용 -->
+                    <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm sticky top-16 md:top-0 z-40 transition-all">
                         <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
                             <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
                             <button onclick="app.setFilter('stats','type','detail')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='detail'?'bg-white shadow':''}">상세별</button>
@@ -1388,34 +1425,94 @@
                 }
             },
 
+            // [수정됨] 대상자 저장 (중복 체크 로직 추가)
             saveClient: async (e, id) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 const data = Object.fromEntries(formData);
                 
-                // [수정됨] 시작일과 종료일을 합쳐서 하나의 문자열로 저장
                 const start = data.absStart;
                 const end = data.absEnd;
                 
                 if (start || end) {
-                    // 둘 중 하나라도 입력되면 포맷팅 (없는 쪽은 빈칸)
                     data.absencePeriod = `${start || ''} ~ ${end || ''}`;
                 } else {
                     data.absencePeriod = '';
                 }
                 
-                // DB에 불필요한 필드 저장 방지
                 delete data.absStart;
                 delete data.absEnd;
 
-                // 생성일이 없으면 추가 (수정 시에는 유지하거나 덮어쓰지 않음)
                 if (!id) data.createdAt = new Date().toISOString();
 
+                // [추가됨] 중복 체크 로직 (신규 등록일 때만)
+                if (!id) {
+                    const duplicate = state.clients.find(c => c.name === data.name && c.birthDate === data.birthDate);
+                    if (duplicate) {
+                        // 임시 데이터 저장
+                        state.pendingClientData = data;
+                        
+                        // 확인 다이얼로그 표시
+                        const html = `
+                        <div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100">
+                            <div class="text-center">
+                                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4">
+                                    <i data-lucide="alert-circle" class="text-orange-600" size="24"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-900 mb-2">중복 대상자 확인</h3>
+                                <p class="text-sm text-slate-500 mb-4">
+                                    이름: <span class="font-bold text-slate-800">${data.name}</span><br>
+                                    생년월일: <span class="font-bold text-slate-800">${data.birthDate}</span>
+                                </p>
+                                <p class="text-sm text-slate-600 mb-6">
+                                    이미 등록된 대상자와 정보가 일치합니다.<br>그래도 등록하시겠습니까?
+                                </p>
+                                <div class="flex gap-3 justify-center">
+                                    <button onclick="app.confirmSaveClient()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium shadow-sm">
+                                        예, 등록
+                                    </button>
+                                    <button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">
+                                        아니오
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+                        showDialog(html);
+                        lucide.createIcons();
+                        return; // 저장 중단 및 대기
+                    }
+                }
+
+                // 중복 아니거나 수정인 경우 바로 저장
+                await app.processSaveClient(data, id);
+            },
+
+            // [추가됨] 중복 확인 후 강제 저장
+            confirmSaveClient: async () => {
+                if (state.pendingClientData) {
+                    await app.processSaveClient(state.pendingClientData, null);
+                    state.pendingClientData = null;
+                    closeDialog();
+                }
+            },
+
+            // [추가됨] 실제 DB 저장 로직 분리
+            processSaveClient: async (data, id) => {
                 try {
                     if (id) await updateDoc(doc(db, "clients", id), data);
                     else await addDoc(collection(db, "clients"), data);
-                    closeModal();
-                } catch(err) { alert("저장 실패: " + err.message); }
+                    closeModal(); // 등록 폼 닫기
+                } catch(err) { 
+                    alert("저장 실패: " + err.message); 
+                }
+            },
+
+            // [추가됨] 다이얼로그 닫기 (아니오 선택 시)
+            closeDialog: () => {
+                state.pendingClientData = null;
+                state.pendingLogData = null;
+                state.pendingServiceData = null; // [추가됨] 서비스 데이터 초기화
+                closeDialog();
             },
 
             // --- Log Modal ---
@@ -1597,9 +1694,84 @@
                     serviceName: items.map(i=>i.serviceName).join(', ') 
                 };
 
+                // [추가됨] 중복 일지 체크 로직 (신규 등록일 때만)
+                if (!id) {
+                    let duplicateFound = false;
+                    let duplicateInfo = "";
+
+                    // 선택된 모든 대상자에 대해 검사
+                    for (const cName of window.tempSelectedClients) {
+                        // 날짜와 이름이 같은 기존 일지 검색
+                        const existingLogs = state.logs.filter(l => l.date === baseData.date && l.clientName === cName);
+                        
+                        for (const log of existingLogs) {
+                            // 서비스명이 하나라도 겹치는지 확인
+                            const hasOverlap = items.some(newItem => 
+                                log.serviceItems && log.serviceItems.some(oldItem => oldItem.serviceName === newItem.serviceName)
+                            );
+                            
+                            if (hasOverlap) {
+                                duplicateFound = true;
+                                duplicateInfo = `${cName}님 (${baseData.date})`;
+                                break; 
+                            }
+                        }
+                        if (duplicateFound) break;
+                    }
+
+                    if (duplicateFound) {
+                        // 임시 데이터 저장
+                        state.pendingLogData = { baseData, items, clients: [...window.tempSelectedClients] }; // 배열 복사 저장
+
+                        // 확인 다이얼로그 표시
+                        const html = `
+                        <div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100">
+                            <div class="text-center">
+                                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4">
+                                    <i data-lucide="alert-circle" class="text-orange-600" size="24"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-900 mb-2">중복 일지 확인</h3>
+                                <p class="text-sm text-slate-500 mb-4">
+                                    <span class="font-bold text-slate-800">${duplicateInfo}</span>의<br>
+                                    동일한 서비스 일지가 이미 존재합니다.
+                                </p>
+                                <p class="text-sm text-slate-600 mb-6">
+                                    그래도 등록하시겠습니까?
+                                </p>
+                                <div class="flex gap-3 justify-center">
+                                    <button onclick="app.confirmSaveLog()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium shadow-sm">
+                                        예, 등록
+                                    </button>
+                                    <button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">
+                                        아니오
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+                        showDialog(html);
+                        lucide.createIcons();
+                        return; // 저장 중단
+                    }
+                }
+
+                // 중복이 아니거나 수정인 경우 바로 저장 진행
+                await app.processSaveLog(baseData, items, window.tempSelectedClients, id);
+            },
+
+            // [추가됨] 중복 일지 강제 저장
+            confirmSaveLog: async () => {
+                if (state.pendingLogData) {
+                    const { baseData, items, clients } = state.pendingLogData;
+                    await app.processSaveLog(baseData, items, clients, null);
+                    state.pendingLogData = null;
+                    closeDialog();
+                }
+            },
+
+            // [추가됨] 실제 일지 저장 로직 (분리됨)
+            processSaveLog: async (baseData, items, clients, id) => {
                 try {
-                    // Loop through selected clients and create/update logs
-                    const promises = window.tempSelectedClients.map(async (cName, idx) => {
+                    const promises = clients.map(async (cName, idx) => {
                         const client = state.clients.find(x => x.name === cName);
                         const logData = {
                             ...baseData,
@@ -1608,10 +1780,8 @@
                         };
 
                         if (id && idx === 0) {
-                            // 수정 모드: 기존 ID로 업데이트
                             return updateDoc(doc(db, "logs", id), logData);
                         } else {
-                            // 신규 등록 또는 복사 등록: 새로 추가
                             return addDoc(collection(db, "logs"), logData);
                         }
                     });
@@ -1684,15 +1854,86 @@
                 state.editingServiceId = null;
                 render();
             },
+            
+            // [수정됨] 서비스 추가/수정 함수 (중복 체크 로직 추가)
             addService: async (e) => {
                 e.preventDefault();
                 const data = Object.fromEntries(new FormData(e.target));
-                try {
-                    if (state.editingServiceId) { await updateDoc(doc(db, "services", state.editingServiceId), data); state.editingServiceId = null; alert("서비스가 수정되었습니다."); } 
-                    else { await addDoc(collection(db, "services"), data); alert("서비스가 추가되었습니다."); }
-                    e.target.reset(); render();
-                } catch (err) { alert("오류 발생: " + err.message); }
+                
+                // 신규 추가일 때만 중복 체크
+                if (!state.editingServiceId) {
+                    // [수정됨] 예시 내용은 제외하고 대분류, 서비스, 상세내용이 모두 같은지 확인 (공백 제거 후 비교)
+                    const duplicate = state.services.find(s => 
+                        (s.majorCategory || '').trim() === (data.majorCategory || '').trim() &&
+                        (s.category || '').trim() === (data.category || '').trim() &&
+                        (s.name || '').trim() === (data.name || '').trim()
+                    );
+
+                    if (duplicate) {
+                        state.pendingServiceData = data;
+                        
+                        const html = `
+                        <div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100">
+                            <div class="text-center">
+                                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4">
+                                    <i data-lucide="alert-circle" class="text-orange-600" size="24"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-slate-900 mb-2">중복 서비스 확인</h3>
+                                <p class="text-sm text-slate-500 mb-4">
+                                    대분류: ${data.majorCategory || '-'}<br>
+                                    서비스: ${data.category || '-'}<br>
+                                    상세내용: <span class="font-bold text-slate-800">${data.name}</span>
+                                </p>
+                                <p class="text-sm text-slate-600 mb-6">
+                                    이미 등록된 서비스입니다.<br>(예시 내용이 달라도 위 항목이 같으면 중복입니다)<br>그래도 추가하시겠습니까?
+                                </p>
+                                <div class="flex gap-3 justify-center">
+                                    <button onclick="app.confirmAddService()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium shadow-sm">
+                                        예, 추가
+                                    </button>
+                                    <button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">
+                                        아니오
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+                        showDialog(html);
+                        lucide.createIcons();
+                        return;
+                    }
+                }
+
+                await app.processAddService(data);
             },
+
+            // [추가됨] 중복 서비스 강제 추가
+            confirmAddService: async () => {
+                if (state.pendingServiceData) {
+                    await app.processAddService(state.pendingServiceData);
+                    state.pendingServiceData = null;
+                    closeDialog();
+                }
+            },
+
+            // [추가됨] 실제 서비스 저장 로직
+            processAddService: async (data) => {
+                try {
+                    if (state.editingServiceId) { 
+                        await updateDoc(doc(db, "services", state.editingServiceId), data); 
+                        state.editingServiceId = null; 
+                        alert("서비스가 수정되었습니다."); 
+                    } else { 
+                        await addDoc(collection(db, "services"), data); 
+                        alert("서비스가 추가되었습니다."); 
+                    }
+                    // 폼 초기화는 수동으로 찾아서 해야 함 (e.target이 없으므로)
+                    document.querySelector('form[onsubmit="app.addService(event)"]').reset();
+                    render();
+                } catch (err) { 
+                    alert("오류 발생: " + err.message); 
+                }
+            },
+
             // [수정됨] 엑셀 양식 다운로드: 모든 필드 포함하도록 확장
             downloadTemplate: () => {
                 const headers = [
@@ -1927,6 +2168,13 @@
         }
         function closeModal() { document.getElementById('modal-container').classList.add('hidden'); }
         
+        // [추가됨] 다이얼로그(Confirm) UI 헬퍼
+        function showDialog(html) {
+            const d = document.getElementById('dialog-container');
+            d.innerHTML = html; d.classList.remove('hidden');
+        }
+        function closeDialog() { document.getElementById('dialog-container').classList.add('hidden'); }
+
         // Dynamic Service Row Renderer
         function renderSvcRow(item) {
             const cats = [...new Set(state.services.map(s => s.category))];
@@ -1957,7 +2205,23 @@
         };
 
         function render() {
-            const main = document.getElementById('main-content');
+            // [수정됨] 렌더링 대상 ID 변경 (main-content -> main-content-body)
+            // 열기 버튼이 main-content 바로 아래에 추가되었으므로, 실제 내용은 그 아래 div에 렌더링해야 함
+            let main = document.getElementById('main-content-body');
+            // 만약 main-content-body가 없으면(초기 로딩 등) 생성
+            if (!main) {
+                const wrapper = document.getElementById('main-content');
+                // 기존 로딩 메시지 등이 있다면 지우고 구조 잡기
+                if (wrapper.innerHTML.includes('데이터 불러오는 중') || !wrapper.querySelector('#main-content-body')) {
+                     // 열기 버튼은 유지하고 내용물만 교체
+                     const btnHTML = document.getElementById('desktop-menu-open-btn').outerHTML;
+                     wrapper.innerHTML = btnHTML + '<div id="main-content-body" class="h-full"></div>';
+                     main = document.getElementById('main-content-body');
+                     // 버튼 이벤트 다시 연결 (innerHTML 교체로 인해 끊어질 수 있음)
+                     document.getElementById('desktop-menu-open-btn').onclick = app.toggleSidebar;
+                }
+            }
+
             document.querySelectorAll('.nav-item').forEach(b => {
                 if(b.dataset.tab === state.activeTab) { b.classList.add('bg-emerald-600', 'text-white'); b.classList.remove('text-slate-300'); }
                 else { b.classList.remove('bg-emerald-600', 'text-white'); b.classList.add('text-slate-300'); }
@@ -1970,6 +2234,30 @@
             else if (state.activeTab === 'services') main.innerHTML = renderServiceManager();
             lucide.createIcons();
         }
+
+        // [추가됨] 사이드바 토글 기능
+        app.toggleSidebar = () => {
+            const s = document.getElementById('sidebar');
+            const btn = document.getElementById('desktop-menu-open-btn');
+            
+            // 데스크탑 너비 클래스 토글 (md:w-64 <-> md:w-0)
+            // 주의: Tailwind 클래스 제어를 위해 classList 조작
+            if (s.classList.contains('md:w-0')) {
+                // 열기
+                s.classList.remove('md:w-0', 'md:overflow-hidden');
+                s.classList.add('md:w-64');
+                // 열기 버튼 숨김
+                btn.classList.add('hidden');
+                btn.classList.remove('md:inline-flex');
+            } else {
+                // 닫기
+                s.classList.remove('md:w-64');
+                s.classList.add('md:w-0', 'md:overflow-hidden');
+                // 열기 버튼 보이기
+                btn.classList.remove('hidden');
+                btn.classList.add('md:inline-flex');
+            }
+        };
 
         document.getElementById('mobile-menu-btn').addEventListener('click', () => {
             const s = document.getElementById('sidebar');
