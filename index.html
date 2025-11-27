@@ -117,7 +117,8 @@
             editingServiceId: null,
             // [수정됨] UI 상태 관리를 위한 객체 추가
             ui: {
-                regionDropdownOpen: false
+                regionDropdownOpen: false,
+                logRegionDropdownOpen: false // [추가] 서비스 일지 행정동 드롭다운 상태
             },
             filters: {
                 client: { 
@@ -131,7 +132,8 @@
                     targetYear: '', 
                     targetMonth: '' 
                 },
-                log: { start: '', end: '', search: '', category: '', service: '' },
+                // [수정됨] 서비스 일지 필터에 region 배열 추가
+                log: { start: '', end: '', search: '', category: '', service: '', region: [] },
                 stats: { start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], end: new Date().toISOString().split('T')[0], type: 'detail', region: '', name: '' }
             }
         };
@@ -258,7 +260,7 @@
                                    (!searchPhone || (c.phone && c.phone.includes(searchPhone))) && 
                                    (!status || c.status === status) &&
                                    (!level || c.careLevel === level) &&
-                                   // [수정됨] 행정동 다중 선택 필터 로직 (배열이 비어있거나 포함되어 있으면 통과)
+                                   // [수정됨] 행정동 다중 선택 필터 로직
                                    (region.length === 0 || region.includes(c.region)) &&
                                    (!gender || c.gender === gender);
                 
@@ -274,27 +276,68 @@
                 }
                 
                 return true;
-            }).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
+            }).sort((a, b) => {
+                // [수정됨] 정렬 로직 개선: 기간 설정 시 '기간 내 이용중' 대상자 우선 정렬
+                if (targetYear) {
+                    const eDateA = a.endDate || '9999-12-31';
+                    const activeA = eDateA >= filterStart; // 기간 내 활동 여부 A
+                    
+                    const eDateB = b.endDate || '9999-12-31';
+                    const activeB = eDateB >= filterStart; // 기간 내 활동 여부 B
+
+                    // A는 활동중, B는 활동없음 -> A가 위로 (-1)
+                    if (activeA && !activeB) return -1;
+                    // A는 활동없음, B는 활동중 -> B가 위로 (1)
+                    if (!activeA && activeB) return 1;
+                }
+                
+                // 기본 정렬: 시작일 순
+                return (a.serviceStartDate || '').localeCompare(b.serviceStartDate || '');
+            });
 
             // 상단 통계용 집계 로직 (오늘 날짜 기준)
             const today = new Date().toISOString().split('T')[0];
+            const currentYearStr = String(new Date().getFullYear()); // 올해 연도 문자열
             
             let activeStats = {
                 total: 0,
+                using: 0,  // [추가됨] 이용 인원
+                absent: 0, // [추가됨] 장기부재 인원
                 highFocus: 0, general: 0,
                 male: 0, female: 0
             };
 
+            // [추가됨] 올해 신규/종결 통계 객체
+            let yearStats = {
+                new: 0,
+                end: 0
+            };
+
             state.clients.forEach(c => {
+                // 1. 현재 이용 중인 대상자 집계
                 const isTerminatedToday = c.status === '종결' || (c.endDate && c.endDate < today);
                 const isNotStartedYet = c.serviceStartDate && c.serviceStartDate > today;
 
-                if (c.status === '이용' && !isTerminatedToday && !isNotStartedYet) {
+                // [수정됨] 상태가 '이용' 또는 '장기부재'인 경우 모두 활성 대상자로 포함하여 집계
+                if ((c.status === '이용' || c.status === '장기부재') && !isTerminatedToday && !isNotStartedYet) {
                     activeStats.total++;
+                    
+                    // [추가됨] 상태별 상세 집계
+                    if (c.status === '이용') activeStats.using++;
+                    else if (c.status === '장기부재') activeStats.absent++;
+
                     if (c.careLevel === '중점') activeStats.highFocus++;
                     else if (c.careLevel === '일반') activeStats.general++;
                     if (c.gender === '남성') activeStats.male++;
                     else if (c.gender === '여성') activeStats.female++;
+                }
+
+                // 2. [추가됨] 올해 신규/종결 집계 (상태와 무관하게 날짜 기준)
+                if (c.serviceStartDate && c.serviceStartDate.startsWith(currentYearStr)) {
+                    yearStats.new++;
+                }
+                if (c.endDate && c.endDate.startsWith(currentYearStr)) {
+                    yearStats.end++;
                 }
             });
 
@@ -320,45 +363,59 @@
                         </div>
                     </div>
 
-                    <!-- [수정됨] 상단 통계 영역 (Grid가 여기서 닫히도록 수정!) -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                       <!-- 첫 번째 칸 -->
-                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between">
+                    <!-- [수정됨] 상단 통계 영역 -->
+                    <div class="flex flex-wrap gap-3 justify-start">
+                       <!-- 첫 번째 박스: 이용 대상자 (상세 인원 표기 형식 변경) -->
+                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 min-w-[240px]">
                           <div>
-                              <p class="text-xs text-slate-500">현재 이용 대상자 (오늘 기준)</p>
-                              <p class="text-2xl font-bold text-slate-800 mt-1">${activeStats.total}<span class="text-sm text-slate-400 font-normal ml-1">명</span></p>
+                              <p class="text-sm text-slate-500 font-medium leading-tight">이용 대상자</p>
+                              <p class="text-2xl font-bold text-slate-800 mt-1">
+                                  ${activeStats.total}<span class="text-sm text-slate-400 font-normal ml-1">명 <span class="text-xs text-slate-500 font-normal tracking-tight ml-1">(이용중 : ${activeStats.using} / 장기부재 : ${activeStats.absent})</span></span>
+                              </p>
                           </div>
-                          <div class="p-3 bg-emerald-50 rounded-full text-emerald-500"><i data-lucide="user-check" size="24"></i></div>
+                          <div class="p-3 bg-emerald-50 rounded-full text-emerald-500 ml-auto"><i data-lucide="user-check" size="24"></i></div>
                        </div>
                        
-                       <!-- 두 번째 칸 -->
-                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center">
-                          <div class="flex justify-between items-center mb-2">
-                              <span class="text-xs text-slate-500 font-medium">등급별</span>
-                              <div class="text-sm font-bold">
+                       <!-- 두 번째 박스: 등급/성별 -->
+                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6">
+                          <!-- 등급별 -->
+                          <div class="flex flex-col justify-center">
+                              <span class="text-xs text-slate-500 font-bold mb-1">등급별</span>
+                              <div class="text-sm font-bold flex gap-2">
                                   <span class="text-pink-600">중점 ${activeStats.highFocus}</span>
-                                  <span class="text-slate-300 mx-1">|</span>
+                                  <span class="text-slate-300">|</span>
                                   <span class="text-blue-600">일반 ${activeStats.general}</span>
                               </div>
                           </div>
-                          <div class="w-full h-px bg-slate-100 my-1"></div>
-                          <div class="flex justify-between items-center mt-1">
-                              <span class="text-xs text-slate-500 font-medium">성별</span>
-                              <div class="text-sm font-bold">
+                          
+                          <div class="w-px h-8 bg-slate-100"></div>
+
+                          <!-- 성별 -->
+                          <div class="flex flex-col justify-center">
+                              <span class="text-xs text-slate-500 font-bold mb-1">성별</span>
+                              <div class="text-sm font-bold flex gap-2">
                                   <span class="text-blue-500">남 ${activeStats.male}</span>
-                                  <span class="text-slate-300 mx-1">|</span>
+                                  <span class="text-slate-300">|</span>
                                   <span class="text-red-500">여 ${activeStats.female}</span>
                               </div>
                           </div>
                        </div>
-                       
-                       <!-- 세 번째 칸 -->
-                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-center text-slate-300 border-dashed">
-                          <span class="text-sm flex items-center gap-2"><i data-lucide="plus-circle" size="16"></i> 빈 슬롯</span>
-                       </div>
-                    </div> <!-- 닫는 태그 복구 완료! -->
 
-                    <!-- 필터 영역 (레이아웃 정리됨) -->
+                       <!-- [추가됨] 세 번째 박스: 올해 신규/종결 현황 -->
+                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6">
+                          <div class="flex flex-col justify-center">
+                              <span class="text-xs text-slate-500 font-bold mb-1">올해 현황 (${currentYearStr})</span>
+                              <div class="text-sm font-bold flex gap-2">
+                                  <span class="text-emerald-600">신규 ${yearStats.new}</span>
+                                  <span class="text-slate-300">|</span>
+                                  <span class="text-slate-500">종결 ${yearStats.end}</span>
+                              </div>
+                          </div>
+                          <div class="p-3 bg-orange-50 rounded-full text-orange-500 ml-auto"><i data-lucide="activity" size="20"></i></div>
+                       </div>
+                    </div>
+
+                    <!-- 필터 영역 -->
                     <div class="bg-white p-3 rounded-xl shadow-sm flex flex-col gap-2">
                         <!-- 첫 번째 줄: 드롭다운 필터들 -->
                         <div class="flex flex-wrap items-center gap-1 sm:gap-2 text-sm">
@@ -442,42 +499,49 @@
                             const displayStatus = isLogicallyTerminated ? '종결' : c.status;
                             const statusColor = displayStatus === '종결' ? 'bg-slate-100 text-slate-500' : 
                                               (displayStatus === '이용' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500');
+                            
+                            // [수정됨] 기간 내 이용 여부 확인 로직
+                            // 조회 기간 시작일보다 종결일이 같거나 크다면, 해당 기간 내에는 이용 이력이 있는 것으로 판단
+                            const eDate = c.endDate || '9999-12-31';
+                            const wasActiveInPeriod = eDate >= filterStart;
 
                             return `
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group hover:bg-slate-50 transition-colors">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="font-bold text-2xl text-slate-800 cursor-pointer hover:text-blue-600 hover:underline transition-all" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
-                                        <span class="text-base font-bold ${c.gender==='남성'?'text-blue-500':'text-red-500'}">(${calculateAge(c.birthDate)}세/${c.gender})</span>
-                                        
-                                        <div class="flex items-center gap-1 ml-1">
-                                            <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">${c.region}</span>
-                                            <span class="text-xs px-2 py-0.5 rounded ${c.careLevel==='중점'?'bg-pink-100 text-pink-700':'bg-blue-100 text-blue-700'} font-medium">${c.careLevel}</span>
-                                            
-                                            <!-- 상태 배지 -->
-                                            <span class="text-xs px-2 py-0.5 rounded ${statusColor} font-medium">${displayStatus}</span>
-                                            
-                                            ${targetYear && !isLogicallyTerminated ? `<span class="text-xs text-emerald-600 bg-emerald-50 px-1.5 rounded border border-emerald-100">이용중</span>` : ''}
-                                        </div>
-                                    </div>
-                                    <div class="flex flex-wrap gap-4 text-base text-slate-600 items-center">
-                                        <!-- [수정됨] 연락처2가 있으면 함께 표시 -->
-                                        <span class="flex items-center gap-1"><i data-lucide="phone" size="10" class="text-slate-400"></i> ${c.phone||'-'}${c.phone2 ? ' / ' + c.phone2 : ''}</span>
-                                        <span class="text-slate-300 text-sm">|</span>
-                                        <span class="flex items-center gap-1"><i data-lucide="home" size="10" class="text-slate-400"></i> ${c.address||'-'}</span>
-                                    </div>
+                            <!-- [수정됨] Grid 레이아웃: 이름 너비 130px -> 120px로 축소하여 전체 레이아웃을 왼쪽으로 한 글자만큼 당김 -->
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[120px_140px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
+                                
+                                <!-- 1. 이름 및 기본 정보 -->
+                                <div class="flex items-center gap-1 w-full overflow-hidden">
+                                    <span class="font-bold text-xl text-slate-800 cursor-pointer hover:text-blue-600 truncate" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
+                                    <span class="text-sm font-bold ${c.gender==='남성'?'text-blue-500':'text-red-500'} whitespace-nowrap">(${calculateAge(c.birthDate)}/${c.gender})</span>
                                 </div>
                                 
-                                <div class="flex items-center gap-2 justify-end w-full sm:w-auto">
-                                    ${displayStatus !== '종결' ? `
-                                    <button onclick="app.getAiRecommendation('${c.id}')" class="text-purple-600 hover:bg-purple-50 p-1.5 rounded" title="AI 제안">
-                                        <i data-lucide="sparkles" size="18"></i>
-                                    </button>` : ''}
+                                <!-- 2. 배지 그룹 -->
+                                <div class="flex items-center gap-1 w-full flex-wrap content-start">
+                                    <span class="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium whitespace-nowrap border border-slate-200">${c.region}</span>
+                                    <span class="text-xs px-1.5 py-0.5 rounded ${c.careLevel==='중점'?'bg-pink-50 text-pink-700 border border-pink-100':'bg-blue-50 text-blue-700 border border-blue-100'} font-medium whitespace-nowrap">${c.careLevel}</span>
+                                    <span class="text-xs px-1.5 py-0.5 rounded ${statusColor} font-medium whitespace-nowrap border border-slate-200">${displayStatus}</span>
+                                    <!-- [수정됨] 기간 설정 시 해당 기간에 활동 이력이 있으면(도중 종결 포함) 초록색 원 표시 -->
+                                    ${targetYear && wasActiveInPeriod ? `<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 ml-0.5 shadow-sm" title="해당 기간 이용 이력 있음"></div>` : ''}
+                                </div>
+
+                                <!-- 3. 연락처 -->
+                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.phone||''}${c.phone2 ? ' / ' + c.phone2 : ''}">
+                                    <span class="truncate text-lg text-slate-900">${c.phone||'-'}${c.phone2 ? ' / ' + c.phone2 : ''}</span>
+                                </div>
+
+                                <!-- 4. 주소 -->
+                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.address||''}">
+                                    <span class="truncate text-lg text-slate-900">${c.address||'-'}</span>
+                                </div>
+                                
+                                <!-- 5. 관리 버튼 (우측 정렬) -->
+                                <div class="flex items-center justify-end gap-1 w-full">
+                                    <!-- [수정됨] 기존 텍스트 배지 제거 -->
                                     <button onclick="app.openClientModal('${c.id}')" class="text-slate-400 hover:text-blue-500 p-1.5 rounded" title="수정">
-                                        <i data-lucide="edit" size="18"></i>
+                                        <i data-lucide="edit" size="16"></i>
                                     </button>
                                     <button onclick="app.deleteData('clients','${c.id}')" class="text-slate-400 hover:text-red-500 p-1.5 rounded" title="삭제">
-                                        <i data-lucide="trash-2" size="18"></i>
+                                        <i data-lucide="trash-2" size="16"></i>
                                     </button>
                                 </div>
                             </div>`;
@@ -487,12 +551,23 @@
         }
 
         function renderLogManager() {
-            const { start, end, search, category, service } = state.filters.log;
-            const filtered = state.logs.filter(l => 
-                (!start || l.date >= start) && (!end || l.date <= end) && (!search || l.clientName.includes(search)) && 
-                (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
-                (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))
-            );
+            // [수정됨] region 필터 구조 분해 할당 추가
+            const { start, end, search, category, service, region } = state.filters.log;
+            
+            const filtered = state.logs.filter(l => {
+                // 대상자 정보 조회 (행정동 확인용)
+                const client = state.clients.find(c => c.id === l.clientId);
+                const clientRegion = client ? client.region : '미지정';
+
+                return (!start || l.date >= start) && 
+                       (!end || l.date <= end) && 
+                       (!search || l.clientName.includes(search)) && 
+                       (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
+                       (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service))) &&
+                       // [추가됨] 행정동 다중 필터 로직
+                       (region.length === 0 || region.includes(clientRegion));
+            });
+            
             const categories = [...new Set(state.services.map(s => s.category))];
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
 
@@ -506,7 +581,9 @@
                             <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
                         </div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+                    
+                    <!-- [수정됨] overflow-x-auto 제거 및 flex-wrap 추가 (드롭다운 잘림 방지) -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap items-center gap-2">
                         <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0">
                             <i data-lucide="filter" size="14"></i> 필터
                         </div>
@@ -524,11 +601,33 @@
                             onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)"
                             oninput="if(this.value === '') app.setFilter('log','search','')">
 
-                        <div class="flex gap-2 w-full sm:w-auto flex-1">
-                            <select class="input-field py-1.5 w-full sm:w-32 text-sm" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');">
+                        <!-- [추가됨] 행정동 다중 선택 드롭다운 (서비스 일지용) -->
+                        <div class="relative z-30 w-full sm:w-auto">
+                            <button onclick="app.toggleLogRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left h-[34px] w-full sm:w-32">
+                                <span class="truncate max-w-[90px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span>
+                                <i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i>
+                            </button>
+                            
+                            ${state.ui.logRegionDropdownOpen ? `
+                                <div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div>
+                                <div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">
+                                    ${CONSTANTS.DONG_LIST.map(d => `
+                                        <label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none">
+                                            <input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300"
+                                                ${region.includes(d) ? 'checked' : ''}
+                                                onchange="app.toggleLogRegionFilter('${d}')">
+                                            <span class="text-slate-700">${d}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
+                            <select class="input-field py-1.5 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');">
                                 <option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}
                             </select>
-                            <select class="input-field py-1.5 w-full sm:w-32 text-sm" onchange="app.setFilter('log','service',this.value)">
+                            <select class="input-field py-1.5 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)">
                                 <option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}
                             </select>
                         </div>
@@ -541,16 +640,33 @@
                             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-start gap-6 hover:shadow-md transition-shadow relative">
                                 <!-- Left Column: 33% -->
                                 <div class="md:w-1/3 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6 flex-shrink-0 w-full">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="text-sm text-slate-500 font-medium flex items-center gap-1"><i data-lucide="calendar" size="10"></i> ${l.date}</span>
-                                        <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full font-medium">${l.provideMethod || '방문'}</span>
-                                    </div>
+                                    
+                                    <!-- [수정됨] 헤더 통합: 날짜 옆에 이름, 정보, 행정동, 등급 배치 -->
                                     <div class="mb-4">
-                                        <div class="flex items-baseline gap-2">
-                                            <span class="text-lg font-bold text-slate-800">${l.clientName}</span>
-                                            <span class="text-xs text-slate-500">${c ? `(${calculateAge(c.birthDate)}세/${c.gender})` : ''}</span>
+                                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                            <!-- 날짜 -->
+                                            <span class="text-sm text-slate-500 font-medium flex items-center gap-1 whitespace-nowrap">
+                                                <i data-lucide="calendar" size="14"></i> ${l.date}
+                                            </span>
+                                            
+                                            <span class="text-slate-300">|</span>
+                                            
+                                            <!-- 대상자 이름 및 나이/성별 -->
+                                            <div class="flex items-baseline gap-1">
+                                                <span class="font-bold text-slate-800 text-base hover:text-blue-600 cursor-pointer" onclick="app.openClientModal('${l.clientId}')">${l.clientName}</span>
+                                                ${c ? `<span class="text-xs text-slate-500">(${calculateAge(c.birthDate)}세/${c.gender})</span>` : ''}
+                                            </div>
+
+                                            <!-- 행정동 및 등급 -->
+                                            ${c ? `
+                                            <div class="flex items-center gap-1 text-xs text-slate-500">
+                                                <span class="text-slate-300">|</span>
+                                                <span>${c.region}</span>
+                                                <span class="text-slate-300">·</span>
+                                                <!-- [수정됨] "일반" 등급일 경우 파란색 굵은 글씨 적용 -->
+                                                <span class="${c.careLevel==='중점'?'text-pink-600 font-bold':(c.careLevel==='일반'?'text-blue-600 font-bold':'')}">${c.careLevel}</span>
+                                            </div>` : ''}
                                         </div>
-                                        ${c ? `<div class="text-xs text-slate-400 mt-0.5">${c.region} | ${c.careLevel}</div>` : ''}
                                     </div>
                                     
                                     <div class="space-y-2">
@@ -573,27 +689,37 @@
                                 <!-- Right Column: Content Area -->
                                 <div class="flex-1 relative min-w-0 flex flex-col justify-start h-full">
                                     <!-- Header: Content Label & Actions/Author -->
-                                    <div class="flex justify-between items-start mb-1">
-                                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 pt-1">
-                                            <i data-lucide="file-text" size="10"></i> 진행 내용
+                                    <div class="flex justify-between items-center mb-2 pt-1">
+                                        <!-- [수정됨] 제목 그룹: 진행 내용 제목(text-sm) + 제공방법/제공자 -->
+                                        <div class="flex flex-wrap items-center gap-3">
+                                            <!-- [수정됨] 글자 크기 text-xs -> text-sm, 아이콘 크기 10 -> 16 -->
+                                            <div class="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                                                <i data-lucide="file-text" size="16"></i> 진행 내용
+                                            </div>
+                                            
+                                            <div class="w-px h-3 bg-slate-300"></div>
+
+                                            <!-- 제공방법 + 제공자 -->
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-sm bg-slate-100 text-slate-900 px-2 py-0.5 rounded whitespace-nowrap border border-slate-200">${l.provideMethod || '방문'}</span>
+                                                <span class="text-sm text-slate-900 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                                                    ${l.provider || '미지정'}
+                                                </span>
+                                            </div>
                                         </div>
                                         
-                                        <!-- Right Side: Buttons & Author - Absolute Position for PC -->
-                                        <div class="flex flex-col items-end gap-1 md:absolute md:top-0 md:right-0">
-                                            <div class="flex gap-1">
-                                                <button onclick="app.duplicateLog('${l.id}')" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="복사"><i data-lucide="copy" size="10"></i></button>
-                                                <button onclick="app.openLogModal('${l.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="수정"><i data-lucide="edit" size="10"></i></button>
-                                                <button onclick="app.deleteData('logs','${l.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="10"></i></button>
-                                            </div>
-                                            <span class="text-xs text-slate-500 bg-slate-50 px-2 py-0.5 rounded flex items-center gap-1">
-                                                <i data-lucide="user" size="10"></i> ${l.provider || '미지정'}
-                                            </span>
+                                        <!-- Right Side: Buttons (Absolute Position for PC) -->
+                                        <div class="flex gap-1 md:absolute md:top-0 md:right-0">
+                                            <button onclick="app.duplicateLog('${l.id}')" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="복사"><i data-lucide="copy" size="14"></i></button>
+                                            <button onclick="app.openLogModal('${l.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="수정"><i data-lucide="edit" size="14"></i></button>
+                                            <button onclick="app.deleteData('logs','${l.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
                                         </div>
                                     </div>
                                     
                                     <!-- Content Body: 클릭 시 수정 모달 열기 -->
-                                    <div class="flex-1 mt-0">
-                                        <p class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap cursor-pointer p-2 -ml-2 rounded hover:bg-slate-50 hover:text-blue-800 transition-colors mt-0" title="클릭하여 수정하기" onclick="app.openLogModal('${l.id}')">${l.content}</p>
+                                    <div class="flex-1 mt-1">
+                                        <!-- [수정됨] 본문 글자 크기 text-sm -> text-base (16px) -->
+                                        <p class="text-slate-800 text-base leading-relaxed whitespace-pre-wrap cursor-pointer p-2 -ml-2 rounded hover:bg-slate-50 hover:text-blue-800 transition-colors mt-0" title="클릭하여 수정하기" onclick="app.openLogModal('${l.id}')">${l.content}</p>
                                     </div>
                                 </div>
                             </div>`
@@ -811,12 +937,23 @@
                 } else {
                     currentRegions.push(val);
                 }
+                render();
+            },
+
+            // [추가됨] 서비스 일지 행정동 필터 로직
+            toggleLogRegionDropdown: () => {
+                state.ui.logRegionDropdownOpen = !state.ui.logRegionDropdownOpen;
+                render();
+            },
+            toggleLogRegionFilter: (val) => {
+                const currentRegions = state.filters.log.region;
+                const idx = currentRegions.indexOf(val);
                 
-                // UX 개선: 모든 동을 선택하면 필터를 비워서 '전체'로 처리 (선택적으로 적용)
-                if (currentRegions.length === CONSTANTS.DONG_LIST.length) {
-                    // 선택 유지 or 초기화? 여기서는 선택 유지하되 표시는 전체로 함
+                if (idx > -1) {
+                    currentRegions.splice(idx, 1);
+                } else {
+                    currentRegions.push(val);
                 }
-                
                 render();
             },
 
@@ -832,10 +969,11 @@
                         targetYear: '', 
                         targetMonth: '' 
                     },
-                    log: { start: '', end: '', search: '', category: '', service: '' }
+                    log: { start: '', end: '', search: '', category: '', service: '', region: [] } // [수정됨] region 추가
                 };
                 state.filters[scope] = defaults[scope];
                 if(scope === 'client') state.ui.regionDropdownOpen = false;
+                if(scope === 'log') state.ui.logRegionDropdownOpen = false; // [추가] 일지 드롭다운 초기화
                 render();
             },
 
@@ -1095,18 +1233,42 @@
             },
 
             // --- Log Modal ---
-            openLogModal: (id) => {
-                const l = id ? state.logs.find(x => x.id === id) : { date: new Date().toISOString().split('T')[0], provideMethod: '방문', provider: '', serviceItems: [{id: Date.now(), category:'', serviceName:'', detailNote:''}] };
-                const c = id ? (state.clients.find(x => x.name === l.clientName) || {}) : {};
+            // [수정됨] prefillData 인자 추가: 복사 기능을 위해 데이터만 넘겨받을 수 있도록 함
+            openLogModal: (id, prefillData = null) => {
+                // 1. 데이터 결정 로직 (수정 vs 복사 vs 신규)
+                let l;
+                if (id) {
+                    // 수정 모드: 기존 ID로 찾기
+                    l = state.logs.find(x => x.id === id);
+                } else if (prefillData) {
+                    // 복사 모드: 전달받은 데이터 사용
+                    l = prefillData;
+                } else {
+                    // 신규 모드: 빈 데이터
+                    l = { date: new Date().toISOString().split('T')[0], provideMethod: '방문', provider: '', serviceItems: [{id: Date.now(), category:'', serviceName:'', detailNote:''}] };
+                }
                 
-                // Reset temporary selected clients
-                window.tempSelectedClients = id ? [l.clientName] : [];
-                window.tempServiceItems = l.serviceItems || [{id: Date.now(), category:'', serviceName:'', detailNote:''}];
+                // 데이터가 없을 경우(오류 방지) 안전장치
+                if (!l) l = { date: new Date().toISOString().split('T')[0], provideMethod: '방문', provider: '', serviceItems: [{id: Date.now(), category:'', serviceName:'', detailNote:''}] };
+
+                // 2. 대상자 정보 조회 (이름 기반)
+                const c = l.clientName ? (state.clients.find(x => x.name === l.clientName) || {}) : {};
+                
+                // 3. 임시 상태 초기화
+                // 수정(id있음) 또는 복사(prefillData있음)인 경우 기존 데이터 로드
+                if (id || prefillData) {
+                    window.tempSelectedClients = l.clientName ? [l.clientName] : [];
+                    // 서비스 항목 복사 (ID 충돌 방지를 위해 timestamp 새로 생성)
+                    window.tempServiceItems = l.serviceItems ? l.serviceItems.map(i => ({...i, id: Date.now() + Math.random()})) : [{id: Date.now(), category:'', serviceName:'', detailNote:''}];
+                } else {
+                    window.tempSelectedClients = [];
+                    window.tempServiceItems = [{id: Date.now(), category:'', serviceName:'', detailNote:''}];
+                }
 
                 const html = `
                 <div class="bg-white w-full max-w-4xl p-4 sm:p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto mx-2">
-                    <h3 class="font-bold text-lg mb-4">${l.id ? '수정' : '작성'}</h3>
-                    <form onsubmit="app.saveLog(event, '${l.id || ''}')" class="space-y-4">
+                    <h3 class="font-bold text-lg mb-4">${id ? '수정' : (prefillData ? '일지 복사 등록' : '작성')}</h3>
+                    <form onsubmit="app.saveLog(event, '${id || ''}')" class="space-y-4">
                         <!-- Row 1: Date, Method, Provider -->
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded">
                             <div>
@@ -1125,11 +1287,12 @@
                             </div>
                         </div>
 
-                        <!-- Row 2: Client Search & Auto Info (Updated for Multi-Select + Enter Key) -->
+                        <!-- Row 2: Client Search & Auto Info -->
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded mt-2">
                             <div class="md:col-span-1">
                                 <label class="block text-sm font-medium mb-1">대상자 검색</label>
                                 <div class="flex gap-2 mb-2">
+                                    <!-- 수정 모드(id 존재)일 때만 검색 비활성화, 복사 모드(prefillData)는 대상자 변경 가능하도록 활성화 -->
                                     <input list="cl-list" id="client-input" class="input-field" placeholder="이름 검색" onchange="app.fillClientInfo(this)" onkeydown="if(event.key === 'Enter') { event.preventDefault(); app.addClientToSelection(); }" autocomplete="off" ${id ? 'disabled title="수정 시 대상자 변경 불가"' : ''}>
                                     <datalist id="cl-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist>
                                     ${!id ? `<button type="button" onclick="app.addClientToSelection()" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded text-sm font-medium whitespace-nowrap hover:bg-emerald-200">+추가</button>` : ''}
@@ -1161,12 +1324,13 @@
                             <div class="flex justify-between mb-1"><label class="text-sm">내용</label><button type="button" onclick="app.aiDraft()" class="text-xs bg-purple-100 text-purple-700 px-2 rounded">AI 다듬기</button></div>
                             <textarea id="log-content" name="content" class="input-field h-32" required>${l.content||''}</textarea>
                         </div>
-                        <div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg">취소</button><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">저장</button></div>
+                        <div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg">취소</button><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">${id ? '수정 저장' : '등록'}</button></div>
                     </form>
                 </div>`;
                 showModal(html);
                 window.tempServiceItems.forEach(item => renderSvcRow(item));
-                app.renderSelectedClients(id); 
+                // 수정 모드(id 존재)일 때만 삭제 버튼 숨김 처리(true), 복사 모드는 삭제 가능(false)
+                app.renderSelectedClients(!!id); 
             },
 
             // --- Multi-Client Logic ---
@@ -1258,12 +1422,10 @@
                         };
 
                         if (id && idx === 0) {
-                            // In edit mode, update the existing log (first one)
-                            // Multi-client edit isn't supported in standard flow, usually editing applies to the original log only.
-                            // But if user managed to add more people in edit mode (disabled in UI), this logic handles it.
+                            // 수정 모드: 기존 ID로 업데이트
                             return updateDoc(doc(db, "logs", id), logData);
                         } else {
-                            // Create new logs
+                            // 신규 등록 또는 복사 등록: 새로 추가
                             return addDoc(collection(db, "logs"), logData);
                         }
                     });
@@ -1272,12 +1434,18 @@
                     closeModal();
                 } catch(err) { alert("저장 실패: " + err.message); }
             },
-            duplicateLog: async (id) => {
+            
+            // [수정됨] 복사 로직 변경: 바로 저장하지 않고 모달 열기
+            duplicateLog: (id) => {
                 const l = state.logs.find(x => x.id === id);
                 if(l) {
-                    const { id, ...data } = l; 
+                    // ID는 제외하고 데이터만 복사
+                    const { id: originId, ...data } = l; 
+                    // 날짜를 오늘로 설정
                     data.date = new Date().toISOString().split('T')[0];
-                    await addDoc(collection(db, "logs"), data);
+                    
+                    // prefillData 인자로 넘겨서 모달 열기 (id는 null로 전달하여 신규 등록 처리)
+                    app.openLogModal(null, data);
                 }
             },
             aiDraft: () => {
