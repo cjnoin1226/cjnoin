@@ -115,10 +115,11 @@
             services: [],
             logs: [],
             editingServiceId: null,
-            // [수정됨] UI 상태 관리를 위한 객체 추가
+            // [수정됨] UI 상태 관리를 위한 객체 추가 (selectedLogIds 추가)
             ui: {
                 regionDropdownOpen: false,
-                logRegionDropdownOpen: false // [추가] 서비스 일지 행정동 드롭다운 상태
+                logRegionDropdownOpen: false,
+                selectedLogIds: new Set() // [추가됨] 선택된 일지 ID 저장용 Set
             },
             filters: {
                 client: { 
@@ -576,10 +577,9 @@
                 return (!start || l.date >= start) && 
                        (!end || l.date <= end) && 
                        (!search || l.clientName.includes(search)) && 
-                       (!provider || (l.provider && l.provider.includes(provider))) && // [추가됨] 제공자 검색 로직
+                       (!provider || (l.provider && l.provider.includes(provider))) && 
                        (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
                        (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service))) &&
-                       // [추가됨] 행정동 다중 필터 로직
                        (region.length === 0 || region.includes(clientRegion));
             });
             
@@ -591,6 +591,12 @@
                     <div class="flex justify-between items-center">
                         <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
                         <div class="flex gap-2">
+                            <!-- [추가됨] 일괄 삭제 버튼 (1개 이상 선택 시 등장) -->
+                            ${state.ui.selectedLogIds.size > 0 ? 
+                                `<button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in">
+                                    <i data-lucide="trash-2" size="16"></i> 선택삭제(${state.ui.selectedLogIds.size})
+                                </button>` : ''}
+                            
                             <button onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
                             <button onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
                             <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
@@ -664,10 +670,13 @@
                                     <!-- [수정됨] 헤더 통합: 날짜 옆에 이름, 정보, 행정동, 등급 배치 -->
                                     <div class="mb-4">
                                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                            <!-- 날짜 -->
-                                            <span class="text-sm text-slate-500 font-medium flex items-center gap-1 whitespace-nowrap">
-                                                <i data-lucide="calendar" size="14"></i> ${l.date}
-                                            </span>
+                                            <!-- [수정됨] 날짜 (달력 아이콘 -> 체크박스 변경) -->
+                                            <div class="flex items-center gap-2">
+                                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" 
+                                                    onchange="app.toggleLogSelection('${l.id}')" 
+                                                    ${state.ui.selectedLogIds.has(l.id) ? 'checked' : ''}>
+                                                <span class="text-sm text-slate-500 font-medium whitespace-nowrap">${l.date}</span>
+                                            </div>
                                             
                                             <span class="text-slate-300">|</span>
                                             
@@ -750,41 +759,47 @@
 
         function renderStatistics() {
             const { start, end, type, region, name } = state.filters.stats;
-            const targetClients = state.clients.filter(c => 
-                (!region || c.region === region) && 
-                (!name || c.name.includes(name))
-            );
+            
+            // [수정됨] 통계 대상자 필터링: 이름/지역 조건 + 조회 기간 내 활동 여부(Contract Overlap) 체크
+            const targetClients = state.clients.filter(c => {
+                // 1. 기본 필터 (지역, 이름)
+                const matchBasic = (!region || c.region === region) && 
+                                   (!name || c.name.includes(name));
+                if (!matchBasic) return false;
 
-            // [수정됨] 정렬 로직 변경: 이름순(.sort()) 제거 -> state.services의 순서(대분류 기준) 유지
+                // 2. 기간 활동 여부 체크
+                // 대상자의 서비스 기간 [cS, cE]와 통계 조회 기간 [start, end]가 겹치는지 확인
+                // 조건: (대상자시작 <= 통계끝) AND (대상자종료 >= 통계시작)
+                const cS = c.serviceStartDate || '0000-01-01';
+                const cE = c.endDate || '9999-12-31';
+
+                return cS <= end && cE >= start;
+            });
+
+            // [수정됨] 정렬 로직 및 데이터 계산을 먼저 수행 (헤더 생성 시 총계 데이터 필요)
             let serviceHeaders = [];
             let headerGroups = {};
             let orderedCategories = [];
 
             if (type === 'category') {
-                // Set을 사용하여 중복 제거하되, state.services의 원본 순서(대분류 우선)를 유지
                 serviceHeaders = [...new Set(state.services.map(s => s.category))].filter(Boolean);
             } else {
-                // 상세 보기: 카테고리 순서를 먼저 추출
                 orderedCategories = [...new Set(state.services.map(s => s.category || '기타'))];
-
                 state.services.forEach(s => {
                     const cat = s.category || '기타';
                     if (!headerGroups[cat]) headerGroups[cat] = [];
                     if (!headerGroups[cat].includes(s.name)) headerGroups[cat].push(s.name);
                 });
-                
-                // 정렬된 카테고리 순서대로 헤더 생성
                 serviceHeaders = orderedCategories.flatMap(cat => headerGroups[cat]);
             }
 
             const dataMap = {}; 
-            
-            // [수정됨] 데이터 맵 초기화 시 생년월일과 행정동 정보 추가
             targetClients.forEach(c => {
                 dataMap[c.id] = { 
                     name: c.name, 
-                    birthDate: c.birthDate || '-', // 생년월일 없으면 '-'
-                    region: c.region || '-',       // 행정동 없으면 '-'
+                    birthDate: c.birthDate || '-', 
+                    // [수정됨] 행정동에서 '동' 글자 제거 (예: 대연동 -> 대연)
+                    region: (c.region || '-').replace(/동$/, ''),
                     total: 0, 
                     counts: {} 
                 };
@@ -821,27 +836,52 @@
             serviceHeaders.forEach(k => colTotals[k] = rows.reduce((sum, r) => sum + (r.counts[k]||0), 0));
             const grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
 
-            // [수정됨] 테이블 헤더 여백 축소 (좌우 여백 px-1 적용)
+            // [수정됨] 틀 고정을 위한 스타일 정의 (Left 좌표 재계산)
+            // Name(80px) -> Birth(90px) -> Region(50px) -> Total(60px) 순서
+            // Region 폭을 70px -> 50px로 축소하고, 이후 좌표(L4)도 240 -> 220으로 조정
+            const W1=80, W2=90, W3=50, W4=60;
+            const L1=0, L2=80, L3=170, L4=220;
+            
+            // 공통 스타일: 배경색 흰색/회색 지정 필수 (투명하면 겹쳐 보임)
+            const stickColStyle = (left, z) => `position: sticky; left: ${left}px; z-index: ${z};`;
+
             let theadHTML = '';
+            // [수정됨] 총계 행(Grand Total)을 thead에 포함시켜 상단 고정
+            const totalRowHTML = `
+                <tr class="bg-slate-100 font-bold shadow-sm border-b border-slate-200">
+                    <td class="py-2 px-1 border-r text-center text-slate-700 bg-slate-100" style="${stickColStyle(L1, 50)}">총계</td>
+                    <td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L2, 50)}"></td>
+                    <td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L3, 50)}"></td>
+                    <td class="py-2 px-1 text-center border-r bg-emerald-100 text-emerald-700" style="${stickColStyle(L4, 50)}">${grandTotal}</td>
+                    ${serviceHeaders.map(k => `<td class="py-2 px-1 text-center border-r text-slate-700 min-w-[80px]">${colTotals[k]}</td>`).join('')}
+                </tr>
+            `;
+
             if (type === 'category') {
-                theadHTML = `<tr>
-                    <th class="py-1.5 px-1 sticky-col border-b border-r min-w-[60px] bg-slate-50 text-xs text-center font-bold text-slate-700">대상자</th>
-                    <th class="py-1.5 px-1 border-b border-r min-w-[70px] bg-slate-50 text-xs text-center font-bold text-slate-600">생년월일</th>
-                    <th class="py-1.5 px-1 border-b border-r min-w-[50px] bg-slate-50 text-xs text-center font-bold text-slate-600">행정동</th>
-                    <th class="p-1.5 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] text-xs text-center font-bold">합계</th>
-                    ${serviceHeaders.map(k => `<th class="p-1.5 border-b border-r min-w-[80px] text-xs text-center text-slate-600">${k}</th>`).join('')}
-                </tr>`;
+                theadHTML = `
+                <tr>
+                    <th class="py-2 px-1 border-b border-r min-w-[${W1}px] bg-slate-50 text-xs text-center font-bold text-slate-700" style="${stickColStyle(L1, 50)}">대상자</th>
+                    <th class="py-2 px-1 border-b border-r min-w-[${W2}px] bg-slate-50 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L2, 50)}">생년월일</th>
+                    <th class="py-2 px-1 border-b border-r min-w-[${W3}px] bg-slate-50 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L3, 50)}">행정동</th>
+                    <th class="py-2 px-1 bg-emerald-50 text-emerald-700 border-b border-r min-w-[${W4}px] text-xs text-center font-bold" style="${stickColStyle(L4, 50)}">합계</th>
+                    ${serviceHeaders.map(k => `<th class="py-2 px-1 border-b border-r min-w-[80px] text-xs text-center text-slate-600 bg-slate-50">${k}</th>`).join('')}
+                </tr>
+                ${totalRowHTML}
+                `;
             } else {
-                // 상세 보기 헤더 생성 시 orderedCategories 사용
-                theadHTML = `<tr>
-                    <th rowspan="2" class="py-1.5 px-1 sticky-col border-b border-r min-w-[60px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-700">대상자</th>
-                    <th rowspan="2" class="py-1.5 px-1 border-b border-r min-w-[70px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600">생년월일</th>
-                    <th rowspan="2" class="py-1.5 px-1 border-b border-r min-w-[50px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600">행정동</th>
-                    <th rowspan="2" class="p-1.5 bg-emerald-50 text-emerald-700 border-b border-r min-w-[50px] z-30 text-xs text-center font-bold">합계</th>
-                    ${orderedCategories.map(cat => `<th colspan="${headerGroups[cat].length}" class="p-1 border-b border-r bg-slate-100 text-center text-xs text-center font-semibold text-slate-600">${cat}</th>`).join('')}
-                </tr><tr>
-                    ${orderedCategories.map(cat => headerGroups[cat].map(svc => `<th class="p-1.5 border-b border-r font-normal text-xs min-w-[80px] text-center text-slate-500">${svc}</th>`).join('')).join('')}
-                </tr>`;
+                theadHTML = `
+                <tr>
+                    <th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W1}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-700" style="${stickColStyle(L1, 50)}">대상자</th>
+                    <th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W2}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L2, 50)}">생년월일</th>
+                    <th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W3}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L3, 50)}">행정동</th>
+                    <th rowspan="2" class="py-2 px-1 bg-emerald-50 text-emerald-700 border-b border-r min-w-[${W4}px] z-30 text-xs text-center font-bold" style="${stickColStyle(L4, 50)}">합계</th>
+                    ${orderedCategories.map(cat => `<th colspan="${headerGroups[cat].length}" class="py-1 border-b border-r bg-slate-100 text-center text-xs text-center font-semibold text-slate-600">${cat}</th>`).join('')}
+                </tr>
+                <tr>
+                    ${orderedCategories.map(cat => headerGroups[cat].map(svc => `<th class="py-1.5 border-b border-r font-normal text-xs min-w-[80px] text-center text-slate-500 bg-slate-50">${svc}</th>`).join('')).join('')}
+                </tr>
+                ${totalRowHTML}
+                `;
             }
 
             return `
@@ -864,24 +904,15 @@
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-auto max-h-[600px]">
                         <table class="w-full text-sm text-left border-collapse whitespace-nowrap">
-                            <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20 shadow-sm">${theadHTML}</thead>
+                            <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20 shadow-sm" style="position: sticky; top: 0; z-index: 40;">${theadHTML}</thead>
                             <tbody class="divide-y divide-slate-100">
-                                <tr class="bg-slate-50 font-bold sticky top-0 z-10 shadow-sm">
-                                    <td class="py-1.5 px-1 sticky-col border-r bg-slate-50 text-center text-slate-700">총계</td>
-                                    <!-- [수정됨] 총계 행 빈 셀 추가 (생년월일, 행정동) 여백 축소 -->
-                                    <td class="py-1.5 px-1 border-r bg-slate-50"></td>
-                                    <td class="py-1.5 px-1 border-r bg-slate-50"></td>
-                                    <td class="p-1.5 text-center border-r bg-emerald-50 text-emerald-700">${grandTotal}</td>
-                                    ${serviceHeaders.map(k => `<td class="p-1.5 text-center border-r text-slate-700">${colTotals[k]}</td>`).join('')}
-                                </tr>
                                 ${rows.map(r => `
                                     <tr class="hover:bg-slate-50 group">
-                                        <td class="py-1.5 px-1 sticky-col bg-white border-r group-hover:bg-slate-50 text-center font-medium text-slate-800">${r.name}</td>
-                                        <!-- [수정됨] 데이터 행 여백 축소 -->
-                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs">${r.birthDate}</td>
-                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs">${r.region}</td>
-                                        <td class="p-1.5 text-center font-bold bg-emerald-50 border-r text-emerald-600">${r.total}</td>
-                                        ${serviceHeaders.map(k => `<td class="p-1.5 text-center border-r ${r.counts[k]>0?'bg-blue-50 font-medium text-blue-600':'text-slate-300'}">${r.counts[k]||'-'}</td>`).join('')}
+                                        <td class="py-1.5 px-1 border-r group-hover:bg-slate-50 text-center font-medium text-slate-800 bg-white" style="${stickColStyle(L1, 30)}">${r.name}</td>
+                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs bg-white" style="${stickColStyle(L2, 30)}">${r.birthDate}</td>
+                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs bg-white" style="${stickColStyle(L3, 30)}">${r.region}</td>
+                                        <td class="p-1.5 text-center font-bold border-r text-emerald-600 bg-emerald-50" style="${stickColStyle(L4, 30)}">${r.total}</td>
+                                        ${serviceHeaders.map(k => `<td class="p-1.5 text-center border-r min-w-[80px] ${r.counts[k]>0?'bg-blue-50 font-medium text-blue-600':'text-slate-300'}">${r.counts[k]||'-'}</td>`).join('')}
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -992,6 +1023,57 @@
                     currentRegions.push(val);
                 }
                 render();
+            },
+
+            // [추가됨] 일지 선택 토글 기능
+            toggleLogSelection: (id) => {
+                if (state.ui.selectedLogIds.has(id)) {
+                    state.ui.selectedLogIds.delete(id);
+                } else {
+                    state.ui.selectedLogIds.add(id);
+                }
+                render();
+            },
+
+            // [수정됨] 선택된 일지 일괄 삭제 기능 (기본 confirm -> 커스텀 모달로 변경)
+            deleteSelectedLogs: () => {
+                const count = state.ui.selectedLogIds.size;
+                if (count === 0) return;
+                
+                const html = `
+                <div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100">
+                    <div class="text-center">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                            <i data-lucide="alert-triangle" class="text-red-600" size="24"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-2">일괄 삭제 확인</h3>
+                        <p class="text-sm text-slate-500 mb-6">선택한 <span class="font-bold text-red-600">${count}개</span>의 일지를 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p>
+                        <div class="flex gap-3 justify-center">
+                            <button onclick="app.executeDeleteSelectedLogs()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">
+                                예, 삭제
+                            </button>
+                            <button onclick="app.closeModal()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">
+                                아니오
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+                showModal(html);
+                lucide.createIcons();
+            },
+
+            // [추가됨] 실제 삭제 실행 함수 (모달에서 호출)
+            executeDeleteSelectedLogs: async () => {
+                try {
+                    const promises = Array.from(state.ui.selectedLogIds).map(id => deleteDoc(doc(db, "logs", id)));
+                    await Promise.all(promises);
+                    
+                    state.ui.selectedLogIds.clear(); // 선택 초기화
+                    closeModal(); // 모달 닫기
+                    // render()는 onSnapshot에 의해 자동 호출됨
+                } catch (err) {
+                    alert("삭제 중 오류가 발생했습니다: " + err.message);
+                }
             },
 
             // --- Reset Filters Logic (수정됨: 초기화 시에도 '이용' 상태로 복귀) ---
@@ -1544,23 +1626,59 @@
                     e.target.reset(); render();
                 } catch (err) { alert("오류 발생: " + err.message); }
             },
+            // [수정됨] 엑셀 양식 다운로드: 모든 필드 포함하도록 확장
             downloadTemplate: () => {
-                const ws = XLSX.utils.aoa_to_sheet([['이름','성별','생년월일','행정동','연락처','상태']]);
-                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "양식");
-                XLSX.writeFile(wb, "대상자등록양식.xlsx");
+                const headers = [
+                    '이름', '성별', '생년월일', '행정동', '주소', 
+                    '연락처1', '연락처2', '보호자관계', '보호자연락처', 
+                    '등급', '경제상황', '세대유형', '상태', '서비스시작일', '비고'
+                ];
+                const ws = XLSX.utils.aoa_to_sheet([headers]);
+                
+                // 열 너비 설정
+                ws['!cols'] = [
+                    { wch: 10 }, { wch: 6 }, { wch: 12 }, { wch: 10 }, { wch: 30 },
+                    { wch: 13 }, { wch: 13 }, { wch: 10 }, { wch: 13 },
+                    { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 30 }
+                ];
+
+                const wb = XLSX.utils.book_new(); 
+                XLSX.utils.book_append_sheet(wb, ws, "양식");
+                XLSX.writeFile(wb, "대상자등록양식_전체.xlsx");
             },
+            // [수정됨] 엑셀 업로드: 확장된 양식에 맞춰 데이터 매핑
             uploadExcel: (input) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const wb = XLSX.read(e.target.result, {type:'binary'});
-                    const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1}).slice(1);
+                    const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1}).slice(1); // 헤더 제외
+                    
+                    let count = 0;
                     json.forEach(async row => {
-                        if(row[0]) await addDoc(collection(db,"clients"), {
-                            name:String(row[0]), gender:String(row[1]||'남성'), birthDate:String(row[2]||''), region:String(row[3]||'대연동'), 
-                            phone:String(row[4]||''), status:String(row[5]||'이용'), careLevel:'일반', createdAt: new Date().toISOString()
-                        });
+                        if(row[0]) { // 이름이 있는 경우만 처리
+                            await addDoc(collection(db,"clients"), {
+                                name: String(row[0]), 
+                                gender: String(row[1] || '남성'), 
+                                birthDate: String(row[2] || ''), 
+                                region: String(row[3] || '대연동'),
+                                address: String(row[4] || ''),
+                                phone: String(row[5] || ''),
+                                phone2: String(row[6] || ''),
+                                guardianRelation: String(row[7] || ''),
+                                guardianPhone: String(row[8] || ''),
+                                careLevel: String(row[9] || '일반'),
+                                economicStatus: String(row[10] || '일반(저소득)'),
+                                householdType: String(row[11] || '독거세대'),
+                                status: String(row[12] || '이용'),
+                                serviceStartDate: String(row[13] || new Date().toISOString().split('T')[0]),
+                                note: String(row[14] || ''),
+                                createdAt: new Date().toISOString()
+                            });
+                            count++;
+                        }
                     });
-                    alert("등록이 시작되었습니다. 잠시 후 새로고침 됩니다.");
+                    alert(`${count}명 등록이 시작되었습니다. 잠시 후 새로고침 됩니다.`);
+                    input.value = ''; // 파일 입력 초기화
                 };
                 reader.readAsBinaryString(input.files[0]);
             },
