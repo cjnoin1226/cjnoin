@@ -1921,10 +1921,10 @@
                     if (state.editingServiceId) { 
                         await updateDoc(doc(db, "services", state.editingServiceId), data); 
                         state.editingServiceId = null; 
-                        alert("서비스가 수정되었습니다."); 
+                        // [수정됨] alert("서비스가 수정되었습니다."); 제거
                     } else { 
                         await addDoc(collection(db, "services"), data); 
-                        alert("서비스가 추가되었습니다."); 
+                        // [수정됨] alert("서비스가 추가되었습니다."); 제거
                     }
                     // 폼 초기화는 수동으로 찾아서 해야 함 (e.target이 없으므로)
                     document.querySelector('form[onsubmit="app.addService(event)"]').reset();
