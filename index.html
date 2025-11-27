@@ -186,6 +186,8 @@
                 const sortOrder = ['위기관리체계구축', '욕구기반 위기관리', '위기상황관리 및 긴급지원', '기타'];
                 // 사례관리 상세내용 지정 순서
                 const caseManagementOrder = ['사례발굴', '초기상담', '사정 및 계획', '개입', '점검 및 모니터링', '종결 및 사후관리'];
+                // 노인상담 및 정보제공 상세내용 지정 순서
+                const counselingOrder = ['정서지원서비스', '정서지원서비스(안전안부확인)', '노인일상생활관련상담', '복지서비스 종합안내'];
 
                 loaded.sort((a, b) => {
                     const catA = (a.majorCategory || '').replace(/\s+/g, '');
@@ -205,9 +207,21 @@
                             const nameIndexA = caseManagementOrder.indexOf(a.name);
                             const nameIndexB = caseManagementOrder.indexOf(b.name);
                             
-                            // 둘 다 지정된 목록에 있으면 순서대로 정렬
                             if (nameIndexA !== -1 && nameIndexB !== -1) return nameIndexA - nameIndexB;
-                            // 목록에 있는 항목을 우선으로 올림
+                            if (nameIndexA !== -1) return -1;
+                            if (nameIndexB !== -1) return 1;
+                        }
+
+                        // [신규] 중분류가 '노인상담 및 정보제공'인 경우 지정된 순서 적용
+                        if (a.category === '노인상담 및 정보제공' && b.category === '노인상담 및 정보제공') {
+                            let nameIndexA = counselingOrder.indexOf(a.name);
+                            let nameIndexB = counselingOrder.indexOf(b.name);
+                            
+                            // 정확한 매칭이 없으면 포함 여부로 확인
+                            if (nameIndexA === -1) nameIndexA = counselingOrder.findIndex(k => a.name.includes(k));
+                            if (nameIndexB === -1) nameIndexB = counselingOrder.findIndex(k => b.name.includes(k));
+
+                            if (nameIndexA !== -1 && nameIndexB !== -1) return nameIndexA - nameIndexB;
                             if (nameIndexA !== -1) return -1;
                             if (nameIndexB !== -1) return 1;
                         }
