@@ -189,8 +189,21 @@
         function renderDashboard() {
             const today = new Date().toISOString().split('T')[0];
             const todayLogs = state.logs.filter(l => l.date === today).length;
-            const highFocus = state.clients.filter(c => c.careLevel === '중점').length;
-            const general = state.clients.filter(c => c.careLevel === '일반').length;
+            
+            // [수정됨] 홈 화면 통계: 전체 DB 데이터가 아닌, 현재 '이용' 또는 '장기부재' 상태인 유효 대상자만 집계
+            const activeClients = state.clients.filter(c => {
+                // 종결 상태이거나, 종료일이 오늘보다 이전이면 제외
+                const isTerminated = c.status === '종결' || (c.endDate && c.endDate < today);
+                // 서비스 시작일이 오늘보다 미래면 제외
+                const isNotStarted = c.serviceStartDate && c.serviceStartDate > today;
+                
+                // '이용' 또는 '장기부재' 상태이면서 유효 기간 내에 있는 경우만 포함
+                return (c.status === '이용' || c.status === '장기부재') && !isTerminated && !isNotStarted;
+            });
+
+            const totalActive = activeClients.length;
+            const highFocus = activeClients.filter(c => c.careLevel === '중점').length;
+            const general = activeClients.filter(c => c.careLevel === '일반').length;
 
             return `
                 <div class="space-y-6 animate-fade-in">
@@ -199,11 +212,12 @@
                         <div class="text-xs md:text-sm text-emerald-600 flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>공유 중</div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
-                        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <!-- [수정됨] 클릭 시 대상자 관리 탭으로 이동 (onclick 추가, 커서 포인터 및 호버 효과 추가) -->
+                        <div onclick="app.setTab('clients')" class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors">
                             <div class="p-3 bg-blue-100 text-blue-600 rounded-lg"><i data-lucide="users"></i></div>
                             <div>
-                                <p class="text-sm text-slate-500">총 대상자</p>
-                                <p class="text-2xl font-bold text-slate-800">${state.clients.length}<span class="text-sm font-normal text-slate-500">명</span></p>
+                                <p class="text-sm text-slate-500">총 대상자 <span class="text-xs text-slate-400">(이용/장기부재)</span></p>
+                                <p class="text-2xl font-bold text-slate-800">${totalActive}<span class="text-sm font-normal text-slate-500">명</span></p>
                                 <p class="text-xs text-slate-400 mt-1">(중점: <span class="text-pink-600 font-bold">${highFocus}</span> / 일반: <span class="text-blue-600 font-bold">${general}</span>)</p>
                             </div>
                         </div>
@@ -506,8 +520,8 @@
                             const wasActiveInPeriod = eDate >= filterStart;
 
                             return `
-                            <!-- [수정됨] Grid 레이아웃: 이름 너비 130px -> 120px로 축소하여 전체 레이아웃을 왼쪽으로 한 글자만큼 당김 -->
-                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[120px_140px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
+                            <!-- [수정됨] 여백 축소: p-4 -> p-3 -->
+                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[120px_140px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
                                 
                                 <!-- 1. 이름 및 기본 정보 -->
                                 <div class="flex items-center gap-1 w-full overflow-hidden">
