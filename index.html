@@ -115,11 +115,12 @@
             services: [],
             logs: [],
             editingServiceId: null,
-            // [수정됨] UI 상태 관리를 위한 객체 추가 (selectedLogIds 추가)
+            // [수정됨] UI 상태 관리를 위한 객체 추가 (selectedLogIds, selectedClientIds 추가)
             ui: {
                 regionDropdownOpen: false,
                 logRegionDropdownOpen: false,
-                selectedLogIds: new Set() // [추가됨] 선택된 일지 ID 저장용 Set
+                selectedLogIds: new Set(), // 선택된 일지 ID
+                selectedClientIds: new Set() // [추가됨] 선택된 대상자 ID
             },
             filters: {
                 client: { 
@@ -371,9 +372,16 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                         <h2 class="text-xl md:text-2xl font-bold text-slate-800">대상자 관리</h2>
                         <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <!-- [추가됨] 일괄 삭제 버튼 (1개 이상 선택 시 등장) -->
+                            ${state.ui.selectedClientIds.size > 0 ? 
+                                `<button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in">
+                                    <i data-lucide="trash-2" size="14"></i> 선택삭제(${state.ui.selectedClientIds.size})
+                                </button>` : ''}
+
                             <button onclick="app.downloadClientListExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="download" size="14"></i> 명부 저장</button>
                             <button onclick="app.downloadTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="file-text" size="14"></i> 양식</button>
-                            <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 cursor-pointer flex-1 sm:flex-none justify-center"><i data-lucide="upload" size="14"></i> 엑셀등록<input type="file" class="hidden" onchange="app.uploadExcel(this)"></label>
+                            <!-- [수정됨] 버튼 글자: 엑셀등록 -> 업로드 -->
+                            <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 cursor-pointer flex-1 sm:flex-none justify-center"><i data-lucide="upload" size="14"></i> 업로드<input type="file" class="hidden" onchange="app.uploadExcel(this)"></label>
                             <button onclick="app.openClientModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="plus" size="16"></i> 등록</button>
                         </div>
                     </div>
@@ -522,12 +530,20 @@
 
                             return `
                             <!-- [수정됨] 여백 축소: p-4 -> p-3 -->
-                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[120px_140px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
+                            <!-- [수정됨] 그리드 첫 번째 컬럼 너비 증가 (120px -> 140px) : 체크박스 공간 확보 -->
+                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[140px_140px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
                                 
-                                <!-- 1. 이름 및 기본 정보 -->
-                                <div class="flex items-center gap-1 w-full overflow-hidden">
-                                    <span class="font-bold text-xl text-slate-800 cursor-pointer hover:text-blue-600 truncate" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
-                                    <span class="text-sm font-bold ${c.gender==='남성'?'text-blue-500':'text-red-500'} whitespace-nowrap">(${calculateAge(c.birthDate)}/${c.gender})</span>
+                                <!-- 1. 이름 및 기본 정보 (체크박스 추가) -->
+                                <div class="flex items-center gap-2 w-full overflow-hidden">
+                                    <!-- [추가됨] 체크박스 -->
+                                    <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer flex-shrink-0"
+                                        onchange="app.toggleClientSelection('${c.id}')"
+                                        ${state.ui.selectedClientIds.has(c.id) ? 'checked' : ''}>
+                                    
+                                    <div class="flex items-center gap-1 overflow-hidden">
+                                        <span class="font-bold text-xl text-slate-800 cursor-pointer hover:text-blue-600 truncate" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
+                                        <span class="text-sm font-bold ${c.gender==='남성'?'text-blue-500':'text-red-500'} whitespace-nowrap">(${calculateAge(c.birthDate)}/${c.gender})</span>
+                                    </div>
                                 </div>
                                 
                                 <!-- 2. 배지 그룹 -->
@@ -1023,6 +1039,57 @@
                     currentRegions.push(val);
                 }
                 render();
+            },
+
+            // [추가됨] 대상자 선택 토글 기능
+            toggleClientSelection: (id) => {
+                if (state.ui.selectedClientIds.has(id)) {
+                    state.ui.selectedClientIds.delete(id);
+                } else {
+                    state.ui.selectedClientIds.add(id);
+                }
+                render();
+            },
+
+            // [추가됨] 선택된 대상자 일괄 삭제 기능
+            deleteSelectedClients: () => {
+                const count = state.ui.selectedClientIds.size;
+                if (count === 0) return;
+                
+                const html = `
+                <div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100">
+                    <div class="text-center">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                            <i data-lucide="alert-triangle" class="text-red-600" size="24"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-2">대상자 일괄 삭제</h3>
+                        <p class="text-sm text-slate-500 mb-6">선택한 <span class="font-bold text-red-600">${count}명</span>의 대상자를 삭제하시겠습니까?<br>삭제 시 해당 대상자의 정보가 영구적으로 사라집니다.</p>
+                        <div class="flex gap-3 justify-center">
+                            <button onclick="app.executeDeleteSelectedClients()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">
+                                예, 삭제
+                            </button>
+                            <button onclick="app.closeModal()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">
+                                아니오
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+                showModal(html);
+                lucide.createIcons();
+            },
+
+            // [추가됨] 실제 대상자 삭제 실행 함수
+            executeDeleteSelectedClients: async () => {
+                try {
+                    const promises = Array.from(state.ui.selectedClientIds).map(id => deleteDoc(doc(db, "clients", id)));
+                    await Promise.all(promises);
+                    
+                    state.ui.selectedClientIds.clear(); // 선택 초기화
+                    closeModal();
+                    // render()는 onSnapshot에 의해 자동 호출됨
+                } catch (err) {
+                    alert("삭제 중 오류가 발생했습니다: " + err.message);
+                }
             },
 
             // [추가됨] 일지 선택 토글 기능
@@ -1646,20 +1713,32 @@
                 XLSX.utils.book_append_sheet(wb, ws, "양식");
                 XLSX.writeFile(wb, "대상자등록양식_전체.xlsx");
             },
-            // [수정됨] 엑셀 업로드: 확장된 양식에 맞춰 데이터 매핑
+            // [수정됨] 엑셀 업로드: YYYYMMDD 날짜 자동 변환 기능 추가
             uploadExcel: (input) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const wb = XLSX.read(e.target.result, {type:'binary'});
                     const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1}).slice(1); // 헤더 제외
                     
+                    // 날짜 변환 헬퍼: 19900101 -> 1990-01-01
+                    const fmtDate = (v) => {
+                        if(!v) return '';
+                        const s = String(v).trim().replace(/[^0-9]/g, ''); // 공백 제거 및 숫자만 추출
+                        // 8자리 숫자인 경우에만 포맷팅
+                        if(s.length === 8) {
+                            return `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
+                        }
+                        // 그 외(이미 하이픈이 있거나 형식이 다른 경우) 원본 반환
+                        return String(v); 
+                    };
+
                     let count = 0;
                     json.forEach(async row => {
                         if(row[0]) { // 이름이 있는 경우만 처리
                             await addDoc(collection(db,"clients"), {
                                 name: String(row[0]), 
                                 gender: String(row[1] || '남성'), 
-                                birthDate: String(row[2] || ''), 
+                                birthDate: fmtDate(row[2]), // [적용] 생년월일 변환
                                 region: String(row[3] || '대연동'),
                                 address: String(row[4] || ''),
                                 phone: String(row[5] || ''),
@@ -1670,7 +1749,7 @@
                                 economicStatus: String(row[10] || '일반(저소득)'),
                                 householdType: String(row[11] || '독거세대'),
                                 status: String(row[12] || '이용'),
-                                serviceStartDate: String(row[13] || new Date().toISOString().split('T')[0]),
+                                serviceStartDate: fmtDate(row[13]) || new Date().toISOString().split('T')[0], // [적용] 시작일 변환
                                 note: String(row[14] || ''),
                                 createdAt: new Date().toISOString()
                             });
