@@ -184,14 +184,36 @@
             onSnapshot(collection(db, "services"), (snap) => {
                 let loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const sortOrder = ['위기관리체계구축', '욕구기반 위기관리', '위기상황관리 및 긴급지원', '기타'];
+                // 사례관리 상세내용 지정 순서
+                const caseManagementOrder = ['사례발굴', '초기상담', '사정 및 계획', '개입', '점검 및 모니터링', '종결 및 사후관리'];
+
                 loaded.sort((a, b) => {
                     const catA = (a.majorCategory || '').replace(/\s+/g, '');
                     const catB = (b.majorCategory || '').replace(/\s+/g, '');
                     const indexA = sortOrder.findIndex(k => k.replace(/\s+/g, '') === catA);
                     const indexB = sortOrder.findIndex(k => k.replace(/\s+/g, '') === catB);
+                    
                     if (indexA !== -1 && indexB !== -1) {
                         if (indexA !== indexB) return indexA - indexB;
-                        return (a.category || '').localeCompare(b.category || '');
+                        
+                        // 같은 대분류 내에서 중분류(category) 비교
+                        const catCompare = (a.category || '').localeCompare(b.category || '');
+                        if (catCompare !== 0) return catCompare;
+
+                        // [수정됨] 중분류가 '사례관리'인 경우 지정된 순서 적용
+                        if (a.category === '사례관리' && b.category === '사례관리') {
+                            const nameIndexA = caseManagementOrder.indexOf(a.name);
+                            const nameIndexB = caseManagementOrder.indexOf(b.name);
+                            
+                            // 둘 다 지정된 목록에 있으면 순서대로 정렬
+                            if (nameIndexA !== -1 && nameIndexB !== -1) return nameIndexA - nameIndexB;
+                            // 목록에 있는 항목을 우선으로 올림
+                            if (nameIndexA !== -1) return -1;
+                            if (nameIndexB !== -1) return 1;
+                        }
+                        
+                        // 그 외에는 가나다순
+                        return (a.name || '').localeCompare(b.name || '');
                     }
                     if (indexA !== -1) return -1;
                     if (indexB !== -1) return 1;
