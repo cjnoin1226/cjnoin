@@ -115,7 +115,9 @@
             CARE_LEVEL_LIST: ['일반', '중점'],
             ECONOMIC_LIST: ['일반(저소득)', '기초수급', '조건부 기초수급', '차상위'],
             HOUSEHOLD_LIST: ['독거세대', '부부세대', '동거', '자녀동거세대', '조손동거세대'],
-            PROVIDE_METHOD_LIST: ['전화', '방문', '내방', '기타']
+            PROVIDE_METHOD_LIST: ['전화', '방문', '내방', '기타'],
+            DUPLICATE_SERVICE_LIST: ['해당없음', '맞춤돌봄', '노노케어', '보훈재가', '장기요양', '기타'],
+            ICT_STATUS_LIST: ['부', '여']
         };
 
         const getTodayStr = () => {
@@ -141,7 +143,8 @@
             pendingServiceData: null,
             filters: {
                 client: { 
-                    status: '이용', level: '', region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' 
+                    status: '이용', level: '', economicStatus: '', duplicateService: '', ictStatus: '', 
+                    region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' 
                 },
                 log: { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] },
                 stats: { 
@@ -263,7 +266,7 @@
         }
 
         function renderClientManager() {
-            const { search, searchPhone, status, level, region, gender, targetYear, targetMonth } = state.filters.client;
+            const { search, searchPhone, status, level, economicStatus, duplicateService, ictStatus, region, gender, targetYear, targetMonth } = state.filters.client;
             let filterStart = '0000-01-01', filterEnd = '9999-12-31';
             if (targetYear) {
                 if (targetMonth) {
@@ -278,10 +281,20 @@
             }
             
             const filtered = state.clients.filter(c => {
+                // 경제상황 유연한 매칭 로직 (수급자 추가)
+                const matchEconomic = !economicStatus || (c.economicStatus && (
+                    c.economicStatus === economicStatus || 
+                    (economicStatus === '조건부 기초수급' && c.economicStatus === '조건부 수급자') ||
+                    (economicStatus === '기초수급' && (c.economicStatus === '기초수급자' || c.economicStatus === '수급자'))
+                ));
+
                 const matchBasic = (!search || c.name.includes(search)) &&
                                    (!searchPhone || (c.phone && c.phone.includes(searchPhone))) && 
                                    (!status || c.status === status) &&
                                    (!level || c.careLevel === level) &&
+                                   matchEconomic && // 수정된 로직 적용
+                                   (!duplicateService || c.duplicateService === duplicateService) &&
+                                   (!ictStatus || (c.ictStatus || '부') === ictStatus) &&
                                    (region.length === 0 || region.includes(c.region)) &&
                                    (!gender || c.gender === gender);
                 if (!matchBasic) return false;
@@ -356,23 +369,33 @@
                        </div>
                     </div>
                     <div class="bg-white p-3 rounded-xl shadow-sm flex flex-col gap-2 sticky top-16 md:top-0 z-40 transition-all">
-                        <div class="flex flex-wrap items-center gap-1 sm:gap-2 text-sm">
+                        <!-- 1행: 검색창 (위로 이동됨) -->
+                        <div class="flex flex-wrap items-center gap-3 w-full">
+                            <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span><input class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)" oninput="if(this.value === '') app.setFilter('client','search','')"></div>
+                            <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">연락처</span><input class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter)" value="${searchPhone}" onkeydown="if(event.key === 'Enter') app.setFilter('client','searchPhone',this.value)" oninput="if(this.value === '') app.setFilter('client','searchPhone','')"></div>
+                            <button onclick="app.resetFilters('client')" class="bg-slate-100 text-slate-500 hover:text-slate-700 text-xs flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-lg font-medium transition-colors ml-auto sm:ml-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                        </div>
+                        
+                        <!-- 2행: 상세 필터 (아래로 이동됨) -->
+                        <div class="flex flex-wrap items-center gap-1 sm:gap-2 text-sm pt-2 border-t border-slate-100">
                             <div class="flex items-center gap-1 text-slate-600 font-bold mr-1 flex-shrink-0"><i data-lucide="filter" size="14"></i></div>
                             <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[90px]" onchange="app.setFilter('client','targetYear',this.value)" title="연도">${yearOptions.join('')}</select>
                             <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','targetMonth',this.value)" title="월">${monthOptions.join('')}</select>
                             <div class="h-4 w-px bg-slate-300 mx-1 hidden sm:block"></div>
                             <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','status',this.value)"><option value="">전체</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}</select>
                             <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','level',this.value)"><option value="">등급</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}</select>
+                            
+                            <!-- 행정동 -->
                             <div class="relative z-30">
                                 <button onclick="app.toggleRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left h-[34px]"><span class="truncate max-w-[90px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400"></i></button>
                                 ${state.ui.regionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
                             </div>
-                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','gender',this.value)"><option value="">성별</option><option value="남성" ${gender==='남성'?'selected':''}>남성</option><option value="여성" ${gender==='여성'?'selected':''}>여성</option></select>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-3 w-full mt-1">
-                            <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span><input class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)" oninput="if(this.value === '') app.setFilter('client','search','')"></div>
-                            <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">연락처</span><input class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter)" value="${searchPhone}" onkeydown="if(event.key === 'Enter') app.setFilter('client','searchPhone',this.value)" oninput="if(this.value === '') app.setFilter('client','searchPhone','')"></div>
-                            <button onclick="app.resetFilters('client')" class="bg-slate-100 text-slate-500 hover:text-slate-700 text-xs flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-lg font-medium transition-colors ml-auto sm:ml-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                            <!-- 성별 -->
+                            <select class="input-field py-1.5 px-2 text-sm w-[60px] flex-none" onchange="app.setFilter('client','gender',this.value)"><option value="">성별</option><option value="남성" ${gender==='남성'?'selected':''}>남</option><option value="여성" ${gender==='여성'?'selected':''}>여</option></select>
+
+                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[90px]" onchange="app.setFilter('client','economicStatus',this.value)"><option value="">경제상황</option>${CONSTANTS.ECONOMIC_LIST.map(e=>`<option value="${e}" ${economicStatus===e?'selected':''}>${e}</option>`).join('')}</select>
+                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[90px]" onchange="app.setFilter('client','duplicateService',this.value)"><option value="">중복서비스</option>${CONSTANTS.DUPLICATE_SERVICE_LIST.map(d=>`<option value="${d}" ${duplicateService===d?'selected':''}>${d}</option>`).join('')}</select>
+                            <select class="input-field py-1.5 px-2 text-sm w-[70px] flex-none" onchange="app.setFilter('client','ictStatus',this.value)"><option value="">ICT</option>${CONSTANTS.ICT_STATUS_LIST.map(i=>`<option value="${i}" ${ictStatus===i?'selected':''}>${i}</option>`).join('')}</select>
                         </div>
                     </div>
                     <div class="space-y-2">
@@ -383,8 +406,16 @@
                             const statusColor = displayStatus === '종결' ? 'bg-slate-100 text-slate-500' : (displayStatus === '이용' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500');
                             const eDate = c.endDate || '9999-12-31';
                             const wasActiveInPeriod = eDate >= filterStart;
+                            
+                            // 경제상황 표시 텍스트 변환 함수
+                            const getEconomicDisplay = (status) => {
+                                if (status === '일반(저소득)') return '저소득';
+                                if (status === '조건부 기초수급' || status === '조건부 수급자') return '조건부';
+                                return status || '-';
+                            };
+
                             return `
-                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[140px_140px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
+                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[115px_180px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
                                 <div class="flex items-center gap-2 w-full overflow-hidden">
                                     <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer flex-shrink-0" onchange="app.toggleClientSelection('${c.id}')" ${state.ui.selectedClientIds.has(c.id) ? 'checked' : ''}>
                                     <div class="flex items-center gap-1 overflow-hidden">
@@ -394,6 +425,7 @@
                                 </div>
                                 <div class="flex items-center gap-1 w-full flex-wrap content-start">
                                     <span class="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium whitespace-nowrap border border-slate-200">${c.region}</span>
+                                    <span class="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100 font-medium whitespace-nowrap">${getEconomicDisplay(c.economicStatus)}</span>
                                     <span class="text-xs px-1.5 py-0.5 rounded ${c.careLevel==='중점'?'bg-pink-50 text-pink-700 border border-pink-100':'bg-blue-50 text-blue-700 border border-blue-100'} font-medium whitespace-nowrap">${c.careLevel}</span>
                                     <span class="text-xs px-1.5 py-0.5 rounded ${statusColor} font-medium whitespace-nowrap border border-slate-200">${displayStatus}</span>
                                     ${targetYear && wasActiveInPeriod ? `<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 ml-0.5 shadow-sm" title="해당 기간 이용 이력 있음"></div>` : ''}
@@ -782,7 +814,7 @@
                 const currentEnd = `${y}-${m}-${last}`;
 
                 const defaults = {
-                    client: { status: '이용', level: '', region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' },
+                    client: { status: '이용', level: '', economicStatus: '', duplicateService: '', ictStatus: '', region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' },
                     log: { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] },
                     stats: { start: currentStart, end: currentEnd, type: 'detail', region: [], name: '' }
                 };
@@ -812,8 +844,16 @@
                     return true;
                 }).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
                 if (filtered.length === 0) { alert("다운로드할 대상자가 없습니다."); return; }
-                const excelData = filtered.map(c => ({ '이름': c.name, '성별': c.gender, '생년월일': c.birthDate, '행정동': c.region, '상세주소': c.address, '연락처': c.phone, '보호자관계': c.guardianRelation, '보호자연락처': c.guardianPhone, '상태': c.status, '관리등급': c.careLevel, '경제상황': c.economicStatus, '세대유형': c.householdType, '서비스시작일': c.serviceStartDate, '장기부재기간': c.absencePeriod, '종결일자': c.endDate, '비고': c.note }));
-                const ws = XLSX.utils.json_to_sheet(excelData); ws['!cols'] = [{ wch: 10 }, { wch: 6 }, { wch: 12 }, { wch: 10 }, { wch: 30 }, { wch: 13 }, { wch: 13 }, { wch: 10 }, { wch: 13 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 30 }];
+                const excelData = filtered.map(c => ({ 
+                    '이름': c.name, '성별': c.gender, '생년월일': c.birthDate, '행정동': c.region, '상세주소': c.address, 
+                    '연락처': c.phone, '보호자관계': c.guardianRelation, '보호자연락처': c.guardianPhone, 
+                    '상태': c.status, '관리등급': c.careLevel, '경제상황': c.economicStatus, '세대유형': c.householdType, 
+                    '중복서비스': c.duplicateService || '해당없음', 'ICT현황': c.ictStatus || '부',
+                    '서비스시작일': c.serviceStartDate, '장기부재기간': c.absencePeriod, '종결일자': c.endDate, '비고': c.note 
+                }));
+                const ws = XLSX.utils.json_to_sheet(excelData); 
+                // 컬럼 너비 설정 (ICT현황 추가됨)
+                ws['!cols'] = [{ wch: 10 }, { wch: 6 }, { wch: 12 }, { wch: 8 }, { wch: 30 }, { wch: 13 }, { wch: 10 }, { wch: 13 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 30 }];
                 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "대상자명부"); XLSX.writeFile(wb, `대상자명부_${new Date().toISOString().slice(0,10)}.xlsx`);
             },
             openClientModal: (id) => {
@@ -839,10 +879,12 @@
                             <div class="sm:col-span-1"><label class="text-sm block mb-1">행정동</label><select name="region" class="input-field">${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${c.region===d?'selected':''}>${d}</option>`).join('')}</select></div>
                             <div class="sm:col-span-3"><label class="text-sm block mb-1">주소</label><input name="address" class="input-field" value="${c.address||''}" placeholder="상세 주소 입력"></div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-3">
                             <div><label class="text-sm block mb-1">등급</label><select name="careLevel" class="input-field">${CONSTANTS.CARE_LEVEL_LIST.map(v=>`<option value="${v}" ${c.careLevel===v?'selected':''}>${v}</option>`).join('')}</select></div>
                             <div><label class="text-sm block mb-1">경제상황</label><select name="economicStatus" class="input-field">${CONSTANTS.ECONOMIC_LIST.map(v=>`<option value="${v}" ${c.economicStatus===v?'selected':''}>${v}</option>`).join('')}</select></div>
                             <div><label class="text-sm block mb-1">세대유형</label><select name="householdType" class="input-field">${CONSTANTS.HOUSEHOLD_LIST.map(v=>`<option value="${v}" ${c.householdType===v?'selected':''}>${v}</option>`).join('')}</select></div>
+                            <div><label class="text-sm block mb-1">중복서비스</label><select name="duplicateService" class="input-field">${CONSTANTS.DUPLICATE_SERVICE_LIST.map(v=>`<option value="${v}" ${c.duplicateService===v?'selected':''}>${v}</option>`).join('')}</select></div>
+                            <div><label class="text-sm block mb-1">ICT 현황</label><select name="ictStatus" class="input-field">${CONSTANTS.ICT_STATUS_LIST.map(v=>`<option value="${v}" ${c.ictStatus===v?'selected':''}>${v}</option>`).join('')}</select></div>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                             <div class="sm:col-span-2"><label class="text-sm block mb-1">상태</label><select name="status" class="input-field">${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
