@@ -484,8 +484,8 @@
                             const genderColorClass = c.gender === '남성' ? 'text-blue-600' : 'text-red-600';
 
                             return `
-                            <!-- [수정] 두 번째 컬럼(태그) 너비를 200px -> 175px로 축소하여, 이후 컬럼들을 왼쪽으로 2글자만큼 이동 -->
-                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[170px_175px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
+                            <!-- [수정] 두 번째 컬럼(태그) 너비를 150px -> 160px로 확장하여, 연락처 컬럼을 오른쪽으로 1글자 이동 -->
+                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[150px_160px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
                                 <div class="flex items-center gap-2 w-full overflow-hidden">
                                     <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer flex-shrink-0" onchange="app.toggleClientSelection('${c.id}')" ${state.ui.selectedClientIds.has(c.id) ? 'checked' : ''}>
                                     <div class="flex items-center gap-1 overflow-hidden">
@@ -505,9 +505,10 @@
                                 </div>
                                 <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.phone||''}${c.phone2 ? ' / ' + c.phone2 : ''}"><span class="truncate text-lg text-slate-900">${c.phone||'-'}${c.phone2 ? ' / ' + c.phone2 : ''}</span></div>
                                 <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.address||''}"><span class="truncate text-lg text-slate-900">${c.address||'-'}</span></div>
+                                <!-- [수정] 수정/삭제 버튼 크기 축소 (padding: p-1.5 -> p-1, icon size: 16 -> 12) -->
                                 <div class="flex items-center justify-end gap-1 w-full">
-                                    <button onclick="app.openClientModal('${c.id}')" class="text-slate-400 hover:text-blue-500 p-1.5 rounded" title="수정"><i data-lucide="edit" size="16"></i></button>
-                                    <button onclick="app.deleteData('clients','${c.id}')" class="text-slate-400 hover:text-red-500 p-1.5 rounded" title="삭제"><i data-lucide="trash-2" size="16"></i></button>
+                                    <button onclick="app.openClientModal('${c.id}')" class="text-slate-400 hover:text-blue-500 p-1 rounded" title="수정"><i data-lucide="edit" size="12"></i></button>
+                                    <button onclick="app.deleteData('clients','${c.id}')" class="text-slate-400 hover:text-red-500 p-1 rounded" title="삭제"><i data-lucide="trash-2" size="12"></i></button>
                                 </div>
                             </div>`;
                         }).join('')}
@@ -938,7 +939,7 @@
                 let absStart = '', absEnd = '';
                 if (c.absencePeriod && c.absencePeriod.includes('~')) { const parts = c.absencePeriod.split('~'); if(parts.length === 2) { absStart = parts[0].trim(); absEnd = parts[1].trim(); } }
                 
-                // [신규] 초기 나이 텍스트 생성 (만 00세)
+                // [신규] 초기 나이 계산 (만 나이)
                 const initialAge = c.birthDate ? `만 ${calculateAge(c.birthDate)}세` : '';
 
                 const html = `
@@ -950,7 +951,7 @@
                             <div><label class="text-sm block mb-1">성별</label><select name="gender" class="input-field" id="gender-select"><option value="남성">남성</option><option value="여성" ${c.gender==='여성'?'selected':''}>여성</option></select></div>
                             <div><label class="text-sm block mb-1">주민등록번호</label><input name="residentNum" class="input-field" placeholder="YYMMDD-1..." value="${c.residentNum||''}" maxlength="14" oninput="app.calcBirthFromRR(this)"></div>
                             
-                            <!-- [수정] 생년월일 입력란 우측에 나이 전용 입력 칸(Readonly) 확실하게 추가 -->
+                            <!-- [수정] 생년월일 우측에 나이 전용 입력 박스 추가 -->
                             <div>
                                 <label class="text-sm block mb-1">생년월일</label>
                                 <div class="flex items-center gap-2">
@@ -1000,7 +1001,7 @@
                         const birthInput = document.getElementById('birth-date-input'); 
                         if (birthInput) { 
                             birthInput.value = fullDate;
-                            // [신규] 주민번호 입력 시 나이 자동 업데이트 호출
+                            // [신규] 주민번호로 생년월일 자동 입력 시 나이 업데이트 호출
                             app.updateAgeDisplay(birthInput);
                         }
                         const genderSelect = document.getElementById('gender-select');
