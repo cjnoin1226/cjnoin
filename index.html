@@ -723,7 +723,8 @@
                     <td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L3, 50)}"></td>
                     <td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L4, 50)}"></td>
                     <td class="py-2 px-1 text-center border-r bg-emerald-100 text-emerald-700" style="${stickColStyle(L5, 50)}">${grandTotal}</td>
-                    ${serviceHeaders.map(k => `<td class="py-2 px-1 text-center border-r text-slate-700 min-w-[80px]">${colTotals[k]}</td>`).join('')}
+                    <!-- [수정] 최소 너비 제거, 데이터 셀도 글자 길이에 맞춤 -->
+                    ${serviceHeaders.map(k => `<td class="py-2 px-2 text-center border-r text-slate-700">${colTotals[k]}</td>`).join('')}
                 </tr>
             `;
 
@@ -736,7 +737,8 @@
                     <th class="py-2 px-1 border-b border-r min-w-[${W_Level}px] bg-slate-50 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L3, 50)}">등급</th>
                     <th class="py-2 px-1 border-b border-r min-w-[${W_Region}px] bg-slate-50 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L4, 50)}">행정동</th>
                     <th class="py-2 px-1 bg-emerald-50 text-emerald-700 border-b border-r min-w-[${W_Total}px] text-xs text-center font-bold" style="${stickColStyle(L5, 50)}">합계</th>
-                    ${serviceHeaders.map(k => `<th class="py-2 px-1 border-b border-r min-w-[80px] text-xs text-center text-slate-600 bg-slate-50">${k}</th>`).join('')}
+                    <!-- [수정] 최소 너비 제거 및 좌우 패딩(px-2) 적용 -->
+                    ${serviceHeaders.map(k => `<th class="py-2 px-2 border-b border-r text-xs text-center text-slate-600 bg-slate-50 whitespace-nowrap">${k}</th>`).join('')}
                 </tr>${totalRowHTML}`;
             } else {
                 theadHTML = `
@@ -747,12 +749,13 @@
                     <th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Level}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L3, 50)}">등급</th>
                     <th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Region}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L4, 50)}">행정동</th>
                     <th rowspan="2" class="py-2 px-1 bg-emerald-50 text-emerald-700 border-b border-r min-w-[${W_Total}px] z-30 text-xs text-center font-bold" style="${stickColStyle(L5, 50)}">합계</th>
-                    ${orderedCategories.map(cat => `<th colspan="${headerGroups[cat].length}" class="py-1 border-b border-r bg-slate-100 text-center text-xs text-center font-semibold text-slate-600">${cat}</th>`).join('')}
+                    ${orderedCategories.map(cat => `<th colspan="${headerGroups[cat].length}" class="py-1 border-b border-r bg-slate-100 text-center text-xs text-center font-semibold text-slate-600 whitespace-nowrap">${cat}</th>`).join('')}
                 </tr>
                 <tr>
                     ${orderedCategories.map(cat => headerGroups[cat].map(svc => {
                         const displayName = svc === '정서지원서비스(안전안부확인)' ? '안전안부확인' : svc;
-                        return `<th class="py-1.5 border-b border-r font-normal text-xs min-w-[80px] text-center text-slate-500 bg-slate-50">${displayName}</th>`;
+                        // [수정] 최소 너비 제거 및 좌우 패딩(px-2) 적용
+                        return `<th class="py-1.5 px-2 border-b border-r font-normal text-xs text-center text-slate-500 bg-slate-50 whitespace-nowrap">${displayName}</th>`;
                     }).join('')).join('')}
                 </tr>${totalRowHTML}`;
             }
@@ -780,7 +783,8 @@
                         <button onclick="app.downloadStatsExcel()" class="w-full sm:w-auto bg-emerald-600 text-white p-2 rounded flex justify-center items-center flex-shrink-0"><i data-lucide="download" size="20"></i></button>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-auto max-h-[600px]">
-                        <table class="w-full text-sm text-left border-collapse whitespace-nowrap">
+                        <!-- [수정] 테이블 너비를 w-full -> w-auto로 변경하여 불필요한 늘어짐 방지 -->
+                        <table class="w-auto text-sm text-left border-collapse whitespace-nowrap">
                             <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20 shadow-sm" style="position: sticky; top: 0; z-index: 40;">${theadHTML}</thead>
                             <tbody class="divide-y divide-slate-100">
                                 ${rows.map((r, index) => {
@@ -801,7 +805,8 @@
                                         <td class="p-1.5 text-center font-bold border-r text-emerald-600 bg-emerald-50" style="${stickColStyle(L5, 30)}">${r.total}</td>
                                         ${serviceHeaders.map(k => {
                                             const isTargetCell = isDeficient && k.includes('정서지원');
-                                            let cellClass = "p-1.5 text-center min-w-[80px] border-r";
+                                            // [수정] 최소 너비 제거, 패딩 적용
+                                            let cellClass = "p-1.5 px-2 text-center border-r";
                                             if (isTargetCell) {
                                                 cellClass += " text-red-600 font-bold bg-red-50";
                                             } else {
@@ -963,20 +968,31 @@
                 <div class="bg-white w-full max-w-4xl p-4 sm:p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto mx-2">
                     <h3 class="font-bold text-lg mb-4">${c.id ? '수정' : '등록'}</h3>
                     <form onsubmit="app.saveClient(event, '${c.id || ''}')" class="space-y-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                            <div><label class="text-sm block mb-1">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div>
-                            <div><label class="text-sm block mb-1">성별</label><select name="gender" class="input-field" id="gender-select"><option value="남성">남성</option><option value="여성" ${c.gender==='여성'?'selected':''}>여성</option></select></div>
-                            <div><label class="text-sm block mb-1">주민등록번호</label><input name="residentNum" class="input-field" placeholder="YYMMDD-1..." value="${c.residentNum||''}" maxlength="14" oninput="app.calcBirthFromRR(this)"></div>
+                        <!-- [수정] 그리드 시스템 변경 (4컬럼 -> 12컬럼 미세 조정) -->
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                            <!-- 이름: 3/12 (25%) -->
+                            <div class="sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div>
                             
-                            <!-- [수정] 생년월일 우측에 나이 전용 입력 박스 추가 -->
-                            <div>
+                            <!-- 성별: 2/12 (약 16%) - 좁게 설정하여 옆으로 붙임 -->
+                            <div class="sm:col-span-6 md:col-span-2">
+                                <label class="text-sm block mb-1">성별</label>
+                                <!-- !w-1/2 제거: 컨테이너 자체가 좁아졌으므로 꽉 차게 설정 -->
+                                <select name="gender" class="input-field" id="gender-select"><option value="남성">남성</option><option value="여성" ${c.gender==='여성'?'selected':''}>여성</option></select>
+                            </div>
+                            
+                            <!-- 주민번호: 3/12 (25%) -->
+                            <div class="sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">주민등록번호</label><input name="residentNum" class="input-field" placeholder="YYMMDD-1..." value="${c.residentNum||''}" maxlength="14" oninput="app.calcBirthFromRR(this)"></div>
+                            
+                            <!-- 생년월일+나이: 4/12 (약 33%) - 나이 박스 공간 확보 -->
+                            <div class="sm:col-span-6 md:col-span-4">
                                 <label class="text-sm block mb-1">생년월일</label>
                                 <div class="flex items-center gap-2">
                                     <input type="date" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" max="9999-12-31" oninput="app.updateAgeDisplay(this)">
-                                    <input id="age-display" class="input-field w-24 text-center bg-slate-100 text-slate-600 focus:outline-none cursor-default font-bold" readonly value="${initialAge}" placeholder="나이" tabindex="-1">
+                                    <input id="age-display" class="input-field !w-[25%] min-w-[60px] text-center bg-slate-100 text-slate-600 focus:outline-none cursor-default font-bold" readonly value="${initialAge}" placeholder="나이" tabindex="-1">
                                 </div>
                             </div>
                         </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div><label class="text-sm block mb-1">연락처 1</label><input name="phone" class="input-field" placeholder="본인 연락처" value="${c.phone||''}"></div>
                             <div><label class="text-sm block mb-1">연락처 2</label><input name="phone2" class="input-field" placeholder="비상/추가 연락처" value="${c.phone2||''}"></div>
