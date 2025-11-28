@@ -172,6 +172,22 @@
             return age;
         }
 
+        // [신규] 일지 필터링 공통 함수
+        function getFilteredLogs() {
+            const { start, end, search, provider, category, service, region } = state.filters.log;
+            return state.logs.filter(l => {
+                const client = state.clients.find(c => c.id === l.clientId);
+                const clientRegion = client ? client.region : '미지정';
+                return (!start || l.date >= start) && 
+                       (!end || l.date <= end) && 
+                       (!search || l.clientName.includes(search)) && 
+                       (!provider || (l.provider && l.provider.includes(provider))) && 
+                       (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
+                       (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service))) &&
+                       (region.length === 0 || region.includes(clientRegion));
+            });
+        }
+
         function initDataSync() {
             if (!db) return;
             const handleErr = (e) => { if(e.code === 'permission-denied') console.warn("권한 부족: 규칙을 확인하세요."); };
@@ -184,10 +200,8 @@
             onSnapshot(collection(db, "services"), (snap) => {
                 let loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const sortOrder = ['위기관리체계구축', '욕구기반 위기관리', '위기상황관리 및 긴급지원', '기타'];
-                // 사례관리 상세내용 지정 순서
                 const caseManagementOrder = ['사례발굴', '초기상담', '사정 및 계획', '개입', '점검 및 모니터링', '종결 및 사후관리'];
-                // 노인상담 및 정보제공 상세내용 지정 순서
-                const counselingOrder = ['정서지원서비스', '정서지원서비스(안전안부확인)', '노인일상생활관련상담', '복지서비스 종합안내'];
+                const counselingOrder = ['정서지원서비스(안전안부확인)', '노인일상생활관련상담', '복지서비스 종합안내'];
 
                 loaded.sort((a, b) => {
                     const catA = (a.majorCategory || '').replace(/\s+/g, '');
@@ -198,35 +212,27 @@
                     if (indexA !== -1 && indexB !== -1) {
                         if (indexA !== indexB) return indexA - indexB;
                         
-                        // 같은 대분류 내에서 중분류(category) 비교
-                        const catCompare = (a.category || '').localeCompare(b.category || '');
-                        if (catCompare !== 0) return catCompare;
+                        // 대분류가 같으면 서비스(중분류) 정렬
+                        const catComp = (a.category || '').localeCompare(b.category || '');
+                        if (catComp !== 0) return catComp;
 
-                        // [수정됨] 중분류가 '사례관리'인 경우 지정된 순서 적용
+                        // 중분류도 같으면 상세내용(이름) 사용자 지정 정렬
                         if (a.category === '사례관리' && b.category === '사례관리') {
                             const nameIndexA = caseManagementOrder.indexOf(a.name);
                             const nameIndexB = caseManagementOrder.indexOf(b.name);
-                            
                             if (nameIndexA !== -1 && nameIndexB !== -1) return nameIndexA - nameIndexB;
                             if (nameIndexA !== -1) return -1;
                             if (nameIndexB !== -1) return 1;
                         }
 
-                        // [신규] 중분류가 '노인상담 및 정보제공'인 경우 지정된 순서 적용
                         if (a.category === '노인상담 및 정보제공' && b.category === '노인상담 및 정보제공') {
-                            let nameIndexA = counselingOrder.indexOf(a.name);
-                            let nameIndexB = counselingOrder.indexOf(b.name);
-                            
-                            // 정확한 매칭이 없으면 포함 여부로 확인
-                            if (nameIndexA === -1) nameIndexA = counselingOrder.findIndex(k => a.name.includes(k));
-                            if (nameIndexB === -1) nameIndexB = counselingOrder.findIndex(k => b.name.includes(k));
-
+                            const nameIndexA = counselingOrder.indexOf(a.name);
+                            const nameIndexB = counselingOrder.indexOf(b.name);
                             if (nameIndexA !== -1 && nameIndexB !== -1) return nameIndexA - nameIndexB;
                             if (nameIndexA !== -1) return -1;
                             if (nameIndexB !== -1) return 1;
                         }
                         
-                        // 그 외에는 가나다순
                         return (a.name || '').localeCompare(b.name || '');
                     }
                     if (indexA !== -1) return -1;
@@ -377,6 +383,14 @@
             const monthOptions = [`<option value="" ${!targetMonth ? 'selected' : ''}>전체 월</option>`];
             for (let m = 1; m <= 12; m++) monthOptions.push(`<option value="${m}" ${parseInt(targetMonth) === m ? 'selected' : ''}>${m}월</option>`);
             
+            // [신규] 조회된 대상자 통계 계산 및 필터 활성화 여부 확인
+            const filteredTotal = filtered.length;
+            const filteredHighFocus = filtered.filter(c => c.careLevel === '중점').length;
+            const filteredGeneral = filtered.filter(c => c.careLevel === '일반').length;
+            
+            // 기본값(status='이용', 나머지 공백)과 다른지 체크
+            const isFilterActive = search !== '' || searchPhone !== '' || status !== '이용' || level !== '' || economicStatus !== '' || duplicateService !== '' || ictStatus !== '' || region.length > 0 || gender !== '' || targetYear !== '' || targetMonth !== '';
+
             return `
                 <div class="space-y-6 animate-fade-in">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -403,6 +417,19 @@
                           <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1">올해 현황 (${currentYearStr})</span><div class="text-sm font-bold flex gap-2"><span class="text-emerald-600">신규 ${yearStats.new}</span><span class="text-slate-300">|</span><span class="text-slate-500">종결 ${yearStats.end}</span></div></div>
                           <div class="p-3 bg-orange-50 rounded-full text-orange-500 ml-auto"><i data-lucide="activity" size="20"></i></div>
                        </div>
+                       <!-- [수정] 조회된 대상자 통계 박스: 필터가 활성화된 경우(기본값이 아닌 경우)에만 표시 -->
+                       ${isFilterActive ? `
+                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 animate-fade-in">
+                          <div class="flex flex-col justify-center">
+                              <span class="text-xs text-slate-500 font-bold mb-1">조회된 대상자</span>
+                              <div class="text-sm font-bold flex items-baseline gap-1">
+                                  <span class="text-xl text-slate-800">${filteredTotal}</span><span class="text-xs text-slate-500 font-normal">명</span>
+                                  <span class="text-slate-300 mx-1">|</span>
+                                  <span class="text-xs text-slate-500">(중점 <span class="text-pink-600">${filteredHighFocus}</span> / 일반 <span class="text-blue-600">${filteredGeneral}</span>)</span>
+                              </div>
+                          </div>
+                          <div class="p-3 bg-indigo-50 rounded-full text-indigo-500 ml-auto"><i data-lucide="search" size="20"></i></div>
+                       </div>` : ''}
                     </div>
                     <div class="bg-white p-3 rounded-xl shadow-sm flex flex-col gap-2 sticky top-16 md:top-0 z-40 transition-all">
                         <!-- 1행: 검색창 (위로 이동됨) -->
@@ -479,26 +506,25 @@
         }
 
         function renderLogManager() {
-            const { start, end, search, provider, category, service, region } = state.filters.log;
-            const filtered = state.logs.filter(l => {
-                const client = state.clients.find(c => c.id === l.clientId);
-                const clientRegion = client ? client.region : '미지정';
-                return (!start || l.date >= start) && 
-                       (!end || l.date <= end) && 
-                       (!search || l.clientName.includes(search)) && 
-                       (!provider || (l.provider && l.provider.includes(provider))) && 
-                       (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
-                       (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service))) &&
-                       (region.length === 0 || region.includes(clientRegion));
-            });
+            const filtered = getFilteredLogs(); // [수정] 공통 함수 사용
             const categories = [...new Set(state.services.map(s => s.category))];
+            const { category, service, start, end, search, provider, region } = state.filters.log; // state에서 값 가져오기
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
+            
+            // [신규] 전체 선택 상태 확인
+            const allSelected = filtered.length > 0 && filtered.every(l => state.ui.selectedLogIds.has(l.id));
 
             return `
                 <div class="space-y-6 animate-fade-in">
                     <div class="flex justify-between items-center">
                         <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
-                        <div class="flex gap-2">
+                        <div class="flex items-center gap-2">
+                            <!-- [신규] 전체 선택 체크박스 -->
+                            <label class="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${filtered.length === 0 ? 'disabled' : ''}>
+                                <span class="text-sm font-medium text-slate-600">전체선택</span>
+                            </label>
+                            
                             ${state.ui.selectedLogIds.size > 0 ? `<button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="16"></i> 선택삭제(${state.ui.selectedLogIds.size})</button>` : ''}
                             <button onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
                             <button onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
@@ -507,11 +533,15 @@
                     </div>
                     <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap items-center gap-2 sticky top-16 md:top-0 z-40 transition-all">
                         <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0"><i data-lucide="filter" size="14"></i> 필터</div>
-                        <div class="flex items-center gap-2 w-full sm:w-auto">
-                            <input type="date" class="input-field py-1.5 w-full sm:w-32 text-sm" value="${start}" onchange="app.setFilter('log','start',this.value)" max="9999-12-31">
+                        
+                        <!-- [수정] 날짜 필터: 입력 시 즉시 렌더링하지 않고(false), 조회 버튼 클릭 시 렌더링 -->
+                        <div class="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
+                            <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('log','start',this.value, false)" max="9999-12-31">
                             <span class="text-slate-400">~</span>
-                            <input type="date" class="input-field py-1.5 w-full sm:w-32 text-sm" value="${end}" onchange="app.setFilter('log','end',this.value)" max="9999-12-31">
+                            <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
+                            <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
                         </div>
+
                         <input class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
                         <input class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
                         <div class="relative z-30 w-full sm:w-auto">
@@ -813,7 +843,10 @@
 
         window.app = {
             setTab: (t) => { state.activeTab = t; render(); document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('sidebar-overlay').classList.add('hidden'); },
-            setFilter: (s, k, v) => { state.filters[s][k] = v; render(); },
+            // [수정] setFilter에 doRender 파라미터 추가 (기본값 true)
+            setFilter: (s, k, v, doRender = true) => { state.filters[s][k] = v; if(doRender) render(); },
+            // [신규] render 함수 노출 (조회 버튼용)
+            render: () => render(),
             toggleRegionDropdown: () => { state.ui.regionDropdownOpen = !state.ui.regionDropdownOpen; render(); },
             toggleRegionFilter: (val) => { const r = state.filters.client.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
             toggleLogRegionDropdown: () => { state.ui.logRegionDropdownOpen = !state.ui.logRegionDropdownOpen; render(); },
@@ -821,6 +854,13 @@
             toggleStatsRegionDropdown: () => { state.ui.statsRegionDropdownOpen = !state.ui.statsRegionDropdownOpen; render(); },
             toggleStatsRegionFilter: (val) => { const r = state.filters.stats.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
             toggleLogSelection: (id) => { if (state.ui.selectedLogIds.has(id)) state.ui.selectedLogIds.delete(id); else state.ui.selectedLogIds.add(id); render(); },
+            // [신규] 전체 선택 토글 함수
+            toggleAllLogs: (checked) => {
+                const filtered = getFilteredLogs();
+                if (checked) { filtered.forEach(l => state.ui.selectedLogIds.add(l.id)); }
+                else { filtered.forEach(l => state.ui.selectedLogIds.delete(l.id)); }
+                render();
+            },
             deleteSelectedLogs: () => {
                 const count = state.ui.selectedLogIds.size;
                 if (count === 0) return;
@@ -987,22 +1027,27 @@
                             <div><label class="block text-sm font-medium mb-1">제공방법</label><select name="provideMethod" class="input-field">${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${l.provideMethod===m?'selected':''}>${m}</option>`).join('')}</select></div>
                             <div><label class="block text-sm font-medium mb-1">제공자</label><input name="provider" class="input-field" value="${l.provider || ''}" placeholder="담당자"></div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded mt-2">
-                            <div class="md:col-span-1">
-                                <label class="block text-sm font-medium mb-1">대상자 검색</label>
-                                <div class="flex gap-2 mb-2">
-                                    <input list="cl-list" id="client-input" class="input-field" placeholder="이름 검색" onchange="app.fillClientInfo(this)" onkeydown="if(event.key === 'Enter') { event.preventDefault(); app.addClientToSelection(); }" autocomplete="off" ${id ? 'disabled title="수정 시 대상자 변경 불가"' : ''}>
-                                    <datalist id="cl-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist>
-                                    ${!id ? `<button type="button" onclick="app.addClientToSelection()" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded text-sm font-medium whitespace-nowrap hover:bg-emerald-200">+추가</button>` : ''}
+                        
+                        <div class="bg-slate-50 p-4 rounded mt-2">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div class="md:col-span-1">
+                                    <label class="block text-sm font-medium mb-1">대상자 검색</label>
+                                    <div class="flex gap-2">
+                                        <input list="cl-list" id="client-input" class="input-field" placeholder="이름 검색" onchange="app.fillClientInfo(this)" onkeydown="if(event.key === 'Enter') { event.preventDefault(); app.addClientToSelection(); }" autocomplete="off" ${id ? 'disabled title="수정 시 대상자 변경 불가"' : ''}>
+                                        <datalist id="cl-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist>
+                                        ${!id ? `<button type="button" onclick="app.addClientToSelection()" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded text-sm font-medium whitespace-nowrap hover:bg-emerald-200">+추가</button>` : ''}
+                                    </div>
                                 </div>
-                                <div id="selected-clients-area" class="flex flex-wrap gap-2"></div>
+                                <div class="md:col-span-3 flex flex-col sm:flex-row gap-2">
+                                    <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">생년월일</label><input id="d-birth" class="input-field bg-slate-100" readonly value="${c.birthDate||''}"></div>
+                                    <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">행정동</label><input id="d-region" class="input-field bg-slate-100" readonly value="${c.region||''}"></div>
+                                    <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">관리등급</label><input id="d-level" class="input-field bg-slate-100" readonly value="${c.careLevel||''}"></div>
+                                </div>
                             </div>
-                            <div class="md:col-span-3 flex flex-col sm:flex-row gap-2">
-                                <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">생년월일</label><input id="d-birth" class="input-field bg-slate-100" readonly value="${c.birthDate||''}"></div>
-                                <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">행정동</label><input id="d-region" class="input-field bg-slate-100" readonly value="${c.region||''}"></div>
-                                <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">관리등급</label><input id="d-level" class="input-field bg-slate-100" readonly value="${c.careLevel||''}"></div>
-                            </div>
+                            <!-- 대상자 목록 영역을 그리드 밖으로 빼내어 전체 너비를 사용하도록 수정 -->
+                            <div id="selected-clients-area" class="flex flex-wrap gap-2 mt-3 pt-2 border-t border-slate-200"></div>
                         </div>
+
                         <div>
                             <div class="flex justify-between mb-2"><label class="font-bold text-sm">서비스 (최대 6개)</label><button type="button" onclick="app.addSvcRow()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">추가</button></div>
                             <div id="svc-container" class="space-y-2"></div>
@@ -1123,31 +1168,94 @@
             },
             downloadStatsExcel: () => {
                 const { start, end, type, region, name } = state.filters.stats;
-                const targetClients = state.clients.filter(c => { const matchBasic = (region.length === 0 || region.includes(c.region)) && (!name || c.name.includes(name)); if (!matchBasic) return false; const cS = c.serviceStartDate || '0000-01-01'; const cE = c.endDate || '9999-12-31'; return cS <= end && cE >= start; });
+
+                // [수정] 화면(renderStatistics)과 동일한 대상자 필터링 로직 적용 (연도 기준 확장)
+                const sYear = start.split('-')[0];
+                const eYear = end.split('-')[0];
+                const fullYearStart = `${sYear}-01-01`;
+                const fullYearEnd = `${eYear}-12-31`;
+
+                const targetClients = state.clients.filter(c => { 
+                    const matchBasic = (region.length === 0 || region.includes(c.region)) && (!name || c.name.includes(name)); 
+                    if (!matchBasic) return false; 
+                    const cS = c.serviceStartDate || '0000-01-01'; 
+                    const cE = c.endDate || '9999-12-31'; 
+                    // 화면과 동일하게 연도 기준으로 교집합 확인
+                    return cS <= fullYearEnd && cE >= fullYearStart; 
+                });
+
                 let serviceHeaders = [];
-                if (type === 'category') { serviceHeaders = [...new Set(state.services.map(s => s.category))].filter(Boolean); } else { const headerGroups = {}; const orderedCategories = [...new Set(state.services.map(s => s.category || '기타'))]; state.services.forEach(s => { const cat = s.category || '기타'; if (!headerGroups[cat]) headerGroups[cat] = []; if (!headerGroups[cat].includes(s.name)) headerGroups[cat].push(s.name); }); serviceHeaders = orderedCategories.flatMap(cat => headerGroups[cat]); }
+                if (type === 'category') { 
+                    serviceHeaders = [...new Set(state.services.map(s => s.category))].filter(Boolean); 
+                } else { 
+                    const headerGroups = {}; 
+                    const orderedCategories = [...new Set(state.services.map(s => s.category || '기타'))]; 
+                    state.services.forEach(s => { 
+                        const cat = s.category || '기타'; 
+                        if (!headerGroups[cat]) headerGroups[cat] = []; 
+                        if (!headerGroups[cat].includes(s.name)) headerGroups[cat].push(s.name); 
+                    }); 
+                    serviceHeaders = orderedCategories.flatMap(cat => headerGroups[cat]); 
+                }
+
                 const dataMap = {}; 
-                targetClients.forEach(c => { dataMap[c.id] = { name: c.name, birthDate: c.birthDate || '-', region: (c.region || '-').replace(/동$/, ''), total: 0, counts: {} }; serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0); });
+                targetClients.forEach(c => { 
+                    dataMap[c.id] = { 
+                        name: c.name, 
+                        birthDate: c.birthDate || '-', 
+                        careLevel: c.careLevel || '-', // 정렬을 위해 등급 저장
+                        region: (c.region || '-').replace(/동$/, ''), 
+                        total: 0, 
+                        counts: {} 
+                    }; 
+                    serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0); 
+                });
+
                 state.logs.forEach(l => {
                     if (l.date < start || l.date > end) return;
                     let cid = l.clientId;
-                    if (!dataMap[cid] && l.clientName) { const found = targetClients.find(c => c.name === l.clientName); if(found) cid = found.id; }
+                    if (!dataMap[cid] && l.clientName) { 
+                        const found = targetClients.find(c => c.name === l.clientName); 
+                        if(found) cid = found.id; 
+                    }
                     if (dataMap[cid]) {
                         const items = l.serviceItems || [{ serviceName: l.serviceName, category: l.serviceCategory }];
                         items.forEach(item => {
                             let key = type === 'category' ? item.category : item.serviceName;
-                            if (!key && item.serviceName && type === 'category') { const s = state.services.find(svc => svc.name === item.serviceName); if(s) key = s.category; }
-                            if (key && dataMap[cid].counts[key] !== undefined) { dataMap[cid].counts[key]++; dataMap[cid].total++; }
+                            if (!key && item.serviceName && type === 'category') { 
+                                const s = state.services.find(svc => svc.name === item.serviceName); 
+                                if(s) key = s.category; 
+                            }
+                            if (key && dataMap[cid].counts[key] !== undefined) { 
+                                dataMap[cid].counts[key]++; 
+                                dataMap[cid].total++; 
+                            }
                         });
                     }
                 });
-                const excelData = Object.values(dataMap).sort((a,b) => b.total - a.total).map(r => { const row = { '대상자': r.name, '생년월일': r.birthDate, '행정동': r.region, '합계': r.total }; serviceHeaders.forEach(h => { row[h] = r.counts[h]; }); return row; });
+
+                // [수정] 화면과 동일한 정렬 순서 적용 (등급순 -> 이름순)
+                const excelData = Object.values(dataMap).sort((a, b) => {
+                    const levelPriority = { '중점': 1, '일반': 2 };
+                    const pA = levelPriority[a.careLevel] || 3;
+                    const pB = levelPriority[b.careLevel] || 3;
+                    if (pA !== pB) return pA - pB;
+                    return a.name.localeCompare(b.name);
+                }).map(r => { 
+                    const row = { '대상자': r.name, '생년월일': r.birthDate, '등급': r.careLevel, '행정동': r.region, '합계': r.total }; 
+                    serviceHeaders.forEach(h => { row[h] = r.counts[h]; }); 
+                    return row; 
+                });
+
                 if (excelData.length === 0) { alert("다운로드할 데이터가 없습니다."); return; }
-                const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "서비스제공통계"); XLSX.writeFile(wb, `서비스제공통계_${new Date().toISOString().slice(0,10)}.xlsx`);
+                const ws = XLSX.utils.json_to_sheet(excelData); 
+                const wb = XLSX.utils.book_new(); 
+                XLSX.utils.book_append_sheet(wb, ws, "서비스제공통계"); 
+                XLSX.writeFile(wb, `서비스제공통계_${new Date().toISOString().slice(0,10)}.xlsx`);
             },
             downloadLogsExcel: () => {
-                const { start, end, search, category, service } = state.filters.log;
-                const filtered = state.logs.filter(l => (!start || l.date >= start) && (!end || l.date <= end) && (!search || l.clientName.includes(search)) && (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) && (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))).sort((a, b) => new Date(a.date) - new Date(b.date));
+                // [수정] 공통 함수 사용 및 정렬 적용
+                const filtered = getFilteredLogs().sort((a, b) => new Date(a.date) - new Date(b.date));
                 if (filtered.length === 0) { alert("다운로드할 데이터가 없습니다."); return; }
                 const excelData = [];
                 filtered.forEach(l => {
@@ -1159,8 +1267,8 @@
                 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "서비스일지"); XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
             },
             printLogs: () => {
-                const { start, end, search, category, service } = state.filters.log;
-                const filtered = state.logs.filter(l => (!start || l.date >= start) && (!end || l.date <= end) && (!search || l.clientName.includes(search)) && (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) && (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))).sort((a, b) => new Date(a.date) - new Date(b.date));
+                // [수정] 공통 함수 사용 및 정렬 적용
+                const filtered = getFilteredLogs().sort((a, b) => new Date(a.date) - new Date(b.date));
                 if (filtered.length === 0) { alert("인쇄할 일지가 없습니다."); return; }
                 const printWindow = window.open('', '', 'width=1100,height=800');
                 let rowsHTML = '';
