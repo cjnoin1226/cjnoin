@@ -709,13 +709,15 @@
             serviceHeaders.forEach(k => colTotals[k] = rows.reduce((sum, r) => sum + (r.counts[k]||0), 0));
             const grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
 
-            const W_Name = 60, W_Birth = 75, W_Level = 35, W_Region = 35, W_Total = 40;
-            const L1=0, L2=W_Name, L3=L2+W_Birth, L4=L3+W_Level, L5=L4+W_Region;
+            // [수정] No 컬럼 너비 축소 (40 -> 30) 및 위치 계산 자동 반영
+            const W_No = 30, W_Name = 60, W_Birth = 75, W_Level = 35, W_Region = 35, W_Total = 40;
+            const L_No = 0, L1 = W_No, L2 = L1 + W_Name, L3 = L2 + W_Birth, L4 = L3 + W_Level, L5 = L4 + W_Region;
             const stickColStyle = (left, z) => `position: sticky; left: ${left}px; z-index: ${z};`;
 
             let theadHTML = '';
             const totalRowHTML = `
                 <tr class="bg-slate-100 font-bold shadow-sm border-b border-slate-200">
+                    <td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L_No, 50)}"></td>
                     <td class="py-2 px-1 border-r text-center text-slate-700 bg-slate-100" style="${stickColStyle(L1, 50)}">총계</td>
                     <td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L2, 50)}"></td>
                     <td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L3, 50)}"></td>
@@ -728,6 +730,7 @@
             if (type === 'category') {
                 theadHTML = `
                 <tr>
+                    <th class="py-2 px-1 border-b border-r min-w-[${W_No}px] bg-slate-50 text-xs text-center font-bold text-slate-500" style="${stickColStyle(L_No, 50)}">No</th>
                     <th class="py-2 px-1 border-b border-r min-w-[${W_Name}px] bg-slate-50 text-xs text-center font-bold text-slate-700" style="${stickColStyle(L1, 50)}">대상자</th>
                     <th class="py-2 px-1 border-b border-r min-w-[${W_Birth}px] bg-slate-50 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L2, 50)}">생년월일</th>
                     <th class="py-2 px-1 border-b border-r min-w-[${W_Level}px] bg-slate-50 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L3, 50)}">등급</th>
@@ -738,6 +741,7 @@
             } else {
                 theadHTML = `
                 <tr>
+                    <th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_No}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-500" style="${stickColStyle(L_No, 50)}">No</th>
                     <th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Name}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-700" style="${stickColStyle(L1, 50)}">대상자</th>
                     <th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Birth}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L2, 50)}">생년월일</th>
                     <th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Level}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L3, 50)}">등급</th>
@@ -779,7 +783,7 @@
                         <table class="w-full text-sm text-left border-collapse whitespace-nowrap">
                             <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20 shadow-sm" style="position: sticky; top: 0; z-index: 40;">${theadHTML}</thead>
                             <tbody class="divide-y divide-slate-100">
-                                ${rows.map(r => {
+                                ${rows.map((r, index) => {
                                     const careLevelClass = r.careLevel === '중점' ? 'text-pink-600 font-bold' : (r.careLevel === '일반' ? 'text-blue-600 font-bold' : 'text-slate-500');
                                     const isTerminatedInPeriod = r.endDate <= fullYearEnd; 
                                     let isDeficient = false;
@@ -789,6 +793,7 @@
                                     }
                                     return `
                                     <tr class="hover:bg-slate-50 group">
+                                        <td class="py-1.5 px-1 border-r text-center text-slate-400 text-xs bg-white" style="${stickColStyle(L_No, 30)}">${index + 1}</td>
                                         <td class="py-1.5 px-1 border-r group-hover:bg-slate-50 text-center font-medium text-slate-800 bg-white" style="${stickColStyle(L1, 30)}">${r.name}</td>
                                         <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs bg-white" style="${stickColStyle(L2, 30)}">${r.birthDate}</td>
                                         <td class="py-1.5 px-1 text-center border-r text-xs bg-white ${careLevelClass}" style="${stickColStyle(L3, 30)}">${r.careLevel}</td>
