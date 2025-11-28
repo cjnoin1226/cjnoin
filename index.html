@@ -477,13 +477,23 @@
                                 return status || '-';
                             };
 
+                            // [수정] 표시 형식 변경: (YY.MM.DD/만n세/성별) -> "만" 제거
+                            const birthShort = c.birthDate ? c.birthDate.substring(2).replace(/-/g, '.') : '-';
+                            const genderShort = c.gender === '남성' ? '남' : (c.gender === '여성' ? '여' : c.gender);
+                            const age = calculateAge(c.birthDate);
+                            const genderColorClass = c.gender === '남성' ? 'text-blue-600' : 'text-red-600';
+
                             return `
-                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[115px_180px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
+                            <!-- [수정] 두 번째 컬럼(태그) 너비를 200px -> 175px로 축소하여, 이후 컬럼들을 왼쪽으로 2글자만큼 이동 -->
+                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[170px_175px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
                                 <div class="flex items-center gap-2 w-full overflow-hidden">
                                     <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer flex-shrink-0" onchange="app.toggleClientSelection('${c.id}')" ${state.ui.selectedClientIds.has(c.id) ? 'checked' : ''}>
                                     <div class="flex items-center gap-1 overflow-hidden">
-                                        <span class="font-bold text-xl text-slate-800 cursor-pointer hover:text-blue-600 truncate" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
-                                        <span class="text-sm font-bold ${c.gender==='남성'?'text-blue-500':'text-red-500'} whitespace-nowrap">(${calculateAge(c.birthDate)}/${c.gender})</span>
+                                        <span class="font-bold text-xl text-slate-800 cursor-pointer hover:text-blue-600 truncate flex-shrink-0" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
+                                        <!-- [수정] 나이 제거: (생년월일/성별) 형식으로 변경 -->
+                                        <span class="text-sm font-bold text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">
+                                            (${birthShort}/<span class="${genderColorClass}">${genderShort}</span>)
+                                        </span>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-1 w-full flex-wrap content-start">
@@ -843,9 +853,7 @@
 
         window.app = {
             setTab: (t) => { state.activeTab = t; render(); document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('sidebar-overlay').classList.add('hidden'); },
-            // [수정] setFilter에 doRender 파라미터 추가 (기본값 true)
             setFilter: (s, k, v, doRender = true) => { state.filters[s][k] = v; if(doRender) render(); },
-            // [신규] render 함수 노출 (조회 버튼용)
             render: () => render(),
             toggleRegionDropdown: () => { state.ui.regionDropdownOpen = !state.ui.regionDropdownOpen; render(); },
             toggleRegionFilter: (val) => { const r = state.filters.client.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
@@ -854,7 +862,266 @@
             toggleStatsRegionDropdown: () => { state.ui.statsRegionDropdownOpen = !state.ui.statsRegionDropdownOpen; render(); },
             toggleStatsRegionFilter: (val) => { const r = state.filters.stats.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
             toggleLogSelection: (id) => { if (state.ui.selectedLogIds.has(id)) state.ui.selectedLogIds.delete(id); else state.ui.selectedLogIds.add(id); render(); },
-            // [신규] 전체 선택 토글 함수
+            deleteSelectedLogs: () => {
+                const count = state.ui.selectedLogIds.size;
+                if (count === 0) return;
+                showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">일괄 삭제 확인</h3><p class="text-sm text-slate-500 mb-6">선택한 <span class="font-bold text-red-600">${count}개</span>의 일지를 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDeleteSelectedLogs()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">아니오</button></div></div></div>`);
+                lucide.createIcons();
+            },
+            executeDeleteSelectedLogs: async () => {
+                try { const promises = Array.from(state.ui.selectedLogIds).map(id => deleteDoc(doc(db, "logs", id))); await Promise.all(promises); state.ui.selectedLogIds.clear(); closeDialog(); } catch (err) { alert("삭제 중 오류가 발생했습니다: " + err.message); }
+            },
+            toggleClientSelection: (id) => { if (state.ui.selectedClientIds.has(id)) state.ui.selectedClientIds.delete(id); else state.ui.selectedClientIds.add(id); render(); },
+            deleteSelectedClients: () => {
+                const count = state.ui.selectedClientIds.size;
+                if (count === 0) return;
+                showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">대상자 일괄 삭제</h3><p class="text-sm text-slate-500 mb-6">선택한 <span class="font-bold text-red-600">${count}명</span>의 대상자를 삭제하시겠습니까?<br>삭제 시 해당 대상자의 정보가 영구적으로 사라집니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDeleteSelectedClients()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">아니오</button></div></div></div>`);
+                lucide.createIcons();
+            },
+            executeDeleteSelectedClients: async () => {
+                try { const promises = Array.from(state.ui.selectedClientIds).map(id => deleteDoc(doc(db, "clients", id))); await Promise.all(promises); state.ui.selectedClientIds.clear(); closeDialog(); } catch (err) { alert("삭제 중 오류가 발생했습니다: " + err.message); }
+            },
+            resetFilters: (scope) => {
+                // 현재 날짜 기준 월초/월말 계산
+                const d = new Date();
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const last = new Date(y, d.getMonth() + 1, 0).getDate();
+                const currentStart = `${y}-${m}-01`;
+                const currentEnd = `${y}-${m}-${last}`;
+
+                const defaults = {
+                    client: { status: '이용', level: '', economicStatus: '', duplicateService: '', ictStatus: '', region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' },
+                    log: { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] },
+                    stats: { start: currentStart, end: currentEnd, type: 'detail', region: [], name: '' }
+                };
+                state.filters[scope] = defaults[scope];
+                if(scope === 'client') state.ui.regionDropdownOpen = false;
+                if(scope === 'log') state.ui.logRegionDropdownOpen = false;
+                if(scope === 'stats') state.ui.statsRegionDropdownOpen = false;
+                render();
+            },
+            downloadClientListExcel: () => {
+                const { search, searchPhone, status, level, region, gender, targetYear, targetMonth } = state.filters.client;
+                let filterStart = '0000-01-01', filterEnd = '9999-12-31';
+                if (targetYear) {
+                    if (targetMonth) {
+                        const m = String(targetMonth).padStart(2, '0');
+                        filterStart = `${targetYear}-${m}-01`;
+                        const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+                        filterEnd = `${targetYear}-${m}-${lastDay}`;
+                    } else { filterStart = `${targetYear}-01-01`; filterEnd = `${targetYear}-12-31`; }
+                }
+                const filtered = state.clients.filter(c => {
+                    const matchBasic = (!search || c.name.includes(search)) && (!searchPhone || (c.phone && c.phone.includes(searchPhone))) && (!status || c.status === status) && (!level || c.careLevel === level) && (region.length === 0 || region.includes(c.region)) && (!gender || c.gender === gender);
+                    if (!matchBasic) return false;
+                    const sDate = c.serviceStartDate || '0000-01-01'; const eDate = c.endDate || '9999-12-31'; 
+                    if (sDate > filterEnd) return false;
+                    if (status && status !== '종결') { if (eDate < filterStart) return false; }
+                    return true;
+                }).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
+                if (filtered.length === 0) { alert("다운로드할 대상자가 없습니다."); return; }
+                const excelData = filtered.map(c => ({ 
+                    '이름': c.name, '성별': c.gender, '생년월일': c.birthDate, '행정동': c.region, '상세주소': c.address, 
+                    '연락처': c.phone, '보호자관계': c.guardianRelation, '보호자연락처': c.guardianPhone, 
+                    '상태': c.status, '관리등급': c.careLevel, '경제상황': c.economicStatus, '세대유형': c.householdType, 
+                    '중복서비스': c.duplicateService || '해당없음', 'ICT현황': c.ictStatus || '부',
+                    '서비스시작일': c.serviceStartDate, '장기부재기간': c.absencePeriod, '종결일자': c.endDate, '비고': c.note 
+                }));
+                const ws = XLSX.utils.json_to_sheet(excelData); 
+                // 컬럼 너비 설정 (ICT현황 추가됨)
+                ws['!cols'] = [{ wch: 10 }, { wch: 6 }, { wch: 12 }, { wch: 8 }, { wch: 30 }, { wch: 13 }, { wch: 10 }, { wch: 13 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 30 }];
+                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "대상자명부"); XLSX.writeFile(wb, `대상자명부_${new Date().toISOString().slice(0,10)}.xlsx`);
+            },
+            openClientModal: (id) => {
+                const c = id ? state.clients.find(x => x.id === id) : {};
+                let absStart = '', absEnd = '';
+                if (c.absencePeriod && c.absencePeriod.includes('~')) { const parts = c.absencePeriod.split('~'); if(parts.length === 2) { absStart = parts[0].trim(); absEnd = parts[1].trim(); } }
+                
+                // [신규] 초기 나이 텍스트 생성 (만 00세)
+                const initialAge = c.birthDate ? `만 ${calculateAge(c.birthDate)}세` : '';
+
+                const html = `
+                <div class="bg-white w-full max-w-4xl p-4 sm:p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto mx-2">
+                    <h3 class="font-bold text-lg mb-4">${c.id ? '수정' : '등록'}</h3>
+                    <form onsubmit="app.saveClient(event, '${c.id || ''}')" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                            <div><label class="text-sm block mb-1">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div>
+                            <div><label class="text-sm block mb-1">성별</label><select name="gender" class="input-field" id="gender-select"><option value="남성">남성</option><option value="여성" ${c.gender==='여성'?'selected':''}>여성</option></select></div>
+                            <div><label class="text-sm block mb-1">주민등록번호</label><input name="residentNum" class="input-field" placeholder="YYMMDD-1..." value="${c.residentNum||''}" maxlength="14" oninput="app.calcBirthFromRR(this)"></div>
+                            
+                            <!-- [수정] 생년월일 입력란 우측에 나이 전용 입력 칸(Readonly) 확실하게 추가 -->
+                            <div>
+                                <label class="text-sm block mb-1">생년월일</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="date" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" max="9999-12-31" oninput="app.updateAgeDisplay(this)">
+                                    <input id="age-display" class="input-field w-24 text-center bg-slate-100 text-slate-600 focus:outline-none cursor-default font-bold" readonly value="${initialAge}" placeholder="나이" tabindex="-1">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div><label class="text-sm block mb-1">연락처 1</label><input name="phone" class="input-field" placeholder="본인 연락처" value="${c.phone||''}"></div>
+                            <div><label class="text-sm block mb-1">연락처 2</label><input name="phone2" class="input-field" placeholder="비상/추가 연락처" value="${c.phone2||''}"></div>
+                            <div><label class="text-sm block mb-1">보호자 연락처</label><div class="flex gap-2"><input name="guardianRelation" class="input-field w-20" placeholder="관계" value="${c.guardianRelation||''}"><input name="guardianPhone" class="input-field flex-1" placeholder="번호" value="${c.guardianPhone||''}"></div></div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                            <div class="sm:col-span-1"><label class="text-sm block mb-1">행정동</label><select name="region" class="input-field">${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${c.region===d?'selected':''}>${d}</option>`).join('')}</select></div>
+                            <div class="sm:col-span-3"><label class="text-sm block mb-1">주소</label><input name="address" class="input-field" value="${c.address||''}" placeholder="상세 주소 입력"></div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                            <div><label class="text-sm block mb-1">등급</label><select name="careLevel" class="input-field">${CONSTANTS.CARE_LEVEL_LIST.map(v=>`<option value="${v}" ${c.careLevel===v?'selected':''}>${v}</option>`).join('')}</select></div>
+                            <div><label class="text-sm block mb-1">경제상황</label><select name="economicStatus" class="input-field">${CONSTANTS.ECONOMIC_LIST.map(v=>`<option value="${v}" ${c.economicStatus===v?'selected':''}>${v}</option>`).join('')}</select></div>
+                            <div><label class="text-sm block mb-1">세대유형</label><select name="householdType" class="input-field">${CONSTANTS.HOUSEHOLD_LIST.map(v=>`<option value="${v}" ${c.householdType===v?'selected':''}>${v}</option>`).join('')}</select></div>
+                            <div><label class="text-sm block mb-1">중복서비스</label><select name="duplicateService" class="input-field">${CONSTANTS.DUPLICATE_SERVICE_LIST.map(v=>`<option value="${v}" ${c.duplicateService===v?'selected':''}>${v}</option>`).join('')}</select></div>
+                            <div><label class="text-sm block mb-1">ICT 현황</label><select name="ictStatus" class="input-field">${CONSTANTS.ICT_STATUS_LIST.map(v=>`<option value="${v}" ${c.ictStatus===v?'selected':''}>${v}</option>`).join('')}</select></div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                            <div class="sm:col-span-2"><label class="text-sm block mb-1">상태</label><select name="status" class="input-field">${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                            <div class="sm:col-span-3"><label class="text-sm block mb-1">시작일</label><input type="date" name="serviceStartDate" class="input-field" value="${c.serviceStartDate||''}" max="9999-12-31"></div>
+                            <div class="sm:col-span-4"><label class="text-sm block mb-1">장기부재기간</label><div class="flex items-center gap-1"><input type="date" name="absStart" class="input-field px-1 text-sm text-center" value="${absStart}" max="9999-12-31" style="font-size: 0.8rem;"><span class="text-slate-400">~</span><input type="date" name="absEnd" class="input-field px-1 text-sm text-center" value="${absEnd}" max="9999-12-31" style="font-size: 0.8rem;"></div></div>
+                            <div class="sm:col-span-3"><label class="text-sm block mb-1">종결일</label><input type="date" name="endDate" class="input-field" value="${c.endDate||''}" max="9999-12-31"></div>
+                        </div>
+                        <div><label class="text-sm block mb-1">비고</label><textarea name="note" class="input-field" rows="2">${c.note||''}</textarea></div>
+                        <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg">취소</button><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">저장</button></div>
+                    </form>
+                </div>`;
+                showModal(html);
+            },
+            calcBirthFromRR: (input) => {
+                let val = input.value.replace(/[^0-9]/g, '');
+                if (val.length > 6) { val = val.slice(0, 6) + '-' + val.slice(6); input.value = val; }
+                const cleanVal = val.replace(/-/g, '');
+                if (cleanVal.length >= 7) {
+                    const yy = cleanVal.substr(0, 2), mm = cleanVal.substr(2, 2), dd = cleanVal.substr(4, 2), g = cleanVal.substr(6, 1);
+                    let yearPrefix = '';
+                    if (['1', '2', '5', '6'].includes(g)) yearPrefix = '19'; else if (['3', '4', '7', '8'].includes(g)) yearPrefix = '20';
+                    if (yearPrefix) {
+                        const fullDate = `${yearPrefix}${yy}-${mm}-${dd}`;
+                        const birthInput = document.getElementById('birth-date-input'); 
+                        if (birthInput) { 
+                            birthInput.value = fullDate;
+                            // [신규] 주민번호 입력 시 나이 자동 업데이트 호출
+                            app.updateAgeDisplay(birthInput);
+                        }
+                        const genderSelect = document.getElementById('gender-select');
+                        if (genderSelect) { if (['1', '3', '5', '7'].includes(g)) genderSelect.value = '남성'; else if (['2', '4', '6', '8'].includes(g)) genderSelect.value = '여성'; }
+                    }
+                }
+            },
+            // [신규] 나이 표시 업데이트 함수 (input value 업데이트)
+            updateAgeDisplay: (input) => {
+                const val = input.value;
+                const display = document.getElementById('age-display');
+                if (!display) return;
+                if (!val) {
+                    display.value = '';
+                    return;
+                }
+                const age = calculateAge(val);
+                display.value = `만 ${age}세`;
+            },
+            saveClient: async (e, id) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData);
+                const start = data.absStart; const end = data.absEnd;
+                if (start || end) { data.absencePeriod = `${start || ''} ~ ${end || ''}`; } else { data.absencePeriod = ''; }
+                delete data.absStart; delete data.absEnd;
+                if (!id) data.createdAt = new Date().toISOString();
+                if (!id) {
+                    const duplicate = state.clients.find(c => c.name === data.name && c.birthDate === data.birthDate);
+                    if (duplicate) {
+                        state.pendingClientData = data;
+                        showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4"><i data-lucide="alert-circle" class="text-orange-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">중복 대상자 확인</h3><p class="text-sm text-slate-500 mb-4">이름: <span class="font-bold text-slate-800">${data.name}</span><br>생년월일: <span class="font-bold text-slate-800">${data.birthDate}</span></p><p class="text-sm text-slate-600 mb-6">이미 등록된 대상자와 정보가 일치합니다.<br>그래도 등록하시겠습니까?</p><div class="flex gap-3 justify-center"><button onclick="app.confirmSaveClient()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium shadow-sm">예, 등록</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">아니오</button></div></div></div>`);
+                        lucide.createIcons();
+                        return;
+                    }
+                }
+                await app.processSaveClient(data, id);
+            },
+            confirmSaveClient: async () => { if (state.pendingClientData) { await app.processSaveClient(state.pendingClientData, null); state.pendingClientData = null; closeDialog(); } },
+            processSaveClient: async (data, id) => { try { if (id) await updateDoc(doc(db, "clients", id), data); else await addDoc(collection(db, "clients"), data); closeModal(); } catch(err) { alert("저장 실패: " + err.message); } },
+            closeDialog: () => { state.pendingClientData = null; state.pendingLogData = null; state.pendingServiceData = null; closeDialog(); },
+            openLogModal: (id, prefillData = null) => {
+                let l;
+                if (id) { l = state.logs.find(x => x.id === id); } else if (prefillData) { l = prefillData; } else { l = { date: new Date().toISOString().split('T')[0], provideMethod: '방문', provider: '', serviceItems: [{id: Date.now(), category: '노인상담 및 정보제공', serviceName: '정서지원서비스(안전안부확인)', detailNote: ''}, {id: Date.now() + 1, category: '', serviceName: '', detailNote: ''}] }; }
+                if (!l) l = { date: new Date().toISOString().split('T')[0], provideMethod: '방문', provider: '', serviceItems: [{id: Date.now(), category:'', serviceName:'', detailNote:''}] };
+                const c = l.clientName ? (state.clients.find(x => x.name === l.clientName) || {}) : {};
+                if (id || prefillData) { window.tempSelectedClients = l.clientName ? [l.clientName] : []; window.tempServiceItems = l.serviceItems ? l.serviceItems.map(i => ({...i, id: Date.now() + Math.random()})) : [{id: Date.now(), category:'', serviceName:'', detailNote:''}]; } else { window.tempSelectedClients = []; window.tempServiceItems = [{id: Date.now(), category: '노인상담 및 정보제공', serviceName: '정서지원서비스(안전안부확인)', detailNote: ''}, {id: Date.now() + 1, category: '', serviceName: '', detailNote: ''}]; }
+                const html = `
+                <div class="bg-white w-full max-w-4xl p-4 sm:p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto mx-2">
+                    <h3 class="font-bold text-lg mb-4">${id ? '수정' : (prefillData ? '일지 복사 등록' : '작성')}</h3>
+                    <form onsubmit="app.saveLog(event, '${id || ''}')" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded">
+                            <div><label class="block text-sm font-medium mb-1">날짜</label><input type="date" name="date" class="input-field" value="${l.date}" required max="9999-12-31"></div>
+                            <div><label class="block text-sm font-medium mb-1">제공방법</label><select name="provideMethod" class="input-field">${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${l.provideMethod===m?'selected':''}>${m}</option>`).join('')}</select></div>
+                            <div><label class="block text-sm font-medium mb-1">제공자</label><input name="provider" class="input-field" value="${l.provider || ''}" placeholder="담당자"></div>
+                        </div>
+                        
+                        <div class="bg-slate-50 p-4 rounded mt-2">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div class="md:col-span-1">
+                                    <label class="block text-sm font-medium mb-1">대상자 검색</label>
+                                    <div class="flex gap-2">
+                                        <input list="cl-list" id="client-input" class="input-field" placeholder="이름 검색" onchange="app.fillClientInfo(this)" onkeydown="if(event.key === 'Enter') { event.preventDefault(); app.addClientToSelection(); }" autocomplete="off" ${id ? 'disabled title="수정 시 대상자 변경 불가"' : ''}>
+                                        <datalist id="cl-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist>
+                                        ${!id ? `<button type="button" onclick="app.addClientToSelection()" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded text-sm font-medium whitespace-nowrap hover:bg-emerald-200">+추가</button>` : ''}
+                                    </div>
+                                </div>
+                                <div class="md:col-span-3 flex flex-col sm:flex-row gap-2">
+                                    <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">생년월일</label><input id="d-birth" class="input-field bg-slate-100" readonly value="${c.birthDate||''}"></div>
+                                    <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">행정동</label><input id="d-region" class="input-field bg-slate-100" readonly value="${c.region||''}"></div>
+                                    <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">관리등급</label><input id="d-level" class="input-field bg-slate-100" readonly value="${c.careLevel||''}"></div>
+                                </div>
+                            </div>
+                            <!-- 대상자 목록 영역을 그리드 밖으로 빼내어 전체 너비를 사용하도록 수정 -->
+                            <div id="selected-clients-area" class="flex flex-wrap gap-2 mt-3 pt-2 border-t border-slate-200"></div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-2"><label class="font-bold text-sm">서비스 (최대 6개)</label><button type="button" onclick="app.addSvcRow()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">추가</button></div>
+                            <div id="svc-container" class="space-y-2"></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1"><label class="text-sm">내용</label><button type="button" onclick="app.aiDraft()" class="text-xs bg-purple-100 text-purple-700 px-2 rounded">AI 다듬기</button></div>
+                            <textarea id="log-content" name="content" class="input-field h-32" required>${l.content||''}</textarea>
+                        </div>
+                        <div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg">취소</button><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">${id ? '수정 저장' : '등록'}</button></div>
+                    </form>
+                </div>`;
+                showModal(html);
+                window.tempServiceItems.forEach(item => renderSvcRow(item));
+                app.renderSelectedClients(!!id); 
+            },
+            fillClientInfo: (input) => {
+                const c = state.clients.find(x => x.name === input.value);
+                if(c) {
+                    document.getElementById('d-birth').value = c.birthDate || '';
+                    document.getElementById('d-region').value = c.region || '';
+                    document.getElementById('d-level').value = c.careLevel || '';
+                } else {
+                    document.getElementById('d-birth').value = '';
+                    document.getElementById('d-region').value = '';
+                    document.getElementById('d-level').value = '';
+                }
+            },
+            addClientToSelection: () => {
+                const input = document.getElementById('client-input');
+                const name = input.value.trim();
+                if(!name) return;
+                const isValid = state.clients.some(c => c.name === name);
+                if(!isValid) { alert("등록된 대상자가 아닙니다."); return; }
+                if(!window.tempSelectedClients.includes(name)) { window.tempSelectedClients.push(name); app.renderSelectedClients(); }
+                input.value = ''; 
+                document.getElementById('d-birth').value = ''; document.getElementById('d-region').value = ''; document.getElementById('d-level').value = '';
+            },
+            removeClientFromSelection: (index) => { window.tempSelectedClients.splice(index, 1); app.renderSelectedClients(); },
+            renderSelectedClients: (isEditMode = false) => {
+                const container = document.getElementById('selected-clients-area');
+                if(!container) return;
+                container.innerHTML = window.tempSelectedClients.map((name, idx) => `<span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm flex items-center gap-1 border border-emerald-200">${name}${!isEditMode ? `<button type="button" onclick="app.removeClientFromSelection(${idx})" class="text-emerald-400 hover:text-red-500"><i data-lucide="x" size="14"></i></button>` : ''}</span>`).join('');
+                lucide.createIcons();
+            },
             toggleAllLogs: (checked) => {
                 const filtered = getFilteredLogs();
                 if (checked) { filtered.forEach(l => state.ui.selectedLogIds.add(l.id)); }
@@ -1168,94 +1435,31 @@
             },
             downloadStatsExcel: () => {
                 const { start, end, type, region, name } = state.filters.stats;
-
-                // [수정] 화면(renderStatistics)과 동일한 대상자 필터링 로직 적용 (연도 기준 확장)
-                const sYear = start.split('-')[0];
-                const eYear = end.split('-')[0];
-                const fullYearStart = `${sYear}-01-01`;
-                const fullYearEnd = `${eYear}-12-31`;
-
-                const targetClients = state.clients.filter(c => { 
-                    const matchBasic = (region.length === 0 || region.includes(c.region)) && (!name || c.name.includes(name)); 
-                    if (!matchBasic) return false; 
-                    const cS = c.serviceStartDate || '0000-01-01'; 
-                    const cE = c.endDate || '9999-12-31'; 
-                    // 화면과 동일하게 연도 기준으로 교집합 확인
-                    return cS <= fullYearEnd && cE >= fullYearStart; 
-                });
-
+                const targetClients = state.clients.filter(c => { const matchBasic = (region.length === 0 || region.includes(c.region)) && (!name || c.name.includes(name)); if (!matchBasic) return false; const cS = c.serviceStartDate || '0000-01-01'; const cE = c.endDate || '9999-12-31'; return cS <= end && cE >= start; });
                 let serviceHeaders = [];
-                if (type === 'category') { 
-                    serviceHeaders = [...new Set(state.services.map(s => s.category))].filter(Boolean); 
-                } else { 
-                    const headerGroups = {}; 
-                    const orderedCategories = [...new Set(state.services.map(s => s.category || '기타'))]; 
-                    state.services.forEach(s => { 
-                        const cat = s.category || '기타'; 
-                        if (!headerGroups[cat]) headerGroups[cat] = []; 
-                        if (!headerGroups[cat].includes(s.name)) headerGroups[cat].push(s.name); 
-                    }); 
-                    serviceHeaders = orderedCategories.flatMap(cat => headerGroups[cat]); 
-                }
-
+                if (type === 'category') { serviceHeaders = [...new Set(state.services.map(s => s.category))].filter(Boolean); } else { const headerGroups = {}; const orderedCategories = [...new Set(state.services.map(s => s.category || '기타'))]; state.services.forEach(s => { const cat = s.category || '기타'; if (!headerGroups[cat]) headerGroups[cat] = []; if (!headerGroups[cat].includes(s.name)) headerGroups[cat].push(s.name); }); serviceHeaders = orderedCategories.flatMap(cat => headerGroups[cat]); }
                 const dataMap = {}; 
-                targetClients.forEach(c => { 
-                    dataMap[c.id] = { 
-                        name: c.name, 
-                        birthDate: c.birthDate || '-', 
-                        careLevel: c.careLevel || '-', // 정렬을 위해 등급 저장
-                        region: (c.region || '-').replace(/동$/, ''), 
-                        total: 0, 
-                        counts: {} 
-                    }; 
-                    serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0); 
-                });
-
+                targetClients.forEach(c => { dataMap[c.id] = { name: c.name, birthDate: c.birthDate || '-', region: (c.region || '-').replace(/동$/, ''), total: 0, counts: {} }; serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0); });
                 state.logs.forEach(l => {
                     if (l.date < start || l.date > end) return;
                     let cid = l.clientId;
-                    if (!dataMap[cid] && l.clientName) { 
-                        const found = targetClients.find(c => c.name === l.clientName); 
-                        if(found) cid = found.id; 
-                    }
+                    if (!dataMap[cid] && l.clientName) { const found = targetClients.find(c => c.name === l.clientName); if(found) cid = found.id; }
                     if (dataMap[cid]) {
                         const items = l.serviceItems || [{ serviceName: l.serviceName, category: l.serviceCategory }];
                         items.forEach(item => {
                             let key = type === 'category' ? item.category : item.serviceName;
-                            if (!key && item.serviceName && type === 'category') { 
-                                const s = state.services.find(svc => svc.name === item.serviceName); 
-                                if(s) key = s.category; 
-                            }
-                            if (key && dataMap[cid].counts[key] !== undefined) { 
-                                dataMap[cid].counts[key]++; 
-                                dataMap[cid].total++; 
-                            }
+                            if (!key && item.serviceName && type === 'category') { const s = state.services.find(svc => svc.name === item.serviceName); if(s) key = s.category; }
+                            if (key && dataMap[cid].counts[key] !== undefined) { dataMap[cid].counts[key]++; dataMap[cid].total++; }
                         });
                     }
                 });
-
-                // [수정] 화면과 동일한 정렬 순서 적용 (등급순 -> 이름순)
-                const excelData = Object.values(dataMap).sort((a, b) => {
-                    const levelPriority = { '중점': 1, '일반': 2 };
-                    const pA = levelPriority[a.careLevel] || 3;
-                    const pB = levelPriority[b.careLevel] || 3;
-                    if (pA !== pB) return pA - pB;
-                    return a.name.localeCompare(b.name);
-                }).map(r => { 
-                    const row = { '대상자': r.name, '생년월일': r.birthDate, '등급': r.careLevel, '행정동': r.region, '합계': r.total }; 
-                    serviceHeaders.forEach(h => { row[h] = r.counts[h]; }); 
-                    return row; 
-                });
-
+                const excelData = Object.values(dataMap).sort((a,b) => b.total - a.total).map(r => { const row = { '대상자': r.name, '생년월일': r.birthDate, '행정동': r.region, '합계': r.total }; serviceHeaders.forEach(h => { row[h] = r.counts[h]; }); return row; });
                 if (excelData.length === 0) { alert("다운로드할 데이터가 없습니다."); return; }
-                const ws = XLSX.utils.json_to_sheet(excelData); 
-                const wb = XLSX.utils.book_new(); 
-                XLSX.utils.book_append_sheet(wb, ws, "서비스제공통계"); 
-                XLSX.writeFile(wb, `서비스제공통계_${new Date().toISOString().slice(0,10)}.xlsx`);
+                const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "서비스제공통계"); XLSX.writeFile(wb, `서비스제공통계_${new Date().toISOString().slice(0,10)}.xlsx`);
             },
             downloadLogsExcel: () => {
-                // [수정] 공통 함수 사용 및 정렬 적용
-                const filtered = getFilteredLogs().sort((a, b) => new Date(a.date) - new Date(b.date));
+                const { start, end, search, category, service } = state.filters.log;
+                const filtered = state.logs.filter(l => (!start || l.date >= start) && (!end || l.date <= end) && (!search || l.clientName.includes(search)) && (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) && (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))).sort((a, b) => new Date(a.date) - new Date(b.date));
                 if (filtered.length === 0) { alert("다운로드할 데이터가 없습니다."); return; }
                 const excelData = [];
                 filtered.forEach(l => {
@@ -1267,8 +1471,8 @@
                 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "서비스일지"); XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
             },
             printLogs: () => {
-                // [수정] 공통 함수 사용 및 정렬 적용
-                const filtered = getFilteredLogs().sort((a, b) => new Date(a.date) - new Date(b.date));
+                const { start, end, search, category, service } = state.filters.log;
+                const filtered = state.logs.filter(l => (!start || l.date >= start) && (!end || l.date <= end) && (!search || l.clientName.includes(search)) && (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) && (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))).sort((a, b) => new Date(a.date) - new Date(b.date));
                 if (filtered.length === 0) { alert("인쇄할 일지가 없습니다."); return; }
                 const printWindow = window.open('', '', 'width=1100,height=800');
                 let rowsHTML = '';
