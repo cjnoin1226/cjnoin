@@ -290,7 +290,8 @@
                                 <p class="text-xs text-slate-400 mt-1">(중점: <span class="text-pink-600 font-bold">${highFocus}</span> / 일반: <span class="text-blue-600 font-bold">${general}</span>)</p>
                             </div>
                         </div>
-                        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <!-- [수정] 오늘 일지 박스에 클릭 이벤트(onclick="app.setTab('logs')") 및 스타일(cursor-pointer 등) 추가 -->
+                        <div onclick="app.setTab('logs')" class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors">
                             <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg"><i data-lucide="file-text"></i></div>
                             <div><p class="text-sm text-slate-500">오늘 일지</p><p class="text-2xl font-bold text-slate-800">${todayLogs}<span class="text-sm font-normal text-slate-500">건</span></p></div>
                         </div>
