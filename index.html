@@ -44,7 +44,6 @@
     <div class="md:hidden fixed top-0 left-0 right-0 bg-slate-800 text-white p-4 flex justify-between items-center z-50 h-16">
         <h1 class="font-bold flex items-center gap-2 text-lg">
             <!-- [수정] 모바일 헤더 로고 변경 -->
-            <!-- 이미지가 같은 폴더에 없으면 '엑박(깨진 이미지)'으로 보일 수 있습니다 -->
             <img src="청전로고.png" class="w-6 h-6 object-contain bg-white rounded-full p-0.5" alt="로고" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2903/2903558.png'">
             청전광장 (공유형)
         </h1>
@@ -290,7 +289,6 @@
                                 <p class="text-xs text-slate-400 mt-1">(중점: <span class="text-pink-600 font-bold">${highFocus}</span> / 일반: <span class="text-blue-600 font-bold">${general}</span>)</p>
                             </div>
                         </div>
-                        <!-- [수정] 오늘 일지 박스에 클릭 이벤트(onclick="app.setTab('logs')") 및 스타일(cursor-pointer 등) 추가 -->
                         <div onclick="app.setTab('logs')" class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors">
                             <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg"><i data-lucide="file-text"></i></div>
                             <div><p class="text-sm text-slate-500">오늘 일지</p><p class="text-2xl font-bold text-slate-800">${todayLogs}<span class="text-sm font-normal text-slate-500">건</span></p></div>
@@ -396,12 +394,10 @@
             const monthOptions = [`<option value="" ${!targetMonth ? 'selected' : ''}>전체 월</option>`];
             for (let m = 1; m <= 12; m++) monthOptions.push(`<option value="${m}" ${parseInt(targetMonth) === m ? 'selected' : ''}>${m}월</option>`);
             
-            // [신규] 조회된 대상자 통계 계산 및 필터 활성화 여부 확인
             const filteredTotal = filtered.length;
             const filteredHighFocus = filtered.filter(c => c.careLevel === '중점').length;
             const filteredGeneral = filtered.filter(c => c.careLevel === '일반').length;
             
-            // 기본값(status='이용', 나머지 공백)과 다른지 체크
             const isFilterActive = search !== '' || searchPhone !== '' || status !== '이용' || level !== '' || economicStatus !== '' || duplicateService !== '' || ictStatus !== '' || region.length > 0 || gender !== '' || targetYear !== '' || targetMonth !== '';
 
             return `
@@ -430,7 +426,7 @@
                           <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1">올해 현황 (${currentYearStr})</span><div class="text-sm font-bold flex gap-2"><span class="text-emerald-600">신규 ${yearStats.new}</span><span class="text-slate-300">|</span><span class="text-slate-500">종결 ${yearStats.end}</span></div></div>
                           <div class="p-3 bg-orange-50 rounded-full text-orange-500 ml-auto"><i data-lucide="activity" size="20"></i></div>
                        </div>
-                       <!-- [수정] 조회된 대상자 통계 박스: 필터가 활성화된 경우(기본값이 아닌 경우)에만 표시 -->
+                       
                        ${isFilterActive ? `
                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 animate-fade-in">
                           <div class="flex flex-col justify-center">
@@ -483,14 +479,12 @@
                             const eDate = c.endDate || '9999-12-31';
                             const wasActiveInPeriod = eDate >= filterStart;
                             
-                            // 경제상황 표시 텍스트 변환 함수
                             const getEconomicDisplay = (status) => {
                                 if (status === '일반(저소득)') return '저소득';
                                 if (status === '조건부 기초수급' || status === '조건부 수급자') return '조건부';
                                 return status || '-';
                             };
 
-                            // [수정] 표시 형식 변경: (YY.MM.DD/만n세/성별) -> "만" 제거
                             const birthShort = c.birthDate ? c.birthDate.substring(2).replace(/-/g, '.') : '-';
                             const genderShort = c.gender === '남성' ? '남' : (c.gender === '여성' ? '여' : c.gender);
                             const age = calculateAge(c.birthDate);
@@ -1426,13 +1420,129 @@
                 const filtered = state.logs.filter(l => (!start || l.date >= start) && (!end || l.date <= end) && (!search || l.clientName.includes(search)) && (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) && (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))).sort((a, b) => new Date(a.date) - new Date(b.date));
                 if (filtered.length === 0) { alert("인쇄할 일지가 없습니다."); return; }
                 const printWindow = window.open('', '', 'width=1100,height=800');
+                
+                // [신규] 인쇄되는 데이터의 기간 계산
+                const minDate = filtered[0].date;
+                const maxDate = filtered[filtered.length - 1].date;
+                const dateRangeText = `기간 : ${minDate} ~ ${maxDate}`;
+
                 let rowsHTML = '';
                 filtered.forEach(l => {
                     const client = state.clients.find(c => c.id === l.clientId);
-                    const servicesHTML = l.serviceItems && l.serviceItems.length > 0 ? l.serviceItems.map(i => `<div><b>[${i.category}] ${i.serviceName}</b>${i.detailNote ? `<span style="font-size:0.9em; color:#555;"> - ${i.detailNote}</span>` : ''}</div>`).join('') : '-';
-                    rowsHTML += `<tr><td style="text-align:center;">${l.date}</td><td style="text-align:center;"><b>${l.clientName}</b><br><span style="font-size:0.85em; color:#666;">${client ? calculateAge(client.birthDate)+'세' : ''}</span></td><td style="text-align:center;">${l.provideMethod || '방문'}</td><td style="text-align:center;">${l.provider || ''}</td><td style="padding:5px;">${servicesHTML}</td><td style="white-space:pre-wrap; padding:5px;">${l.content}</td></tr>`;
+                    
+                    // [수정] 대상자 정보 변경: (생년월일/등급) -> (생년월일 / 등급) 띄어쓰기 추가
+                    let clientInfo = '';
+                    if (client) {
+                        let birthShort = '-';
+                        // 생년월일이 존재하고 길이가 충분할 때만 변환 (오류 방지)
+                        if (client.birthDate && client.birthDate.length >= 4) {
+                            birthShort = client.birthDate.substring(2).replace(/-/g, '.');
+                        }
+                        const level = client.careLevel || '-';
+                        clientInfo = `(${birthShort} / ${level})`;
+                    }
+
+                    // [유지] 서비스 내용 레이아웃
+                    const servicesHTML = l.serviceItems && l.serviceItems.length > 0 ? l.serviceItems.map((i, idx, arr) => {
+                        const style = idx < arr.length - 1 ? 'border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 4px;' : '';
+                        return `<div style="${style} text-align: left; font-size: 11px;">
+                            <div style="font-weight:bold; margin-bottom: 2px;">[${i.category}]</div>
+                            <div style="padding-left: 2px;">${i.serviceName}${i.detailNote ? ` - <span style="color:#555;">${i.detailNote}</span>` : ''}</div>
+                        </div>`;
+                    }).join('') : '-';
+                    
+                    // [수정] 대상자 이름 밑에 clientInfo 표시
+                    rowsHTML += `<tr>
+                        <td style="text-align:center;">${l.date}</td>
+                        <td style="text-align:center;">
+                            <b>${l.clientName}</b><br>
+                            <span style="font-size:0.8em; color:#666; letter-spacing: -1px; white-space: nowrap;">${clientInfo}</span>
+                        </td>
+                        <td style="text-align:center;">${l.provideMethod || '방문'}</td>
+                        <td style="padding:5px; vertical-align: middle;">${servicesHTML}</td>
+                        <td style="white-space:pre-wrap; padding:5px;">${l.content}</td>
+                        <td style="text-align:center; vertical-align: middle;">${l.provider || ''}</td>
+                    </tr>`;
                 });
-                const printDocument = `<html><head><title>서비스제공 · 과정상담기록지</title><style>@media print { body { -webkit-print-color-adjust: exact; font-size: 12px; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } } body { font-family: "Malgun Gothic", sans-serif; padding: 20px; } h1 { text-align: center; font-size: 20px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #333; } table { width: 100%; border-collapse: collapse; font-size: 12px; } th, td { border: 1px solid #999; padding: 6px; vertical-align: top; } th { background-color: #f0f0f0; text-align: center; font-weight: bold; height: 30px; }</style></head><body><h1>서비스제공 · 과정상담기록지</h1><table><thead><tr><th width="90">일자</th><th width="80">대상자</th><th width="60">방법</th><th width="70">제공자</th><th width="250">서비스 내용</th><th>진행 내용</th></tr></thead><tbody>${rowsHTML}</tbody></table><script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }<\/script></body></html>`;
+                
+                // [유지] 인쇄 레이아웃
+                const printDocument = `<html><head><title>서비스제공 · 과정상담기록지</title><style>
+                    @media print { 
+                        @page { margin-left: 1.5cm; margin-right: 0.5cm; margin-top: 1cm; margin-bottom: 1cm; }
+                        body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; font-size: 12px; } 
+                        table { page-break-inside: auto; } 
+                        tr { page-break-inside: avoid; page-break-after: auto; } 
+                        .header-container { display: block !important; }
+                    } 
+                    body { font-family: "Malgun Gothic", sans-serif; padding: 20px; } 
+                    
+                    /* 헤더 컨테이너: 제목과 결재란 */
+                    .header-container {
+                        position: relative;
+                        width: 100%;
+                        height: 80px; 
+                        border-bottom: 2px solid #333; 
+                        margin-bottom: 10px;
+                    }
+
+                    .header-title {
+                        margin: 0; padding: 0; line-height: 80px; text-align: center; font-size: 22px; font-weight: bold;
+                    }
+                    
+                    .approval-box { 
+                        position: absolute; right: 0; bottom: 5px; 
+                        border-collapse: collapse; text-align: center; font-size: 11px; background: white;
+                    }
+                    .approval-box td { border: 1px solid #333; padding: 0; }
+                    .approval-header { background: #f0f0f0; height: 20px; width: 60px; font-weight: bold; }
+                    .approval-sign { height: 50px; }
+
+                    /* 기간 텍스트 스타일 */
+                    .date-range { text-align: left; font-size: 12px; margin-bottom: 10px; font-weight: bold; color: #555; }
+
+                    /* 메인 테이블 스타일 */
+                    table.main-table { width: 100%; border-collapse: collapse; font-size: 12px; } 
+                    table.main-table th, table.main-table td { border: 1px solid #999; padding: 6px; vertical-align: top; } 
+                    table.main-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; height: 30px; }
+                </style></head><body>
+                    
+                    <!-- 헤더 영역 -->
+                    <div class="header-container">
+                        <h1 class="header-title">서비스제공 · 과정상담기록지</h1>
+                        <table class="approval-box">
+                            <tr>
+                                <td rowspan="2" style="width: 20px; background: #f0f0f0; font-weight: bold; vertical-align: middle;">결<br>재</td>
+                                <td class="approval-header">담당자</td>
+                                <td class="approval-header">센터장</td>
+                            </tr>
+                            <tr>
+                                <td class="approval-sign"></td>
+                                <td class="approval-sign"></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- 기간 표시 -->
+                    <div class="date-range">${dateRangeText}</div>
+
+                    <!-- 목록 테이블 -->
+                    <table class="main-table">
+                        <thead>
+                            <tr>
+                                <th width="75">일자</th>
+                                <th width="55">대상자</th>
+                                <th width="40">방법</th>
+                                <th width="180">서비스 내용</th>
+                                <th>진행 내용</th>
+                                <th width="45">제공자</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHTML}</tbody>
+                    </table>
+                    
+                    <script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }<\/script>
+                </body></html>`;
+                
                 printWindow.document.write(printDocument); printWindow.document.close();
             },
             toggleSidebar: () => { const s = document.getElementById('sidebar'); const btn = document.getElementById('desktop-menu-open-btn'); if (s.classList.contains('md:w-0')) { s.classList.remove('md:w-0', 'md:overflow-hidden'); s.classList.add('md:w-64'); btn.classList.add('hidden'); btn.classList.remove('md:inline-flex'); } else { s.classList.remove('md:w-64'); s.classList.add('md:w-0', 'md:overflow-hidden'); btn.classList.remove('hidden'); btn.classList.add('md:inline-flex'); } },
