@@ -540,14 +540,19 @@
 
             return `
                 <div class="space-y-6 animate-fade-in">
-                    <div class="flex justify-between items-center">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                         <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
-                        <div class="flex items-center gap-2">
-                            <!-- [신규] 전체 선택 체크박스 -->
-                            <label class="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${filtered.length === 0 ? 'disabled' : ''}>
-                                <span class="text-sm font-medium text-slate-600">전체선택</span>
+                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                            <!-- [신규] 엑셀 업로드/양식 버튼 추가 -->
+                            <button onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="file-spreadsheet" size="16"></i> 양식</button>
+                            <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors">
+                                <i data-lucide="upload" size="16"></i> 업로드
+                                <input type="file" class="hidden" onchange="app.uploadLogExcel(this)" accept=".xlsx, .xls">
                             </label>
+                            
+                            <div class="w-px h-6 bg-slate-300 mx-1 hidden sm:block"></div>
+
+                            <!-- [이동] 전체 선택 체크박스 제거 (아래로 이동됨) -->
                             
                             ${state.ui.selectedLogIds.size > 0 ? `<button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="16"></i> 선택삭제(${state.ui.selectedLogIds.size})</button>` : ''}
                             <button onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
@@ -555,6 +560,8 @@
                             <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
                         </div>
                     </div>
+
+                    <!-- 필터 영역 -->
                     <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap items-center gap-2 sticky top-16 md:top-0 z-40 transition-all">
                         <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0"><i data-lucide="filter" size="14"></i> 필터</div>
                         
@@ -578,6 +585,18 @@
                         </div>
                         <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                     </div>
+
+                    <!-- [수정] 전체 선택 레이아웃 위치 조정 (왼쪽 정렬로 변경하여 '총n건' 바로 옆에 배치) -->
+                    <div class="flex items-center gap-3 px-1">
+                        <div class="text-sm text-slate-500">
+                            총 <span class="font-bold text-slate-800">${filtered.length}</span>건
+                        </div>
+                        <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
+                            <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${filtered.length === 0 ? 'disabled' : ''}>
+                            <span class="text-sm font-medium text-slate-600">전체선택</span>
+                        </label>
+                    </div>
+
                     <div class="space-y-4">
                         ${filtered.length === 0 ? '<div class="text-center py-12 text-slate-400">검색 결과가 없습니다.</div>' : filtered.map(l => {
                             const c = state.clients.find(cl => cl.id === l.clientId);
@@ -886,6 +905,15 @@
             toggleStatsRegionDropdown: () => { state.ui.statsRegionDropdownOpen = !state.ui.statsRegionDropdownOpen; render(); },
             toggleStatsRegionFilter: (val) => { const r = state.filters.stats.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
             toggleLogSelection: (id) => { if (state.ui.selectedLogIds.has(id)) state.ui.selectedLogIds.delete(id); else state.ui.selectedLogIds.add(id); render(); },
+            
+            // [수정] 누락되었던 전체 선택 기능 함수 추가
+            toggleAllLogs: (checked) => {
+                const filtered = getFilteredLogs();
+                if (checked) { filtered.forEach(l => state.ui.selectedLogIds.add(l.id)); }
+                else { filtered.forEach(l => state.ui.selectedLogIds.delete(l.id)); }
+                render();
+            },
+
             deleteSelectedLogs: () => {
                 const count = state.ui.selectedLogIds.size;
                 if (count === 0) return;
@@ -1250,11 +1278,148 @@
                 const excelData = [];
                 filtered.forEach(l => {
                     const client = state.clients.find(c => c.id === l.clientId);
-                    const baseData = { '날짜': l.date, '대상자명': l.clientName, '생년월일': client ? client.birthDate : '', '관리등급': client ? client.careLevel : '', '제공방법': l.provideMethod || '방문', '제공자': l.provider || '', '진행 내용': l.content };
-                    if (l.serviceItems && l.serviceItems.length > 0) { l.serviceItems.forEach(item => { excelData.push({ ...baseData, '서비스': item.category, '서비스 상세내용': item.serviceName, '메모': item.detailNote || '' }); }); } else { excelData.push({ ...baseData, '서비스': '', '서비스 상세내용': '', '메모': '' }); }
-                });
-                const ws = XLSX.utils.json_to_sheet(excelData); ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 50 }, { wch: 15 }, { wch: 20 }, { wch: 20 }];
+                    const baseData = { 
+                        '날짜': l.date, 
+                        '이름': l.clientName, 
+                        '제공방법': l.provideMethod || '방문', 
+                        '제공자': l.provider || '', 
+                        '진행내용': l.content 
+                    };
+                    if (l.serviceItems && l.serviceItems.length > 0) { 
+                        l.serviceItems.forEach(item => { 
+                            excelData.push({ 
+                                ...baseData, 
+                                '서비스': item.category, 
+                                '서비스 상세내용': item.serviceName,
+                                '서비스 메모': item.detailNote || '' 
+                            }); 
+                        }); 
+                    } else { 
+                        excelData.push({ 
+                            ...baseData, 
+                            '서비스': '', 
+                            '서비스 상세내용': '',
+                            '서비스 메모': ''
+                        }); 
+                    }
+                }); // [수정] 누락되었던 닫는 괄호들 복구
+                const ws = XLSX.utils.json_to_sheet(excelData);
+                ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
                 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "서비스일지"); XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
+            },
+            
+            // [신규] 일지 업로드 양식 다운로드
+            downloadLogTemplate: () => {
+                const headers = ['날짜', '이름', '제공방법', '서비스', '서비스 상세내용', '서비스 메모', '진행내용', '제공자'];
+                const example = ['2024-01-01', '홍길동', '방문', '위기관리체계구축', '초기상담', '특이사항 없음', '대상자 가정 방문하여 상담 진행함.', '김사회'];
+                const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+                ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 10 }];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "일지등록양식");
+                XLSX.writeFile(wb, "일지등록양식.xlsx");
+            },
+
+            // [수정] 일지 엑셀 업로드 로직 (날짜+이름 기준 병합)
+            uploadLogExcel: (input) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const wb = XLSX.read(e.target.result, {type:'binary'});
+                        const sheet = wb.Sheets[wb.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(sheet, {header:1});
+                        
+                        const rows = json.slice(1);
+                        if (rows.length === 0) { alert("데이터가 없습니다."); return; }
+
+                        const logGroups = {}; // 날짜_이름을 키로 사용하여 데이터 그룹화
+
+                        rows.forEach(row => {
+                            // 필수 값 확인 (날짜, 이름)
+                            if (!row[0] || !row[1]) return;
+
+                            // 날짜 포맷팅 (YYYY-MM-DD)
+                            let dateStr = String(row[0]).trim();
+                            if (!isNaN(dateStr) && dateStr.length < 8) {
+                                const dateObj = new Date((dateStr - (25567 + 2)) * 86400 * 1000); 
+                                dateStr = dateObj.toISOString().split('T')[0];
+                            } else {
+                                const nums = dateStr.replace(/[^0-9]/g, '');
+                                if(nums.length === 8) dateStr = `${nums.slice(0,4)}-${nums.slice(4,6)}-${nums.slice(6,8)}`;
+                            }
+
+                            const clientName = String(row[1]).trim();
+                            const groupKey = `${dateStr}_${clientName}`; // 그룹화 키 생성
+
+                            // 해당 날짜+이름으로 생성된 그룹이 없으면 초기화 (첫 번째 행 데이터 기준)
+                            if (!logGroups[groupKey]) {
+                                const client = state.clients.find(c => c.name === clientName);
+                                const clientId = client ? client.id : 'unknown';
+
+                                logGroups[groupKey] = {
+                                    date: dateStr,
+                                    clientName: clientName,
+                                    clientId: clientId,
+                                    provideMethod: row[2] ? String(row[2]).trim() : '방문',
+                                    content: row[6] ? String(row[6]).trim() : '',        // 진행내용 (인덱스 6)
+                                    provider: row[7] ? String(row[7]).trim() : '',       // 제공자 (인덱스 7)
+                                    serviceItems: []
+                                };
+                            }
+
+                            // 서비스 아이템 추가
+                            const category = row[3] ? String(row[3]).trim() : '';
+                            const serviceName = row[4] ? String(row[4]).trim() : '';
+                            const serviceNote = row[5] ? String(row[5]).trim() : ''; // 서비스 메모 (인덱스 5)
+
+                            if (category || serviceName) {
+                                logGroups[groupKey].serviceItems.push({
+                                    id: Date.now() + Math.random(),
+                                    category: category,
+                                    serviceName: serviceName,
+                                    detailNote: serviceNote
+                                });
+                            }
+                        });
+
+                        // 그룹화된 데이터를 Firestore에 저장
+                        let successCount = 0;
+                        const promises = Object.values(logGroups).map(async (logData) => {
+                            // [신규] 필수 서비스 자동 추가 로직
+                            // 엑셀에 '정서지원서비스(안전안부확인)'이 없으면 자동으로 맨 앞에 추가
+                            const mandatoryService = '정서지원서비스(안전안부확인)';
+                            const hasMandatory = logData.serviceItems.some(item => item.serviceName === mandatoryService);
+                            
+                            if (!hasMandatory) {
+                                logData.serviceItems.unshift({
+                                    id: Date.now() + Math.random(),
+                                    category: '노인상담 및 정보제공',
+                                    serviceName: mandatoryService,
+                                    detailNote: '' // 자동 추가시 메모는 공란
+                                });
+                            }
+
+                            // 대표 서비스명 생성
+                            const serviceNameSummary = logData.serviceItems.map(i => i.serviceName).filter(Boolean).join(', ');
+                            
+                            await addDoc(collection(db, "logs"), {
+                                ...logData,
+                                serviceName: serviceNameSummary
+                            });
+                            successCount++;
+                        });
+
+                        Promise.all(promises).then(() => {
+                            alert(`${successCount}건의 일지가 등록되었습니다.\n(날짜와 이름이 같은 항목은 하나로 합쳐졌으며,\n필수 서비스[안전안부확인]가 자동 추가되었습니다)`);
+                            input.value = ''; // 초기화
+                        });
+
+                    } catch (err) {
+                        console.error(err);
+                        alert("파일 읽기 실패: 양식을 확인해주세요.");
+                        input.value = '';
+                    }
+                };
+                reader.readAsBinaryString(input.files[0]);
             },
             printLogs: () => {
                 const { start, end, search, category, service } = state.filters.log;
