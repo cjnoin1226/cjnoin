@@ -543,12 +543,8 @@
                                 <i data-lucide="upload" size="16"></i> 업로드
                                 <input type="file" class="hidden" onchange="app.uploadLogExcel(this)" accept=".xlsx, .xls">
                             </label>
+                            <!-- [이동] 일괄수정/선택삭제 버튼 제거 (아래로 이동) -->
                             
-                            <div class="w-px h-6 bg-slate-300 mx-1 hidden sm:block"></div>
-
-                            <!-- [이동] 전체 선택 체크박스 제거 (아래로 이동됨) -->
-                            
-                            ${state.ui.selectedLogIds.size > 0 ? `<button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="16"></i> 선택삭제(${state.ui.selectedLogIds.size})</button>` : ''}
                             <button onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
                             <button onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
                             <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
@@ -580,15 +576,26 @@
                         <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                     </div>
 
-                    <!-- [수정] 전체 선택 레이아웃 위치 조정 (왼쪽 정렬로 변경하여 '총n건' 바로 옆에 배치) -->
-                    <div class="flex items-center gap-3 px-1">
-                        <div class="text-sm text-slate-500">
-                            총 <span class="font-bold text-slate-800">${filtered.length}</span>건
+                    <!-- [수정] 전체 선택 라인 (justify-between 적용하여 양쪽 끝 정렬) -->
+                    <div class="flex items-center justify-between px-1 h-8">
+                        <!-- 왼쪽: 총 건수 + 전체선택 -->
+                        <div class="flex items-center gap-3">
+                            <div class="text-sm text-slate-500">
+                                총 <span class="font-bold text-slate-800">${filtered.length}</span>건
+                            </div>
+                            <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
+                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${filtered.length === 0 ? 'disabled' : ''}>
+                                <span class="text-sm font-medium text-slate-600">전체선택</span>
+                            </label>
                         </div>
-                        <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
-                            <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${filtered.length === 0 ? 'disabled' : ''}>
-                            <span class="text-sm font-medium text-slate-600">전체선택</span>
-                        </label>
+
+                        <!-- 오른쪽: 선택된 항목 작업 버튼 (일괄수정, 선택삭제) -->
+                        <div class="flex items-center gap-2">
+                            ${state.ui.selectedLogIds.size > 0 ? `
+                                <button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-blue-100 transition-colors animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${state.ui.selectedLogIds.size})</button>
+                                <button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제</button>
+                            ` : ''}
+                        </div>
                     </div>
 
                     <div class="space-y-4">
@@ -914,6 +921,203 @@
                 showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">일괄 삭제 확인</h3><p class="text-sm text-slate-500 mb-6">선택한 <span class="font-bold text-red-600">${count}개</span>의 일지를 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDeleteSelectedLogs()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">아니오</button></div></div></div>`);
                 lucide.createIcons();
             },
+            
+            // [신규] 일괄 수정 모달 열기
+            openBatchEditLogModal: () => {
+                const count = state.ui.selectedLogIds.size;
+                if (count === 0) return;
+                
+                const html = `
+                <div class="bg-white w-full max-w-2xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="p-2 bg-blue-100 text-blue-600 rounded-full"><i data-lucide="edit-3" size="20"></i></div>
+                        <h3 class="font-bold text-lg text-slate-900">일괄 수정 (${count}건)</h3>
+                    </div>
+                    <p class="text-sm text-slate-500 mb-6 bg-slate-50 p-3 rounded">
+                        체크박스를 선택한 항목만 일괄 변경됩니다.<br>
+                        선택하지 않은 항목은 기존 값이 유지됩니다.
+                    </p>
+                    <form onsubmit="app.executeBatchEditLogs(event)">
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="chk-date" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-date').disabled = !this.checked">
+                                <label for="chk-date" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">날짜</label>
+                                <input type="date" id="val-date" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" max="9999-12-31" disabled>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="chk-method" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-method').disabled = !this.checked">
+                                <label for="chk-method" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">제공방법</label>
+                                <select id="val-method" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>
+                                    ${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}">${m}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="chk-provider" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-provider').disabled = !this.checked">
+                                <label for="chk-provider" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">제공자</label>
+                                <input type="text" id="val-provider" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" placeholder="변경할 이름" disabled>
+                            </div>
+                            
+                            <!-- [신규] 서비스 일괄 변경 영역 -->
+                            <div class="flex items-start gap-3 pt-2 border-t border-dashed border-slate-200">
+                                <input type="checkbox" id="chk-service" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mt-1 cursor-pointer" onchange="app.toggleBatchService(this.checked)">
+                                <label for="chk-service" class="w-20 text-sm font-bold text-slate-700 mt-1 cursor-pointer">서비스</label>
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs text-slate-500">체크 시 아래 목록으로 덮어씌워집니다 (최대 6개)</span>
+                                        <button type="button" id="btn-add-batch-svc" onclick="app.addBatchSvcRow()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed" disabled>추가</button>
+                                    </div>
+                                    <div id="batch-svc-container" class="space-y-2 p-2 bg-slate-50 rounded border border-slate-200 min-h-[50px]">
+                                        <div class="text-center text-xs text-slate-400 py-2">변경하려면 체크박스를 선택하세요</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-3 pt-2 border-t border-dashed border-slate-200">
+                                <input type="checkbox" id="chk-content" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mt-1 cursor-pointer" onchange="document.getElementById('val-content').disabled = !this.checked">
+                                <label for="chk-content" class="w-20 text-sm font-bold text-slate-700 mt-1 cursor-pointer">진행내용</label>
+                                <textarea id="val-content" class="input-field flex-1 py-1.5 text-sm h-24 disabled:bg-slate-100 disabled:text-slate-400" placeholder="변경할 내용" disabled></textarea>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 mt-8 pt-4 border-t border-slate-100">
+                            <button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">취소</button>
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors">수정 완료</button>
+                        </div>
+                    </form>
+                </div>`;
+                showModal(html);
+                lucide.createIcons();
+            },
+
+            // [신규] 일괄 수정 모달 내 서비스 영역 토글
+            toggleBatchService: (checked) => {
+                const btn = document.getElementById('btn-add-batch-svc');
+                const container = document.getElementById('batch-svc-container');
+                
+                if (btn) btn.disabled = !checked;
+                
+                if (checked) {
+                    container.innerHTML = ''; // 초기화
+                    // [수정] 등록 시와 동일하게 기본값(안전안부확인) + 빈 행 추가
+                    app.addBatchSvcRow({ category: '노인상담 및 정보제공', serviceName: '정서지원서비스(안전안부확인)', detailNote: '' });
+                    app.addBatchSvcRow();
+                } else {
+                    container.innerHTML = '<div class="text-center text-xs text-slate-400 py-2">변경하려면 체크박스를 선택하세요</div>';
+                }
+            },
+
+            // [신규] 일괄 수정용 서비스 행 추가 (매개변수 지원)
+            addBatchSvcRow: (item = null) => {
+                const container = document.getElementById('batch-svc-container');
+                if (container.querySelectorAll('.batch-svc-row').length >= 6) {
+                    alert('최대 6개까지입니다.');
+                    return;
+                }
+                
+                const cats = [...new Set(state.services.map(s => s.category))];
+                const id = Date.now() + Math.random().toString(36).substr(2, 9);
+                const div = document.createElement('div');
+                div.className = "batch-svc-row flex flex-col sm:flex-row gap-2 mb-2 p-2 border rounded bg-white";
+                div.id = `batch-row-${id}`;
+                
+                // [수정] 매개변수 값 적용
+                const defCat = item ? item.category : '';
+                const defSvc = item ? item.serviceName : '';
+                const defNote = item ? item.detailNote : '';
+                
+                div.innerHTML = `
+                    <select class="batch-cat-sel input-field w-full sm:w-1/4 text-xs" onchange="app.updateOpts(this)">
+                        <option value="">분류</option>
+                        ${cats.map(c => `<option value="${c}" ${c === defCat ? 'selected' : ''}>${c}</option>`).join('')}
+                    </select>
+                    <select class="batch-svc-sel input-field w-full sm:w-1/3 text-xs">
+                        <option value="${defSvc}">${defSvc || '서비스 선택'}</option>
+                    </select>
+                    <div class="flex w-full sm:flex-1 gap-2">
+                        <input class="batch-det-inp input-field flex-1 text-xs" placeholder="메모" value="${defNote}">
+                        <button type="button" onclick="app.removeBatchSvcRow('${id}')" class="text-red-400 p-1 hover:text-red-600"><i data-lucide="minus-circle" size="16"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+                
+                // [수정] 카테고리 값이 있을 경우 서비스 목록 업데이트
+                if (defCat) {
+                    const sel = div.querySelector('.batch-svc-sel');
+                    const svcs = state.services.filter(s => s.category === defCat);
+                    sel.innerHTML = svcs.map(s => `<option value="${s.name}" ${s.name === defSvc ? 'selected' : ''}>${s.name}</option>`).join('');
+                }
+                
+                lucide.createIcons();
+            },
+
+            // [신규] 일괄 수정용 서비스 행 삭제
+            removeBatchSvcRow: (id) => {
+                const el = document.getElementById(`batch-row-${id}`);
+                if (el) el.remove();
+            },
+
+            // [신규] 일괄 수정 실행 로직
+            executeBatchEditLogs: async (e) => {
+                e.preventDefault();
+                const updateData = {};
+                
+                // 체크된 항목만 업데이트 데이터에 추가
+                if (document.getElementById('chk-date').checked) updateData.date = document.getElementById('val-date').value;
+                if (document.getElementById('chk-method').checked) updateData.provideMethod = document.getElementById('val-method').value;
+                if (document.getElementById('chk-provider').checked) updateData.provider = document.getElementById('val-provider').value;
+                if (document.getElementById('chk-content').checked) updateData.content = document.getElementById('val-content').value;
+
+                // [신규] 서비스 일괄 변경 처리
+                if (document.getElementById('chk-service').checked) {
+                    const rows = document.querySelectorAll('.batch-svc-row');
+                    const newItems = [];
+                    
+                    rows.forEach(row => {
+                        const cat = row.querySelector('.batch-cat-sel').value;
+                        const svc = row.querySelector('.batch-svc-sel').value;
+                        const note = row.querySelector('.batch-det-inp').value;
+                        
+                        if (svc) {
+                            newItems.push({
+                                id: Date.now() + Math.random(),
+                                category: cat,
+                                serviceName: svc,
+                                detailNote: note
+                            });
+                        }
+                    });
+
+                    if (newItems.length === 0) {
+                        alert("서비스 변경을 선택하셨다면, 최소 1개의 서비스를 입력해주세요.");
+                        return;
+                    }
+                    
+                    updateData.serviceItems = newItems;
+                    updateData.serviceName = newItems.map(i => i.serviceName).join(', ');
+                }
+
+                // 변경할 항목이 없는 경우
+                if (Object.keys(updateData).length === 0) {
+                    alert("변경할 항목을 하나 이상 선택해주세요.");
+                    return;
+                }
+
+                // 날짜 선택 시 유효성 검사
+                if (document.getElementById('chk-date').checked && updateData.date === "") {
+                    alert("날짜를 선택해주세요.");
+                    return;
+                }
+
+                try {
+                    const promises = Array.from(state.ui.selectedLogIds).map(id => updateDoc(doc(db, "logs", id), updateData));
+                    await Promise.all(promises);
+                    alert(`${state.ui.selectedLogIds.size}건의 일지가 수정되었습니다.`);
+                    state.ui.selectedLogIds.clear(); // 선택 해제
+                    closeModal();
+                } catch (err) {
+                    alert("수정 중 오류가 발생했습니다: " + err.message);
+                }
+            },
+
             executeDeleteSelectedLogs: async () => {
                 try { const promises = Array.from(state.ui.selectedLogIds).map(id => deleteDoc(doc(db, "logs", id))); await Promise.all(promises); state.ui.selectedLogIds.clear(); closeDialog(); } catch (err) { alert("삭제 중 오류가 발생했습니다: " + err.message); }
             },
