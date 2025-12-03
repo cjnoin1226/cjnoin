@@ -405,7 +405,11 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                         <h2 class="text-xl md:text-2xl font-bold text-slate-800">대상자 관리</h2>
                         <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-                            ${state.ui.selectedClientIds.size > 0 ? `<button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제(${state.ui.selectedClientIds.size})</button>` : ''}
+                            <!-- [수정] 일괄 수정 버튼 추가 -->
+                            ${state.ui.selectedClientIds.size > 0 ? `
+                                <button onclick="app.openBatchEditClientModal()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${state.ui.selectedClientIds.size})</button>
+                                <button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제(${state.ui.selectedClientIds.size})</button>
+                            ` : ''}
                             <button onclick="app.downloadClientListExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="download" size="14"></i> 명부 저장</button>
                             <button onclick="app.downloadTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="file-text" size="14"></i> 양식</button>
                             <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 cursor-pointer flex-1 sm:flex-none justify-center"><i data-lucide="upload" size="14"></i> 업로드<input type="file" class="hidden" onchange="app.uploadExcel(this)"></label>
@@ -425,9 +429,7 @@
                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6">
                           <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1">올해 현황 (${currentYearStr})</span><div class="text-sm font-bold flex gap-2"><span class="text-emerald-600">신규 ${yearStats.new}</span><span class="text-slate-300">|</span><span class="text-slate-500">종결 ${yearStats.end}</span></div></div>
                           <div class="p-3 bg-orange-50 rounded-full text-orange-500 ml-auto"><i data-lucide="activity" size="20"></i></div>
-                       </div>
-                       
-                       ${isFilterActive ? `
+                        ${isFilterActive ? `
                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 animate-fade-in">
                           <div class="flex flex-col justify-center">
                               <span class="text-xs text-slate-500 font-bold mb-1">조회된 대상자</span>
@@ -440,36 +442,44 @@
                           <div class="p-3 bg-indigo-50 rounded-full text-indigo-500 ml-auto"><i data-lucide="search" size="20"></i></div>
                        </div>` : ''}
                     </div>
-                    <div class="bg-white p-3 rounded-xl shadow-sm flex flex-col gap-2 sticky top-16 md:top-0 z-40 transition-all">
-                        <!-- 1행: 검색창 (위로 이동됨) -->
-                        <div class="flex flex-wrap items-center gap-3 w-full">
-                            <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span><input class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)" oninput="if(this.value === '') app.setFilter('client','search','')"></div>
-                            <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">연락처</span><input class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter)" value="${searchPhone}" onkeydown="if(event.key === 'Enter') app.setFilter('client','searchPhone',this.value)" oninput="if(this.value === '') app.setFilter('client','searchPhone','')"></div>
-                            <button onclick="app.resetFilters('client')" class="bg-slate-100 text-slate-500 hover:text-slate-700 text-xs flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-lg font-medium transition-colors ml-auto sm:ml-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
-                        </div>
-                        
-                        <!-- 2행: 상세 필터 (아래로 이동됨) -->
-                        <div class="flex flex-wrap items-center gap-1 sm:gap-2 text-sm pt-2 border-t border-slate-100">
-                            <div class="flex items-center gap-1 text-slate-600 font-bold mr-1 flex-shrink-0"><i data-lucide="filter" size="14"></i></div>
-                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[90px]" onchange="app.setFilter('client','targetYear',this.value)" title="연도">${yearOptions.join('')}</select>
-                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','targetMonth',this.value)" title="월">${monthOptions.join('')}</select>
-                            <div class="h-4 w-px bg-slate-300 mx-1 hidden sm:block"></div>
-                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','status',this.value)"><option value="">전체</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}</select>
-                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','level',this.value)"><option value="">등급</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}</select>
-                            
-                            <!-- 행정동 -->
-                            <div class="relative z-30">
-                                <button onclick="app.toggleRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left h-[34px]"><span class="truncate max-w-[90px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400"></i></button>
-                                ${state.ui.regionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
+                    
+                    <!-- [수정] 필터 레이아웃 배경 불투명(Solid) 처리 -->
+                    <!-- bg-slate-50을 적용하여 스크롤되는 목록이 필터 뒤에서 보이지 않도록 완전히 가림 -->
+                    <div class="sticky top-16 md:top-0 z-40 bg-slate-50 pt-2 pb-2">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-2">
+                            <!-- 1행: 검색창 -->
+                            <div class="flex flex-wrap items-center gap-3 w-full">
+                                <!-- [수정] id="client-search-name" 추가 -->
+                                <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span><input id="client-search-name" class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)" oninput="if(this.value === '') app.setFilter('client','search','')"></div>
+                                <!-- [수정] id="client-search-phone" 추가 -->
+                                <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">연락처</span><input id="client-search-phone" class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter)" value="${searchPhone}" onkeydown="if(event.key === 'Enter') app.setFilter('client','searchPhone',this.value)" oninput="if(this.value === '') app.setFilter('client','searchPhone','')"></div>
+                                <button onclick="app.resetFilters('client')" class="bg-slate-100 text-slate-500 hover:text-slate-700 text-xs flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-lg font-medium transition-colors ml-auto sm:ml-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                             </div>
-                            <!-- 성별 -->
-                            <select class="input-field py-1.5 px-2 text-sm w-[60px] flex-none" onchange="app.setFilter('client','gender',this.value)"><option value="">성별</option><option value="남성" ${gender==='남성'?'selected':''}>남</option><option value="여성" ${gender==='여성'?'selected':''}>여</option></select>
+                            
+                            <!-- 2행: 상세 필터 -->
+                            <div class="flex flex-wrap items-center gap-1 sm:gap-2 text-sm pt-2 border-t border-slate-100">
+                                <div class="flex items-center gap-1 text-slate-600 font-bold mr-1 flex-shrink-0"><i data-lucide="filter" size="14"></i></div>
+                                <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[90px]" onchange="app.setFilter('client','targetYear',this.value)" title="연도">${yearOptions.join('')}</select>
+                                <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','targetMonth',this.value)" title="월">${monthOptions.join('')}</select>
+                                <div class="h-4 w-px bg-slate-300 mx-1 hidden sm:block"></div>
+                                <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','status',this.value)"><option value="">전체</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}</select>
+                                <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','level',this.value)"><option value="">등급</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}</select>
+                                
+                                <!-- 행정동 -->
+                                <div class="relative z-30">
+                                    <button onclick="app.toggleRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left h-[34px]"><span class="truncate max-w-[90px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400"></i></button>
+                                    ${state.ui.regionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
+                                </div>
+                                <!-- 성별 -->
+                                <select class="input-field py-1.5 px-2 text-sm w-[60px] flex-none" onchange="app.setFilter('client','gender',this.value)"><option value="">성별</option><option value="남성" ${gender==='남성'?'selected':''}>남</option><option value="여성" ${gender==='여성'?'selected':''}>여</option></select>
 
-                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[90px]" onchange="app.setFilter('client','economicStatus',this.value)"><option value="">경제상황</option>${CONSTANTS.ECONOMIC_LIST.map(e=>`<option value="${e}" ${economicStatus===e?'selected':''}>${e}</option>`).join('')}</select>
-                            <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[90px]" onchange="app.setFilter('client','duplicateService',this.value)"><option value="">중복서비스</option>${CONSTANTS.DUPLICATE_SERVICE_LIST.map(d=>`<option value="${d}" ${duplicateService===d?'selected':''}>${d}</option>`).join('')}</select>
-                            <select class="input-field py-1.5 px-2 text-sm w-[70px] flex-none" onchange="app.setFilter('client','ictStatus',this.value)"><option value="">ICT</option>${CONSTANTS.ICT_STATUS_LIST.map(i=>`<option value="${i}" ${ictStatus===i?'selected':''}>${i}</option>`).join('')}</select>
+                                <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[90px]" onchange="app.setFilter('client','economicStatus',this.value)"><option value="">경제상황</option>${CONSTANTS.ECONOMIC_LIST.map(e=>`<option value="${e}" ${economicStatus===e?'selected':''}>${e}</option>`).join('')}</select>
+                                <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[90px]" onchange="app.setFilter('client','duplicateService',this.value)"><option value="">중복서비스</option>${CONSTANTS.DUPLICATE_SERVICE_LIST.map(d=>`<option value="${d}" ${duplicateService===d?'selected':''}>${d}</option>`).join('')}</select>
+                                <select class="input-field py-1.5 px-2 text-sm w-[70px] flex-none" onchange="app.setFilter('client','ictStatus',this.value)"><option value="">ICT</option>${CONSTANTS.ICT_STATUS_LIST.map(i=>`<option value="${i}" ${ictStatus===i?'selected':''}>${i}</option>`).join('')}</select>
+                            </div>
                         </div>
                     </div>
+
                     <div class="space-y-2">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
                         filtered.map(c => {
@@ -482,6 +492,8 @@
                             const getEconomicDisplay = (status) => {
                                 if (status === '일반(저소득)') return '저소득';
                                 if (status === '조건부 기초수급' || status === '조건부 수급자') return '조건부';
+                                // [수정] 기초수급 -> 수급자로 표시 변경
+                                if (status === '기초수급') return '수급자';
                                 return status || '-';
                             };
 
@@ -551,29 +563,32 @@
                         </div>
                     </div>
 
-                    <!-- 필터 영역 -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm flex flex-wrap items-center gap-2 sticky top-16 md:top-0 z-40 transition-all">
-                        <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0"><i data-lucide="filter" size="14"></i> 필터</div>
-                        
-                        <!-- [수정] 날짜 필터: 입력 시 즉시 렌더링하지 않고(false), 조회 버튼 클릭 시 렌더링 -->
-                        <div class="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
-                            <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('log','start',this.value, false)" max="9999-12-31">
-                            <span class="text-slate-400">~</span>
-                            <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
-                            <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
-                        </div>
+                    <!-- [수정] 일지 필터 영역 불투명(Solid) 처리 -->
+                    <div class="sticky top-16 md:top-0 z-40 bg-slate-50 pt-2 pb-2">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
+                            <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0"><i data-lucide="filter" size="14"></i> 필터</div>
+                            
+                            <!-- 날짜 필터 -->
+                            <div class="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
+                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('log','start',this.value, false)" max="9999-12-31">
+                                <span class="text-slate-400">~</span>
+                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
+                                <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
+                            </div>
 
-                        <input class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
-                        <input class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
-                        <div class="relative z-30 w-full sm:w-auto">
-                            <button onclick="app.toggleLogRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left h-[34px] w-full sm:w-32"><span class="truncate max-w-[90px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
-                            ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
+                            <!-- [수정] id="log-search-name", id="log-search-provider" 추가 -->
+                            <input id="log-search-name" class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
+                            <input id="log-search-provider" class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
+                            <div class="relative z-30 w-full sm:w-auto">
+                                <button onclick="app.toggleLogRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left h-[34px] w-full sm:w-32"><span class="truncate max-w-[90px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
+                                ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
+                            </div>
+                            <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
+                                <select class="input-field py-1.5 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
+                                <select class="input-field py-1.5 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
+                            </div>
+                            <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                         </div>
-                        <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
-                            <select class="input-field py-1.5 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
-                            <select class="input-field py-1.5 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
-                        </div>
-                        <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                     </div>
 
                     <!-- [수정] 전체 선택 라인 (justify-between 적용하여 양쪽 끝 정렬) -->
@@ -787,24 +802,29 @@
             return `
                 <div class="space-y-6 animate-fade-in">
                     <h2 class="text-2xl font-bold text-slate-800">서비스 제공 통계</h2>
-                    <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm sticky top-16 md:top-0 z-50 transition-all">
-                        <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
-                            <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
-                            <button onclick="app.setFilter('stats','type','detail')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='detail'?'bg-white shadow':''}">상세별</button>
-                        </div>
-                        <div class="flex w-full sm:w-auto gap-2">
-                            <input id="stats-start" type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${start}" onchange="app.setStatsStart(this.value)" max="9999-12-31">
-                            <input id="stats-end" type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${end}" onchange="app.setFilter('stats','end',this.value)" max="9999-12-31">
-                        </div>
-                        <div class="flex w-full sm:w-auto gap-2 flex-1">
-                            <input class="input-field w-full sm:w-24 py-1 text-sm" placeholder="이름" value="${name}" oninput="app.setFilter('stats','name',this.value)">
-                            <div class="relative z-30 w-full sm:w-auto">
-                                <button onclick="app.toggleStatsRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left h-[30px] w-full sm:w-24"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
-                                ${state.ui.statsRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleStatsRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleStatsRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
+                    
+                    <!-- [수정] 통계 필터 영역 불투명(Solid) 처리 -->
+                    <div class="sticky top-16 md:top-0 z-50 bg-slate-50 pt-2 pb-2">
+                        <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                            <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
+                                <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
+                                <button onclick="app.setFilter('stats','type','detail')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='detail'?'bg-white shadow':''}">상세별</button>
                             </div>
+                            <div class="flex w-full sm:w-auto gap-2">
+                                <input id="stats-start" type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${start}" onchange="app.setStatsStart(this.value)" max="9999-12-31">
+                                <input id="stats-end" type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${end}" onchange="app.setFilter('stats','end',this.value)" max="9999-12-31">
+                            </div>
+                            <div class="flex w-full sm:w-auto gap-2 flex-1">
+                                <!-- [수정] oninput -> onkeydown(Enter) 방식으로 변경, 빈 값일 때 자동 초기화 추가 -->
+                                <input id="stats-search-name" class="input-field w-full sm:w-24 py-1 text-sm" placeholder="이름 (Enter)" value="${name}" onkeydown="if(event.key === 'Enter') app.setFilter('stats','name',this.value)" oninput="if(this.value === '') app.setFilter('stats','name','')">
+                                <div class="relative z-30 w-full sm:w-auto">
+                                    <button onclick="app.toggleStatsRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left h-[30px] w-full sm:w-24"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
+                                    ${state.ui.statsRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleStatsRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleStatsRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
+                                </div>
+                            </div>
+                            <button onclick="app.resetFilters('stats')" class="w-full sm:w-auto text-slate-400 hover:text-slate-600 p-2 rounded hover:bg-slate-100 transition-colors flex justify-center items-center flex-shrink-0" title="필터 초기화"><i data-lucide="refresh-cw" size="20"></i></button>
+                            <button onclick="app.downloadStatsExcel()" class="w-full sm:w-auto bg-emerald-600 text-white p-2 rounded flex justify-center items-center flex-shrink-0"><i data-lucide="download" size="20"></i></button>
                         </div>
-                        <button onclick="app.resetFilters('stats')" class="w-full sm:w-auto text-slate-400 hover:text-slate-600 p-2 rounded hover:bg-slate-100 transition-colors flex justify-center items-center flex-shrink-0" title="필터 초기화"><i data-lucide="refresh-cw" size="20"></i></button>
-                        <button onclick="app.downloadStatsExcel()" class="w-full sm:w-auto bg-emerald-600 text-white p-2 rounded flex justify-center items-center flex-shrink-0"><i data-lucide="download" size="20"></i></button>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-auto max-h-[600px]">
                         <!-- [수정] 테이블 너비를 w-full -> w-auto로 변경하여 불필요한 늘어짐 방지 -->
@@ -969,7 +989,114 @@
                 lucide.createIcons();
             },
             
-            // [신규] 일괄 수정 모달 열기
+            // [신규] 대상자 일괄 수정 모달
+            openBatchEditClientModal: () => {
+                const count = state.ui.selectedClientIds.size;
+                if (count === 0) return;
+                
+                const html = `
+                <div class="bg-white w-full max-w-md p-6 rounded-xl shadow-xl mx-4">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="p-2 bg-blue-100 text-blue-600 rounded-full"><i data-lucide="edit-3" size="20"></i></div>
+                        <h3 class="font-bold text-lg text-slate-900">대상자 일괄 수정 (${count}명)</h3>
+                    </div>
+                    <p class="text-sm text-slate-500 mb-6 bg-slate-50 p-3 rounded">
+                        체크박스를 선택한 항목만 일괄 변경됩니다.<br>
+                        선택하지 않은 항목은 기존 값이 유지됩니다.
+                    </p>
+                    <form onsubmit="app.executeBatchEditClients(event)">
+                        <div class="space-y-4">
+                            <!-- 행정동 -->
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="chk-region" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-region').disabled = !this.checked">
+                                <label for="chk-region" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">행정동</label>
+                                <select id="val-region" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>
+                                    ${CONSTANTS.DONG_LIST.map(d => `<option value="${d}">${d}</option>`).join('')}
+                                </select>
+                            </div>
+                            <!-- 등급 -->
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="chk-careLevel" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-careLevel').disabled = !this.checked">
+                                <label for="chk-careLevel" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">등급</label>
+                                <select id="val-careLevel" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>
+                                    ${CONSTANTS.CARE_LEVEL_LIST.map(v => `<option value="${v}">${v}</option>`).join('')}
+                                </select>
+                            </div>
+                            <!-- 경제상황 -->
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="chk-economicStatus" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-economicStatus').disabled = !this.checked">
+                                <label for="chk-economicStatus" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">경제상황</label>
+                                <select id="val-economicStatus" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>
+                                    ${CONSTANTS.ECONOMIC_LIST.map(v => `<option value="${v}">${v}</option>`).join('')}
+                                </select>
+                            </div>
+                            <!-- 세대유형 -->
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="chk-householdType" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-householdType').disabled = !this.checked">
+                                <label for="chk-householdType" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">세대유형</label>
+                                <select id="val-householdType" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>
+                                    ${CONSTANTS.HOUSEHOLD_LIST.map(v => `<option value="${v}">${v}</option>`).join('')}
+                                </select>
+                            </div>
+                            <!-- 중복서비스 -->
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="chk-duplicateService" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-duplicateService').disabled = !this.checked">
+                                <label for="chk-duplicateService" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">중복서비스</label>
+                                <select id="val-duplicateService" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>
+                                    ${CONSTANTS.DUPLICATE_SERVICE_LIST.map(v => `<option value="${v}">${v}</option>`).join('')}
+                                </select>
+                            </div>
+                            <!-- ICT현황 -->
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" id="chk-ictStatus" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-ictStatus').disabled = !this.checked">
+                                <label for="chk-ictStatus" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">ICT현황</label>
+                                <select id="val-ictStatus" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>
+                                    ${CONSTANTS.ICT_STATUS_LIST.map(v => `<option value="${v}">${v}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 mt-8 pt-4 border-t border-slate-100">
+                            <button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">취소</button>
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors">수정 완료</button>
+                        </div>
+                    </form>
+                </div>`;
+                showModal(html);
+                lucide.createIcons();
+            },
+
+            // [신규] 대상자 일괄 수정 실행
+            executeBatchEditClients: async (e) => {
+                e.preventDefault();
+                const updateData = {};
+
+                if (document.getElementById('chk-region').checked) updateData.region = document.getElementById('val-region').value;
+                if (document.getElementById('chk-careLevel').checked) updateData.careLevel = document.getElementById('val-careLevel').value;
+                if (document.getElementById('chk-economicStatus').checked) updateData.economicStatus = document.getElementById('val-economicStatus').value;
+                if (document.getElementById('chk-householdType').checked) updateData.householdType = document.getElementById('val-householdType').value;
+                if (document.getElementById('chk-duplicateService').checked) updateData.duplicateService = document.getElementById('val-duplicateService').value;
+                if (document.getElementById('chk-ictStatus').checked) updateData.ictStatus = document.getElementById('val-ictStatus').value;
+
+                if (Object.keys(updateData).length === 0) {
+                    alert("변경할 항목을 하나 이상 선택해주세요.");
+                    return;
+                }
+
+                try {
+                    const promises = Array.from(state.ui.selectedClientIds).map(id => updateDoc(doc(db, "clients", id), updateData));
+                    await Promise.all(promises);
+                    alert(`${state.ui.selectedClientIds.size}명의 대상자 정보가 수정되었습니다.`);
+                    state.ui.selectedClientIds.clear(); // 선택 해제
+                    closeModal();
+                    // 목록 갱신을 위해 render 호출 (일괄 수정은 즉시 반영되지 않을 수 있으므로)
+                    // (onSnapshot이 자동으로 감지하지만, 선택 상태 해제를 반영하기 위해 필요)
+                    render(); 
+                } catch (err) {
+                    alert("수정 중 오류가 발생했습니다: " + err.message);
+                }
+            },
+
+            // [신규] 일괄 수정 모달 열기 (기존 일지용 함수 아래에 위치)
             openBatchEditLogModal: () => {
                 const count = state.ui.selectedLogIds.size;
                 if (count === 0) return;
@@ -1195,7 +1322,13 @@
                     stats: { start: currentStart, end: currentEnd, type: 'detail', region: [], name: '' }
                 };
                 state.filters[scope] = defaults[scope];
-                if(scope === 'client') state.ui.regionDropdownOpen = false;
+                
+                // [수정] 대상자 관리 초기화 시 선택된 목록(체크박스)도 해제
+                if(scope === 'client') {
+                    state.ui.regionDropdownOpen = false;
+                    state.ui.selectedClientIds.clear(); 
+                }
+                
                 if(scope === 'log') state.ui.logRegionDropdownOpen = false;
                 if(scope === 'stats') state.ui.statsRegionDropdownOpen = false;
                 render();
@@ -1845,6 +1978,12 @@
         }
 
         function render() {
+            // [신규] 렌더링 전 포커스 및 커서 위치 저장
+            const activeEl = document.activeElement;
+            const focusedId = activeEl && activeEl.id ? activeEl.id : null;
+            const selectionStart = activeEl ? activeEl.selectionStart : null;
+            const selectionEnd = activeEl ? activeEl.selectionEnd : null;
+
             let main = document.getElementById('main-content-body');
             if (!main) { const wrapper = document.getElementById('main-content'); if (wrapper.innerHTML.includes('데이터 불러오는 중') || !wrapper.querySelector('#main-content-body')) { const btnHTML = document.getElementById('desktop-menu-open-btn').outerHTML; wrapper.innerHTML = btnHTML + '<div id="main-content-body" class="h-full"></div>'; main = document.getElementById('main-content-body'); document.getElementById('desktop-menu-open-btn').onclick = app.toggleSidebar; } }
             document.querySelectorAll('.nav-item').forEach(b => { if(b.dataset.tab === state.activeTab) { b.classList.add('bg-emerald-600', 'text-white'); b.classList.remove('text-slate-300'); } else { b.classList.remove('bg-emerald-600', 'text-white'); b.classList.add('text-slate-300'); } });
@@ -1854,6 +1993,20 @@
             else if (state.activeTab === 'statistics') main.innerHTML = renderStatistics();
             else if (state.activeTab === 'services') main.innerHTML = renderServiceManager();
             lucide.createIcons();
+
+            // [신규] 렌더링 후 포커스 복원
+            if (focusedId) {
+                const el = document.getElementById(focusedId);
+                if (el) {
+                    el.focus();
+                    // 텍스트 입력 요소인 경우 커서 위치 복원
+                    if (/text|search|password|tel|url/.test(el.type) && selectionStart !== null) {
+                        try {
+                            el.setSelectionRange(selectionStart, selectionEnd);
+                        } catch (e) { /* ignore error */ }
+                    }
+                }
+            }
         }
 
         document.getElementById('mobile-menu-btn').addEventListener('click', () => { const s = document.getElementById('sidebar'); if(s.classList.contains('-translate-x-full')) { s.classList.remove('-translate-x-full'); document.getElementById('sidebar-overlay').classList.remove('hidden'); } else { s.classList.add('-translate-x-full'); document.getElementById('sidebar-overlay').classList.add('hidden'); } });
