@@ -584,13 +584,15 @@
                                 총 <span class="font-bold text-slate-800">${filtered.length}</span>건
                             </div>
                             <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
-                                <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${filtered.length === 0 ? 'disabled' : ''}>
+                                <!-- [수정] id="log-select-all" 추가 -->
+                                <input type="checkbox" id="log-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${filtered.length === 0 ? 'disabled' : ''}>
                                 <span class="text-sm font-medium text-slate-600">전체선택</span>
                             </label>
                         </div>
 
                         <!-- 오른쪽: 선택된 항목 작업 버튼 (일괄수정, 선택삭제) -->
-                        <div class="flex items-center gap-2">
+                        <!-- [수정] id="log-batch-actions" 추가 -->
+                        <div class="flex items-center gap-2" id="log-batch-actions">
                             ${state.ui.selectedLogIds.size > 0 ? `
                                 <button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-blue-100 transition-colors animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${state.ui.selectedLogIds.size})</button>
                                 <button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제</button>
@@ -606,7 +608,8 @@
                                 <div class="md:w-1/3 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6 flex-shrink-0 w-full">
                                     <div class="mb-4">
                                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                            <div class="flex items-center gap-2"><input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" onchange="app.toggleLogSelection('${l.id}')" ${state.ui.selectedLogIds.has(l.id) ? 'checked' : ''}><span class="text-sm text-slate-500 font-medium whitespace-nowrap">${l.date}</span></div>
+                                            <!-- [수정] class="log-checkbox" 및 data-id 추가 -->
+                                            <div class="flex items-center gap-2"><input type="checkbox" class="log-checkbox w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" data-id="${l.id}" onchange="app.toggleLogSelection('${l.id}')" ${state.ui.selectedLogIds.has(l.id) ? 'checked' : ''}><span class="text-sm text-slate-500 font-medium whitespace-nowrap">${l.date}</span></div>
                                             <span class="text-slate-300">|</span>
                                             <div class="flex items-baseline gap-1"><span class="font-bold text-slate-800 text-base hover:text-blue-600 cursor-pointer" onclick="app.openClientModal('${l.clientId}')">${l.clientName}</span>${c ? `<span class="text-xs text-slate-500">(${calculateAge(c.birthDate)}세/${c.gender})</span>` : ''}</div>
                                             ${c ? `<div class="flex items-center gap-1 text-xs text-slate-500"><span class="text-slate-300">|</span><span>${c.region}</span><span class="text-slate-300">·</span><span class="${c.careLevel==='중점'?'text-pink-600 font-bold':(c.careLevel==='일반'?'text-blue-600 font-bold':'')}">${c.careLevel}</span></div>` : ''}
@@ -905,14 +908,58 @@
             toggleLogRegionFilter: (val) => { const r = state.filters.log.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
             toggleStatsRegionDropdown: () => { state.ui.statsRegionDropdownOpen = !state.ui.statsRegionDropdownOpen; render(); },
             toggleStatsRegionFilter: (val) => { const r = state.filters.stats.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
-            toggleLogSelection: (id) => { if (state.ui.selectedLogIds.has(id)) state.ui.selectedLogIds.delete(id); else state.ui.selectedLogIds.add(id); render(); },
             
-            // [수정] 누락되었던 전체 선택 기능 함수 추가
+            // [최적화] 전체 렌더링(render()) 제거하고 부분 업데이트 함수 호출
+            toggleLogSelection: (id) => { 
+                if (state.ui.selectedLogIds.has(id)) state.ui.selectedLogIds.delete(id); 
+                else state.ui.selectedLogIds.add(id); 
+                app.updateLogBatchActionsUI(); // render() 대신 UI 부분 업데이트
+            },
+            
+            // [신규] 일지 목록 체크박스 UI 부분 업데이트 (성능 최적화용)
+            updateLogBatchActionsUI: () => {
+                const container = document.getElementById('log-batch-actions');
+                const selectAllCheckbox = document.getElementById('log-select-all');
+                
+                if (!container) return; 
+
+                // 1. 상단 버튼 영역 업데이트
+                const count = state.ui.selectedLogIds.size;
+                if (count > 0) {
+                    container.innerHTML = `
+                        <button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-blue-100 transition-colors animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${count})</button>
+                        <button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제</button>
+                    `;
+                    lucide.createIcons();
+                } else {
+                    container.innerHTML = '';
+                }
+
+                // 2. 전체 선택 체크박스 상태 동기화
+                if (selectAllCheckbox) {
+                    const filtered = getFilteredLogs();
+                    const allSelected = filtered.length > 0 && filtered.every(l => state.ui.selectedLogIds.has(l.id));
+                    selectAllCheckbox.checked = allSelected;
+                }
+            },
+
+            // [최적화] 전체 선택 시에도 전체 렌더링 방지
             toggleAllLogs: (checked) => {
                 const filtered = getFilteredLogs();
+                
+                // 1. 상태 업데이트
                 if (checked) { filtered.forEach(l => state.ui.selectedLogIds.add(l.id)); }
                 else { filtered.forEach(l => state.ui.selectedLogIds.delete(l.id)); }
-                render();
+                
+                // 2. DOM 직접 업데이트 (Re-render 방지)
+                const checkboxes = document.querySelectorAll('.log-checkbox');
+                checkboxes.forEach(cb => {
+                    // 현재 필터된 목록에 있는 항목인지 확인 (DOM에 존재하는지)
+                    cb.checked = checked;
+                });
+                
+                // 3. 상단 UI 업데이트
+                app.updateLogBatchActionsUI();
             },
 
             deleteSelectedLogs: () => {
@@ -1113,6 +1160,8 @@
                     alert(`${state.ui.selectedLogIds.size}건의 일지가 수정되었습니다.`);
                     state.ui.selectedLogIds.clear(); // 선택 해제
                     closeModal();
+                    // [수정] 일괄 수정 후에는 목록 갱신 필요 (내용이 바뀌었으므로)
+                    render(); 
                 } catch (err) {
                     alert("수정 중 오류가 발생했습니다: " + err.message);
                 }
