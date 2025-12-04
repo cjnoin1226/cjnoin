@@ -36,7 +36,7 @@
         .sticky-col { position: sticky; left: 0; background-color: white; z-index: 10; }
         .sticky-header { position: sticky; top: 0; z-index: 20; }
 
-        /* [신규] 메인 모달 탭 스타일 */
+        /* 메인 모달 탭 스타일 */
         .modal-tab-btn {
             padding: 0.75rem 1.25rem;
             border-bottom: 2px solid transparent;
@@ -58,7 +58,7 @@
         .modal-tab-content { display: none; }
         .modal-tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
 
-        /* [신규] 사례관리 하위 탭 스타일 */
+        /* 사례관리 하위 탭 스타일 */
         .sub-tab-btn {
             padding: 0.5rem 0.75rem;
             border-radius: 0.5rem;
@@ -78,6 +78,34 @@
         }
         .sub-tab-content { display: none; }
         .sub-tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
+
+        /* 화면 분할 관련 스타일 */
+        .split-pane {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid transparent;
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .split-pane.active {
+            border-color: #10b981; /* 활성화된 창 강조 (Emerald-500) */
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        }
+        .split-pane-overlay {
+            position: absolute;
+            inset: 0;
+            background: transparent;
+            z-index: 10;
+            display: none;
+            cursor: pointer;
+        }
+        /* 비활성화된 패널은 클릭 시 활성화되도록 투명 오버레이 처리 (선택 편의성) */
+        .split-pane:not(.active) .split-pane-overlay {
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden">
@@ -111,6 +139,14 @@
             <button onclick="app.setTab('services')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 whitespace-nowrap" data-tab="services"><i data-lucide="settings" class="flex-shrink-0"></i> <span class="sidebar-text">서비스 설정</span></button>
         </nav>
         
+        <!-- 화면 분할 토글 버튼 영역 -->
+        <div class="px-4 py-2 border-t border-slate-700">
+            <button onclick="app.toggleSplitView()" id="btn-split-toggle" class="w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-600 border-dashed">
+                <i data-lucide="columns" class="flex-shrink-0"></i>
+                <span class="sidebar-text text-sm">화면 분할 <span id="split-status-text">(OFF)</span></span>
+            </button>
+        </div>
+
         <div class="p-4 bg-slate-900 text-xs text-slate-400 overflow-x-hidden">
             <div class="flex items-center gap-2 mb-1 text-emerald-400"><i data-lucide="cloud" class="flex-shrink-0"></i> <span class="sidebar-text">Firebase 연결됨</span></div>
             <p class="sidebar-text whitespace-nowrap">데이터가 실시간 공유됩니다.</p>
@@ -171,13 +207,16 @@
             ICT_STATUS_LIST: ['부', '여']
         };
 
-        const getTodayStr = () => {
-            const now = new Date();
-            return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-        };
-
         const state = {
             activeTab: 'dashboard',
+            // 화면 분할 관련 상태
+            viewMode: 'single', // 'single' or 'split'
+            focusedPane: 'left', // 'left' or 'right' (현재 활성화된 창)
+            paneTabs: {
+                left: 'dashboard',
+                right: 'logs'
+            },
+            
             clients: [],
             services: [],
             logs: [],
@@ -252,53 +291,14 @@
             onSnapshot(collection(db, "services"), (snap) => {
                 let loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const sortOrder = ['위기관리체계구축', '욕구기반 위기관리', '위기상황관리 및 긴급지원', '기타'];
-                const caseManagementOrder = ['사례발굴', '초기상담', '사정 및 계획', '개입', '점검 및 모니터링', '종결 및 사후관리'];
-                
-                // [수정] 정렬 순서 정의 (띄어쓰기 변수 고려하여 두 가지 케이스 모두 포함)
-                const counselingOrder = ['정서지원서비스(안전안부확인)', '노인일상생활관련 상담', '노인일상생활관련상담', '복지서비스 종합안내'];
-
                 loaded.sort((a, b) => {
                     const catA = (a.majorCategory || '').replace(/\s+/g, '');
                     const catB = (b.majorCategory || '').replace(/\s+/g, '');
                     const indexA = sortOrder.findIndex(k => k.replace(/\s+/g, '') === catA);
                     const indexB = sortOrder.findIndex(k => k.replace(/\s+/g, '') === catB);
-                    
-                    // 1. 대분류 우선순위 비교
                     if (indexA !== -1 && indexB === -1) return -1;
                     if (indexA === -1 && indexB !== -1) return 1;
-                    if (indexA !== -1 && indexB !== -1) {
-                        if (indexA !== indexB) return indexA - indexB;
-                    } else {
-                        const majorComp = (a.majorCategory || '').localeCompare(b.majorCategory || '');
-                        if (majorComp !== 0) return majorComp;
-                    }
-
-                    // 2. 서비스 분류(Category) 비교
-                    const catComp = (a.category || '').localeCompare(b.category || '');
-                    if (catComp !== 0) return catComp;
-
-                    // 3. 서비스명 커스텀 순서 적용 (사례관리)
-                    if (a.category === '사례관리' && b.category === '사례관리') {
-                        const nameIndexA = caseManagementOrder.indexOf(a.name);
-                        const nameIndexB = caseManagementOrder.indexOf(b.name);
-                        if (nameIndexA !== -1 && nameIndexB !== -1) return nameIndexA - nameIndexB;
-                    }
-
-                    // [수정] 서비스명 커스텀 순서 적용 (노인상담 및 정보제공) - 안전안부확인 우선
-                    // 해당 카테고리 내에서 지정된 순서대로 정렬하고, 목록에 없는 항목은 뒤로 보냄
-                    if (a.category === '노인상담 및 정보제공' && b.category === '노인상담 및 정보제공') {
-                        const nameIndexA_C = counselingOrder.indexOf(a.name);
-                        const nameIndexB_C = counselingOrder.indexOf(b.name);
-                        
-                        // 둘 다 순서 목록에 있으면 순서대로
-                        if (nameIndexA_C !== -1 && nameIndexB_C !== -1) return nameIndexA_C - nameIndexB_C;
-                        // A만 목록에 있으면 A가 위로
-                        if (nameIndexA_C !== -1) return -1;
-                        // B만 목록에 있으면 B가 위로
-                        if (nameIndexB_C !== -1) return 1;
-                    }
-
-                    // 4. 나머지 이름순
+                    if (indexA !== -1 && indexB !== -1) { if (indexA !== indexB) return indexA - indexB; }
                     return (a.name || '').localeCompare(b.name || '');
                 });
                 state.services = loaded;
@@ -311,7 +311,15 @@
             }, handleErr);
         }
 
-        // ... (이하 renderDashboard 등 기존 함수들은 동일) ...
+        function getTabHTML(tabName) {
+            if (tabName === 'dashboard') return renderDashboard();
+            if (tabName === 'clients') return renderClientManager();
+            if (tabName === 'logs') return renderLogManager();
+            if (tabName === 'statistics') return renderStatistics();
+            if (tabName === 'services') return renderServiceManager();
+            return '';
+        }
+
         function renderDashboard() {
             const today = new Date().toISOString().split('T')[0];
             const todayLogs = state.logs.filter(l => l.date === today).length;
@@ -473,9 +481,9 @@
                           <div class="w-px h-8 bg-slate-100"></div>
                           <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1">성별</span><div class="text-sm font-bold flex gap-2"><span class="text-blue-500">남 ${activeStats.male}</span><span class="text-slate-300">|</span><span class="text-red-500">여 ${activeStats.female}</span></div></div>
                        </div>
-                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6">
-                          <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1">올해 현황 (${currentYearStr})</span><div class="text-sm font-bold flex gap-2"><span class="text-emerald-600">신규 ${yearStats.new}</span><span class="text-slate-300">|</span><span class="text-slate-500">종결 ${yearStats.end}</span></div></div>
-                          <div class="p-3 bg-orange-50 rounded-full text-orange-500 ml-auto"><i data-lucide="activity" size="20"></i></div>
+                       <div onclick="app.showYearStatsModal()" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 cursor-pointer hover:bg-slate-50 transition-colors group">
+                          <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1 group-hover:text-emerald-600 transition-colors">올해 현황 (${currentYearStr})</span><div class="text-sm font-bold flex gap-2"><span class="text-emerald-600">신규 ${yearStats.new}</span><span class="text-slate-300">|</span><span class="text-slate-500">종결 ${yearStats.end}</span></div></div>
+                          <div class="p-3 bg-orange-50 rounded-full text-orange-500 ml-auto group-hover:bg-orange-100 transition-colors"><i data-lucide="activity" size="20"></i></div>
                        </div>
                         ${isFilterActive ? `
                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 animate-fade-in">
@@ -843,7 +851,71 @@
         }
 
         window.app = {
-            setTab: (t) => { state.activeTab = t; render(); document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('sidebar-overlay').classList.add('hidden'); },
+            setTab: (t) => { 
+                // 1. UI 즉시 반응: 모바일 사이드바 닫기 및 오버레이 숨김
+                document.getElementById('sidebar').classList.add('-translate-x-full'); 
+                document.getElementById('sidebar-overlay').classList.add('hidden'); 
+
+                // 2. UI 즉시 반응: 메뉴 하이라이트 업데이트
+                document.querySelectorAll('.nav-item').forEach(b => { 
+                    if(b.dataset.tab === t) { 
+                        b.classList.add('bg-emerald-600', 'text-white'); 
+                        b.classList.remove('text-slate-300'); 
+                    } else { 
+                        b.classList.remove('bg-emerald-600', 'text-white'); 
+                        b.classList.add('text-slate-300'); 
+                    } 
+                });
+
+                // 3. 상태 업데이트
+                if (state.viewMode === 'single') {
+                    state.activeTab = t; 
+                } else {
+                    state.paneTabs[state.focusedPane] = t;
+                }
+
+                // 4. 무거운 렌더링 작업을 다음 프레임으로 지연시켜 클릭 반응성 확보
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        render(); 
+                    }, 10);
+                });
+            },
+            toggleSidebar: () => { 
+                const s = document.getElementById('sidebar'); 
+                const btn = document.getElementById('desktop-menu-open-btn'); 
+                if (s.classList.contains('md:w-0')) { 
+                    s.classList.remove('md:w-0', 'md:overflow-hidden'); 
+                    s.classList.add('md:w-64'); 
+                    btn.classList.add('hidden'); 
+                    btn.classList.remove('md:inline-flex'); 
+                } else { 
+                    s.classList.remove('md:w-64'); 
+                    s.classList.add('md:w-0', 'md:overflow-hidden'); 
+                    btn.classList.remove('hidden'); 
+                    btn.classList.add('md:inline-flex'); 
+                } 
+            },
+            toggleSplitView: () => {
+                if (state.viewMode === 'single') {
+                    state.viewMode = 'split';
+                    state.paneTabs.left = state.activeTab;
+                    state.paneTabs.right = (state.activeTab === 'logs' ? 'clients' : 'logs');
+                    state.focusedPane = 'left';
+                    document.getElementById('split-status-text').textContent = '(ON)';
+                    document.getElementById('btn-split-toggle').classList.add('bg-slate-700', 'text-emerald-400', 'border-emerald-500');
+                } else {
+                    state.viewMode = 'single';
+                    state.activeTab = state.paneTabs.left;
+                    document.getElementById('split-status-text').textContent = '(OFF)';
+                    document.getElementById('btn-split-toggle').classList.remove('bg-slate-700', 'text-emerald-400', 'border-emerald-500');
+                }
+                render();
+            },
+            setFocusedPane: (pane) => {
+                state.focusedPane = pane;
+                render();
+            },
             setFilter: (s, k, v, doRender = true) => { state.filters[s][k] = v; if(doRender) render(); },
             render: () => render(),
             toggleRegionDropdown: () => { state.ui.regionDropdownOpen = !state.ui.regionDropdownOpen; render(); },
@@ -852,6 +924,26 @@
             toggleLogRegionFilter: (val) => { const r = state.filters.log.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
             toggleStatsRegionDropdown: () => { state.ui.statsRegionDropdownOpen = !state.ui.statsRegionDropdownOpen; render(); },
             toggleStatsRegionFilter: (val) => { const r = state.filters.stats.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
+            resetFilters: (section) => {
+                if (section === 'client') {
+                    state.filters.client = { 
+                        status: '이용', level: '', economicStatus: '', duplicateService: '', ictStatus: '', 
+                        region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' 
+                    };
+                    state.ui.regionDropdownOpen = false;
+                } else if (section === 'log') {
+                    state.filters.log = { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] };
+                    state.ui.logRegionDropdownOpen = false;
+                } else if (section === 'stats') {
+                    const d = new Date();
+                    const s = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+                    const l = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                    const e = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${l}`;
+                    state.filters.stats = { start: s, end: e, type: 'detail', region: [], name: '' };
+                    state.ui.statsRegionDropdownOpen = false;
+                }
+                render();
+            },
             toggleLogSelection: (id) => { 
                 if (state.ui.selectedLogIds.has(id)) state.ui.selectedLogIds.delete(id); 
                 else state.ui.selectedLogIds.add(id); 
@@ -980,7 +1072,81 @@
             },
             executeDeleteSelectedClients: async () => { try { const promises = Array.from(state.ui.selectedClientIds).map(id => deleteDoc(doc(db, "clients", id))); await Promise.all(promises); state.ui.selectedClientIds.clear(); closeDialog(); } catch (err) { alert("삭제 중 오류가 발생했습니다: " + err.message); } },
 
-            // [신규] 대상자 모달 탭 및 하위 탭 기능
+            showYearStatsModal: () => {
+                const currentYear = String(new Date().getFullYear());
+                const newClients = state.clients.filter(c => c.serviceStartDate && c.serviceStartDate.startsWith(currentYear)).sort((a,b) => b.serviceStartDate.localeCompare(a.serviceStartDate));
+                const endClients = state.clients.filter(c => c.endDate && c.endDate.startsWith(currentYear)).sort((a,b) => b.endDate.localeCompare(a.endDate));
+
+                const html = `
+                    <div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+                        <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                            <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
+                                <i data-lucide="calendar" class="text-slate-500"></i> ${currentYear}년 대상자 현황
+                            </h3>
+                            <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                        </div>
+                        
+                        <div class="flex flex-col md:flex-row gap-6 overflow-hidden min-h-0 flex-1">
+                            <div class="flex-1 flex flex-col min-h-0 bg-emerald-50/50 rounded-xl border border-emerald-100 overflow-hidden">
+                                <div class="p-4 bg-emerald-100/50 border-b border-emerald-200 flex justify-between items-center flex-shrink-0">
+                                    <h4 class="font-bold text-emerald-800 flex items-center gap-2"><i data-lucide="user-plus" size="18"></i> 신규 등록 (${newClients.length}명)</h4>
+                                </div>
+                                <div class="overflow-y-auto p-2 flex-1">
+                                    <table class="w-full text-sm text-left border-separate border-spacing-y-1">
+                                        <thead class="text-xs text-emerald-700 font-bold sticky top-0 bg-emerald-50 z-10">
+                                            <tr>
+                                                <th class="px-3 py-2">이름</th>
+                                                <th class="px-3 py-2">시작일</th>
+                                                <th class="px-3 py-2">등급/동</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${newClients.length ? newClients.map(c => `
+                                                <tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')" title="클릭하여 상세정보 보기">
+                                                    <td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td>
+                                                    <td class="px-3 py-2 text-slate-600 bg-transparent">${c.serviceStartDate}</td>
+                                                    <td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.careLevel} · ${c.region}</td>
+                                                </tr>
+                                            `).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="flex-1 flex flex-col min-h-0 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                                <div class="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
+                                    <h4 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="user-minus" size="18"></i> 종결 (${endClients.length}명)</h4>
+                                </div>
+                                <div class="overflow-y-auto p-2 flex-1">
+                                    <table class="w-full text-sm text-left border-separate border-spacing-y-1">
+                                        <thead class="text-xs text-slate-600 font-bold sticky top-0 bg-slate-100 z-10">
+                                            <tr>
+                                                <th class="px-3 py-2">이름</th>
+                                                <th class="px-3 py-2">종결일</th>
+                                                <th class="px-3 py-2">사유/상태</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${endClients.length ? endClients.map(c => `
+                                                <tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')" title="클릭하여 상세정보 보기">
+                                                    <td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td>
+                                                    <td class="px-3 py-2 text-slate-600 bg-transparent">${c.endDate}</td>
+                                                    <td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.status}</td>
+                                                </tr>
+                                            `).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-right flex-shrink-0 pt-2 border-t border-slate-100">
+                            <button onclick="app.closeModal()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button>
+                        </div>
+                    </div>
+                `;
+                showModal(html);
+                lucide.createIcons();
+            },
+
             setClientModalTab: (tabName) => {
                 state.ui.clientModalTab = tabName;
                 document.querySelectorAll('.modal-tab-btn').forEach(btn => {
@@ -1011,7 +1177,6 @@
                 const cm = c.caseManagement || {};
                 const getVal = (obj, path) => path.split('.').reduce((o, i) => o ? o[i] : '', obj);
 
-                // 상태 초기화
                 state.ui.clientModalTab = 'basic';
                 state.ui.caseSubTab = 'initial';
 
@@ -1021,14 +1186,12 @@
                         <h3 class="font-bold text-lg">${c.id ? '수정' : '등록'}</h3>
                         <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                     </div>
-                    <!-- 메인 탭 (기본정보 / 사례관리) -->
                     <div class="flex border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
                         <button type="button" class="modal-tab-btn active" data-tab="basic" onclick="app.setClientModalTab('basic')">기본 정보</button>
                         <button type="button" class="modal-tab-btn" data-tab="case" onclick="app.setClientModalTab('case')">사례관리</button>
                     </div>
                     <div class="p-4 sm:p-6 overflow-y-auto flex-1 bg-white">
                         <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" class="space-y-4">
-                            <!-- 1. 기본 정보 탭 -->
                             <div id="tab-basic" class="modal-tab-content active space-y-4">
                                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                                     <div class="sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div>
@@ -1061,7 +1224,6 @@
                                 <div><label class="text-sm block mb-1">비고</label><textarea name="note" class="input-field" rows="2">${c.note||''}</textarea></div>
                             </div>
                             
-                            <!-- 2. 사례관리 탭 (하위 탭 포함) -->
                             <div id="tab-case" class="modal-tab-content space-y-4">
                                 <div class="flex gap-2 overflow-x-auto pb-2 border-b border-slate-100 mb-4 sticky top-0 bg-white z-0">
                                     <button type="button" class="sub-tab-btn active" data-subtab="initial" onclick="app.setCaseSubTab('initial')">초기면접지</button>
@@ -1134,7 +1296,6 @@
                 delete data.absStart; delete data.absEnd;
                 if (!id) data.createdAt = new Date().toISOString();
                 
-                // [신규] 사례관리 데이터 수집
                 const cmData = {
                     initial: {
                         date: document.getElementById('cm-initial-date').value,
@@ -1428,7 +1589,6 @@
                 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "서비스일지"); XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
             },
             
-            // [신규] 일지 업로드 양식 다운로드
             downloadLogTemplate: () => {
                 const headers = ['날짜', '이름', '제공방법', '서비스', '서비스 상세내용', '서비스 메모', '진행내용', '제공자'];
                 const example = ['2024-01-01', '홍길동', '방문', '위기관리체계구축', '초기상담', '특이사항 없음', '대상자 가정 방문하여 상담 진행함.', '김사회'];
@@ -1439,7 +1599,6 @@
                 XLSX.writeFile(wb, "일지등록양식.xlsx");
             },
 
-            // [수정] 일지 엑셀 업로드 로직 (날짜+이름 기준 병합)
             uploadLogExcel: (input) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -1454,10 +1613,8 @@
                         const logGroups = {}; 
 
                         rows.forEach(row => {
-                            // 필수 값 확인 (날짜, 이름)
                             if (!row[0] || !row[1]) return;
 
-                            // 날짜 포맷팅 (YYYY-MM-DD)
                             let dateStr = String(row[0]).trim();
                             if (!isNaN(dateStr) && dateStr.length < 8) {
                                 const dateObj = new Date((dateStr - (25567 + 2)) * 86400 * 1000); 
@@ -1562,7 +1719,7 @@
                             <div style="padding-left: 2px;">${i.serviceName}${i.detailNote ? ` - <span style="color:#555;">${i.detailNote}</span>` : ''}</div>
                         </div>`;
                     }).join('') : '-';
-                    rowsHTML += `<tr><td style="text-align:center;">${l.date}</td><td style="text-align:center;"><b>${l.clientName}</b><br><span style="font-size:0.8em; color:#666; letter-spacing: -1px; white-space: nowrap;">${clientInfo}</span></td><td style="text-align:center;">${l.provideMethod || '방문'}</td><td style="padding:5px; vertical-align: middle;">${servicesHTML}</td><td style="white-space:pre-wrap; padding:5px;">${l.content}</td><td style="text-align:center; vertical-align: middle;">${l.provider || ''}</td></tr>`;
+                    rowsHTML += `<tr><td style="text-align:center;">${l.date}</td><td style="text-align:center;"><b>${l.clientName}</b><br><span style="font-size:0.8em; color:#666; letter-spacing: -1px; white-space: nowrap;">${clientInfo}</span></td><td style="text-align:center;">${l.provideMethod || '방문'}</td><td style="padding:5px; vertical-align: top;">${servicesHTML}</td><td style="white-space:pre-wrap; padding:5px;">${l.content}</td><td style="text-align:center; vertical-align: middle;">${l.provider || ''}</td></tr>`;
                 });
                 
                 const printDocument = `<html><head><title>서비스제공 · 과정상담기록지</title><style>@media print { @page { margin-left: 1.5cm; margin-right: 0.5cm; margin-top: 1cm; margin-bottom: 1cm; } body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; font-size: 12px; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } .header-container { display: block !important; } } body { font-family: "Malgun Gothic", sans-serif; padding: 20px; } .header-container { position: relative; width: 100%; height: 80px; border-bottom: 2px solid #333; margin-bottom: 10px; } .header-title { margin: 0; padding: 0; line-height: 80px; text-align: center; font-size: 22px; font-weight: bold; } .approval-box { position: absolute; right: 0; bottom: 5px; border-collapse: collapse; text-align: center; font-size: 11px; background: white; } .approval-box td { border: 1px solid #333; padding: 0; } .approval-header { background: #f0f0f0; height: 20px; width: 60px; font-weight: bold; } .approval-sign { height: 50px; } .date-range { text-align: left; font-size: 12px; margin-bottom: 10px; font-weight: bold; color: #555; } table.main-table { width: 100%; border-collapse: collapse; font-size: 12px; } table.main-table th, table.main-table td { border: 1px solid #999; padding: 6px; vertical-align: top; } table.main-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; height: 30px; } </style></head><body><div class="header-container"><h1 class="header-title">서비스제공 · 과정상담기록지</h1><table class="approval-box"><tr><td rowspan="2" style="width: 20px; background: #f0f0f0; font-weight: bold; vertical-align: middle;">결<br>재</td><td class="approval-header">담당자</td><td class="approval-header">센터장</td></tr><tr><td class="approval-sign"></td><td class="approval-sign"></td></tr></table></div><div class="date-range">${dateRangeText}</div><table class="main-table"><thead><tr><th width="75">일자</th><th width="55">대상자</th><th width="40">방법</th><th width="180">서비스 내용</th><th>진행 내용</th><th width="45">제공자</th></tr></thead><tbody>${rowsHTML}</tbody></table><script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }<\/script></body></html>`;
@@ -1614,12 +1771,47 @@
 
             let main = document.getElementById('main-content-body');
             if (!main) { const wrapper = document.getElementById('main-content'); if (wrapper.innerHTML.includes('데이터 불러오는 중') || !wrapper.querySelector('#main-content-body')) { const btnHTML = document.getElementById('desktop-menu-open-btn').outerHTML; wrapper.innerHTML = btnHTML + '<div id="main-content-body" class="h-full"></div>'; main = document.getElementById('main-content-body'); document.getElementById('desktop-menu-open-btn').onclick = app.toggleSidebar; } }
-            document.querySelectorAll('.nav-item').forEach(b => { if(b.dataset.tab === state.activeTab) { b.classList.add('bg-emerald-600', 'text-white'); b.classList.remove('text-slate-300'); } else { b.classList.remove('bg-emerald-600', 'text-white'); b.classList.add('text-slate-300'); } });
-            if (state.activeTab === 'dashboard') main.innerHTML = renderDashboard();
-            else if (state.activeTab === 'clients') main.innerHTML = renderClientManager();
-            else if (state.activeTab === 'logs') main.innerHTML = renderLogManager();
-            else if (state.activeTab === 'statistics') main.innerHTML = renderStatistics();
-            else if (state.activeTab === 'services') main.innerHTML = renderServiceManager();
+            
+            const currentTab = state.viewMode === 'single' ? state.activeTab : state.paneTabs[state.focusedPane];
+            document.querySelectorAll('.nav-item').forEach(b => { 
+                if(b.dataset.tab === currentTab) { 
+                    b.classList.add('bg-emerald-600', 'text-white'); 
+                    b.classList.remove('text-slate-300'); 
+                } else { 
+                    b.classList.remove('bg-emerald-600', 'text-white'); 
+                    b.classList.add('text-slate-300'); 
+                } 
+            });
+
+            if (state.viewMode === 'single') {
+                main.className = "h-full animate-fade-in"; 
+                main.innerHTML = getTabHTML(state.activeTab);
+            } else {
+                main.className = "h-full flex gap-4 animate-fade-in"; 
+                
+                const leftHTML = `
+                    <div class="split-pane ${state.focusedPane === 'left' ? 'active' : ''} bg-white shadow-sm border-slate-200" onclick="app.setFocusedPane('left')">
+                        <div class="split-pane-overlay" title="클릭하여 선택"></div>
+                        <div class="flex-1 overflow-y-auto p-4 relative">
+                            <div class="absolute top-0 right-0 z-10 bg-slate-800 text-white text-xs px-2 py-1 rounded-bl-lg opacity-70">화면 1</div>
+                            ${getTabHTML(state.paneTabs.left)}
+                        </div>
+                    </div>
+                `;
+
+                const rightHTML = `
+                    <div class="split-pane ${state.focusedPane === 'right' ? 'active' : ''} bg-white shadow-sm border-slate-200" onclick="app.setFocusedPane('right')">
+                        <div class="split-pane-overlay" title="클릭하여 선택"></div>
+                        <div class="flex-1 overflow-y-auto p-4 relative">
+                            <div class="absolute top-0 right-0 z-10 bg-slate-800 text-white text-xs px-2 py-1 rounded-bl-lg opacity-70">화면 2</div>
+                            ${getTabHTML(state.paneTabs.right)}
+                        </div>
+                    </div>
+                `;
+                
+                main.innerHTML = leftHTML + rightHTML;
+            }
+
             lucide.createIcons();
 
             if (focusedId) {
@@ -1637,6 +1829,22 @@
         document.getElementById('sidebar-overlay').addEventListener('click', () => { document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('sidebar-overlay').classList.add('hidden'); });
 
         initDataSync();
+
+        setTimeout(() => {
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth >= 768 && !sidebar.classList.contains('md:w-0')) {
+                app.toggleSidebar();
+                
+                const toast = document.createElement('div');
+                toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-sm shadow-lg opacity-0 transition-opacity duration-500 z-50 pointer-events-none';
+                toast.innerHTML = '<i class="inline-block w-4 h-4 mr-1 align-middle" data-lucide="info"></i> 넓은 화면을 위해 메뉴가 자동으로 숨겨졌습니다.';
+                document.body.appendChild(toast);
+                lucide.createIcons();
+                
+                requestAnimationFrame(() => { toast.classList.remove('opacity-0'); });
+                setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 500); }, 3000);
+            }
+        }, 1000);
     </script>
 </body>
 </html>
