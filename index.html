@@ -207,6 +207,11 @@
             ICT_STATUS_LIST: ['부', '여']
         };
 
+        const getTodayStr = () => {
+            const now = new Date();
+            return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        };
+
         const state = {
             activeTab: 'dashboard',
             // 화면 분할 관련 상태
@@ -291,14 +296,40 @@
             onSnapshot(collection(db, "services"), (snap) => {
                 let loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const sortOrder = ['위기관리체계구축', '욕구기반 위기관리', '위기상황관리 및 긴급지원', '기타'];
+                const caseManagementOrder = ['사례발굴', '초기상담', '사정 및 계획', '개입', '점검 및 모니터링', '종결 및 사후관리'];
+                const counselingOrder = ['정서지원서비스(안전안부확인)', '노인일상생활관련 상담', '노인일상생활관련상담', '복지서비스 종합안내'];
+
                 loaded.sort((a, b) => {
                     const catA = (a.majorCategory || '').replace(/\s+/g, '');
                     const catB = (b.majorCategory || '').replace(/\s+/g, '');
                     const indexA = sortOrder.findIndex(k => k.replace(/\s+/g, '') === catA);
                     const indexB = sortOrder.findIndex(k => k.replace(/\s+/g, '') === catB);
+                    
                     if (indexA !== -1 && indexB === -1) return -1;
                     if (indexA === -1 && indexB !== -1) return 1;
-                    if (indexA !== -1 && indexB !== -1) { if (indexA !== indexB) return indexA - indexB; }
+                    if (indexA !== -1 && indexB !== -1) {
+                        if (indexA !== indexB) return indexA - indexB;
+                    } else {
+                        const majorComp = (a.majorCategory || '').localeCompare(b.majorCategory || '');
+                        if (majorComp !== 0) return majorComp;
+                    }
+
+                    const catComp = (a.category || '').localeCompare(b.category || '');
+                    if (catComp !== 0) return catComp;
+
+                    if (a.category === '사례관리' && b.category === '사례관리') {
+                        const nameIndexA = caseManagementOrder.indexOf(a.name);
+                        const nameIndexB = caseManagementOrder.indexOf(b.name);
+                        if (nameIndexA !== -1 && nameIndexB !== -1) return nameIndexA - nameIndexB;
+                    }
+
+                    if (a.category === '노인상담 및 정보제공' && b.category === '노인상담 및 정보제공') {
+                        const nameIndexA_C = counselingOrder.indexOf(a.name);
+                        const nameIndexB_C = counselingOrder.indexOf(b.name);
+                        if (nameIndexA_C !== -1 && nameIndexB_C !== -1) return nameIndexA_C - nameIndexB_C;
+                        if (nameIndexA_C !== -1) return -1;
+                        if (nameIndexB_C !== -1) return 1;
+                    }
                     return (a.name || '').localeCompare(b.name || '');
                 });
                 state.services = loaded;
@@ -311,6 +342,7 @@
             }, handleErr);
         }
 
+        // 탭별 HTML 생성 함수
         function getTabHTML(tabName) {
             if (tabName === 'dashboard') return renderDashboard();
             if (tabName === 'clients') return renderClientManager();
@@ -852,49 +884,14 @@
 
         window.app = {
             setTab: (t) => { 
-                // 1. UI 즉시 반응: 모바일 사이드바 닫기 및 오버레이 숨김
-                document.getElementById('sidebar').classList.add('-translate-x-full'); 
-                document.getElementById('sidebar-overlay').classList.add('hidden'); 
-
-                // 2. UI 즉시 반응: 메뉴 하이라이트 업데이트
-                document.querySelectorAll('.nav-item').forEach(b => { 
-                    if(b.dataset.tab === t) { 
-                        b.classList.add('bg-emerald-600', 'text-white'); 
-                        b.classList.remove('text-slate-300'); 
-                    } else { 
-                        b.classList.remove('bg-emerald-600', 'text-white'); 
-                        b.classList.add('text-slate-300'); 
-                    } 
-                });
-
-                // 3. 상태 업데이트
                 if (state.viewMode === 'single') {
                     state.activeTab = t; 
                 } else {
                     state.paneTabs[state.focusedPane] = t;
                 }
-
-                // 4. 무거운 렌더링 작업을 다음 프레임으로 지연시켜 클릭 반응성 확보
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        render(); 
-                    }, 10);
-                });
-            },
-            toggleSidebar: () => { 
-                const s = document.getElementById('sidebar'); 
-                const btn = document.getElementById('desktop-menu-open-btn'); 
-                if (s.classList.contains('md:w-0')) { 
-                    s.classList.remove('md:w-0', 'md:overflow-hidden'); 
-                    s.classList.add('md:w-64'); 
-                    btn.classList.add('hidden'); 
-                    btn.classList.remove('md:inline-flex'); 
-                } else { 
-                    s.classList.remove('md:w-64'); 
-                    s.classList.add('md:w-0', 'md:overflow-hidden'); 
-                    btn.classList.remove('hidden'); 
-                    btn.classList.add('md:inline-flex'); 
-                } 
+                render(); 
+                document.getElementById('sidebar').classList.add('-translate-x-full'); 
+                document.getElementById('sidebar-overlay').classList.add('hidden'); 
             },
             toggleSplitView: () => {
                 if (state.viewMode === 'single') {
