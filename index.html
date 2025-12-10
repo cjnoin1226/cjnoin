@@ -59,16 +59,20 @@
         .modal-tab-content { display: none; }
         .modal-tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
 
-        /* [수정] 탭 컨텐츠 래퍼 스타일 (스크롤 및 레이아웃 최적화) */
+        /* [수정] 탭 컨텐츠 래퍼 스타일 (스크롤 방식 변경: 전체 스크롤 -> 내부 요소 스크롤) */
         .tab-content-wrapper {
             height: 100%;
-            overflow-y: auto;
-            display: none; /* 기본적으로 숨김 */
+            /* overflow-y: auto;  <-- 제거: 전체 스크롤 방지 */
+            display: none;
             background-color: #f8fafc;
             position: relative;
+            /* Flex 레이아웃 적용 */
+            display: none; 
+            flex-direction: column;
+            overflow: hidden; 
         }
         .tab-content-wrapper.active {
-            display: block; /* 활성화 시 보임 */
+            display: flex; /* block -> flex 변경 */
         }
 
         /* [신규] 윈도우 모드 스타일 (이동/크기조절 가능) */
@@ -147,10 +151,13 @@
 
         .window-content {
             flex: 1;
-            overflow: auto;
+            /* overflow: auto; <-- 제거 */
+            overflow: hidden; /* 스크롤은 내부 컨텐츠에 위임 */
             background-color: white;
             position: relative;
             border-radius: 0 0 8px 8px; /* 하단 라운드 처리 */
+            display: flex; /* Flex 적용 */
+            flex-direction: column;
         }
 
         /* [신규] 8방향 리사이즈 핸들 스타일 */
@@ -565,8 +572,9 @@
             const highFocus = activeClients.filter(c => c.careLevel === '중점').length;
             const general = activeClients.filter(c => c.careLevel === '일반').length;
 
+            // [수정] 레이아웃 변경에 따른 내부 스크롤 컨테이너 추가
             return `
-                <div class="space-y-6 animate-fade-in">
+                <div class="flex-1 overflow-y-auto space-y-6 animate-fade-in p-1">
                     <div class="flex justify-between items-center">
                         <h2 class="text-xl md:text-2xl font-bold text-slate-800">홈</h2>
                         <div class="text-xs md:text-sm text-emerald-600 flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>공유 중</div>
@@ -624,6 +632,7 @@
                 }
             }
             
+            // ... (필터링 로직 동일) ...
             const filtered = state.clients.filter(c => {
                 const matchEconomic = !economicStatus || (c.economicStatus && (
                     c.economicStatus === economicStatus || 
@@ -689,50 +698,54 @@
             const filteredGeneral = filtered.filter(c => c.careLevel === '일반').length;
             const isFilterActive = search !== '' || searchPhone !== '' || status !== '이용' || level !== '' || economicStatus !== '' || duplicateService !== '' || ictStatus !== '' || region.length > 0 || gender !== '' || targetYear !== '' || targetMonth !== '';
 
+            // [수정] 레이아웃 구조 변경: 상단 고정 영역(Header)과 스크롤 영역(List) 분리
             return `
-                <div class="space-y-6 animate-fade-in">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">대상자 관리</h2>
-                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-                            ${state.ui.selectedClientIds.size > 0 ? `
-                                <button onclick="app.openBatchEditClientModal()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${state.ui.selectedClientIds.size})</button>
-                                <button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제(${state.ui.selectedClientIds.size})</button>
-                            ` : ''}
-                            <button onclick="app.downloadClientListExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="download" size="14"></i> 명부 저장</button>
-                            <button onclick="app.downloadTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="file-text" size="14"></i> 양식</button>
-                            <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 cursor-pointer flex-1 sm:flex-none justify-center"><i data-lucide="upload" size="14"></i> 업로드<input type="file" class="hidden" onchange="app.uploadExcel(this)"></label>
-                            <button onclick="app.openClientModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="plus" size="16"></i> 등록</button>
+                <div class="flex flex-col h-full animate-fade-in overflow-hidden">
+                    <!-- [고정 영역] 제목, 통계, 필터 -->
+                    <div class="flex-shrink-0 space-y-6 pb-2 pr-1">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">대상자 관리</h2>
+                            <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                                <div id="client-batch-actions" class="flex gap-2">
+                                    ${state.ui.selectedClientIds.size > 0 ? `
+                                        <button onclick="app.openBatchEditClientModal()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${state.ui.selectedClientIds.size})</button>
+                                        <button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제(${state.ui.selectedClientIds.size})</button>
+                                    ` : ''}
+                                </div>
+                                <button onclick="app.downloadClientListExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="download" size="14"></i> 명부 저장</button>
+                                <button onclick="app.downloadTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="file-text" size="14"></i> 양식</button>
+                                <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 cursor-pointer flex-1 sm:flex-none justify-center"><i data-lucide="upload" size="14"></i> 업로드<input type="file" class="hidden" onchange="app.uploadExcel(this)"></label>
+                                <button onclick="app.openClientModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center"><i data-lucide="plus" size="16"></i> 등록</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex flex-wrap gap-3 justify-start">
-                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 min-w-[240px]">
-                          <div><p class="text-sm text-slate-500 font-medium leading-tight">이용 대상자</p><p class="text-2xl font-bold text-slate-800 mt-1">${activeStats.total}<span class="text-sm text-slate-400 font-normal ml-1">명 <span class="text-xs text-slate-500 font-normal tracking-tight ml-1">(이용중 : ${activeStats.using} / 장기부재 : ${activeStats.absent})</span></span></p></div>
-                          <div class="p-3 bg-emerald-50 rounded-full text-emerald-500 ml-auto"><i data-lucide="user-check" size="24"></i></div>
-                       </div>
-                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6">
-                          <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1">등급별</span><div class="text-sm font-bold flex gap-2"><span class="text-pink-600">중점 ${activeStats.highFocus}</span><span class="text-slate-300">|</span><span class="text-blue-600">일반 ${activeStats.general}</span></div></div>
-                          <div class="w-px h-8 bg-slate-100"></div>
-                          <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1">성별</span><div class="text-sm font-bold flex gap-2"><span class="text-blue-500">남 ${activeStats.male}</span><span class="text-slate-300">|</span><span class="text-red-500">여 ${activeStats.female}</span></div></div>
-                       </div>
-                       <div onclick="app.showYearStatsModal()" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 cursor-pointer hover:bg-slate-50 transition-colors group">
-                          <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1 group-hover:text-emerald-600 transition-colors">올해 현황 (${currentYearStr})</span><div class="text-sm font-bold flex gap-2"><span class="text-emerald-600">신규 ${yearStats.new}</span><span class="text-slate-300">|</span><span class="text-slate-500">종결 ${yearStats.end}</span></div></div>
-                          <div class="p-3 bg-orange-50 rounded-full text-orange-500 ml-auto group-hover:bg-orange-100 transition-colors"><i data-lucide="activity" size="20"></i></div>
-                       </div>
-                        ${isFilterActive ? `
-                       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 animate-fade-in">
-                          <div class="flex flex-col justify-center">
-                              <span class="text-xs text-slate-500 font-bold mb-1">조회된 대상자</span>
-                              <div class="text-sm font-bold flex items-baseline gap-1">
-                                  <span class="text-xl text-slate-800">${filteredTotal}</span><span class="text-xs text-slate-500 font-normal">명</span>
-                                  <span class="text-slate-300 mx-1">|</span>
-                                  <span class="text-xs text-slate-500">(중점 <span class="text-pink-600">${filteredHighFocus}</span> / 일반 <span class="text-blue-600">${filteredGeneral}</span>)</span>
+                        <div class="flex flex-wrap gap-3 justify-start">
+                           <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 min-w-[240px]">
+                              <div><p class="text-sm text-slate-500 font-medium leading-tight">이용 대상자</p><p class="text-2xl font-bold text-slate-800 mt-1">${activeStats.total}<span class="text-sm text-slate-400 font-normal ml-1">명 <span class="text-xs text-slate-500 font-normal tracking-tight ml-1">(이용중 : ${activeStats.using} / 장기부재 : ${activeStats.absent})</span></span></p></div>
+                              <div class="p-3 bg-emerald-50 rounded-full text-emerald-500 ml-auto"><i data-lucide="user-check" size="24"></i></div>
+                           </div>
+                           <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6">
+                              <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1">등급별</span><div class="text-sm font-bold flex gap-2"><span class="text-pink-600">중점 ${activeStats.highFocus}</span><span class="text-slate-300">|</span><span class="text-blue-600">일반 ${activeStats.general}</span></div></div>
+                              <div class="w-px h-8 bg-slate-100"></div>
+                              <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1">성별</span><div class="text-sm font-bold flex gap-2"><span class="text-blue-500">남 ${activeStats.male}</span><span class="text-slate-300">|</span><span class="text-red-500">여 ${activeStats.female}</span></div></div>
+                           </div>
+                           <div onclick="app.showYearStatsModal()" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 cursor-pointer hover:bg-slate-50 transition-colors group">
+                              <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1 group-hover:text-emerald-600 transition-colors">올해 현황 (${currentYearStr})</span><div class="text-sm font-bold flex gap-2"><span class="text-emerald-600">신규 ${yearStats.new}</span><span class="text-slate-300">|</span><span class="text-slate-500">종결 ${yearStats.end}</span></div></div>
+                              <div class="p-3 bg-orange-50 rounded-full text-orange-500 ml-auto group-hover:bg-orange-100 transition-colors"><i data-lucide="activity" size="20"></i></div>
+                           </div>
+                            ${isFilterActive ? `
+                           <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 animate-fade-in">
+                              <div class="flex flex-col justify-center">
+                                  <span class="text-xs text-slate-500 font-bold mb-1">조회된 대상자</span>
+                                  <div class="text-sm font-bold flex items-baseline gap-1">
+                                      <span class="text-xl text-slate-800">${filteredTotal}</span><span class="text-xs text-slate-500 font-normal">명</span>
+                                      <span class="text-slate-300 mx-1">|</span>
+                                      <span class="text-xs text-slate-500">(중점 <span class="text-pink-600">${filteredHighFocus}</span> / 일반 <span class="text-blue-600">${filteredGeneral}</span>)</span>
+                                  </div>
                               </div>
-                          </div>
-                          <div class="p-3 bg-indigo-50 rounded-full text-indigo-500 ml-auto"><i data-lucide="search" size="20"></i></div>
-                       </div>` : ''}
-                    </div>
-                    
-                    <div class="sticky top-16 md:top-0 z-40 bg-slate-50 pt-2 pb-2">
+                              <div class="p-3 bg-indigo-50 rounded-full text-indigo-500 ml-auto"><i data-lucide="search" size="20"></i></div>
+                           </div>` : ''}
+                        </div>
+                        
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-2">
                             <div class="flex flex-wrap items-center gap-3 w-full">
                                 <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span><input id="client-search-name" class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)" oninput="if(this.value === '') app.setFilter('client','search','')"></div>
@@ -758,7 +771,8 @@
                         </div>
                     </div>
 
-                    <div class="space-y-2">
+                    <!-- [스크롤 영역] 대상자 목록 -->
+                    <div class="flex-1 overflow-y-auto min-h-0 space-y-2 pr-1 pb-4">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
                         filtered.map(c => {
                             const isLogicallyTerminated = c.status === '종결' || (c.endDate && c.endDate <= filterEnd);
@@ -813,23 +827,25 @@
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
             const allSelected = filtered.length > 0 && filtered.every(l => state.ui.selectedLogIds.has(l.id));
 
+            // [수정] 레이아웃 구조 변경: 상단 고정 영역(Header)과 스크롤 영역(List) 분리
             return `
-                <div class="space-y-6 animate-fade-in">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
-                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                            <button onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="file-spreadsheet" size="16"></i> 양식</button>
-                            <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors">
-                                <i data-lucide="upload" size="16"></i> 업로드
-                                <input type="file" class="hidden" onchange="app.uploadLogExcel(this)" accept=".xlsx, .xls">
-                            </label>
-                            <button onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
-                            <button onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
-                            <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
+                <div class="flex flex-col h-full animate-fade-in overflow-hidden">
+                    <!-- [고정 영역] 제목, 버튼, 필터, 통계 -->
+                    <div class="flex-shrink-0 space-y-4 pb-2 pr-1">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
+                            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                                <button onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="file-spreadsheet" size="16"></i> 양식</button>
+                                <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors">
+                                    <i data-lucide="upload" size="16"></i> 업로드
+                                    <input type="file" class="hidden" onchange="app.uploadLogExcel(this)" accept=".xlsx, .xls">
+                                </label>
+                                <button onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
+                                <button onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
+                                <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="sticky top-16 md:top-0 z-40 bg-slate-50 pt-2 pb-2">
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
                             <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0"><i data-lucide="filter" size="14"></i> 필터</div>
                             <div class="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
@@ -850,23 +866,26 @@
                             </div>
                             <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                         </div>
-                    </div>
-                    <div class="flex items-center justify-between px-1 h-8">
-                        <div class="flex items-center gap-3">
-                            <div class="text-sm text-slate-500">총 <span class="font-bold text-slate-800">${filtered.length}</span>건</div>
-                            <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
-                                <input type="checkbox" id="log-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${filtered.length === 0 ? 'disabled' : ''}>
-                                <span class="text-sm font-medium text-slate-600">전체선택</span>
-                            </label>
+
+                        <div class="flex items-center justify-between px-1 h-8">
+                            <div class="flex items-center gap-3">
+                                <div class="text-sm text-slate-500">총 <span class="font-bold text-slate-800">${filtered.length}</span>건</div>
+                                <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
+                                    <input type="checkbox" id="log-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${filtered.length === 0 ? 'disabled' : ''}>
+                                    <span class="text-sm font-medium text-slate-600">전체선택</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center gap-2" id="log-batch-actions">
+                                ${state.ui.selectedLogIds.size > 0 ? `
+                                    <button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-blue-100 transition-colors animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${state.ui.selectedLogIds.size})</button>
+                                    <button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제</button>
+                                ` : ''}
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2" id="log-batch-actions">
-                            ${state.ui.selectedLogIds.size > 0 ? `
-                                <button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-blue-100 transition-colors animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${state.ui.selectedLogIds.size})</button>
-                                <button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제</button>
-                            ` : ''}
-                        </div>
                     </div>
-                    <div class="space-y-4">
+
+                    <!-- [스크롤 영역] 서비스 일지 목록 -->
+                    <div class="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1 pb-4">
                         ${filtered.length === 0 ? '<div class="text-center py-12 text-slate-400">검색 결과가 없습니다.</div>' : filtered.map(l => {
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
@@ -977,10 +996,11 @@
                 theadHTML = `<tr><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_No}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-500" style="${stickColStyle(L_No, 50)}">No</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Name}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-700" style="${stickColStyle(L1, 50)}">대상자</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Birth}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L2, 50)}">생년월일</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Level}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L3, 50)}">등급</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Region}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L4, 50)}">행정동</th><th rowspan="2" class="py-2 px-1 bg-emerald-50 text-emerald-700 border-b border-r min-w-[${W_Total}px] z-30 text-xs text-center font-bold" style="${stickColStyle(L5, 50)}">합계</th>${orderedCategories.map(cat => `<th colspan="${headerGroups[cat].length}" class="py-1 border-b border-r bg-slate-100 text-center text-xs text-center font-semibold text-slate-600 whitespace-nowrap">${cat}</th>`).join('')}</tr><tr>${orderedCategories.map(cat => headerGroups[cat].map(svc => `<th class="py-1.5 px-2 border-b border-r font-normal text-xs text-center text-slate-500 bg-slate-50 whitespace-nowrap">${svc === '정서지원서비스(안전안부확인)' ? '안전안부확인' : svc}</th>`).join('')).join('')}</tr>${totalRowHTML}`;
             }
 
+            // [수정] 레이아웃 변경에 따른 내부 스크롤 컨테이너 추가
             return `
-                <div class="space-y-6 animate-fade-in">
+                <div class="flex-1 overflow-y-auto space-y-6 animate-fade-in p-1">
                     <h2 class="text-2xl font-bold text-slate-800">서비스 제공 통계</h2>
-                    <div class="sticky top-16 md:top-0 z-50 bg-slate-50 pt-2 pb-2">
+                    <div class="sticky top-0 z-50 bg-slate-50 pt-2 pb-2">
                         <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                             <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
                                 <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
@@ -1039,8 +1059,10 @@
         function renderServiceManager() {
             const isEditing = !!state.editingServiceId;
             const editData = isEditing ? state.services.find(s => s.id === state.editingServiceId) : {};
+            
+            // [수정] 레이아웃 변경에 따른 내부 스크롤 컨테이너 추가
             return `
-                <div class="space-y-6 animate-fade-in">
+                <div class="flex-1 overflow-y-auto space-y-6 animate-fade-in p-1">
                     <h2 class="text-2xl font-bold text-slate-800">서비스 목록 설정</h2>
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                         <form onsubmit="app.addService(event)" class="flex flex-col sm:flex-row flex-wrap gap-4 items-end">
@@ -1600,7 +1622,35 @@
                 } catch (err) { alert("수정 중 오류가 발생했습니다: " + err.message); }
             },
             executeDeleteSelectedLogs: async () => { try { const promises = Array.from(state.ui.selectedLogIds).map(id => deleteDoc(doc(db, "logs", id))); await Promise.all(promises); state.ui.selectedLogIds.clear(); closeDialog(); } catch (err) { alert("삭제 중 오류가 발생했습니다: " + err.message); } },
-            toggleClientSelection: (id) => { if (state.ui.selectedClientIds.has(id)) state.ui.selectedClientIds.delete(id); else state.ui.selectedClientIds.add(id); render(); },
+            
+            // [수정] 대상자 선택 시 전체 화면 새로고침(render) 방지 및 부분 UI 업데이트
+            toggleClientSelection: (id) => { 
+                if (state.ui.selectedClientIds.has(id)) {
+                    state.ui.selectedClientIds.delete(id); 
+                } else {
+                    state.ui.selectedClientIds.add(id); 
+                }
+                // render() 제거 -> 전체 화면 깜빡임 방지
+                app.updateClientBatchActionsUI(); 
+            },
+
+            // [신규] 대상자 일괄 작업 버튼 영역만 부분 업데이트하는 함수
+            updateClientBatchActionsUI: () => {
+                const container = document.getElementById('client-batch-actions');
+                if (!container) return;
+                
+                const count = state.ui.selectedClientIds.size;
+                if (count > 0) {
+                    container.innerHTML = `
+                        <button onclick="app.openBatchEditClientModal()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${count})</button>
+                        <button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제(${count})</button>
+                    `;
+                    lucide.createIcons();
+                } else {
+                    container.innerHTML = '';
+                }
+            },
+
             deleteSelectedClients: () => {
                 const count = state.ui.selectedClientIds.size;
                 if (count === 0) return;
