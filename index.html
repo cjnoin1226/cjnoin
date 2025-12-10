@@ -1145,8 +1145,10 @@
                     state.paneTabs[state.focusedPane] = t;
                 }
                 
-                // 모바일 메뉴 닫기
-                state.isMobileMenuOpen = false;
+                // [수정] 모바일 메뉴 닫기 (화면 닫힘 처리 포함)
+                if (state.isMobileMenuOpen) {
+                    app.toggleMobileMenu(false);
+                }
 
                 // [최적화] 전체 render() 대신 UI 상태만 변경하여 즉시 반응
                 app.updateTabVisibility(); 
@@ -1449,14 +1451,35 @@
                 document.addEventListener('mouseup', onUp);
             },
 
-            // [신규] 모바일 메뉴 토글
-            toggleMobileMenu: () => {
-                state.isMobileMenuOpen = !state.isMobileMenuOpen;
+            // [수정] 모바일 메뉴 토글 (강제 닫기 및 외부 클릭 감지 추가)
+            toggleMobileMenu: (force) => {
+                // force가 boolean이면 해당 상태로 설정, 아니면 토글
+                const nextState = typeof force === 'boolean' ? force : !state.isMobileMenuOpen;
+                
+                if (state.isMobileMenuOpen === nextState) return; // 상태 변화 없으면 종료
+
+                state.isMobileMenuOpen = nextState;
                 const menu = document.getElementById('mobile-menu');
+                
                 if (state.isMobileMenuOpen) {
                     menu.classList.remove('-translate-y-[150%]');
+                    // 메뉴가 열릴 때 외부 클릭 감지 리스너 등록
+                    setTimeout(() => document.addEventListener('click', app.handleMobileMenuOutsideClick), 0);
                 } else {
                     menu.classList.add('-translate-y-[150%]');
+                    // 메뉴가 닫힐 때 외부 클릭 감지 리스너 제거
+                    document.removeEventListener('click', app.handleMobileMenuOutsideClick);
+                }
+            },
+
+            // [신규] 모바일 메뉴 외부 클릭 감지 핸들러
+            handleMobileMenuOutsideClick: (e) => {
+                const menu = document.getElementById('mobile-menu');
+                const toggleBtn = document.querySelector('button[onclick="app.toggleMobileMenu()"]');
+                
+                // 클릭된 요소가 메뉴 내부가 아니고, 토글 버튼도 아니라면 메뉴 닫기
+                if (menu && !menu.contains(e.target) && (!toggleBtn || !toggleBtn.contains(e.target))) {
+                    app.toggleMobileMenu(false);
                 }
             },
 
