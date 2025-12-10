@@ -178,6 +178,23 @@
         .resizer-se { bottom: -3px; right: -3px; width: 12px; height: 12px; cursor: se-resize; z-index: 101; }
         .resizer-sw { bottom: -3px; left: -3px; width: 12px; height: 12px; cursor: sw-resize; z-index: 101; }
 
+        /* [추가] 커스텀 스크롤바 스타일 (목록 내부 스크롤용) */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
         /* [유지] 상단 탭 바 스타일 (초소형 레이아웃 적용) */
         .tab-bar-container {
             display: flex;
@@ -260,10 +277,11 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+<!-- [수정] body에서 h-screen, overflow-hidden 제거 -> 전체 스크롤 허용 -->
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
     <!-- Top Navigation Bar (왼쪽 정렬 유지) -->
-    <header class="bg-slate-800 text-white h-14 flex-shrink-0 flex items-center px-4 md:px-6 shadow-md z-50 relative">
+    <header class="bg-slate-800 text-white h-14 flex-shrink-0 flex items-center px-4 md:px-6 shadow-md z-50 sticky top-0">
         <!-- Logo -->
         <h1 class="font-bold flex items-center gap-2.5 text-lg cursor-pointer mr-8" onclick="app.setTab('dashboard')">
             <img src="청전로고.png" class="w-7 h-7 object-contain bg-white rounded-full p-0.5" alt="로고" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2903/2903558.png'">
@@ -299,7 +317,7 @@
     </header>
 
     <!-- Mobile Navigation Menu (Overlay) -->
-    <div id="mobile-menu" class="absolute top-14 left-0 right-0 bg-slate-800 z-40 transform -translate-y-[150%] transition-transform duration-300 ease-in-out shadow-xl md:hidden">
+    <div id="mobile-menu" class="fixed top-14 left-0 right-0 bg-slate-800 z-40 transform -translate-y-[150%] transition-transform duration-300 ease-in-out shadow-xl md:hidden">
         <div class="p-4 space-y-2">
             <button onclick="app.setTab('dashboard')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="dashboard">홈</button>
             <button onclick="app.setTab('clients')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="clients">대상자 관리</button>
@@ -317,17 +335,19 @@
     </div>
 
     <!-- Main Content Container -->
-    <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-slate-50" id="main-content">
+    <!-- [수정] h-full, overflow-hidden 제거 -> 내용만큼 늘어나도록 변경 -->
+    <main class="flex-1 flex flex-col relative bg-slate-50" id="main-content">
         
         <!-- 열린 탭 바 (Browser Tabs) -->
-        <div id="top-tab-bar" class="tab-bar-container">
+        <div id="top-tab-bar" class="tab-bar-container sticky top-14 z-40 bg-slate-50">
             <!-- 탭들이 여기에 동적으로 추가됨 -->
         </div>
 
-        <!-- 스크롤 가능한 메인 영역 (구조 변경: ID 변경 및 내부 구조 단순화) -->
-        <div class="flex-1 w-full relative overflow-hidden" id="main-view-container">
+        <!-- 스크롤 가능한 메인 영역 -->
+        <!-- [수정] overflow-hidden 제거 -->
+        <div class="flex-1 w-full relative" id="main-view-container">
             <!-- 각 탭의 컨텐츠(div)들이 이곳에 생성되고 유지됩니다 -->
-            <div id="initial-loader" class="flex items-center justify-center h-full text-slate-400">
+            <div id="initial-loader" class="flex items-center justify-center h-64 text-slate-400">
                 <div class="animate-spin mr-2"><i data-lucide="loader-2"></i></div>데이터 불러오는 중...
             </div>
         </div>
@@ -548,7 +568,8 @@
 
                 container = document.createElement('div');
                 container.id = containerId;
-                container.className = 'tab-content-wrapper p-4 md:p-6'; // 기본 스타일
+                // [수정] 탭 컨텐츠 래퍼의 높이 제한 해제 (h-full 제거)
+                container.className = 'tab-content-wrapper p-4 md:p-6'; 
                 mainContainer.appendChild(container);
             }
 
@@ -572,9 +593,9 @@
             const highFocus = activeClients.filter(c => c.careLevel === '중점').length;
             const general = activeClients.filter(c => c.careLevel === '일반').length;
 
-            // [수정] 레이아웃 변경에 따른 내부 스크롤 컨테이너 추가
+            // [수정] 내부 스크롤 제거 (전체 스크롤 사용)
             return `
-                <div class="flex-1 overflow-y-auto space-y-6 animate-fade-in p-1">
+                <div class="space-y-6 animate-fade-in p-1">
                     <div class="flex justify-between items-center">
                         <h2 class="text-xl md:text-2xl font-bold text-slate-800">홈</h2>
                         <div class="text-xs md:text-sm text-emerald-600 flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>공유 중</div>
@@ -698,12 +719,12 @@
             const filteredGeneral = filtered.filter(c => c.careLevel === '일반').length;
             const isFilterActive = search !== '' || searchPhone !== '' || status !== '이용' || level !== '' || economicStatus !== '' || duplicateService !== '' || ictStatus !== '' || region.length > 0 || gender !== '' || targetYear !== '' || targetMonth !== '';
 
-            // [수정] 레이아웃 구조 변경: 상단 고정 영역(Header)과 스크롤 영역(List) 분리
+            // [수정] 통계 메뉴처럼 목록 영역에 max-height와 overflow-auto 적용
             return `
-                <div class="flex flex-col h-full animate-fade-in overflow-hidden">
-                    <!-- [고정 영역] 제목, 통계, 필터 -->
-                    <div class="flex-shrink-0 space-y-6 pb-2 pr-1">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div class="flex flex-col animate-fade-in">
+                    <!-- [고정 영역] 제목, 통계, 필터 (Sticky 제거하고 일반 흐름으로 배치하되, 목록 영역에 스크롤 적용) -->
+                    <div class="space-y-6 pb-2 pr-1 transition-all">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
                             <h2 class="text-xl md:text-2xl font-bold text-slate-800">대상자 관리</h2>
                             <div class="flex flex-wrap gap-2 w-full sm:w-auto">
                                 <div id="client-batch-actions" class="flex gap-2">
@@ -771,8 +792,9 @@
                         </div>
                     </div>
 
-                    <!-- [스크롤 영역] 대상자 목록 -->
-                    <div class="flex-1 overflow-y-auto min-h-0 space-y-2 pr-1 pb-4">
+                    <!-- [수정] 목록 영역: 고정 높이와 overflow-auto 적용하여 통계 메뉴처럼 내부 스크롤 생성 -->
+                    <!-- max-h-[70vh]를 주어 화면이 작아도 스크롤됨. 전체 페이지 스크롤도 가능 -->
+                    <div class="overflow-y-auto max-h-[70vh] custom-scrollbar space-y-2 pr-1 pb-4">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
                         filtered.map(c => {
                             const isLogicallyTerminated = c.status === '종결' || (c.endDate && c.endDate <= filterEnd);
@@ -827,12 +849,12 @@
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
             const allSelected = filtered.length > 0 && filtered.every(l => state.ui.selectedLogIds.has(l.id));
 
-            // [수정] 레이아웃 구조 변경: 상단 고정 영역(Header)과 스크롤 영역(List) 분리
+            // [수정] 통계 메뉴처럼 목록 영역에 max-height와 overflow-auto 적용
             return `
-                <div class="flex flex-col h-full animate-fade-in overflow-hidden">
-                    <!-- [고정 영역] 제목, 버튼, 필터, 통계 -->
-                    <div class="flex-shrink-0 space-y-4 pb-2 pr-1">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div class="flex flex-col animate-fade-in">
+                    <!-- [고정 영역] 제목, 버튼, 필터 -->
+                    <div class="space-y-4 pb-2 pr-1 transition-all">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
                             <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
                             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                                 <button onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="file-spreadsheet" size="16"></i> 양식</button>
@@ -884,8 +906,8 @@
                         </div>
                     </div>
 
-                    <!-- [스크롤 영역] 서비스 일지 목록 -->
-                    <div class="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1 pb-4">
+                    <!-- [목록 영역] max-h 및 overflow-auto 적용 -->
+                    <div class="overflow-y-auto max-h-[70vh] custom-scrollbar space-y-4 pr-1 pb-4">
                         ${filtered.length === 0 ? '<div class="text-center py-12 text-slate-400">검색 결과가 없습니다.</div>' : filtered.map(l => {
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
@@ -996,11 +1018,11 @@
                 theadHTML = `<tr><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_No}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-500" style="${stickColStyle(L_No, 50)}">No</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Name}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-700" style="${stickColStyle(L1, 50)}">대상자</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Birth}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L2, 50)}">생년월일</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Level}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L3, 50)}">등급</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Region}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L4, 50)}">행정동</th><th rowspan="2" class="py-2 px-1 bg-emerald-50 text-emerald-700 border-b border-r min-w-[${W_Total}px] z-30 text-xs text-center font-bold" style="${stickColStyle(L5, 50)}">합계</th>${orderedCategories.map(cat => `<th colspan="${headerGroups[cat].length}" class="py-1 border-b border-r bg-slate-100 text-center text-xs text-center font-semibold text-slate-600 whitespace-nowrap">${cat}</th>`).join('')}</tr><tr>${orderedCategories.map(cat => headerGroups[cat].map(svc => `<th class="py-1.5 px-2 border-b border-r font-normal text-xs text-center text-slate-500 bg-slate-50 whitespace-nowrap">${svc === '정서지원서비스(안전안부확인)' ? '안전안부확인' : svc}</th>`).join('')).join('')}</tr>${totalRowHTML}`;
             }
 
-            // [수정] 레이아웃 변경에 따른 내부 스크롤 컨테이너 추가
+            // [수정] 전체 스크롤 + Sticky Header 구조로 변경
             return `
-                <div class="flex-1 overflow-y-auto space-y-6 animate-fade-in p-1">
+                <div class="space-y-6 animate-fade-in p-1">
                     <h2 class="text-2xl font-bold text-slate-800">서비스 제공 통계</h2>
-                    <div class="sticky top-0 z-50 bg-slate-50 pt-2 pb-2">
+                    <div class="sticky top-0 z-50 bg-slate-50 pt-2 pb-2 shadow-sm -mx-1 px-1">
                         <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                             <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
                                 <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
@@ -1060,9 +1082,9 @@
             const isEditing = !!state.editingServiceId;
             const editData = isEditing ? state.services.find(s => s.id === state.editingServiceId) : {};
             
-            // [수정] 레이아웃 변경에 따른 내부 스크롤 컨테이너 추가
+            // [수정] 내부 스크롤 제거 (전체 스크롤 사용)
             return `
-                <div class="flex-1 overflow-y-auto space-y-6 animate-fade-in p-1">
+                <div class="space-y-6 animate-fade-in p-1">
                     <h2 class="text-2xl font-bold text-slate-800">서비스 목록 설정</h2>
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                         <form onsubmit="app.addService(event)" class="flex flex-col sm:flex-row flex-wrap gap-4 items-end">
@@ -1230,6 +1252,10 @@
                     document.getElementById('split-status-text').textContent = 'ON';
                     document.getElementById('btn-split-toggle').classList.add('bg-slate-700', 'text-emerald-400', 'border-emerald-500');
                     
+                    // [수정] 윈도우 모드 진입 시 전체 스크롤 방지 및 배경 고정 (App-like feel)
+                    document.body.style.overflow = 'hidden';
+                    document.body.style.height = '100vh';
+
                     // 윈도우 초기 위치 설정 (화면 크기에 맞춰 중앙 정렬)
                     const container = document.getElementById('main-content');
                     const w = container ? container.clientWidth : window.innerWidth;
@@ -1248,6 +1274,10 @@
                     document.getElementById('split-status-text').textContent = 'OFF';
                     document.getElementById('btn-split-toggle').classList.remove('bg-slate-700', 'text-emerald-400', 'border-emerald-500');
                     
+                    // [수정] 싱글 모드 복귀 시 전체 스크롤 허용 (Web-like feel)
+                    document.body.style.overflow = '';
+                    document.body.style.height = '';
+
                     // 싱글 모드 복귀 시 DOM 재구성 (기존 탭 뷰들 복원)
                     const mainContainer = document.getElementById('main-view-container');
                     if(mainContainer) {
@@ -2385,7 +2415,8 @@
             app.renderTabBar(state.activeTab);
 
             // 분할 뷰 모드 설정
-            main.className = "h-full relative overflow-hidden bg-slate-100"; // 배경색 추가 (바탕화면 느낌)
+            // [수정] 윈도우 모드는 화면 전체를 덮는 고정 컨테이너여야 함
+            main.className = "fixed inset-0 top-14 bg-slate-100 z-0 overflow-hidden"; // fixed로 변경하여 전체 덮기
             main.innerHTML = ""; // 기존 컨텐츠 초기화 (윈도우 모드는 래퍼 방식 아님)
 
             // 윈도우 생성 헬퍼 함수
@@ -2396,6 +2427,7 @@
                 
                 const winDiv = document.createElement('div');
                 winDiv.id = `window-${paneId}`;
+                // [수정] 윈도우 모드 내부에서는 flex 및 overflow-hidden 필요 (창 내부 스크롤)
                 winDiv.className = `window-pane ${isActive ? 'active' : ''}`;
                 winDiv.style.left = `${winState.x}px`;
                 winDiv.style.top = `${winState.y}px`;
@@ -2422,7 +2454,8 @@
                             <div class="window-control-btn btn-close" onclick="app.toggleSplitView()" title="창 닫기 (분할 모드 종료)"></div>
                         </div>
                     </div>
-                    <div class="window-content p-4">
+                    <!-- [수정] 윈도우 내부 컨텐츠: overflow-auto 적용 -->
+                    <div class="window-content p-4 overflow-y-auto h-full flex-1">
                         ${getTabHTML(tabKey)}
                     </div>
                     ${handles}
