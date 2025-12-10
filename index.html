@@ -28,15 +28,16 @@
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        /* [수정] 애니메이션 변경: 슬라이드 효과(translateY) 제거하고 투명도만 조절 */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
         .modal-overlay { background-color: rgba(0, 0, 0, 0.5); }
         
         /* Table Sticky Headers */
         .sticky-col { position: sticky; left: 0; background-color: white; z-index: 10; }
         .sticky-header { position: sticky; top: 0; z-index: 20; }
 
-        /* 메인 모달 탭 스타일 */
+        /* [신규] 메인 모달 탭 스타일 */
         .modal-tab-btn {
             padding: 0.75rem 1.25rem;
             border-bottom: 2px solid transparent;
@@ -58,115 +59,275 @@
         .modal-tab-content { display: none; }
         .modal-tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
 
-        /* 사례관리 하위 탭 스타일 */
-        .sub-tab-btn {
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.5rem;
-            color: #64748b;
-            font-weight: 500;
-            font-size: 0.875rem;
-            transition: all 0.2s;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .sub-tab-btn:hover { background-color: #f1f5f9; color: #334155; }
-        .sub-tab-btn.active {
-            background-color: #ecfdf5;
-            color: #047857;
-            font-weight: 700;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .sub-tab-content { display: none; }
-        .sub-tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
-
-        /* 화면 분할 관련 스타일 */
-        .split-pane {
-            flex: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            border: 2px solid transparent;
-            border-radius: 0.75rem;
-            transition: all 0.2s;
+        /* [수정] 탭 컨텐츠 래퍼 스타일 (스크롤 및 레이아웃 최적화) */
+        .tab-content-wrapper {
+            height: 100%;
+            overflow-y: auto;
+            display: none; /* 기본적으로 숨김 */
+            background-color: #f8fafc;
             position: relative;
         }
-        .split-pane.active {
-            border-color: #10b981; /* 활성화된 창 강조 (Emerald-500) */
-            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+        .tab-content-wrapper.active {
+            display: block; /* 활성화 시 보임 */
         }
-        .split-pane-overlay {
+
+        /* [신규] 윈도우 모드 스타일 (이동/크기조절 가능) */
+        .window-pane {
             position: absolute;
-            inset: 0;
-            background: transparent;
-            z-index: 10;
-            display: none;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid #cbd5e1;
+            display: flex;
+            flex-direction: column;
+            /* overflow: hidden; -> 핸들이 잘리지 않도록 제거하거나 내부 컨텐츠에서 처리 */
+            min-width: 300px;
+            min-height: 200px;
+            will-change: left, top, width, height; 
+        }
+        
+        .window-pane.active {
+            z-index: 50 !important;
+            border-color: #3b82f6;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        /* [최적화] 드래그 중인 윈도우 스타일 */
+        .window-pane.dragging {
+            cursor: grabbing;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+
+        /* [핵심 최적화] 드래그 중 내부 컨텐츠 이벤트 차단 */
+        .window-pane.dragging .window-content {
+            pointer-events: none; 
+        }
+
+        .window-header {
+            padding: 8px 12px;
+            background-color: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: grab; /* 이동 커서 */
+            user-select: none;
+            flex-shrink: 0;
+            border-radius: 8px 8px 0 0; /* 상단 라운드 처리 */
+        }
+        .window-header:active {
+            cursor: grabbing;
+            background-color: #e2e8f0;
+        }
+
+        .window-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .window-control-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.1);
             cursor: pointer;
         }
-        /* 비활성화된 패널은 클릭 시 활성화되도록 투명 오버레이 처리 (선택 편의성) */
-        .split-pane:not(.active) .split-pane-overlay {
-            display: block;
+        .btn-minimize { background-color: #facc15; }
+        .btn-maximize { background-color: #4ade80; }
+        .btn-close { background-color: #f87171; }
+
+        .window-content {
+            flex: 1;
+            overflow: auto;
+            background-color: white;
+            position: relative;
+            border-radius: 0 0 8px 8px; /* 하단 라운드 처리 */
+        }
+
+        /* [신규] 8방향 리사이즈 핸들 스타일 */
+        .resizer {
+            position: absolute;
+            z-index: 100;
+            /* 배경색은 디버깅용 아니면 투명 */
+            /* background: rgba(255,0,0,0.1); */ 
+        }
+        /* 상하좌우 (두께 6px) */
+        .resizer-n { top: -3px; left: 6px; right: 6px; height: 6px; cursor: n-resize; }
+        .resizer-s { bottom: -3px; left: 6px; right: 6px; height: 6px; cursor: s-resize; }
+        .resizer-e { top: 6px; right: -3px; bottom: 6px; width: 6px; cursor: e-resize; }
+        .resizer-w { top: 6px; left: -3px; bottom: 6px; width: 6px; cursor: w-resize; }
+        /* 모서리 (크기 12px) */
+        .resizer-ne { top: -3px; right: -3px; width: 12px; height: 12px; cursor: ne-resize; z-index: 101; }
+        .resizer-nw { top: -3px; left: -3px; width: 12px; height: 12px; cursor: nw-resize; z-index: 101; }
+        .resizer-se { bottom: -3px; right: -3px; width: 12px; height: 12px; cursor: se-resize; z-index: 101; }
+        .resizer-sw { bottom: -3px; left: -3px; width: 12px; height: 12px; cursor: sw-resize; z-index: 101; }
+
+        /* [유지] 상단 탭 바 스타일 (초소형 레이아웃 적용) */
+        .tab-bar-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            padding: 2px 8px 0; /* 패딩 최소화 */
+            background-color: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            overflow-x: auto;
+            flex-shrink: 0;
+            height: 28px; /* 높이 고정으로 컴팩트함 유지 */
+        }
+        .main-tab {
+            display: flex;
+            align-items: center;
+            gap: 2px; /* 간격 최소화 */
+            padding: 0 8px; /* 패딩 대폭 축소 */
+            font-size: 0.75rem; /* 폰트 크기 축소 (12px) */
+            font-weight: 500;
+            color: #64748b;
+            background-color: #e2e8f0;
+            border-radius: 4px 4px 0 0; /* 라운드 축소 */
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            border-bottom: none;
+            white-space: nowrap;
+            height: 100%; /* 컨테이너 높이에 맞춤 */
+        }
+        .main-tab:hover {
+            background-color: #e6eff5;
+            color: #334155;
+        }
+        .main-tab.active {
+            background-color: #ffffff;
+            color: #059669; /* Emerald-600 */
+            font-weight: 700;
+            border-color: #e2e8f0;
+            box-shadow: 0 -1px 2px rgba(0,0,0,0.02);
+            position: relative;
+            bottom: -1px; /* border-bottom 가리기 */
+            z-index: 10;
+        }
+        .tab-close-btn {
+            padding: 0;
+            border-radius: 2px;
+            opacity: 0.5;
+            margin-left: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 12px; /* 버튼 크기 고정 */
+            height: 12px;
+        }
+        .tab-close-btn:hover {
+            background-color: #cbd5e1;
+            color: #ef4444;
+            opacity: 1;
+        }
+        
+        /* Top Navigation Bar Styles */
+        .nav-link {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: #cbd5e1;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        .nav-link:hover {
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .nav-link.active {
+            color: #ffffff;
+            background-color: #059669;
+            font-weight: 700;
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 h-screen flex overflow-hidden">
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- Mobile Header -->
-    <div class="md:hidden fixed top-0 left-0 right-0 bg-slate-800 text-white p-4 flex justify-between items-center z-50 h-16">
-        <h1 class="font-bold flex items-center gap-2 text-lg">
-            <img src="청전로고.png" class="w-6 h-6 object-contain bg-white rounded-full p-0.5" alt="로고" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2903/2903558.png'">
-            청전광장 (공유형)
+    <!-- Top Navigation Bar (왼쪽 정렬 유지) -->
+    <header class="bg-slate-800 text-white h-14 flex-shrink-0 flex items-center px-4 md:px-6 shadow-md z-50 relative">
+        <!-- Logo -->
+        <h1 class="font-bold flex items-center gap-2.5 text-lg cursor-pointer mr-8" onclick="app.setTab('dashboard')">
+            <img src="청전로고.png" class="w-7 h-7 object-contain bg-white rounded-full p-0.5" alt="로고" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2903/2903558.png'">
+            <span class="tracking-tight">청전광장</span>
         </h1>
-        <button id="mobile-menu-btn"><i data-lucide="menu"></i></button>
+
+        <!-- Desktop Navigation -->
+        <nav class="hidden md:flex items-center gap-2">
+            <button onclick="app.setTab('dashboard')" class="nav-link" data-tab="dashboard">홈</button>
+            <button onclick="app.setTab('clients')" class="nav-link" data-tab="clients">대상자 관리</button>
+            <button onclick="app.setTab('logs')" class="nav-link" data-tab="logs">서비스 일지</button>
+            <button onclick="app.setTab('statistics')" class="nav-link" data-tab="statistics">통계</button>
+            <button onclick="app.setTab('services')" class="nav-link" data-tab="services">서비스 설정</button>
+        </nav>
+
+        <!-- Right Side Utils -->
+        <div class="flex items-center gap-3 ml-auto">
+             <!-- 화면 분할 버튼 -->
+            <button onclick="app.toggleSplitView()" id="btn-split-toggle" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded text-xs text-slate-300 hover:text-white border border-slate-600 hover:bg-slate-700 transition-colors" title="화면 분할">
+                <span class="font-medium">분할 <span id="split-status-text">OFF</span></span>
+            </button>
+
+            <!-- Firebase Status -->
+            <div class="hidden md:flex items-center gap-1.5 text-xs bg-slate-900/50 px-2 py-1 rounded text-emerald-400 border border-slate-700">
+                연결됨
+            </div>
+
+            <!-- Mobile Menu Toggle -->
+            <button class="md:hidden p-2 text-slate-300 hover:text-white" onclick="app.toggleMobileMenu()">
+                <i data-lucide="menu" size="24"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Menu (Overlay) -->
+    <div id="mobile-menu" class="absolute top-14 left-0 right-0 bg-slate-800 z-40 transform -translate-y-[150%] transition-transform duration-300 ease-in-out shadow-xl md:hidden">
+        <div class="p-4 space-y-2">
+            <button onclick="app.setTab('dashboard')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="dashboard">홈</button>
+            <button onclick="app.setTab('clients')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="clients">대상자 관리</button>
+            <button onclick="app.setTab('logs')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="logs">서비스 일지</button>
+            <button onclick="app.setTab('statistics')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="statistics">통계</button>
+            <button onclick="app.setTab('services')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="services">서비스 설정</button>
+            
+            <div class="border-t border-slate-700 my-2 pt-2">
+                 <button onclick="app.toggleSplitView()" class="nav-link w-full justify-start text-slate-400 py-2.5">화면 분할 토글</button>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-emerald-400 px-4 py-2">
+                Firebase 연결됨
+            </div>
+        </div>
     </div>
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 md:w-64 bg-slate-800 text-white transform -translate-x-full md:relative md:translate-x-0 transition-all duration-300 flex flex-col pt-16 md:pt-0">
-        <div class="p-6 hidden md:flex items-center justify-between">
-            <h1 class="text-xl font-bold flex items-center gap-2 whitespace-nowrap overflow-hidden">
-                <img src="청전로고.png" class="w-8 h-8 object-contain bg-white rounded-full p-0.5" alt="로고" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2903/2903558.png'">
-                <span class="sidebar-text">청전광장</span>
-            </h1>
-            <button onclick="app.toggleSidebar()" class="text-slate-400 hover:text-white transition-colors" title="메뉴 접기">
-                <i data-lucide="chevrons-left"></i>
-            </button>
-        </div>
+    <!-- Main Content Container -->
+    <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-slate-50" id="main-content">
         
-        <nav class="flex-1 px-4 space-y-2 mt-4 md:mt-0 overflow-x-hidden">
-            <button onclick="app.setTab('dashboard')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 whitespace-nowrap" data-tab="dashboard"><i data-lucide="layout-dashboard" class="flex-shrink-0"></i> <span class="sidebar-text">홈</span></button>
-            <button onclick="app.setTab('clients')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 whitespace-nowrap" data-tab="clients"><i data-lucide="users" class="flex-shrink-0"></i> <span class="sidebar-text">대상자 관리</span></button>
-            <button onclick="app.setTab('logs')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 whitespace-nowrap" data-tab="logs"><i data-lucide="file-text" class="flex-shrink-0"></i> <span class="sidebar-text">서비스 일지</span></button>
-            <button onclick="app.setTab('statistics')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 whitespace-nowrap" data-tab="statistics"><i data-lucide="bar-chart-2" class="flex-shrink-0"></i> <span class="sidebar-text">통계</span></button>
-            <button onclick="app.setTab('services')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 whitespace-nowrap" data-tab="services"><i data-lucide="settings" class="flex-shrink-0"></i> <span class="sidebar-text">서비스 설정</span></button>
-        </nav>
-        
-        <!-- 화면 분할 토글 버튼 영역 -->
-        <div class="px-4 py-2 border-t border-slate-700">
-            <button onclick="app.toggleSplitView()" id="btn-split-toggle" class="w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-600 border-dashed">
-                <i data-lucide="columns" class="flex-shrink-0"></i>
-                <span class="sidebar-text text-sm">화면 분할 <span id="split-status-text">(OFF)</span></span>
-            </button>
+        <!-- 열린 탭 바 (Browser Tabs) -->
+        <div id="top-tab-bar" class="tab-bar-container">
+            <!-- 탭들이 여기에 동적으로 추가됨 -->
         </div>
 
-        <div class="p-4 bg-slate-900 text-xs text-slate-400 overflow-x-hidden">
-            <div class="flex items-center gap-2 mb-1 text-emerald-400"><i data-lucide="cloud" class="flex-shrink-0"></i> <span class="sidebar-text">Firebase 연결됨</span></div>
-            <p class="sidebar-text whitespace-nowrap">데이터가 실시간 공유됩니다.</p>
-        </div>
-    </aside>
-
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
-
-    <main class="flex-1 p-4 md:p-8 pt-20 md:pt-8 overflow-y-auto w-full relative transition-all duration-300" id="main-content">
-        <button id="desktop-menu-open-btn" onclick="app.toggleSidebar()" class="hidden mb-4 text-slate-500 hover:text-emerald-600 transition-colors flex items-center gap-2 font-medium">
-            <i data-lucide="menu"></i> 메뉴 열기
-        </button>
-
-        <div id="main-content-body" class="h-full">
-            <div class="flex items-center justify-center h-full text-slate-400"><div class="animate-spin mr-2"><i data-lucide="loader-2"></i></div>데이터 불러오는 중...</div>
+        <!-- 스크롤 가능한 메인 영역 (구조 변경: ID 변경 및 내부 구조 단순화) -->
+        <div class="flex-1 w-full relative overflow-hidden" id="main-view-container">
+            <!-- 각 탭의 컨텐츠(div)들이 이곳에 생성되고 유지됩니다 -->
+            <div id="initial-loader" class="flex items-center justify-center h-full text-slate-400">
+                <div class="animate-spin mr-2"><i data-lucide="loader-2"></i></div>데이터 불러오는 중...
+            </div>
         </div>
     </main>
 
-    <div id="modal-container" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto"></div>
-    <div id="dialog-container" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/50 p-4"></div>
+    <div id="modal-container" class="fixed inset-0 z-[60] hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto"></div>
+    <div id="dialog-container" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/50 p-4"></div>
 
     <!-- Firebase SDK & App Logic -->
     <script type="module">
@@ -206,6 +367,15 @@
             DUPLICATE_SERVICE_LIST: ['해당없음', '맞춤돌봄', '노노케어', '보훈재가', '장기요양', '기타'],
             ICT_STATUS_LIST: ['부', '여']
         };
+        
+        // 탭 이름 매핑
+        const TAB_NAMES = {
+            dashboard: '홈',
+            clients: '대상자 관리',
+            logs: '서비스 일지',
+            statistics: '통계',
+            services: '서비스 설정'
+        };
 
         const getTodayStr = () => {
             const now = new Date();
@@ -214,6 +384,8 @@
 
         const state = {
             activeTab: 'dashboard',
+            // 열린 탭 관리 (브라우저 탭 스타일)
+            openedTabs: ['dashboard'],
             // 화면 분할 관련 상태
             viewMode: 'single', // 'single' or 'split'
             focusedPane: 'left', // 'left' or 'right' (현재 활성화된 창)
@@ -221,6 +393,15 @@
                 left: 'dashboard',
                 right: 'logs'
             },
+            // [신규] 윈도우 상태 관리 (위치, 크기, z-index)
+            windows: {
+                left: { x: 20, y: 20, w: 600, h: 700, z: 1 },
+                right: { x: 640, y: 20, w: 600, h: 700, z: 2 }
+            },
+            isMobileMenuOpen: false, // [신규] 모바일 메뉴 상태
+            
+            // [신규] 각 탭의 렌더링 여부 추적 (최적화용)
+            renderedTabs: new Set(),
             
             clients: [],
             services: [],
@@ -313,16 +494,13 @@
                         const majorComp = (a.majorCategory || '').localeCompare(b.majorCategory || '');
                         if (majorComp !== 0) return majorComp;
                     }
-
                     const catComp = (a.category || '').localeCompare(b.category || '');
                     if (catComp !== 0) return catComp;
-
                     if (a.category === '사례관리' && b.category === '사례관리') {
                         const nameIndexA = caseManagementOrder.indexOf(a.name);
                         const nameIndexB = caseManagementOrder.indexOf(b.name);
                         if (nameIndexA !== -1 && nameIndexB !== -1) return nameIndexA - nameIndexB;
                     }
-
                     if (a.category === '노인상담 및 정보제공' && b.category === '노인상담 및 정보제공') {
                         const nameIndexA_C = counselingOrder.indexOf(a.name);
                         const nameIndexB_C = counselingOrder.indexOf(b.name);
@@ -342,7 +520,6 @@
             }, handleErr);
         }
 
-        // 탭별 HTML 생성 함수
         function getTabHTML(tabName) {
             if (tabName === 'dashboard') return renderDashboard();
             if (tabName === 'clients') return renderClientManager();
@@ -350,6 +527,30 @@
             if (tabName === 'statistics') return renderStatistics();
             if (tabName === 'services') return renderServiceManager();
             return '';
+        }
+
+        // [신규] 특정 탭의 컨텐츠를 DOM에 반영하는 함수 (부분 렌더링)
+        function updateTabContent(tabName) {
+            const containerId = `tab-view-${tabName}`;
+            let container = document.getElementById(containerId);
+            
+            // 컨테이너가 없으면 생성 (Main Container 내부에)
+            if (!container) {
+                const mainContainer = document.getElementById('main-view-container');
+                if (!mainContainer) return; // 로딩 전
+
+                container = document.createElement('div');
+                container.id = containerId;
+                container.className = 'tab-content-wrapper p-4 md:p-6'; // 기본 스타일
+                mainContainer.appendChild(container);
+            }
+
+            // HTML 컨텐츠 업데이트
+            container.innerHTML = getTabHTML(tabName);
+            state.renderedTabs.add(tabName);
+            
+            // 아이콘 리로드
+            lucide.createIcons();
         }
 
         function renderDashboard() {
@@ -884,43 +1085,378 @@
 
         window.app = {
             setTab: (t) => { 
+                // 탭 열기 로직
+                if (!state.openedTabs.includes(t)) {
+                    state.openedTabs.push(t);
+                }
+
                 if (state.viewMode === 'single') {
                     state.activeTab = t; 
                 } else {
                     state.paneTabs[state.focusedPane] = t;
                 }
-                render(); 
-                document.getElementById('sidebar').classList.add('-translate-x-full'); 
-                document.getElementById('sidebar-overlay').classList.add('hidden'); 
+                
+                // 모바일 메뉴 닫기
+                state.isMobileMenuOpen = false;
+
+                // [최적화] 전체 render() 대신 UI 상태만 변경하여 즉시 반응
+                app.updateTabVisibility(); 
+            },
+            
+            // [신규] 탭 가시성 및 상단 탭바만 빠르게 업데이트
+            updateTabVisibility: () => {
+                const currentTab = state.viewMode === 'single' ? state.activeTab : state.paneTabs[state.focusedPane];
+
+                // 1. 상단 탭바 업데이트 (렌더링 비용 낮음)
+                app.renderTabBar(currentTab);
+                
+                // 2. 상단 네비게이션 버튼 스타일 업데이트
+                document.querySelectorAll('.nav-link').forEach(b => { 
+                    const tabKey = b.dataset.tab || b.dataset.tabMobile;
+                    if(tabKey === currentTab) b.classList.add('active'); 
+                    else b.classList.remove('active'); 
+                });
+
+                // 3. 메인 컨텐츠 영역 Show/Hide (DOM 교체 없이 display 속성만 변경)
+                if (state.viewMode === 'single') {
+                    // 싱글 뷰 모드
+                    const mainContainer = document.getElementById('main-view-container');
+                    if(mainContainer) {
+                        mainContainer.className = "flex-1 w-full relative overflow-hidden flex flex-col"; // 레이아웃 초기화
+                        mainContainer.style.backgroundColor = ""; // 배경 초기화
+                        mainContainer.innerHTML = ""; // 윈도우 모드 잔재 제거
+
+                        // 기존 싱글 뷰 로직 복구: tab-content-wrapper 사용
+                        // (하지만 innerHTML=""로 인해 래퍼가 사라졌을 수 있으므로 다시 생성 로직 필요)
+                        // updateTabContent가 래퍼 없으면 생성하므로 호출하면 됨
+                        
+                        updateTabContent(state.activeTab);
+                        const activeView = document.getElementById(`tab-view-${state.activeTab}`);
+                        if (activeView) activeView.classList.add('active');
+                        
+                        // 다른 탭 숨김 (DOM이 살아있다면)
+                        state.openedTabs.forEach(t => {
+                            if (t !== state.activeTab) {
+                                const v = document.getElementById(`tab-view-${t}`);
+                                if (v) v.classList.remove('active');
+                            }
+                        });
+                    }
+                } else {
+                    // 분할(윈도우) 뷰 모드
+                    render(); // 윈도우 모드는 구조가 완전히 다르므로 전체 렌더링
+                }
+            },
+
+            // [신규] 상단 탭바만 별도 렌더링
+            renderTabBar: (currentTab) => {
+                const tabBar = document.getElementById('top-tab-bar');
+                if (tabBar) {
+                    tabBar.innerHTML = state.openedTabs.map(t => {
+                        const isActive = t === currentTab;
+                        return `
+                        <div class="main-tab ${isActive ? 'active' : ''}" onclick="app.setTab('${t}')">
+                            <span>${TAB_NAMES[t] || t}</span>
+                            <button onclick="app.closeTab('${t}', event)" class="tab-close-btn" title="탭 닫기">
+                                <i data-lucide="x" size="8"></i>
+                            </button>
+                        </div>`;
+                    }).join('');
+                    lucide.createIcons();
+                }
+            },
+
+            closeTab: (t, e) => {
+                if (e) e.stopPropagation();
+                // 탭 제거
+                state.openedTabs = state.openedTabs.filter(tab => tab !== t);
+                
+                // DOM 요소도 제거 (메모리 관리)
+                const view = document.getElementById(`tab-view-${t}`);
+                if (view) view.remove();
+                state.renderedTabs.delete(t);
+
+                // 만약 모든 탭을 닫았다면 기본값 추가
+                if (state.openedTabs.length === 0) {
+                    state.openedTabs.push('dashboard');
+                }
+
+                // 현재 보고 있던 탭을 닫았을 경우 처리
+                const fallbackTab = state.openedTabs[state.openedTabs.length - 1]; 
+                
+                if (state.viewMode === 'single') {
+                    if (state.activeTab === t) {
+                        state.activeTab = fallbackTab;
+                        app.updateTabVisibility(); // 최적화된 전환
+                    } else {
+                        app.renderTabBar(state.activeTab); // 탭바만 갱신
+                    }
+                } else {
+                    if (state.paneTabs.left === t) state.paneTabs.left = fallbackTab;
+                    if (state.paneTabs.right === t) state.paneTabs.right = fallbackTab;
+                    render();
+                }
             },
             toggleSplitView: () => {
+                state.isMobileMenuOpen = false; // 메뉴 닫기
                 if (state.viewMode === 'single') {
                     state.viewMode = 'split';
                     state.paneTabs.left = state.activeTab;
                     state.paneTabs.right = (state.activeTab === 'logs' ? 'clients' : 'logs');
+                    if (!state.openedTabs.includes(state.paneTabs.right)) state.openedTabs.push(state.paneTabs.right);
                     state.focusedPane = 'left';
-                    document.getElementById('split-status-text').textContent = '(ON)';
+                    document.getElementById('split-status-text').textContent = 'ON';
                     document.getElementById('btn-split-toggle').classList.add('bg-slate-700', 'text-emerald-400', 'border-emerald-500');
+                    
+                    // 윈도우 초기 위치 설정 (화면 크기에 맞춰 중앙 정렬)
+                    const container = document.getElementById('main-content');
+                    const w = container ? container.clientWidth : window.innerWidth;
+                    const h = container ? container.clientHeight : window.innerHeight;
+                    const winW = Math.min(600, w / 2 - 20);
+                    const winH = h - 100;
+                    
+                    state.windows.left = { x: 20, y: 20, w: winW, h: winH, z: 10 };
+                    state.windows.right = { x: winW + 40, y: 20, w: winW, h: winH, z: 9 };
+
+                    // 분할 모드 진입 시에는 DOM 구조가 바뀌므로 전체 렌더링
+                    render();
                 } else {
                     state.viewMode = 'single';
                     state.activeTab = state.paneTabs.left;
-                    document.getElementById('split-status-text').textContent = '(OFF)';
+                    document.getElementById('split-status-text').textContent = 'OFF';
                     document.getElementById('btn-split-toggle').classList.remove('bg-slate-700', 'text-emerald-400', 'border-emerald-500');
+                    
+                    // 싱글 모드 복귀 시 DOM 재구성 (기존 탭 뷰들 복원)
+                    const mainContainer = document.getElementById('main-view-container');
+                    if(mainContainer) {
+                        mainContainer.innerHTML = ''; // 분할 뷰 초기화
+                        state.renderedTabs.clear(); // 렌더링 상태 초기화 (다시 그림)
+                    }
+                    app.updateTabVisibility();
                 }
-                render();
             },
+            
+            // [유지] 윈도우 드래그 시작 (직접 이동 + 성능 최적화)
+            startDrag: (e, paneId) => {
+                e.preventDefault();
+                app.setFocusedPane(paneId);
+                
+                const winState = state.windows[paneId];
+                const el = document.getElementById(`window-${paneId}`);
+                if (!el) return;
+
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const initialLeft = winState.x;
+                const initialTop = winState.y;
+
+                el.classList.add('dragging');
+                document.body.style.userSelect = 'none';
+                document.body.style.cursor = 'grabbing';
+
+                let currentX = startX;
+                let currentY = startY;
+                let rafId = null;
+
+                const updatePosition = () => {
+                    const dx = currentX - startX;
+                    const dy = currentY - startY;
+                    
+                    winState.x = initialLeft + dx;
+                    winState.y = initialTop + dy;
+                    
+                    el.style.left = `${winState.x}px`;
+                    el.style.top = `${winState.y}px`;
+                    
+                    rafId = null;
+                };
+
+                const onMove = (moveEvent) => {
+                    currentX = moveEvent.clientX;
+                    currentY = moveEvent.clientY;
+                    if (!rafId) rafId = requestAnimationFrame(updatePosition);
+                };
+
+                const onUp = () => {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    if (rafId) cancelAnimationFrame(rafId);
+                    
+                    el.classList.remove('dragging');
+                    document.body.style.userSelect = '';
+                    document.body.style.cursor = '';
+                };
+
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            },
+
+            // [대폭 수정] 윈도우 크기 조절 시작 (8방향 지원)
+            startResize: (e, paneId, direction) => {
+                e.preventDefault();
+                e.stopPropagation();
+                app.setFocusedPane(paneId);
+                
+                const winState = state.windows[paneId];
+                const el = document.getElementById(`window-${paneId}`);
+                if (!el) return;
+
+                const startX = e.clientX;
+                const startY = e.clientY;
+                
+                // 초기 상태 저장
+                const initialX = winState.x;
+                const initialY = winState.y;
+                const initialW = winState.w;
+                const initialH = winState.h;
+
+                el.classList.add('dragging'); // 컨텐츠 이벤트 차단
+                document.body.style.userSelect = 'none';
+                
+                // 방향에 따른 커서 설정
+                const cursorMap = {
+                    'n': 'n-resize', 's': 's-resize', 'e': 'e-resize', 'w': 'w-resize',
+                    'ne': 'ne-resize', 'nw': 'nw-resize', 'se': 'se-resize', 'sw': 'sw-resize'
+                };
+                document.body.style.cursor = cursorMap[direction];
+
+                let currentX = startX;
+                let currentY = startY;
+                let rafId = null;
+
+                const updateSize = () => {
+                    const dx = currentX - startX;
+                    const dy = currentY - startY;
+                    
+                    let newW = initialW;
+                    let newH = initialH;
+                    let newX = initialX;
+                    let newY = initialY;
+
+                    // 동(East) - 너비만 증가
+                    if (direction.includes('e')) {
+                        newW = Math.max(300, initialW + dx);
+                    }
+                    // 서(West) - 너비 증가 및 X좌표 이동
+                    if (direction.includes('w')) {
+                        const proposedW = initialW - dx;
+                        newW = Math.max(300, proposedW);
+                        // 너비가 최소값(300)에 걸리면 위치도 멈춰야 함 (드래그한 만큼만 이동)
+                        newX = initialX + (initialW - newW); 
+                    }
+                    // 남(South) - 높이만 증가
+                    if (direction.includes('s')) {
+                        newH = Math.max(200, initialH + dy);
+                    }
+                    // 북(North) - 높이 증가 및 Y좌표 이동
+                    if (direction.includes('n')) {
+                        const proposedH = initialH - dy;
+                        newH = Math.max(200, proposedH);
+                        newY = initialY + (initialH - newH);
+                    }
+
+                    // 상태 업데이트
+                    winState.x = newX;
+                    winState.y = newY;
+                    winState.w = newW;
+                    winState.h = newH;
+                    
+                    // 스타일 적용
+                    el.style.width = `${newW}px`;
+                    el.style.height = `${newH}px`;
+                    el.style.left = `${newX}px`;
+                    el.style.top = `${newY}px`;
+                    
+                    rafId = null;
+                };
+
+                const onMove = (moveEvent) => {
+                    currentX = moveEvent.clientX;
+                    currentY = moveEvent.clientY;
+                    if (!rafId) rafId = requestAnimationFrame(updateSize);
+                };
+
+                const onUp = () => {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    if (rafId) cancelAnimationFrame(rafId);
+                    
+                    el.classList.remove('dragging');
+                    document.body.style.userSelect = '';
+                    document.body.style.cursor = '';
+                };
+
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            },
+
+            // [신규] 모바일 메뉴 토글
+            toggleMobileMenu: () => {
+                state.isMobileMenuOpen = !state.isMobileMenuOpen;
+                const menu = document.getElementById('mobile-menu');
+                if (state.isMobileMenuOpen) {
+                    menu.classList.remove('-translate-y-[150%]');
+                } else {
+                    menu.classList.add('-translate-y-[150%]');
+                }
+            },
+
             setFocusedPane: (pane) => {
                 state.focusedPane = pane;
-                render();
+                // Z-Index 업데이트
+                state.windows.left.z = pane === 'left' ? 10 : 1;
+                state.windows.right.z = pane === 'right' ? 10 : 1;
+                
+                const leftEl = document.getElementById('window-left');
+                const rightEl = document.getElementById('window-right');
+                
+                if (leftEl) {
+                    leftEl.style.zIndex = state.windows.left.z;
+                    if (pane === 'left') leftEl.classList.add('active'); else leftEl.classList.remove('active');
+                }
+                if (rightEl) {
+                    rightEl.style.zIndex = state.windows.right.z;
+                    if (pane === 'right') rightEl.classList.add('active'); else rightEl.classList.remove('active');
+                }
+                
+                app.renderTabBar(state.paneTabs[pane]);
             },
-            setFilter: (s, k, v, doRender = true) => { state.filters[s][k] = v; if(doRender) render(); },
-            render: () => render(),
-            toggleRegionDropdown: () => { state.ui.regionDropdownOpen = !state.ui.regionDropdownOpen; render(); },
-            toggleRegionFilter: (val) => { const r = state.filters.client.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
-            toggleLogRegionDropdown: () => { state.ui.logRegionDropdownOpen = !state.ui.logRegionDropdownOpen; render(); },
-            toggleLogRegionFilter: (val) => { const r = state.filters.log.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
-            toggleStatsRegionDropdown: () => { state.ui.statsRegionDropdownOpen = !state.ui.statsRegionDropdownOpen; render(); },
-            toggleStatsRegionFilter: (val) => { const r = state.filters.stats.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); render(); },
+            setFilter: (s, k, v, doRender = true) => { 
+                state.filters[s][k] = v; 
+                if(doRender) {
+                    // 전체 렌더링 대신 현재 탭 컨텐츠만 업데이트 (깜빡임 방지)
+                    if (state.viewMode === 'single') {
+                        updateTabContent(state.activeTab);
+                    } else {
+                        render();
+                    }
+                }
+            },
+            render: () => render(), // 외부 호출용 (데이터 변경 시 등)
+            toggleRegionDropdown: () => { 
+                state.ui.regionDropdownOpen = !state.ui.regionDropdownOpen; 
+                if(state.viewMode==='single') updateTabContent('clients'); else render(); 
+            },
+            toggleRegionFilter: (val) => { 
+                const r = state.filters.client.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); 
+                if(state.viewMode==='single') updateTabContent('clients'); else render(); 
+            },
+            toggleLogRegionDropdown: () => { 
+                state.ui.logRegionDropdownOpen = !state.ui.logRegionDropdownOpen; 
+                if(state.viewMode==='single') updateTabContent('logs'); else render(); 
+            },
+            toggleLogRegionFilter: (val) => { 
+                const r = state.filters.log.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); 
+                if(state.viewMode==='single') updateTabContent('logs'); else render(); 
+            },
+            toggleStatsRegionDropdown: () => { 
+                state.ui.statsRegionDropdownOpen = !state.ui.statsRegionDropdownOpen; 
+                if(state.viewMode==='single') updateTabContent('statistics'); else render(); 
+            },
+            toggleStatsRegionFilter: (val) => { 
+                const r = state.filters.stats.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); 
+                if(state.viewMode==='single') updateTabContent('statistics'); else render(); 
+            },
             resetFilters: (section) => {
                 if (section === 'client') {
                     state.filters.client = { 
@@ -928,9 +1464,11 @@
                         region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' 
                     };
                     state.ui.regionDropdownOpen = false;
+                    if(state.viewMode==='single') updateTabContent('clients');
                 } else if (section === 'log') {
                     state.filters.log = { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] };
                     state.ui.logRegionDropdownOpen = false;
+                    if(state.viewMode==='single') updateTabContent('logs');
                 } else if (section === 'stats') {
                     const d = new Date();
                     const s = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -938,9 +1476,11 @@
                     const e = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${l}`;
                     state.filters.stats = { start: s, end: e, type: 'detail', region: [], name: '' };
                     state.ui.statsRegionDropdownOpen = false;
+                    if(state.viewMode==='single') updateTabContent('statistics');
                 }
-                render();
+                if (state.viewMode !== 'single') render();
             },
+
             toggleLogSelection: (id) => { 
                 if (state.ui.selectedLogIds.has(id)) state.ui.selectedLogIds.delete(id); 
                 else state.ui.selectedLogIds.add(id); 
@@ -1069,6 +1609,7 @@
             },
             executeDeleteSelectedClients: async () => { try { const promises = Array.from(state.ui.selectedClientIds).map(id => deleteDoc(doc(db, "clients", id))); await Promise.all(promises); state.ui.selectedClientIds.clear(); closeDialog(); } catch (err) { alert("삭제 중 오류가 발생했습니다: " + err.message); } },
 
+            // 올해 현황 모달 기능
             showYearStatsModal: () => {
                 const currentYear = String(new Date().getFullYear());
                 const newClients = state.clients.filter(c => c.serviceStartDate && c.serviceStartDate.startsWith(currentYear)).sort((a,b) => b.serviceStartDate.localeCompare(a.serviceStartDate));
@@ -1084,6 +1625,7 @@
                         </div>
                         
                         <div class="flex flex-col md:flex-row gap-6 overflow-hidden min-h-0 flex-1">
+                            <!-- 신규 대상자 목록 -->
                             <div class="flex-1 flex flex-col min-h-0 bg-emerald-50/50 rounded-xl border border-emerald-100 overflow-hidden">
                                 <div class="p-4 bg-emerald-100/50 border-b border-emerald-200 flex justify-between items-center flex-shrink-0">
                                     <h4 class="font-bold text-emerald-800 flex items-center gap-2"><i data-lucide="user-plus" size="18"></i> 신규 등록 (${newClients.length}명)</h4>
@@ -1109,6 +1651,8 @@
                                     </table>
                                 </div>
                             </div>
+
+                            <!-- 종결 대상자 목록 -->
                             <div class="flex-1 flex flex-col min-h-0 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
                                 <div class="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
                                     <h4 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="user-minus" size="18"></i> 종결 (${endClients.length}명)</h4>
@@ -1144,6 +1688,7 @@
                 lucide.createIcons();
             },
 
+            // 대상자 모달 탭 및 하위 탭 기능
             setClientModalTab: (tabName) => {
                 state.ui.clientModalTab = tabName;
                 document.querySelectorAll('.modal-tab-btn').forEach(btn => {
@@ -1174,6 +1719,7 @@
                 const cm = c.caseManagement || {};
                 const getVal = (obj, path) => path.split('.').reduce((o, i) => o ? o[i] : '', obj);
 
+                // 상태 초기화
                 state.ui.clientModalTab = 'basic';
                 state.ui.caseSubTab = 'initial';
 
@@ -1183,12 +1729,14 @@
                         <h3 class="font-bold text-lg">${c.id ? '수정' : '등록'}</h3>
                         <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                     </div>
+                    <!-- 메인 탭 (기본정보 / 사례관리) -->
                     <div class="flex border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
                         <button type="button" class="modal-tab-btn active" data-tab="basic" onclick="app.setClientModalTab('basic')">기본 정보</button>
                         <button type="button" class="modal-tab-btn" data-tab="case" onclick="app.setClientModalTab('case')">사례관리</button>
                     </div>
                     <div class="p-4 sm:p-6 overflow-y-auto flex-1 bg-white">
                         <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" class="space-y-4">
+                            <!-- 1. 기본 정보 탭 -->
                             <div id="tab-basic" class="modal-tab-content active space-y-4">
                                 <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
                                     <div class="sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div>
@@ -1221,6 +1769,7 @@
                                 <div><label class="text-sm block mb-1">비고</label><textarea name="note" class="input-field" rows="2">${c.note||''}</textarea></div>
                             </div>
                             
+                            <!-- 2. 사례관리 탭 (하위 탭 포함) -->
                             <div id="tab-case" class="modal-tab-content space-y-4">
                                 <div class="flex gap-2 overflow-x-auto pb-2 border-b border-slate-100 mb-4 sticky top-0 bg-white z-0">
                                     <button type="button" class="sub-tab-btn active" data-subtab="initial" onclick="app.setCaseSubTab('initial')">초기면접지</button>
@@ -1293,6 +1842,7 @@
                 delete data.absStart; delete data.absEnd;
                 if (!id) data.createdAt = new Date().toISOString();
                 
+                // 사례관리 데이터 수집
                 const cmData = {
                     initial: {
                         date: document.getElementById('cm-initial-date').value,
@@ -1487,8 +2037,8 @@
             deleteData: (col, id) => { showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">삭제 확인</h3><p class="text-sm text-slate-500 mb-6">정말로 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDelete('${col}', '${id}')" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">아니오</button></div></div></div>`); lucide.createIcons(); },
             executeDelete: async (col, id) => { try { await deleteDoc(doc(db, col, id)); closeDialog(); } catch (err) { alert("삭제 실패: " + err.message); } },
             closeModal: () => closeModal(),
-            editService: (id) => { state.editingServiceId = id; render(); },
-            cancelEditService: () => { state.editingServiceId = null; render(); },
+            editService: (id) => { state.editingServiceId = id; if(state.viewMode==='single') updateTabContent('services'); else render(); },
+            cancelEditService: () => { state.editingServiceId = null; if(state.viewMode==='single') updateTabContent('services'); else render(); },
             addService: async (e) => {
                 e.preventDefault();
                 const data = Object.fromEntries(new FormData(e.target));
@@ -1504,7 +2054,7 @@
                 await app.processAddService(data);
             },
             confirmAddService: async () => { if (state.pendingServiceData) { await app.processAddService(state.pendingServiceData); state.pendingServiceData = null; closeDialog(); } },
-            processAddService: async (data) => { try { if (state.editingServiceId) { await updateDoc(doc(db, "services", state.editingServiceId), data); state.editingServiceId = null; } else { await addDoc(collection(db, "services"), data); } document.querySelector('form[onsubmit="app.addService(event)"]').reset(); render(); } catch (err) { alert("오류 발생: " + err.message); } },
+            processAddService: async (data) => { try { if (state.editingServiceId) { await updateDoc(doc(db, "services", state.editingServiceId), data); state.editingServiceId = null; } else { await addDoc(collection(db, "services"), data); } document.querySelector('form[onsubmit="app.addService(event)"]').reset(); /* render 호출 제거 (자동갱신됨) */ } catch (err) { alert("오류 발생: " + err.message); } },
             downloadTemplate: () => { const headers = ['이름', '성별', '생년월일', '행정동', '주소', '연락처1', '연락처2', '보호자관계', '보호자연락처', '등급', '경제상황', '세대유형', '상태', '서비스시작일', '비고']; const ws = XLSX.utils.aoa_to_sheet([headers]); ws['!cols'] = [{ wch: 10 }, { wch: 6 }, { wch: 12 }, { wch: 10 }, { wch: 30 }, { wch: 13 }, { wch: 13 }, { wch: 10 }, { wch: 13 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 30 }]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "양식"); XLSX.writeFile(wb, "대상자등록양식_전체.xlsx"); },
             uploadExcel: (input) => {
                 const reader = new FileReader();
@@ -1586,6 +2136,7 @@
                 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "서비스일지"); XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
             },
             
+            // 일지 업로드 양식 다운로드
             downloadLogTemplate: () => {
                 const headers = ['날짜', '이름', '제공방법', '서비스', '서비스 상세내용', '서비스 메모', '진행내용', '제공자'];
                 const example = ['2024-01-01', '홍길동', '방문', '위기관리체계구축', '초기상담', '특이사항 없음', '대상자 가정 방문하여 상담 진행함.', '김사회'];
@@ -1596,6 +2147,7 @@
                 XLSX.writeFile(wb, "일지등록양식.xlsx");
             },
 
+            // 일지 엑셀 업로드 로직 (날짜+이름 기준 병합)
             uploadLogExcel: (input) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -1610,8 +2162,10 @@
                         const logGroups = {}; 
 
                         rows.forEach(row => {
+                            // 필수 값 확인 (날짜, 이름)
                             if (!row[0] || !row[1]) return;
 
+                            // 날짜 포맷팅 (YYYY-MM-DD)
                             let dateStr = String(row[0]).trim();
                             if (!isNaN(dateStr) && dateStr.length < 8) {
                                 const dateObj = new Date((dateStr - (25567 + 2)) * 86400 * 1000); 
@@ -1722,10 +2276,10 @@
                 const printDocument = `<html><head><title>서비스제공 · 과정상담기록지</title><style>@media print { @page { margin-left: 1.5cm; margin-right: 0.5cm; margin-top: 1cm; margin-bottom: 1cm; } body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; font-size: 12px; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } .header-container { display: block !important; } } body { font-family: "Malgun Gothic", sans-serif; padding: 20px; } .header-container { position: relative; width: 100%; height: 80px; border-bottom: 2px solid #333; margin-bottom: 10px; } .header-title { margin: 0; padding: 0; line-height: 80px; text-align: center; font-size: 22px; font-weight: bold; } .approval-box { position: absolute; right: 0; bottom: 5px; border-collapse: collapse; text-align: center; font-size: 11px; background: white; } .approval-box td { border: 1px solid #333; padding: 0; } .approval-header { background: #f0f0f0; height: 20px; width: 60px; font-weight: bold; } .approval-sign { height: 50px; } .date-range { text-align: left; font-size: 12px; margin-bottom: 10px; font-weight: bold; color: #555; } table.main-table { width: 100%; border-collapse: collapse; font-size: 12px; } table.main-table th, table.main-table td { border: 1px solid #999; padding: 6px; vertical-align: top; } table.main-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; height: 30px; } </style></head><body><div class="header-container"><h1 class="header-title">서비스제공 · 과정상담기록지</h1><table class="approval-box"><tr><td rowspan="2" style="width: 20px; background: #f0f0f0; font-weight: bold; vertical-align: middle;">결<br>재</td><td class="approval-header">담당자</td><td class="approval-header">센터장</td></tr><tr><td class="approval-sign"></td><td class="approval-sign"></td></tr></table></div><div class="date-range">${dateRangeText}</div><table class="main-table"><thead><tr><th width="75">일자</th><th width="55">대상자</th><th width="40">방법</th><th width="180">서비스 내용</th><th>진행 내용</th><th width="45">제공자</th></tr></thead><tbody>${rowsHTML}</tbody></table><script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }<\/script></body></html>`;
                 printWindow.document.write(printDocument); printWindow.document.close();
             },
-            toggleSidebar: () => { const s = document.getElementById('sidebar'); const btn = document.getElementById('desktop-menu-open-btn'); if (s.classList.contains('md:w-0')) { s.classList.remove('md:w-0', 'md:overflow-hidden'); s.classList.add('md:w-64'); btn.classList.add('hidden'); btn.classList.remove('md:inline-flex'); } else { s.classList.remove('md:w-64'); s.classList.add('md:w-0', 'md:overflow-hidden'); btn.classList.remove('hidden'); btn.classList.add('md:inline-flex'); } },
             setStatsStart: (val) => {
                 state.filters.stats.start = val;
-                render();
+                // [최적화] 전체 렌더링 대신 해당 탭만 업데이트
+                if (state.viewMode === 'single') updateTabContent('statistics'); else render();
                 setTimeout(() => {
                     const endInput = document.getElementById('stats-end');
                     if (endInput) {
@@ -1761,87 +2315,78 @@
         }
 
         function render() {
-            const activeEl = document.activeElement;
-            const focusedId = activeEl && activeEl.id ? activeEl.id : null;
-            const selectionStart = activeEl ? activeEl.selectionStart : null;
-            const selectionEnd = activeEl ? activeEl.selectionEnd : null;
-
-            let main = document.getElementById('main-content-body');
-            if (!main) { const wrapper = document.getElementById('main-content'); if (wrapper.innerHTML.includes('데이터 불러오는 중') || !wrapper.querySelector('#main-content-body')) { const btnHTML = document.getElementById('desktop-menu-open-btn').outerHTML; wrapper.innerHTML = btnHTML + '<div id="main-content-body" class="h-full"></div>'; main = document.getElementById('main-content-body'); document.getElementById('desktop-menu-open-btn').onclick = app.toggleSidebar; } }
-            
-            const currentTab = state.viewMode === 'single' ? state.activeTab : state.paneTabs[state.focusedPane];
-            document.querySelectorAll('.nav-item').forEach(b => { 
-                if(b.dataset.tab === currentTab) { 
-                    b.classList.add('bg-emerald-600', 'text-white'); 
-                    b.classList.remove('text-slate-300'); 
-                } else { 
-                    b.classList.remove('bg-emerald-600', 'text-white'); 
-                    b.classList.add('text-slate-300'); 
-                } 
-            });
-
+            // [최적화] Single 모드일 때는 render()가 데이터 갱신 역할만 수행
             if (state.viewMode === 'single') {
-                main.className = "h-full animate-fade-in"; 
-                main.innerHTML = getTabHTML(state.activeTab);
-            } else {
-                main.className = "h-full flex gap-4 animate-fade-in"; 
+                // 현재 보고 있는 탭의 내용만 업데이트 (데이터가 변경되었을 때 호출됨)
+                // 로딩 화면 제거
+                const loader = document.getElementById('initial-loader');
+                if (loader) loader.remove();
                 
-                const leftHTML = `
-                    <div class="split-pane ${state.focusedPane === 'left' ? 'active' : ''} bg-white shadow-sm border-slate-200" onclick="app.setFocusedPane('left')">
-                        <div class="split-pane-overlay" title="클릭하여 선택"></div>
-                        <div class="flex-1 overflow-y-auto p-4 relative">
-                            <div class="absolute top-0 right-0 z-10 bg-slate-800 text-white text-xs px-2 py-1 rounded-bl-lg opacity-70">화면 1</div>
-                            ${getTabHTML(state.paneTabs.left)}
-                        </div>
-                    </div>
-                `;
-
-                const rightHTML = `
-                    <div class="split-pane ${state.focusedPane === 'right' ? 'active' : ''} bg-white shadow-sm border-slate-200" onclick="app.setFocusedPane('right')">
-                        <div class="split-pane-overlay" title="클릭하여 선택"></div>
-                        <div class="flex-1 overflow-y-auto p-4 relative">
-                            <div class="absolute top-0 right-0 z-10 bg-slate-800 text-white text-xs px-2 py-1 rounded-bl-lg opacity-70">화면 2</div>
-                            ${getTabHTML(state.paneTabs.right)}
-                        </div>
-                    </div>
-                `;
-                
-                main.innerHTML = leftHTML + rightHTML;
+                updateTabContent(state.activeTab);
+                app.updateTabVisibility(); // 탭바 상태 동기화
+                return;
             }
+
+            // [윈도우 모드 렌더링]
+            let main = document.getElementById('main-view-container'); // ID 변경됨
+            if (!main) return;
+            
+            // 상단 탭 렌더링
+            app.renderTabBar(state.activeTab);
+
+            // 분할 뷰 모드 설정
+            main.className = "h-full relative overflow-hidden bg-slate-100"; // 배경색 추가 (바탕화면 느낌)
+            main.innerHTML = ""; // 기존 컨텐츠 초기화 (윈도우 모드는 래퍼 방식 아님)
+
+            // 윈도우 생성 헬퍼 함수
+            const createWindow = (paneId) => {
+                const winState = state.windows[paneId];
+                const tabKey = state.paneTabs[paneId];
+                const isActive = state.focusedPane === paneId;
+                
+                const winDiv = document.createElement('div');
+                winDiv.id = `window-${paneId}`;
+                winDiv.className = `window-pane ${isActive ? 'active' : ''}`;
+                winDiv.style.left = `${winState.x}px`;
+                winDiv.style.top = `${winState.y}px`;
+                winDiv.style.width = `${winState.w}px`;
+                winDiv.style.height = `${winState.h}px`;
+                winDiv.style.zIndex = winState.z;
+                
+                // 마우스 다운 시 활성화 (Z-Index 처리)
+                winDiv.onmousedown = () => app.setFocusedPane(paneId);
+
+                // 8방향 리사이즈 핸들 HTML 생성
+                const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map(dir => 
+                    `<div class="resizer resizer-${dir}" onmousedown="app.startResize(event, '${paneId}', '${dir}')"></div>`
+                ).join('');
+
+                winDiv.innerHTML = `
+                    <div class="window-header" onmousedown="app.startDrag(event, '${paneId}')">
+                        <div class="window-title">
+                            <i data-lucide="${isActive ? 'app-window' : 'minus-square'}" size="16"></i>
+                            <span>${TAB_NAMES[tabKey] || tabKey}</span>
+                        </div>
+                        <div class="window-controls">
+                            <!-- 최소화/최대화 버튼 제거 -->
+                            <div class="window-control-btn btn-close" onclick="app.toggleSplitView()" title="창 닫기 (분할 모드 종료)"></div>
+                        </div>
+                    </div>
+                    <div class="window-content p-4">
+                        ${getTabHTML(tabKey)}
+                    </div>
+                    ${handles}
+                `;
+                return winDiv;
+            };
+
+            main.appendChild(createWindow('left'));
+            main.appendChild(createWindow('right'));
 
             lucide.createIcons();
-
-            if (focusedId) {
-                const el = document.getElementById(focusedId);
-                if (el) {
-                    el.focus();
-                    if (/text|search|password|tel|url/.test(el.type) && selectionStart !== null) {
-                        try { el.setSelectionRange(selectionStart, selectionEnd); } catch (e) { }
-                    }
-                }
-            }
         }
 
-        document.getElementById('mobile-menu-btn').addEventListener('click', () => { const s = document.getElementById('sidebar'); if(s.classList.contains('-translate-x-full')) { s.classList.remove('-translate-x-full'); document.getElementById('sidebar-overlay').classList.remove('hidden'); } else { s.classList.add('-translate-x-full'); document.getElementById('sidebar-overlay').classList.add('hidden'); } });
-        document.getElementById('sidebar-overlay').addEventListener('click', () => { document.getElementById('sidebar').classList.add('-translate-x-full'); document.getElementById('sidebar-overlay').classList.add('hidden'); });
-
         initDataSync();
-
-        setTimeout(() => {
-            const sidebar = document.getElementById('sidebar');
-            if (window.innerWidth >= 768 && !sidebar.classList.contains('md:w-0')) {
-                app.toggleSidebar();
-                
-                const toast = document.createElement('div');
-                toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-full text-sm shadow-lg opacity-0 transition-opacity duration-500 z-50 pointer-events-none';
-                toast.innerHTML = '<i class="inline-block w-4 h-4 mr-1 align-middle" data-lucide="info"></i> 넓은 화면을 위해 메뉴가 자동으로 숨겨졌습니다.';
-                document.body.appendChild(toast);
-                lucide.createIcons();
-                
-                requestAnimationFrame(() => { toast.classList.remove('opacity-0'); });
-                setTimeout(() => { toast.classList.add('opacity-0'); setTimeout(() => toast.remove(), 500); }, 3000);
-            }
-        }, 1000);
     </script>
 </body>
 </html>
