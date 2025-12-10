@@ -310,7 +310,8 @@
             </div>
 
             <!-- Mobile Menu Toggle -->
-            <button class="md:hidden p-2 text-slate-300 hover:text-white" onclick="app.toggleMobileMenu()">
+            <!-- [수정] id="mobile-menu-btn" 추가하여 클릭 감지 로직에 사용 -->
+            <button id="mobile-menu-btn" class="md:hidden p-2 text-slate-300 hover:text-white" onclick="app.toggleMobileMenu()">
                 <i data-lucide="menu" size="24"></i>
             </button>
         </div>
@@ -477,6 +478,7 @@
             return age;
         }
 
+        // ... (getFilteredLogs, initDataSync, getTabHTML, updateTabContent 등 기존 함수 유지)
         function getFilteredLogs() {
             const { start, end, search, provider, category, service, region } = state.filters.log;
             return state.logs.filter(l => {
@@ -841,15 +843,14 @@
                 </div>`;
         }
 
+        // ... (나머지 렌더링 함수들: renderLogManager, renderStatistics, renderServiceManager 유지)
         function renderLogManager() {
-            // ... (기존 필터 로직 동일)
              const filtered = getFilteredLogs(); 
             const categories = [...new Set(state.services.map(s => s.category))];
             const { category, service, start, end, search, provider, region } = state.filters.log; 
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
             const allSelected = filtered.length > 0 && filtered.every(l => state.ui.selectedLogIds.has(l.id));
 
-            // [수정] 통계 메뉴처럼 목록 영역에 max-height와 overflow-auto 적용
             return `
                 <div class="flex flex-col animate-fade-in">
                     <!-- [고정 영역] 제목, 버튼, 필터 -->
@@ -950,7 +951,7 @@
                     </div>
                 </div>`;
         }
-
+        
         function renderStatistics() {
            // ... (기존 통계 렌더링 로직 동일)
              const { start, end, type, region, name } = state.filters.stats;
@@ -1019,7 +1020,6 @@
                 theadHTML = `<tr><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_No}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-500" style="${stickColStyle(L_No, 50)}">No</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Name}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-700" style="${stickColStyle(L1, 50)}">대상자</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Birth}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L2, 50)}">생년월일</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Level}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L3, 50)}">등급</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Region}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L4, 50)}">행정동</th><th rowspan="2" class="py-2 px-1 bg-emerald-50 text-emerald-700 border-b border-r min-w-[${W_Total}px] z-30 text-xs text-center font-bold" style="${stickColStyle(L5, 50)}">합계</th>${orderedCategories.map(cat => `<th colspan="${headerGroups[cat].length}" class="py-1 border-b border-r bg-slate-100 text-center text-xs text-center font-semibold text-slate-600 whitespace-nowrap">${cat}</th>`).join('')}</tr><tr>${orderedCategories.map(cat => headerGroups[cat].map(svc => `<th class="py-1.5 px-2 border-b border-r font-normal text-xs text-center text-slate-500 bg-slate-50 whitespace-nowrap">${svc === '정서지원서비스(안전안부확인)' ? '안전안부확인' : svc}</th>`).join('')).join('')}</tr>${totalRowHTML}`;
             }
 
-            // [수정] 전체 스크롤 + Sticky Header 구조로 변경
             return `
                 <div class="space-y-6 animate-fade-in p-1">
                     <h2 class="text-2xl font-bold text-slate-800">서비스 제공 통계</h2>
@@ -1145,10 +1145,8 @@
                     state.paneTabs[state.focusedPane] = t;
                 }
                 
-                // [수정] 모바일 메뉴 닫기 (화면 닫힘 처리 포함)
-                if (state.isMobileMenuOpen) {
-                    app.toggleMobileMenu(false);
-                }
+                // 모바일 메뉴 닫기 (메뉴 항목 클릭 시 동작)
+                app.closeMobileMenu();
 
                 // [최적화] 전체 render() 대신 UI 상태만 변경하여 즉시 반응
                 app.updateTabVisibility(); 
@@ -1173,23 +1171,34 @@
                     // 싱글 뷰 모드
                     const mainContainer = document.getElementById('main-view-container');
                     if(mainContainer) {
-                        mainContainer.className = "flex-1 w-full relative overflow-hidden flex flex-col"; // 레이아웃 초기화
-                        mainContainer.style.backgroundColor = ""; // 배경 초기화
-                        mainContainer.innerHTML = ""; // 윈도우 모드 잔재 제거
+                        // [수정] 윈도우 모드(분할화면)에서 돌아왔거나, 초기화가 필요한 경우에만 내용을 비웁니다.
+                        // window-pane 클래스가 있거나, fixed 클래스(분할모드 스타일)가 적용된 경우 감지
+                        if (mainContainer.classList.contains('fixed') || (mainContainer.firstChild && mainContainer.firstChild.classList && mainContainer.firstChild.classList.contains('window-pane'))) {
+                            mainContainer.className = "flex-1 w-full relative overflow-hidden flex flex-col"; // 레이아웃 초기화
+                            mainContainer.style.backgroundColor = ""; // 배경 초기화
+                            mainContainer.innerHTML = ""; // 윈도우 모드 잔재 제거
+                            state.renderedTabs.clear();
+                        }
 
-                        // 기존 싱글 뷰 로직 복구: tab-content-wrapper 사용
-                        // (하지만 innerHTML=""로 인해 래퍼가 사라졌을 수 있으므로 다시 생성 로직 필요)
-                        // updateTabContent가 래퍼 없으면 생성하므로 호출하면 됨
-                        
-                        updateTabContent(state.activeTab);
-                        const activeView = document.getElementById(`tab-view-${state.activeTab}`);
-                        if (activeView) activeView.classList.add('active');
-                        
-                        // 다른 탭 숨김 (DOM이 살아있다면)
+                        // 로딩 표시가 있다면 제거
+                        const loader = document.getElementById('initial-loader');
+                        if (loader) loader.remove();
+
+                        // 열려있는 모든 탭에 대해 Visibility 처리
                         state.openedTabs.forEach(t => {
-                            if (t !== state.activeTab) {
-                                const v = document.getElementById(`tab-view-${t}`);
-                                if (v) v.classList.remove('active');
+                            let view = document.getElementById(`tab-view-${t}`);
+                            
+                            if (t === state.activeTab) {
+                                // 현재 활성 탭인데 DOM이 없으면 생성
+                                if (!view) {
+                                    updateTabContent(t);
+                                    view = document.getElementById(`tab-view-${t}`);
+                                }
+                                // DOM이 있으면 활성화 클래스 추가 (새로고침 안 함)
+                                if (view) view.classList.add('active');
+                            } else {
+                                // 비활성 탭은 숨김 처리 (DOM 유지)
+                                if (view) view.classList.remove('active');
                             }
                         });
                     }
@@ -1251,7 +1260,7 @@
                 }
             },
             toggleSplitView: () => {
-                state.isMobileMenuOpen = false; // 메뉴 닫기
+                app.closeMobileMenu(); // 메뉴 닫기
                 if (state.viewMode === 'single') {
                     state.viewMode = 'split';
                     state.paneTabs.left = state.activeTab;
@@ -1451,35 +1460,25 @@
                 document.addEventListener('mouseup', onUp);
             },
 
-            // [수정] 모바일 메뉴 토글 (강제 닫기 및 외부 클릭 감지 추가)
-            toggleMobileMenu: (force) => {
-                // force가 boolean이면 해당 상태로 설정, 아니면 토글
-                const nextState = typeof force === 'boolean' ? force : !state.isMobileMenuOpen;
-                
-                if (state.isMobileMenuOpen === nextState) return; // 상태 변화 없으면 종료
-
-                state.isMobileMenuOpen = nextState;
+            // [신규] 모바일 메뉴 토글 (단순 토글)
+            toggleMobileMenu: () => {
+                state.isMobileMenuOpen = !state.isMobileMenuOpen;
+                app.renderMobileMenuState();
+            },
+            
+            // [추가] 모바일 메뉴 강제 닫기 (DOM 동기화 포함)
+            closeMobileMenu: () => {
+                state.isMobileMenuOpen = false;
+                app.renderMobileMenuState();
+            },
+            
+            // [추가] 모바일 메뉴 UI 업데이트 (Class Toggle)
+            renderMobileMenuState: () => {
                 const menu = document.getElementById('mobile-menu');
-                
                 if (state.isMobileMenuOpen) {
                     menu.classList.remove('-translate-y-[150%]');
-                    // 메뉴가 열릴 때 외부 클릭 감지 리스너 등록
-                    setTimeout(() => document.addEventListener('click', app.handleMobileMenuOutsideClick), 0);
                 } else {
                     menu.classList.add('-translate-y-[150%]');
-                    // 메뉴가 닫힐 때 외부 클릭 감지 리스너 제거
-                    document.removeEventListener('click', app.handleMobileMenuOutsideClick);
-                }
-            },
-
-            // [신규] 모바일 메뉴 외부 클릭 감지 핸들러
-            handleMobileMenuOutsideClick: (e) => {
-                const menu = document.getElementById('mobile-menu');
-                const toggleBtn = document.querySelector('button[onclick="app.toggleMobileMenu()"]');
-                
-                // 클릭된 요소가 메뉴 내부가 아니고, 토글 버튼도 아니라면 메뉴 닫기
-                if (menu && !menu.contains(e.target) && (!toggleBtn || !toggleBtn.contains(e.target))) {
-                    app.toggleMobileMenu(false);
                 }
             },
 
@@ -1562,6 +1561,9 @@
                 }
                 if (state.viewMode !== 'single') render();
             },
+
+            // ... (기타 함수들: toggleLogSelection, updateLogBatchActionsUI, toggleAllLogs, deleteSelectedLogs, openBatchEditClientModal, executeBatchEditClients, openBatchEditLogModal, toggleBatchService, addBatchSvcRow, removeBatchSvcRow, executeBatchEditLogs, executeDeleteSelectedLogs, toggleClientSelection, updateClientBatchActionsUI, deleteSelectedClients, executeDeleteSelectedClients, showYearStatsModal, setClientModalTab, setCaseSubTab, openClientModal, saveClient, calcBirthFromRR, updateAgeDisplay, confirmSaveClient, processSaveClient, closeDialog, openLogModal, fillClientInfo, addClientToSelection, removeClientFromSelection, renderSelectedClients, addSvcRow, removeSvcRow, saveLog, confirmSaveLog, processSaveLog, duplicateLog, aiDraft, deleteData, executeDelete, closeModal, editService, cancelEditService, addService, confirmAddService, processAddService, downloadTemplate, uploadExcel, downloadStatsExcel, downloadLogsExcel, downloadLogTemplate, uploadLogExcel, printLogs, setStatsStart)
+            // ... (모두 기존 로직 유지)
 
             toggleLogSelection: (id) => { 
                 if (state.ui.selectedLogIds.has(id)) state.ui.selectedLogIds.delete(id); 
@@ -2405,6 +2407,17 @@
             updateOpts: (el) => { const svcs = state.services.filter(s => s.category === el.value); el.nextElementSibling.innerHTML = svcs.map(s => `<option value="${s.name}">${s.name}</option>`).join(''); }
         };
 
+        // [신규] 전역 클릭 리스너: 모바일 메뉴 닫기 (메뉴 영역 밖 클릭 시)
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('mobile-menu');
+            const btn = document.getElementById('mobile-menu-btn');
+            
+            // 모바일 메뉴가 열려있고, 클릭된 요소가 메뉴나 버튼 내부가 아닐 경우
+            if (state.isMobileMenuOpen && menu && !menu.contains(e.target) && !btn.contains(e.target)) {
+                app.closeMobileMenu();
+            }
+        });
+
         // [신규] 브라우저 뒤로가기/앞으로가기 이벤트 처리 (History API)
         window.addEventListener('popstate', (event) => {
             // 1. 열려있는 모달이 있다면 닫기 (UX 개선)
@@ -2543,7 +2556,7 @@
             app.setTab(tabName, false);
         });
 
-        // [신규] 초기 로드 시 현재 URL 해시를 기반으로 탭 설정
+        // [신규] 초기 로드 시 URL 해시를 기반으로 탭 설정
         const initTabFromHash = () => {
             const hash = location.hash.replace('#', '');
             if (hash && TAB_NAMES[hash]) {
