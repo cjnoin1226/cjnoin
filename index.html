@@ -479,10 +479,10 @@
             return age;
         }
 
-        // ... (getFilteredLogs, initDataSync, getTabHTML, updateTabContent 등 기존 함수 유지)
+        // [수정] 필터링된 일지를 날짜 > 제공자 > 이름 순으로 정렬하여 반환
         function getFilteredLogs() {
             const { start, end, search, provider, category, service, region } = state.filters.log;
-            return state.logs.filter(l => {
+            const filtered = state.logs.filter(l => {
                 const client = state.clients.find(c => c.id === l.clientId);
                 const clientRegion = client ? client.region : '미지정';
                 return (!start || l.date >= start) && 
@@ -492,6 +492,22 @@
                        (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
                        (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service))) &&
                        (region.length === 0 || region.includes(clientRegion));
+            });
+
+            // 정렬 로직 적용
+            return filtered.sort((a, b) => {
+                // 1. 날짜 (최신순/내림차순)
+                if (a.date !== b.date) {
+                    return b.date.localeCompare(a.date);
+                }
+                // 2. 제공자 (가나다순/오름차순)
+                const providerA = a.provider || '';
+                const providerB = b.provider || '';
+                if (providerA !== providerB) {
+                    return providerA.localeCompare(providerB);
+                }
+                // 3. 대상자 이름 (가나다순/오름차순)
+                return (a.clientName || '').localeCompare(b.clientName || '');
             });
         }
 
