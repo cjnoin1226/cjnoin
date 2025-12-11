@@ -361,7 +361,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // [수정] writeBatch 모듈 추가 (일괄 처리용)
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAx1EJ_7kawHTzsNS97ts5FjCaTJRqJTdM",
@@ -543,7 +544,8 @@
                 render();
             }, handleErr);
             
-            onSnapshot(query(collection(db, "logs"), orderBy("date", "desc")), (snap) => {
+            // [수정] 일지 데이터 쿼리에 limit(500) 적용하여 최근 500개만 불러오도록 최적화
+            onSnapshot(query(collection(db, "logs"), orderBy("date", "desc"), limit(500)), (snap) => {
                 state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 render();
             }, handleErr);
@@ -2144,7 +2146,36 @@
                 await app.processSaveLog(baseData, items, window.tempSelectedClients, id);
             },
             confirmSaveLog: async () => { if (state.pendingLogData) { const { baseData, items, clients } = state.pendingLogData; await app.processSaveLog(baseData, items, clients, null); state.pendingLogData = null; closeDialog(); } },
-            processSaveLog: async (baseData, items, clients, id) => { try { const promises = clients.map(async (cName, idx) => { const client = state.clients.find(x => x.name === cName); const logData = { ...baseData, clientName: cName, clientId: client ? client.id : 'unknown' }; if (id && idx === 0) { return updateDoc(doc(db, "logs", id), logData); } else { return addDoc(collection(db, "logs"), logData); } }); await Promise.all(promises); closeModal(); } catch(err) { alert("저장 실패: " + err.message); } },
+            
+            // [수정] 일괄 처리(Batch) 로직 적용으로 속도 대폭 개선
+            processSaveLog: async (baseData, items, clients, id) => { 
+                try { 
+                    // Batch 인스턴스 생성
+                    const batch = writeBatch(db);
+                    
+                    clients.forEach((cName, idx) => {
+                        const client = state.clients.find(x => x.name === cName);
+                        const logData = { ...baseData, clientName: cName, clientId: client ? client.id : 'unknown' };
+                        
+                        if (id && idx === 0) {
+                            // 수정 모드인 경우 (첫 번째 대상자는 기존 ID로 업데이트)
+                            const logRef = doc(db, "logs", id);
+                            batch.update(logRef, logData);
+                        } else {
+                            // 신규 등록인 경우 (새 문서 ID 생성 후 Batch에 추가)
+                            const newLogRef = doc(collection(db, "logs"));
+                            batch.set(newLogRef, logData);
+                        }
+                    });
+
+                    // 모든 작업을 한 번의 통신으로 처리
+                    await batch.commit(); 
+                    
+                    closeModal(); 
+                } catch(err) { 
+                    alert("저장 실패: " + err.message); 
+                } 
+            },
             duplicateLog: (id) => { const l = state.logs.find(x => x.id === id); if(l) { const { id: originId, ...data } = l; data.date = new Date().toISOString().split('T')[0]; app.openLogModal(null, data); } },
             aiDraft: () => { const t = document.getElementById('log-content'); if(!t.value) return alert('내용을 입력하세요'); t.value = "AI 분석 중..."; setTimeout(() => { t.value = "[AI] 대상자 안부 확인 및 물품 전달 완료. 건강 상태 양호함."; }, 1000); },
             deleteData: (col, id) => { showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">삭제 확인</h3><p class="text-sm text-slate-500 mb-6">정말로 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDelete('${col}', '${id}')" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">아니오</button></div></div></div>`); lucide.createIcons(); },
