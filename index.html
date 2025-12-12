@@ -482,6 +482,13 @@
         }
 
         function updateTabContent(tabName) {
+            // [포커스 유지 시작]
+            const activeEl = document.activeElement;
+            const focusedId = activeEl ? activeEl.id : null;
+            const cursorStart = activeEl ? activeEl.selectionStart : null;
+            const cursorEnd = activeEl ? activeEl.selectionEnd : null;
+            // [포커스 유지 끝]
+
             const containerId = `tab-view-${tabName}`;
             let container = document.getElementById(containerId);
             if (!container) {
@@ -495,6 +502,18 @@
             container.innerHTML = getTabHTML(tabName);
             state.renderedTabs.add(tabName);
             if(window.lucide) lucide.createIcons();
+
+            // [포커스 복구 시작]
+            if (focusedId) {
+                const newEl = document.getElementById(focusedId);
+                if (newEl) {
+                    newEl.focus();
+                    if (cursorStart !== null && cursorEnd !== null) {
+                        try { newEl.setSelectionRange(cursorStart, cursorEnd); } catch(e) {}
+                    }
+                }
+            }
+            // [포커스 복구 끝]
         }
 
         function renderDashboard() {
@@ -714,7 +733,7 @@
                             const getEconomicDisplay = (status) => {
                                 if (status === '일반(저소득)') return '저소득';
                                 if (status === '조건부 기초수급' || status === '조건부 수급자') return '조건부';
-                                if (status === '기초수급') return '수급자';
+                                if (status === '기초수급' && (c.economicStatus === '기초수급자' || c.economicStatus === '수급자')) return '수급자';
                                 return status || '-';
                             };
                             const birthShort = c.birthDate ? c.birthDate.substring(2).replace(/-/g, '.') : '-';
@@ -2136,6 +2155,13 @@
         }
 
         function render() {
+            // [포커스 유지 시작]
+            const activeEl = document.activeElement;
+            const focusedId = activeEl ? activeEl.id : null;
+            const cursorStart = activeEl ? activeEl.selectionStart : null;
+            const cursorEnd = activeEl ? activeEl.selectionEnd : null;
+            // [포커스 유지 끝]
+
             if (state.viewMode === 'single') {
                 const loader = document.getElementById('initial-loader');
                 if (loader) loader.remove();
@@ -2189,6 +2215,18 @@
             main.appendChild(createWindow('left'));
             main.appendChild(createWindow('right'));
             if(window.lucide) lucide.createIcons();
+
+            // [포커스 복구 시작]
+            if (focusedId) {
+                const newEl = document.getElementById(focusedId);
+                if (newEl) {
+                    newEl.focus();
+                    if (cursorStart !== null && cursorEnd !== null) {
+                        try { newEl.setSelectionRange(cursorStart, cursorEnd); } catch(e) {}
+                    }
+                }
+            }
+            // [포커스 복구 끝]
         }
 
         initDataSync();
