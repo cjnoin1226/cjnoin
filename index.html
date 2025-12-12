@@ -28,16 +28,13 @@
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        /* [수정] 애니메이션 변경: 슬라이드 효과(translateY) 제거하고 투명도만 조절 */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
         .modal-overlay { background-color: rgba(0, 0, 0, 0.5); }
         
-        /* Table Sticky Headers */
         .sticky-col { position: sticky; left: 0; background-color: white; z-index: 10; }
         .sticky-header { position: sticky; top: 0; z-index: 20; }
 
-        /* [신규] 메인 모달 탭 스타일 */
         .modal-tab-btn {
             padding: 0.75rem 1.25rem;
             border-bottom: 2px solid transparent;
@@ -59,23 +56,19 @@
         .modal-tab-content { display: none; }
         .modal-tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
 
-        /* [수정] 탭 컨텐츠 래퍼 스타일 (스크롤 방식 변경: 전체 스크롤 -> 내부 요소 스크롤) */
         .tab-content-wrapper {
             height: 100%;
-            /* overflow-y: auto;  <-- 제거: 전체 스크롤 방지 */
             display: none;
             background-color: #f8fafc;
             position: relative;
-            /* Flex 레이아웃 적용 */
-            display: none; 
             flex-direction: column;
             overflow: hidden; 
         }
         .tab-content-wrapper.active {
-            display: flex; /* block -> flex 변경 */
+            display: flex; 
         }
 
-        /* [신규] 윈도우 모드 스타일 (이동/크기조절 가능) */
+        /* 윈도우 모드 스타일 */
         .window-pane {
             position: absolute;
             background-color: white;
@@ -84,7 +77,6 @@
             border: 1px solid #cbd5e1;
             display: flex;
             flex-direction: column;
-            /* overflow: hidden; -> 핸들이 잘리지 않도록 제거하거나 내부 컨텐츠에서 처리 */
             min-width: 300px;
             min-height: 200px;
             will-change: left, top, width, height; 
@@ -96,13 +88,11 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 2px rgba(59, 130, 246, 0.2);
         }
 
-        /* [최적화] 드래그 중인 윈도우 스타일 */
         .window-pane.dragging {
             cursor: grabbing;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
         }
 
-        /* [핵심 최적화] 드래그 중 내부 컨텐츠 이벤트 차단 */
         .window-pane.dragging .window-content {
             pointer-events: none; 
         }
@@ -114,10 +104,10 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            cursor: grab; /* 이동 커서 */
+            cursor: grab;
             user-select: none;
             flex-shrink: 0;
-            border-radius: 8px 8px 0 0; /* 상단 라운드 처리 */
+            border-radius: 8px 8px 0 0;
         }
         .window-header:active {
             cursor: grabbing;
@@ -151,78 +141,56 @@
 
         .window-content {
             flex: 1;
-            /* overflow: auto; <-- 제거 */
-            overflow: hidden; /* 스크롤은 내부 컨텐츠에 위임 */
+            overflow: hidden; 
             background-color: white;
             position: relative;
-            border-radius: 0 0 8px 8px; /* 하단 라운드 처리 */
-            display: flex; /* Flex 적용 */
+            border-radius: 0 0 8px 8px;
+            display: flex;
             flex-direction: column;
         }
 
-        /* [신규] 8방향 리사이즈 핸들 스타일 */
-        .resizer {
-            position: absolute;
-            z-index: 100;
-            /* 배경색은 디버깅용 아니면 투명 */
-            /* background: rgba(255,0,0,0.1); */ 
-        }
-        /* 상하좌우 (두께 6px) */
+        .resizer { position: absolute; z-index: 100; }
         .resizer-n { top: -3px; left: 6px; right: 6px; height: 6px; cursor: n-resize; }
         .resizer-s { bottom: -3px; left: 6px; right: 6px; height: 6px; cursor: s-resize; }
         .resizer-e { top: 6px; right: -3px; bottom: 6px; width: 6px; cursor: e-resize; }
         .resizer-w { top: 6px; left: -3px; bottom: 6px; width: 6px; cursor: w-resize; }
-        /* 모서리 (크기 12px) */
         .resizer-ne { top: -3px; right: -3px; width: 12px; height: 12px; cursor: ne-resize; z-index: 101; }
         .resizer-nw { top: -3px; left: -3px; width: 12px; height: 12px; cursor: nw-resize; z-index: 101; }
         .resizer-se { bottom: -3px; right: -3px; width: 12px; height: 12px; cursor: se-resize; z-index: 101; }
         .resizer-sw { bottom: -3px; left: -3px; width: 12px; height: 12px; cursor: sw-resize; z-index: 101; }
 
-        /* [추가] 커스텀 스크롤바 스타일 (목록 내부 스크롤용) */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* [유지] 상단 탭 바 스타일 (초소형 레이아웃 적용) */
         .tab-bar-container {
             display: flex;
             align-items: flex-end;
             gap: 2px;
-            padding: 2px 8px 0; /* 패딩 최소화 */
+            padding: 2px 8px 0;
             background-color: #f1f5f9;
             border-bottom: 1px solid #e2e8f0;
             overflow-x: auto;
             flex-shrink: 0;
-            height: 28px; /* 높이 고정으로 컴팩트함 유지 */
+            height: 28px;
         }
         .main-tab {
             display: flex;
             align-items: center;
-            gap: 2px; /* 간격 최소화 */
-            padding: 0 8px; /* 패딩 대폭 축소 */
-            font-size: 0.75rem; /* 폰트 크기 축소 (12px) */
+            gap: 2px;
+            padding: 0 8px;
+            font-size: 0.75rem;
             font-weight: 500;
             color: #64748b;
             background-color: #e2e8f0;
-            border-radius: 4px 4px 0 0; /* 라운드 축소 */
+            border-radius: 4px 4px 0 0;
             cursor: pointer;
             transition: all 0.2s;
             border: 1px solid transparent;
             border-bottom: none;
             white-space: nowrap;
-            height: 100%; /* 컨테이너 높이에 맞춤 */
+            height: 100%;
         }
         .main-tab:hover {
             background-color: #e6eff5;
@@ -230,12 +198,12 @@
         }
         .main-tab.active {
             background-color: #ffffff;
-            color: #059669; /* Emerald-600 */
+            color: #059669;
             font-weight: 700;
             border-color: #e2e8f0;
             box-shadow: 0 -1px 2px rgba(0,0,0,0.02);
             position: relative;
-            bottom: -1px; /* border-bottom 가리기 */
+            bottom: -1px;
             z-index: 10;
         }
         .tab-close-btn {
@@ -246,16 +214,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 12px; /* 버튼 크기 고정 */
+            width: 12px;
             height: 12px;
         }
-        .tab-close-btn:hover {
-            background-color: #cbd5e1;
-            color: #ef4444;
-            opacity: 1;
-        }
+        .tab-close-btn:hover { background-color: #cbd5e1; color: #ef4444; opacity: 1; }
         
-        /* Top Navigation Bar Styles */
         .nav-link {
             padding: 0.5rem 1rem;
             border-radius: 0.375rem;
@@ -266,66 +229,50 @@
             display: flex;
             align-items: center;
         }
-        .nav-link:hover {
-            color: #ffffff;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .nav-link.active {
-            color: #ffffff;
-            background-color: #059669;
-            font-weight: 700;
-        }
+        .nav-link:hover { color: #ffffff; background-color: rgba(255, 255, 255, 0.1); }
+        .nav-link.active { color: #ffffff; background-color: #059669; font-weight: 700; }
     </style>
 </head>
-<!-- [수정] body에서 h-screen, overflow-hidden 제거 -> 전체 스크롤 허용 -->
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- Top Navigation Bar (왼쪽 정렬 유지) -->
+    <!-- Top Navigation Bar -->
     <header class="bg-slate-800 text-white h-14 flex-shrink-0 flex items-center px-4 md:px-6 shadow-md z-50 sticky top-0">
-        <!-- Logo -->
         <h1 class="font-bold flex items-center gap-2.5 text-lg cursor-pointer mr-8" onclick="app.setTab('dashboard')">
             <img src="청전로고.png" class="w-7 h-7 object-contain bg-white rounded-full p-0.5" alt="로고" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2903/2903558.png'">
             <span class="tracking-tight">청전광장</span>
         </h1>
 
-        <!-- Desktop Navigation -->
         <nav class="hidden md:flex items-center gap-2">
             <button onclick="app.setTab('dashboard')" class="nav-link" data-tab="dashboard">홈</button>
             <button onclick="app.setTab('clients')" class="nav-link" data-tab="clients">대상자 관리</button>
             <button onclick="app.setTab('logs')" class="nav-link" data-tab="logs">서비스 일지</button>
             <button onclick="app.setTab('statistics')" class="nav-link" data-tab="statistics">통계</button>
+            <button onclick="app.setTab('performance')" class="nav-link" data-tab="performance">실적 관리</button>
             <button onclick="app.setTab('services')" class="nav-link" data-tab="services">서비스 설정</button>
         </nav>
 
-        <!-- Right Side Utils -->
         <div class="flex items-center gap-3 ml-auto">
-             <!-- 화면 분할 버튼 -->
             <button onclick="app.toggleSplitView()" id="btn-split-toggle" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded text-xs text-slate-300 hover:text-white border border-slate-600 hover:bg-slate-700 transition-colors" title="화면 분할">
                 <span class="font-medium">분할 <span id="split-status-text">OFF</span></span>
             </button>
-
-            <!-- Firebase Status -->
             <div class="hidden md:flex items-center gap-1.5 text-xs bg-slate-900/50 px-2 py-1 rounded text-emerald-400 border border-slate-700">
                 연결됨
             </div>
-
-            <!-- Mobile Menu Toggle -->
-            <!-- [수정] id="mobile-menu-btn" 추가하여 클릭 감지 로직에 사용 -->
             <button id="mobile-menu-btn" class="md:hidden p-2 text-slate-300 hover:text-white" onclick="app.toggleMobileMenu()">
                 <i data-lucide="menu" size="24"></i>
             </button>
         </div>
     </header>
 
-    <!-- Mobile Navigation Menu (Overlay) -->
+    <!-- Mobile Navigation Menu -->
     <div id="mobile-menu" class="fixed top-14 left-0 right-0 bg-slate-800 z-[49] transform -translate-y-[150%] transition-transform duration-300 ease-in-out shadow-xl md:hidden">
         <div class="p-4 space-y-2">
             <button onclick="app.setTab('dashboard')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="dashboard">홈</button>
             <button onclick="app.setTab('clients')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="clients">대상자 관리</button>
             <button onclick="app.setTab('logs')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="logs">서비스 일지</button>
             <button onclick="app.setTab('statistics')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="statistics">통계</button>
+            <button onclick="app.setTab('performance')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="performance">실적 관리</button>
             <button onclick="app.setTab('services')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="services">서비스 설정</button>
-            
             <div class="border-t border-slate-700 my-2 pt-2">
                  <button onclick="app.toggleSplitView()" class="nav-link w-full justify-start text-slate-400 py-2.5">화면 분할 토글</button>
             </div>
@@ -336,18 +283,9 @@
     </div>
 
     <!-- Main Content Container -->
-    <!-- [수정] h-full, overflow-hidden 제거 -> 내용만큼 늘어나도록 변경 -->
     <main class="flex-1 flex flex-col relative bg-slate-50" id="main-content">
-        
-        <!-- 열린 탭 바 (Browser Tabs) -->
-        <div id="top-tab-bar" class="tab-bar-container sticky top-14 z-40 bg-slate-50">
-            <!-- 탭들이 여기에 동적으로 추가됨 -->
-        </div>
-
-        <!-- 스크롤 가능한 메인 영역 -->
-        <!-- [수정] overflow-hidden 제거 -->
+        <div id="top-tab-bar" class="tab-bar-container sticky top-14 z-40 bg-slate-50"></div>
         <div class="flex-1 w-full relative" id="main-view-container">
-            <!-- 각 탭의 컨텐츠(div)들이 이곳에 생성되고 유지됩니다 -->
             <div id="initial-loader" class="flex items-center justify-center h-64 text-slate-400">
                 <div class="animate-spin mr-2"><i data-lucide="loader-2"></i></div>데이터 불러오는 중...
             </div>
@@ -357,11 +295,9 @@
     <div id="modal-container" class="fixed inset-0 z-[60] hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto"></div>
     <div id="dialog-container" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/50 p-4"></div>
 
-    <!-- Firebase SDK & App Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        // [수정] writeBatch 모듈 추가 (일괄 처리용)
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -397,41 +333,27 @@
             ICT_STATUS_LIST: ['부', '여']
         };
         
-        // 탭 이름 매핑
         const TAB_NAMES = {
             dashboard: '홈',
             clients: '대상자 관리',
             logs: '서비스 일지',
+            performance: '실적 관리',
             statistics: '통계',
             services: '서비스 설정'
         };
 
-        const getTodayStr = () => {
-            const now = new Date();
-            return new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-        };
-
         const state = {
             activeTab: 'dashboard',
-            // 열린 탭 관리 (브라우저 탭 스타일)
             openedTabs: ['dashboard'],
-            // 화면 분할 관련 상태
-            viewMode: 'single', // 'single' or 'split'
-            focusedPane: 'left', // 'left' or 'right' (현재 활성화된 창)
-            paneTabs: {
-                left: 'dashboard',
-                right: 'logs'
-            },
-            // [신규] 윈도우 상태 관리 (위치, 크기, z-index)
+            viewMode: 'single',
+            focusedPane: 'left',
+            paneTabs: { left: 'dashboard', right: 'logs' },
             windows: {
                 left: { x: 20, y: 20, w: 600, h: 700, z: 1 },
                 right: { x: 640, y: 20, w: 600, h: 700, z: 2 }
             },
-            isMobileMenuOpen: false, // [신규] 모바일 메뉴 상태
-            
-            // [신규] 각 탭의 렌더링 여부 추적 (최적화용)
+            isMobileMenuOpen: false,
             renderedTabs: new Set(),
-            
             clients: [],
             services: [],
             logs: [],
@@ -440,6 +362,7 @@
                 regionDropdownOpen: false,
                 logRegionDropdownOpen: false,
                 statsRegionDropdownOpen: false,
+                perfMonthDropdownOpen: false, // [신규] 실적 월 선택 드롭다운 상태
                 selectedLogIds: new Set(),
                 selectedClientIds: new Set(),
                 clientModalTab: 'basic',
@@ -455,17 +378,12 @@
                 },
                 log: { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] },
                 stats: { 
-                    start: (() => {
-                        const d = new Date();
-                        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-                    })(),
-                    end: (() => {
-                        const d = new Date();
-                        const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-                        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${lastDay}`;
-                    })(),
+                    start: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; })(),
+                    end: (() => { const d = new Date(); const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${lastDay}`; })(),
                     type: 'detail', region: [], name: '' 
-                }
+                },
+                // [수정] performance 필터: region 제거, months 배열 추가 (기본값: 1~12월 전체)
+                performance: { year: new Date().getFullYear(), months: Array.from({length: 12}, (_, i) => i + 1), viewMode: 'monthRows' }
             }
         };
 
@@ -479,7 +397,6 @@
             return age;
         }
 
-        // [수정] 필터링된 일지를 날짜 > 제공자 > 이름 순으로 정렬하여 반환
         function getFilteredLogs() {
             const { start, end, search, provider, category, service, region } = state.filters.log;
             const filtered = state.logs.filter(l => {
@@ -493,20 +410,10 @@
                        (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service))) &&
                        (region.length === 0 || region.includes(clientRegion));
             });
-
-            // 정렬 로직 적용
             return filtered.sort((a, b) => {
-                // 1. 날짜 (최신순/내림차순)
-                if (a.date !== b.date) {
-                    return b.date.localeCompare(a.date);
-                }
-                // 2. 제공자 (가나다순/오름차순)
-                const providerA = a.provider || '';
-                const providerB = b.provider || '';
-                if (providerA !== providerB) {
-                    return providerA.localeCompare(providerB);
-                }
-                // 3. 대상자 이름 (가나다순/오름차순)
+                if (a.date !== b.date) return b.date.localeCompare(a.date);
+                const providerA = a.provider || '', providerB = b.provider || '';
+                if (providerA !== providerB) return providerA.localeCompare(providerB);
                 return (a.clientName || '').localeCompare(b.clientName || '');
             });
         }
@@ -531,12 +438,10 @@
                     const catB = (b.majorCategory || '').replace(/\s+/g, '');
                     const indexA = sortOrder.findIndex(k => k.replace(/\s+/g, '') === catA);
                     const indexB = sortOrder.findIndex(k => k.replace(/\s+/g, '') === catB);
-                    
                     if (indexA !== -1 && indexB === -1) return -1;
                     if (indexA === -1 && indexB !== -1) return 1;
-                    if (indexA !== -1 && indexB !== -1) {
-                        if (indexA !== indexB) return indexA - indexB;
-                    } else {
+                    if (indexA !== -1 && indexB !== -1) { if (indexA !== indexB) return indexA - indexB; } 
+                    else {
                         const majorComp = (a.majorCategory || '').localeCompare(b.majorCategory || '');
                         if (majorComp !== 0) return majorComp;
                     }
@@ -560,7 +465,6 @@
                 render();
             }, handleErr);
             
-            // [수정] 일지 데이터 쿼리에 limit(500) 적용하여 최근 500개만 불러오도록 최적화
             onSnapshot(query(collection(db, "logs"), orderBy("date", "desc"), limit(500)), (snap) => {
                 state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 render();
@@ -571,34 +475,26 @@
             if (tabName === 'dashboard') return renderDashboard();
             if (tabName === 'clients') return renderClientManager();
             if (tabName === 'logs') return renderLogManager();
+            if (tabName === 'performance') return renderPerformance();
             if (tabName === 'statistics') return renderStatistics();
             if (tabName === 'services') return renderServiceManager();
             return '';
         }
 
-        // [신규] 특정 탭의 컨텐츠를 DOM에 반영하는 함수 (부분 렌더링)
         function updateTabContent(tabName) {
             const containerId = `tab-view-${tabName}`;
             let container = document.getElementById(containerId);
-            
-            // 컨테이너가 없으면 생성 (Main Container 내부에)
             if (!container) {
                 const mainContainer = document.getElementById('main-view-container');
-                if (!mainContainer) return; // 로딩 전
-
+                if (!mainContainer) return; 
                 container = document.createElement('div');
                 container.id = containerId;
-                // [수정] 탭 컨텐츠 래퍼의 높이 제한 해제 (h-full 제거)
                 container.className = 'tab-content-wrapper p-4 md:p-6'; 
                 mainContainer.appendChild(container);
             }
-
-            // HTML 컨텐츠 업데이트
             container.innerHTML = getTabHTML(tabName);
             state.renderedTabs.add(tabName);
-            
-            // 아이콘 리로드
-            lucide.createIcons();
+            if(window.lucide) lucide.createIcons();
         }
 
         function renderDashboard() {
@@ -613,7 +509,6 @@
             const highFocus = activeClients.filter(c => c.careLevel === '중점').length;
             const general = activeClients.filter(c => c.careLevel === '일반').length;
 
-            // [수정] 내부 스크롤 제거 (전체 스크롤 사용)
             return `
                 <div class="space-y-6 animate-fade-in p-1">
                     <div class="flex justify-between items-center">
@@ -659,7 +554,6 @@
         }
 
         function renderClientManager() {
-            // ... (기존 필터 로직 동일)
              const { search, searchPhone, status, level, economicStatus, duplicateService, ictStatus, region, gender, targetYear, targetMonth } = state.filters.client;
             let filterStart = '0000-01-01', filterEnd = '9999-12-31';
             if (targetYear) {
@@ -738,10 +632,8 @@
             const filteredGeneral = filtered.filter(c => c.careLevel === '일반').length;
             const isFilterActive = search !== '' || searchPhone !== '' || status !== '이용' || level !== '' || economicStatus !== '' || duplicateService !== '' || ictStatus !== '' || region.length > 0 || gender !== '' || targetYear !== '' || targetMonth !== '';
 
-            // [수정] 통계 메뉴처럼 목록 영역에 max-height와 overflow-auto 적용
             return `
                 <div class="flex flex-col animate-fade-in">
-                    <!-- [고정 영역] 제목, 통계, 필터 (Sticky 제거하고 일반 흐름으로 배치하되, 목록 영역에 스크롤 적용) -->
                     <div class="space-y-6 pb-2 pr-1 transition-all">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
                             <h2 class="text-xl md:text-2xl font-bold text-slate-800">대상자 관리</h2>
@@ -811,8 +703,6 @@
                         </div>
                     </div>
 
-                    <!-- [수정] 목록 영역: 고정 높이와 overflow-auto 적용하여 통계 메뉴처럼 내부 스크롤 생성 -->
-                    <!-- max-h-[70vh]를 주어 화면이 작아도 스크롤됨. 전체 페이지 스크롤도 가능 -->
                     <div class="overflow-y-auto max-h-[70vh] custom-scrollbar space-y-2 pr-1 pb-4">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
                         filtered.map(c => {
@@ -861,7 +751,6 @@
                 </div>`;
         }
 
-        // ... (나머지 렌더링 함수들: renderLogManager, renderStatistics, renderServiceManager 유지)
         function renderLogManager() {
              const filtered = getFilteredLogs(); 
             const categories = [...new Set(state.services.map(s => s.category))];
@@ -871,7 +760,6 @@
 
             return `
                 <div class="flex flex-col animate-fade-in">
-                    <!-- [고정 영역] 제목, 버튼, 필터 -->
                     <div class="space-y-4 pb-2 pr-1 transition-all">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
                             <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
@@ -925,7 +813,6 @@
                         </div>
                     </div>
 
-                    <!-- [목록 영역] max-h 및 overflow-auto 적용 -->
                     <div class="overflow-y-auto max-h-[70vh] custom-scrollbar space-y-4 pr-1 pb-4">
                         ${filtered.length === 0 ? '<div class="text-center py-12 text-slate-400">검색 결과가 없습니다.</div>' : filtered.map(l => {
                             const c = state.clients.find(cl => cl.id === l.clientId);
@@ -969,9 +856,224 @@
                     </div>
                 </div>`;
         }
+
+        function renderPerformance() {
+            // [수정] region 제거, months 필터 사용
+            const { year, months, viewMode = 'monthRows' } = state.filters.performance;
+            // 월 필터가 비어있으면 데이터가 없는 것으로 처리하거나 전체를 보여줄지 결정 (여기선 전체 선택 유도하지만 로직상 빈 배열 가능)
+            const selectedMonths = (months && months.length > 0) ? months.sort((a, b) => a - b) : [];
+            
+            // [수정] region 필터링 제거 (행정동 필터 삭제 요청 반영)
+            const targetLogs = state.logs.filter(l => l.date.startsWith(year));
+            
+            const stats = {};
+            state.services.forEach(s => {
+                const key = `${s.category}|${s.name}`;
+                if (!stats[key]) {
+                    stats[key] = { category: s.category, serviceName: s.name, counts: Array(12).fill(0), total: 0 };
+                }
+            });
+            
+            targetLogs.forEach(l => {
+                const month = parseInt(l.date.split('-')[1]) - 1; 
+                if (month < 0 || month > 11) return;
+                if (l.serviceItems && l.serviceItems.length > 0) {
+                    l.serviceItems.forEach(item => {
+                        const key = `${item.category}|${item.serviceName}`;
+                        if (stats[key]) { stats[key].counts[month]++; /* 전체 total은 일단 계산하지만, 표시할 때 재계산함 */ }
+                    });
+                }
+            });
+
+            const serviceOrderMap = new Map();
+            state.services.forEach((s, idx) => { serviceOrderMap.set(`${s.category}|${s.name}`, idx); });
+
+            const rows = Object.values(stats).sort((a, b) => {
+                const indexA = serviceOrderMap.get(`${a.category}|${a.serviceName}`);
+                const indexB = serviceOrderMap.get(`${b.category}|${b.serviceName}`);
+                if (indexA !== undefined && indexB !== undefined) return indexA - indexB;
+                if (indexA !== undefined) return -1;
+                if (indexB !== undefined) return 1;
+                if (a.category !== b.category) return a.category.localeCompare(b.category);
+                return a.serviceName.localeCompare(b.serviceName);
+            });
+
+            // [수정] 선택된 월에 대해서만 합계 재계산
+            const monthlyTotals = Array(12).fill(0);
+            let grandTotal = 0;
+            
+            rows.forEach(r => {
+                let rowSum = 0;
+                selectedMonths.forEach(m => {
+                    const monthIdx = m - 1;
+                    const val = r.counts[monthIdx];
+                    rowSum += val;
+                    monthlyTotals[monthIdx] += val;
+                });
+                r.displayTotal = rowSum; // 화면 표시용 합계 저장
+                grandTotal += rowSum;
+            });
+
+            const yearOptions = [];
+            const currentYear = new Date().getFullYear();
+            for (let y = 2020; y <= currentYear + 1; y++) {
+                yearOptions.push(`<option value="${y}" ${parseInt(year) === y ? 'selected' : ''}>${y}년</option>`);
+            }
+            yearOptions.reverse();
+
+            const stickColStyle = (left, z) => `position: sticky; left: ${left}px; z-index: ${z};`;
+            let tableHTML = '';
+
+            // [조건문] 보기 모드에 따른 테이블 생성
+            if (viewMode === 'monthRows') {
+                // --- 월별 보기 (세로: 월, 가로: 서비스) ---
+                const headerGroups = {};
+                const orderedCategories = [];
+                rows.forEach(r => {
+                    if (!headerGroups[r.category]) { headerGroups[r.category] = []; orderedCategories.push(r.category); }
+                    headerGroups[r.category].push(r);
+                });
+
+                let headerRow1 = `<th class="py-2 px-4 border-b border-r bg-slate-50 text-center font-bold min-w-[60px] whitespace-nowrap" rowspan="2" style="${stickColStyle(0, 30)}">월</th>`;
+                let headerRow2 = '';
+
+                orderedCategories.forEach(cat => {
+                    const services = headerGroups[cat];
+                    headerRow1 += `<th class="py-2 px-2 border-b border-r bg-slate-100 text-center font-bold text-slate-700 whitespace-nowrap" colspan="${services.length}">${cat}</th>`;
+                    services.forEach(s => {
+                        const displayName = s.serviceName === '정서지원서비스(안전안부확인)' ? '안전안부확인' : s.serviceName;
+                        headerRow2 += `<th class="py-2 px-2 border-b border-r bg-slate-50 text-center text-xs font-medium text-slate-600 min-w-[60px] max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis cursor-help" title="${s.serviceName}">${displayName}</th>`;
+                    });
+                });
+                headerRow1 += `<th class="py-2 px-4 border-b bg-emerald-50 text-emerald-800 text-center font-bold min-w-[60px] whitespace-nowrap" rowspan="2">합계</th>`;
+
+                let bodyRows = '';
+                // [수정] selectedMonths만 순회하여 행 생성
+                if (selectedMonths.length === 0) {
+                    bodyRows = `<tr><td colspan="${rows.length + 2}" class="py-8 text-center text-slate-400">선택된 월이 없습니다.</td></tr>`;
+                } else {
+                    selectedMonths.forEach(m => {
+                        const monthIdx = m - 1;
+                        let rowHTML = `<td class="py-2 px-4 border-r font-bold text-slate-600 bg-white text-center sticky left-0 z-20">${m}월</td>`;
+                        rows.forEach(r => {
+                            const count = r.counts[monthIdx];
+                            rowHTML += `<td class="py-2 px-1 border-r text-center ${count > 0 ? 'text-blue-600 font-bold bg-blue-50/30' : 'text-slate-300'}">${count || '-'}</td>`;
+                        });
+                        rowHTML += `<td class="py-2 px-4 text-center font-bold text-emerald-600 bg-emerald-50/50">${monthlyTotals[monthIdx]}</td>`;
+                        bodyRows += `<tr class="hover:bg-slate-50 group border-b border-slate-100">${rowHTML}</tr>`;
+                    });
+                }
+
+                let footerRow = `<td class="py-3 px-4 border-r text-center bg-slate-100 font-bold sticky left-0 z-20">총계</td>`;
+                rows.forEach(r => { footerRow += `<td class="py-3 px-1 border-r text-center text-slate-800 font-bold bg-slate-50">${r.displayTotal}</td>`; });
+                footerRow += `<td class="py-3 px-4 text-center text-emerald-700 bg-emerald-100 font-bold">${grandTotal}</td>`;
+
+                tableHTML = `<thead class="sticky top-0 z-30 shadow-sm"><tr>${headerRow1}</tr><tr>${headerRow2}</tr></thead><tbody class="divide-y divide-slate-100">${bodyRows}<tr class="bg-slate-100 font-bold shadow-sm border-t-2 border-slate-300">${footerRow}</tr></tbody>`;
+            } else {
+                // --- 서비스별 보기 (세로: 서비스, 가로: 월) ---
+                const wCat = 90;
+                const wSvc = 150;
+                
+                // [수정] selectedMonths에 따라 동적으로 컬럼 생성
+                const monthHeaders = selectedMonths.map(m => `<th class="py-3 px-2 border-b border-r min-w-[40px] text-center bg-slate-50">${m}월</th>`).join('');
+                
+                tableHTML = `
+                    <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20 shadow-sm">
+                        <tr>
+                            <th class="py-3 px-2 border-b border-r min-w-[${wCat}px] bg-slate-50 text-center font-bold" style="${stickColStyle(0, 30)}">분류</th>
+                            <th class="py-3 px-2 border-b border-r min-w-[${wSvc}px] bg-slate-50 text-center font-bold" style="${stickColStyle(wCat, 30)}">서비스명</th>
+                            ${monthHeaders}
+                            <th class="py-3 px-2 border-b bg-emerald-50 text-emerald-800 text-center font-bold min-w-[60px]">합계</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        ${rows.length === 0 ? `<tr><td colspan="${selectedMonths.length + 3}" class="text-center py-4">데이터 없음</td></tr>` : rows.map(r => {
+                            const displayName = r.serviceName === '정서지원서비스(안전안부확인)' ? '안전안부확인' : r.serviceName;
+                            // 선택된 월 데이터만 렌더링
+                            const cells = selectedMonths.map(m => {
+                                const count = r.counts[m - 1];
+                                return `<td class="py-2 px-2 border-r text-center ${count > 0 ? 'text-blue-600 font-bold bg-blue-50/30' : 'text-slate-300'}">${count || '-'}</td>`;
+                            }).join('');
+                            
+                            return `
+                            <tr class="hover:bg-slate-50 group">
+                                <td class="py-2 px-2 border-r font-medium text-slate-600 bg-white text-center text-xs whitespace-nowrap" style="${stickColStyle(0, 20)}">${r.category}</td>
+                                <td class="py-2 px-2 border-r text-slate-800 bg-white text-sm whitespace-nowrap text-ellipsis overflow-hidden max-w-[${wSvc}px]" title="${r.serviceName}" style="${stickColStyle(wCat, 20)}">${displayName}</td>
+                                ${cells}
+                                <td class="py-2 px-2 text-center font-bold text-emerald-600 bg-emerald-50/50">${r.displayTotal}</td>
+                            </tr>
+                        `;}).join('')}
+                        <tr class="bg-slate-100 font-bold shadow-sm border-t-2 border-slate-300">
+                            <td class="py-3 px-2 border-r text-center bg-slate-100" style="${stickColStyle(0, 20)}">총계</td>
+                            <td class="py-3 px-2 border-r bg-slate-100" style="${stickColStyle(wCat, 20)}"></td>
+                            ${selectedMonths.map(m => `<td class="py-3 px-2 border-r text-center text-slate-800">${monthlyTotals[m - 1]}</td>`).join('')}
+                            <td class="py-3 px-2 text-center text-emerald-700 bg-emerald-100">${grandTotal}</td>
+                        </tr>
+                    </tbody>
+                `;
+            }
+
+            return `
+                <div class="space-y-6 animate-fade-in p-1">
+                    <h2 class="text-2xl font-bold text-slate-800">월별 서비스 실적</h2>
+                    <div class="sticky top-0 z-50 bg-slate-50 pt-2 pb-2 shadow-sm -mx-1 px-1">
+                        <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                             <div class="flex items-center bg-slate-100 rounded-lg p-1 mr-4">
+                                <button onclick="app.setFilter('performance', 'viewMode', 'monthRows')" class="px-3 py-1.5 rounded-md text-sm font-bold transition-all ${viewMode === 'monthRows' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">월별 보기 (기본)</button>
+                                <button onclick="app.setFilter('performance', 'viewMode', 'serviceRows')" class="px-3 py-1.5 rounded-md text-sm font-bold transition-all ${viewMode === 'serviceRows' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">서비스별 보기</button>
+                             </div>
+                             <div class="flex items-center gap-2">
+                                <label class="text-sm font-bold text-slate-700">연도</label>
+                                <select class="input-field py-1 px-3 w-32 font-bold" onchange="app.setFilter('performance', 'year', this.value)">
+                                    ${yearOptions.join('')}
+                                </select>
+                             </div>
+                             
+                             <!-- [신규] 월 선택 드롭다운 (다중 선택) -->
+                             <div class="flex items-center gap-2 ml-0 sm:ml-4 relative">
+                                <label class="text-sm font-bold text-slate-700">월 선택</label>
+                                <button onclick="app.togglePerfMonthDropdown()" class="input-field py-1 px-3 w-40 text-left flex justify-between items-center text-sm font-medium cursor-pointer">
+                                    <span class="truncate">${selectedMonths.length === 12 ? '전체 월' : (selectedMonths.length === 0 ? '선택 없음' : `${selectedMonths.length}개 선택됨`)}</span>
+                                    <i data-lucide="chevron-down" size="14" class="text-slate-400"></i>
+                                </button>
+                                ${state.ui.perfMonthDropdownOpen ? `
+                                    <div class="fixed inset-0 z-40" onclick="app.togglePerfMonthDropdown()"></div>
+                                    <div class="absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 animate-fade-in">
+                                        <div class="flex justify-between items-center px-2 pb-2 mb-2 border-b border-slate-100">
+                                            <span class="text-xs font-bold text-slate-500">다중 선택 가능</span>
+                                            <button onclick="app.toggleAllPerfMonths()" class="text-xs text-blue-600 hover:text-blue-800 font-medium">전체선택/해제</button>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-1 max-h-60 overflow-y-auto">
+                                            ${Array.from({length: 12}, (_, i) => i + 1).map(m => `
+                                                <label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none">
+                                                    <input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" 
+                                                        ${selectedMonths.includes(m) ? 'checked' : ''} 
+                                                        onchange="app.togglePerfMonth(${m})">
+                                                    <span class="text-slate-700 font-medium">${m}월</span>
+                                                </label>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                             </div>
+
+                             <div class="flex-1"></div>
+                             <button onclick="app.downloadPerformanceExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm">
+                                <i data-lucide="download" size="18"></i> 엑셀 다운로드
+                             </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-auto max-h-[600px]">
+                        <table class="w-full text-sm text-left border-collapse whitespace-nowrap">
+                            ${tableHTML}
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
         
         function renderStatistics() {
-           // ... (기존 통계 렌더링 로직 동일)
              const { start, end, type, region, name } = state.filters.stats;
             const sYear = start.split('-')[0];
             const eYear = end.split('-')[0];
@@ -1101,7 +1203,6 @@
             const isEditing = !!state.editingServiceId;
             const editData = isEditing ? state.services.find(s => s.id === state.editingServiceId) : {};
             
-            // [수정] 내부 스크롤 제거 (전체 스크롤 사용)
             return `
                 <div class="space-y-6 animate-fade-in p-1">
                     <h2 class="text-2xl font-bold text-slate-800">서비스 목록 설정</h2>
@@ -1148,128 +1249,126 @@
 
         window.app = {
             setTab: (t, updateHistory = true) => { 
-                // 탭 열기 로직
-                if (!state.openedTabs.includes(t)) {
-                    state.openedTabs.push(t);
-                }
-
+                if (!state.openedTabs.includes(t)) { state.openedTabs.push(t); }
                 if (state.viewMode === 'single') {
                     state.activeTab = t; 
-                    // [신규] 탭 변경 시 히스토리 스택에 추가 (뒤로가기 지원)
-                    if (updateHistory) {
-                        window.history.pushState({ tab: t }, '', `#${t}`);
-                    }
+                    if (updateHistory) window.history.pushState({ tab: t }, '', `#${t}`);
                 } else {
                     state.paneTabs[state.focusedPane] = t;
                 }
-                
-                // 모바일 메뉴 닫기 (메뉴 항목 클릭 시 동작)
                 app.closeMobileMenu();
-
-                // [최적화] 전체 render() 대신 UI 상태만 변경하여 즉시 반응
                 app.updateTabVisibility(); 
             },
             
-            // [신규] 탭 가시성 및 상단 탭바만 빠르게 업데이트
             updateTabVisibility: () => {
                 const currentTab = state.viewMode === 'single' ? state.activeTab : state.paneTabs[state.focusedPane];
-
-                // 1. 상단 탭바 업데이트 (렌더링 비용 낮음)
                 app.renderTabBar(currentTab);
                 
-                // 2. 상단 네비게이션 버튼 스타일 업데이트
                 document.querySelectorAll('.nav-link').forEach(b => { 
                     const tabKey = b.dataset.tab || b.dataset.tabMobile;
                     if(tabKey === currentTab) b.classList.add('active'); 
                     else b.classList.remove('active'); 
                 });
 
-                // 3. 메인 컨텐츠 영역 Show/Hide (DOM 교체 없이 display 속성만 변경)
                 if (state.viewMode === 'single') {
-                    // 싱글 뷰 모드
                     const mainContainer = document.getElementById('main-view-container');
                     if(mainContainer) {
-                        // [수정] 윈도우 모드(분할화면)에서 돌아왔거나, 초기화가 필요한 경우에만 내용을 비웁니다.
-                        // window-pane 클래스가 있거나, fixed 클래스(분할모드 스타일)가 적용된 경우 감지
                         if (mainContainer.classList.contains('fixed') || (mainContainer.firstChild && mainContainer.firstChild.classList && mainContainer.firstChild.classList.contains('window-pane'))) {
-                            mainContainer.className = "flex-1 w-full relative overflow-hidden flex flex-col"; // 레이아웃 초기화
-                            mainContainer.style.backgroundColor = ""; // 배경 초기화
-                            mainContainer.innerHTML = ""; // 윈도우 모드 잔재 제거
+                            mainContainer.className = "flex-1 w-full relative overflow-hidden flex flex-col"; 
+                            mainContainer.style.backgroundColor = ""; 
+                            mainContainer.innerHTML = ""; 
                             state.renderedTabs.clear();
                         }
-
-                        // 로딩 표시가 있다면 제거
                         const loader = document.getElementById('initial-loader');
                         if (loader) loader.remove();
 
-                        // 열려있는 모든 탭에 대해 Visibility 처리
                         state.openedTabs.forEach(t => {
                             let view = document.getElementById(`tab-view-${t}`);
-                            
                             if (t === state.activeTab) {
-                                // 현재 활성 탭인데 DOM이 없으면 생성
-                                if (!view) {
-                                    updateTabContent(t);
-                                    view = document.getElementById(`tab-view-${t}`);
-                                }
-                                // DOM이 있으면 활성화 클래스 추가 (새로고침 안 함)
+                                if (!view) { updateTabContent(t); view = document.getElementById(`tab-view-${t}`); }
                                 if (view) view.classList.add('active');
                             } else {
-                                // 비활성 탭은 숨김 처리 (DOM 유지)
                                 if (view) view.classList.remove('active');
                             }
                         });
                     }
                 } else {
-                    // 분할(윈도우) 뷰 모드
-                    render(); // 윈도우 모드는 구조가 완전히 다르므로 전체 렌더링
+                    render(); 
                 }
             },
 
-            // [신규] 상단 탭바만 별도 렌더링
             renderTabBar: (currentTab) => {
                 const tabBar = document.getElementById('top-tab-bar');
                 if (tabBar) {
-                    tabBar.innerHTML = state.openedTabs.map(t => {
+                    tabBar.innerHTML = state.openedTabs.map((t, index) => {
                         const isActive = t === currentTab;
                         return `
-                        <div class="main-tab ${isActive ? 'active' : ''}" onclick="app.setTab('${t}')">
+                        <div class="main-tab ${isActive ? 'active' : ''}" 
+                             onclick="app.setTab('${t}')"
+                             draggable="true"
+                             ondragstart="app.handleTabDragStart(event, ${index})"
+                             ondragover="app.handleTabDragOver(event)"
+                             ondrop="app.handleTabDrop(event, ${index})"
+                             ondragend="app.handleTabDragEnd(event)">
                             <span>${TAB_NAMES[t] || t}</span>
                             <button onclick="app.closeTab('${t}', event)" class="tab-close-btn" title="탭 닫기">
                                 <i data-lucide="x" size="8"></i>
                             </button>
                         </div>`;
                     }).join('');
-                    lucide.createIcons();
+                    if(window.lucide) lucide.createIcons();
                 }
+            },
+
+            handleTabDragStart: (e, index) => {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', index);
+                e.target.style.opacity = '0.4';
+            },
+            handleTabDragOver: (e) => {
+                e.preventDefault(); 
+                e.dataTransfer.dropEffect = 'move';
+                return false;
+            },
+            handleTabDrop: (e, targetIndex) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                
+                if (sourceIndex !== targetIndex && !isNaN(sourceIndex) && sourceIndex >= 0 && sourceIndex < state.openedTabs.length) {
+                    const tabs = [...state.openedTabs];
+                    const [movedTab] = tabs.splice(sourceIndex, 1);
+                    tabs.splice(targetIndex, 0, movedTab);
+                    state.openedTabs = tabs;
+                    
+                    const currentTab = state.viewMode === 'single' ? state.activeTab : state.paneTabs[state.focusedPane];
+                    app.renderTabBar(currentTab);
+                }
+                return false;
+            },
+            handleTabDragEnd: (e) => {
+                e.target.style.opacity = '';
             },
 
             closeTab: (t, e) => {
                 if (e) e.stopPropagation();
-                // 탭 제거
                 state.openedTabs = state.openedTabs.filter(tab => tab !== t);
                 
-                // DOM 요소도 제거 (메모리 관리)
                 const view = document.getElementById(`tab-view-${t}`);
                 if (view) view.remove();
                 state.renderedTabs.delete(t);
 
-                // 만약 모든 탭을 닫았다면 기본값 추가
-                if (state.openedTabs.length === 0) {
-                    state.openedTabs.push('dashboard');
-                }
+                if (state.openedTabs.length === 0) state.openedTabs.push('dashboard');
 
-                // 현재 보고 있던 탭을 닫았을 경우 처리
                 const fallbackTab = state.openedTabs[state.openedTabs.length - 1]; 
                 
                 if (state.viewMode === 'single') {
                     if (state.activeTab === t) {
                         state.activeTab = fallbackTab;
-                        app.updateTabVisibility(); // 최적화된 전환
-                        // 탭 닫을 때도 히스토리 업데이트 (선택 사항이나 UX상 유지)
-                        history.replaceState({ tab: fallbackTab }, '', `#${fallbackTab}`);
+                        app.updateTabVisibility(); 
+                        window.history.replaceState({ tab: fallbackTab }, '', `#${fallbackTab}`);
                     } else {
-                        app.renderTabBar(state.activeTab); // 탭바만 갱신
+                        app.renderTabBar(state.activeTab); 
                     }
                 } else {
                     if (state.paneTabs.left === t) state.paneTabs.left = fallbackTab;
@@ -1278,7 +1377,7 @@
                 }
             },
             toggleSplitView: () => {
-                app.closeMobileMenu(); // 메뉴 닫기
+                app.closeMobileMenu(); 
                 if (state.viewMode === 'single') {
                     state.viewMode = 'split';
                     state.paneTabs.left = state.activeTab;
@@ -1287,12 +1386,9 @@
                     state.focusedPane = 'left';
                     document.getElementById('split-status-text').textContent = 'ON';
                     document.getElementById('btn-split-toggle').classList.add('bg-slate-700', 'text-emerald-400', 'border-emerald-500');
-                    
-                    // [수정] 윈도우 모드 진입 시 전체 스크롤 방지 및 배경 고정 (App-like feel)
                     document.body.style.overflow = 'hidden';
                     document.body.style.height = '100vh';
 
-                    // 윈도우 초기 위치 설정 (화면 크기에 맞춰 중앙 정렬)
                     const container = document.getElementById('main-content');
                     const w = container ? container.clientWidth : window.innerWidth;
                     const h = container ? container.clientHeight : window.innerHeight;
@@ -1301,34 +1397,27 @@
                     
                     state.windows.left = { x: 20, y: 20, w: winW, h: winH, z: 10 };
                     state.windows.right = { x: winW + 40, y: 20, w: winW, h: winH, z: 9 };
-
-                    // 분할 모드 진입 시에는 DOM 구조가 바뀌므로 전체 렌더링
                     render();
                 } else {
                     state.viewMode = 'single';
                     state.activeTab = state.paneTabs.left;
                     document.getElementById('split-status-text').textContent = 'OFF';
                     document.getElementById('btn-split-toggle').classList.remove('bg-slate-700', 'text-emerald-400', 'border-emerald-500');
-                    
-                    // [수정] 싱글 모드 복귀 시 전체 스크롤 허용 (Web-like feel)
                     document.body.style.overflow = '';
                     document.body.style.height = '';
 
-                    // 싱글 모드 복귀 시 DOM 재구성 (기존 탭 뷰들 복원)
                     const mainContainer = document.getElementById('main-view-container');
                     if(mainContainer) {
-                        mainContainer.innerHTML = ''; // 분할 뷰 초기화
-                        state.renderedTabs.clear(); // 렌더링 상태 초기화 (다시 그림)
+                        mainContainer.innerHTML = ''; 
+                        state.renderedTabs.clear(); 
                     }
                     app.updateTabVisibility();
                 }
             },
             
-            // [유지] 윈도우 드래그 시작 (직접 이동 + 성능 최적화)
             startDrag: (e, paneId) => {
                 e.preventDefault();
                 app.setFocusedPane(paneId);
-                
                 const winState = state.windows[paneId];
                 const el = document.getElementById(`window-${paneId}`);
                 if (!el) return;
@@ -1349,13 +1438,10 @@
                 const updatePosition = () => {
                     const dx = currentX - startX;
                     const dy = currentY - startY;
-                    
                     winState.x = initialLeft + dx;
                     winState.y = initialTop + dy;
-                    
                     el.style.left = `${winState.x}px`;
                     el.style.top = `${winState.y}px`;
-                    
                     rafId = null;
                 };
 
@@ -1369,43 +1455,32 @@
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
                     if (rafId) cancelAnimationFrame(rafId);
-                    
                     el.classList.remove('dragging');
                     document.body.style.userSelect = '';
                     document.body.style.cursor = '';
                 };
-
                 document.addEventListener('mousemove', onMove);
                 document.addEventListener('mouseup', onUp);
             },
 
-            // [대폭 수정] 윈도우 크기 조절 시작 (8방향 지원)
             startResize: (e, paneId, direction) => {
                 e.preventDefault();
                 e.stopPropagation();
                 app.setFocusedPane(paneId);
-                
                 const winState = state.windows[paneId];
                 const el = document.getElementById(`window-${paneId}`);
                 if (!el) return;
 
                 const startX = e.clientX;
                 const startY = e.clientY;
-                
-                // 초기 상태 저장
                 const initialX = winState.x;
                 const initialY = winState.y;
                 const initialW = winState.w;
                 const initialH = winState.h;
 
-                el.classList.add('dragging'); // 컨텐츠 이벤트 차단
+                el.classList.add('dragging'); 
                 document.body.style.userSelect = 'none';
-                
-                // 방향에 따른 커서 설정
-                const cursorMap = {
-                    'n': 'n-resize', 's': 's-resize', 'e': 'e-resize', 'w': 'w-resize',
-                    'ne': 'ne-resize', 'nw': 'nw-resize', 'se': 'se-resize', 'sw': 'sw-resize'
-                };
+                const cursorMap = { 'n': 'n-resize', 's': 's-resize', 'e': 'e-resize', 'w': 'w-resize', 'ne': 'ne-resize', 'nw': 'nw-resize', 'se': 'se-resize', 'sw': 'sw-resize' };
                 document.body.style.cursor = cursorMap[direction];
 
                 let currentX = startX;
@@ -1415,46 +1490,15 @@
                 const updateSize = () => {
                     const dx = currentX - startX;
                     const dy = currentY - startY;
-                    
-                    let newW = initialW;
-                    let newH = initialH;
-                    let newX = initialX;
-                    let newY = initialY;
+                    let newW = initialW, newH = initialH, newX = initialX, newY = initialY;
 
-                    // 동(East) - 너비만 증가
-                    if (direction.includes('e')) {
-                        newW = Math.max(300, initialW + dx);
-                    }
-                    // 서(West) - 너비 증가 및 X좌표 이동
-                    if (direction.includes('w')) {
-                        const proposedW = initialW - dx;
-                        newW = Math.max(300, proposedW);
-                        // 너비가 최소값(300)에 걸리면 위치도 멈춰야 함 (드래그한 만큼만 이동)
-                        newX = initialX + (initialW - newW); 
-                    }
-                    // 남(South) - 높이만 증가
-                    if (direction.includes('s')) {
-                        newH = Math.max(200, initialH + dy);
-                    }
-                    // 북(North) - 높이 증가 및 Y좌표 이동
-                    if (direction.includes('n')) {
-                        const proposedH = initialH - dy;
-                        newH = Math.max(200, proposedH);
-                        newY = initialY + (initialH - newH);
-                    }
+                    if (direction.includes('e')) newW = Math.max(300, initialW + dx);
+                    if (direction.includes('w')) { const proposedW = initialW - dx; newW = Math.max(300, proposedW); newX = initialX + (initialW - newW); }
+                    if (direction.includes('s')) newH = Math.max(200, initialH + dy);
+                    if (direction.includes('n')) { const proposedH = initialH - dy; newH = Math.max(200, proposedH); newY = initialY + (initialH - newH); }
 
-                    // 상태 업데이트
-                    winState.x = newX;
-                    winState.y = newY;
-                    winState.w = newW;
-                    winState.h = newH;
-                    
-                    // 스타일 적용
-                    el.style.width = `${newW}px`;
-                    el.style.height = `${newH}px`;
-                    el.style.left = `${newX}px`;
-                    el.style.top = `${newY}px`;
-                    
+                    winState.x = newX; winState.y = newY; winState.w = newW; winState.h = newH;
+                    el.style.width = `${newW}px`; el.style.height = `${newH}px`; el.style.left = `${newX}px`; el.style.top = `${newY}px`;
                     rafId = null;
                 };
 
@@ -1468,111 +1512,83 @@
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
                     if (rafId) cancelAnimationFrame(rafId);
-                    
                     el.classList.remove('dragging');
                     document.body.style.userSelect = '';
                     document.body.style.cursor = '';
                 };
-
                 document.addEventListener('mousemove', onMove);
                 document.addEventListener('mouseup', onUp);
             },
 
-            // [신규] 모바일 메뉴 토글 (단순 토글)
-            toggleMobileMenu: () => {
-                state.isMobileMenuOpen = !state.isMobileMenuOpen;
-                app.renderMobileMenuState();
-            },
-            
-            // [추가] 모바일 메뉴 강제 닫기 (DOM 동기화 포함)
-            closeMobileMenu: () => {
-                state.isMobileMenuOpen = false;
-                app.renderMobileMenuState();
-            },
-            
-            // [추가] 모바일 메뉴 UI 업데이트 (Class Toggle)
+            toggleMobileMenu: () => { state.isMobileMenuOpen = !state.isMobileMenuOpen; app.renderMobileMenuState(); },
+            closeMobileMenu: () => { state.isMobileMenuOpen = false; app.renderMobileMenuState(); },
             renderMobileMenuState: () => {
                 const menu = document.getElementById('mobile-menu');
-                if (state.isMobileMenuOpen) {
-                    menu.classList.remove('-translate-y-[150%]');
-                } else {
-                    menu.classList.add('-translate-y-[150%]');
-                }
+                if (state.isMobileMenuOpen) menu.classList.remove('-translate-y-[150%]'); else menu.classList.add('-translate-y-[150%]');
             },
 
             setFocusedPane: (pane) => {
                 state.focusedPane = pane;
-                // Z-Index 업데이트
                 state.windows.left.z = pane === 'left' ? 10 : 1;
                 state.windows.right.z = pane === 'right' ? 10 : 1;
-                
                 const leftEl = document.getElementById('window-left');
                 const rightEl = document.getElementById('window-right');
-                
-                if (leftEl) {
-                    leftEl.style.zIndex = state.windows.left.z;
-                    if (pane === 'left') leftEl.classList.add('active'); else leftEl.classList.remove('active');
-                }
-                if (rightEl) {
-                    rightEl.style.zIndex = state.windows.right.z;
-                    if (pane === 'right') rightEl.classList.add('active'); else rightEl.classList.remove('active');
-                }
-                
+                if (leftEl) { leftEl.style.zIndex = state.windows.left.z; if (pane === 'left') leftEl.classList.add('active'); else leftEl.classList.remove('active'); }
+                if (rightEl) { rightEl.style.zIndex = state.windows.right.z; if (pane === 'right') rightEl.classList.add('active'); else rightEl.classList.remove('active'); }
                 app.renderTabBar(state.paneTabs[pane]);
             },
             setFilter: (s, k, v, doRender = true) => { 
                 state.filters[s][k] = v; 
-                if(doRender) {
-                    // 전체 렌더링 대신 현재 탭 컨텐츠만 업데이트 (깜빡임 방지)
-                    if (state.viewMode === 'single') {
-                        updateTabContent(state.activeTab);
-                    } else {
-                        render();
-                    }
+                if(doRender) { if (state.viewMode === 'single') updateTabContent(state.activeTab); else render(); }
+            },
+            render: () => render(), 
+            toggleRegionDropdown: () => { state.ui.regionDropdownOpen = !state.ui.regionDropdownOpen; if(state.viewMode==='single') updateTabContent('clients'); else render(); },
+            toggleRegionFilter: (val) => { const r = state.filters.client.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); if(state.viewMode==='single') updateTabContent('clients'); else render(); },
+            toggleLogRegionDropdown: () => { state.ui.logRegionDropdownOpen = !state.ui.logRegionDropdownOpen; if(state.viewMode==='single') updateTabContent('logs'); else render(); },
+            toggleLogRegionFilter: (val) => { const r = state.filters.log.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); if(state.viewMode==='single') updateTabContent('logs'); else render(); },
+            toggleStatsRegionDropdown: () => { state.ui.statsRegionDropdownOpen = !state.ui.statsRegionDropdownOpen; if(state.viewMode==='single') updateTabContent('statistics'); else render(); },
+            toggleStatsRegionFilter: (val) => { const r = state.filters.stats.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); if(state.viewMode==='single') updateTabContent('statistics'); else render(); },
+            
+            // [신규] 실적 월 선택 드롭다운 관련 핸들러
+            togglePerfMonthDropdown: () => { 
+                state.ui.perfMonthDropdownOpen = !state.ui.perfMonthDropdownOpen; 
+                if(state.viewMode==='single') updateTabContent('performance'); else render(); 
+            },
+            togglePerfMonth: (month) => {
+                const months = state.filters.performance.months;
+                const idx = months.indexOf(month);
+                if (idx > -1) months.splice(idx, 1);
+                else months.push(month);
+                // 자동 정렬 및 렌더링
+                months.sort((a,b) => a-b);
+                if(state.viewMode==='single') updateTabContent('performance'); else render();
+            },
+            toggleAllPerfMonths: () => {
+                const currentLen = state.filters.performance.months.length;
+                if (currentLen === 12) {
+                    state.filters.performance.months = []; // 전체 해제
+                } else {
+                    state.filters.performance.months = Array.from({length: 12}, (_, i) => i + 1); // 전체 선택
                 }
+                if(state.viewMode==='single') updateTabContent('performance'); else render();
             },
-            render: () => render(), // 외부 호출용 (데이터 변경 시 등)
-            toggleRegionDropdown: () => { 
-                state.ui.regionDropdownOpen = !state.ui.regionDropdownOpen; 
-                if(state.viewMode==='single') updateTabContent('clients'); else render(); 
-            },
-            toggleRegionFilter: (val) => { 
-                const r = state.filters.client.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); 
-                if(state.viewMode==='single') updateTabContent('clients'); else render(); 
-            },
-            toggleLogRegionDropdown: () => { 
-                state.ui.logRegionDropdownOpen = !state.ui.logRegionDropdownOpen; 
-                if(state.viewMode==='single') updateTabContent('logs'); else render(); 
-            },
-            toggleLogRegionFilter: (val) => { 
-                const r = state.filters.log.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); 
-                if(state.viewMode==='single') updateTabContent('logs'); else render(); 
-            },
-            toggleStatsRegionDropdown: () => { 
-                state.ui.statsRegionDropdownOpen = !state.ui.statsRegionDropdownOpen; 
-                if(state.viewMode==='single') updateTabContent('statistics'); else render(); 
-            },
-            toggleStatsRegionFilter: (val) => { 
-                const r = state.filters.stats.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); 
-                if(state.viewMode==='single') updateTabContent('statistics'); else render(); 
-            },
+
             resetFilters: (section) => {
                 if (section === 'client') {
-                    state.filters.client = { 
-                        status: '이용', level: '', economicStatus: '', duplicateService: '', ictStatus: '', 
-                        region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' 
-                    };
+                    state.filters.client = { status: '이용', level: '', economicStatus: '', duplicateService: '', ictStatus: '', region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' };
                     state.ui.regionDropdownOpen = false;
                     if(state.viewMode==='single') updateTabContent('clients');
+                } else if (section === 'performance') {
+                    // [수정] performance 초기화 시 months 기본값(전체) 설정
+                    state.filters.performance = { year: new Date().getFullYear(), months: Array.from({length: 12}, (_, i) => i + 1), viewMode: 'monthRows' };
+                    state.ui.perfMonthDropdownOpen = false;
+                    if(state.viewMode==='single') updateTabContent('performance');
                 } else if (section === 'log') {
                     state.filters.log = { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] };
                     state.ui.logRegionDropdownOpen = false;
                     if(state.viewMode==='single') updateTabContent('logs');
                 } else if (section === 'stats') {
-                    const d = new Date();
-                    const s = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
-                    const l = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-                    const e = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${l}`;
+                    const d = new Date(); const s = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; const l = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); const e = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${l}`;
                     state.filters.stats = { start: s, end: e, type: 'detail', region: [], name: '' };
                     state.ui.statsRegionDropdownOpen = false;
                     if(state.viewMode==='single') updateTabContent('statistics');
@@ -1580,14 +1596,7 @@
                 if (state.viewMode !== 'single') render();
             },
 
-            // ... (기타 함수들: toggleLogSelection, updateLogBatchActionsUI, toggleAllLogs, deleteSelectedLogs, openBatchEditClientModal, executeBatchEditClients, openBatchEditLogModal, toggleBatchService, addBatchSvcRow, removeBatchSvcRow, executeBatchEditLogs, executeDeleteSelectedLogs, toggleClientSelection, updateClientBatchActionsUI, deleteSelectedClients, executeDeleteSelectedClients, showYearStatsModal, setClientModalTab, setCaseSubTab, openClientModal, saveClient, calcBirthFromRR, updateAgeDisplay, confirmSaveClient, processSaveClient, closeDialog, openLogModal, fillClientInfo, addClientToSelection, removeClientFromSelection, renderSelectedClients, addSvcRow, removeSvcRow, saveLog, confirmSaveLog, processSaveLog, duplicateLog, aiDraft, deleteData, executeDelete, closeModal, editService, cancelEditService, addService, confirmAddService, processAddService, downloadTemplate, uploadExcel, downloadStatsExcel, downloadLogsExcel, downloadLogTemplate, uploadLogExcel, printLogs, setStatsStart)
-            // ... (모두 기존 로직 유지)
-
-            toggleLogSelection: (id) => { 
-                if (state.ui.selectedLogIds.has(id)) state.ui.selectedLogIds.delete(id); 
-                else state.ui.selectedLogIds.add(id); 
-                app.updateLogBatchActionsUI(); 
-            },
+            toggleLogSelection: (id) => { if (state.ui.selectedLogIds.has(id)) state.ui.selectedLogIds.delete(id); else state.ui.selectedLogIds.add(id); app.updateLogBatchActionsUI(); },
             updateLogBatchActionsUI: () => {
                 const container = document.getElementById('log-batch-actions');
                 const selectAllCheckbox = document.getElementById('log-select-all');
@@ -1595,36 +1604,28 @@
                 const count = state.ui.selectedLogIds.size;
                 if (count > 0) {
                     container.innerHTML = `<button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-blue-100 transition-colors animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${count})</button><button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제</button>`;
-                    lucide.createIcons();
-                } else {
-                    container.innerHTML = '';
-                }
-                if (selectAllCheckbox) {
-                    const filtered = getFilteredLogs();
-                    const allSelected = filtered.length > 0 && filtered.every(l => state.ui.selectedLogIds.has(l.id));
-                    selectAllCheckbox.checked = allSelected;
-                }
+                    if(window.lucide) lucide.createIcons();
+                } else { container.innerHTML = ''; }
+                if (selectAllCheckbox) { const filtered = getFilteredLogs(); const allSelected = filtered.length > 0 && filtered.every(l => state.ui.selectedLogIds.has(l.id)); selectAllCheckbox.checked = allSelected; }
             },
             toggleAllLogs: (checked) => {
                 const filtered = getFilteredLogs();
-                if (checked) { filtered.forEach(l => state.ui.selectedLogIds.add(l.id)); }
-                else { filtered.forEach(l => state.ui.selectedLogIds.delete(l.id)); }
-                const checkboxes = document.querySelectorAll('.log-checkbox');
-                checkboxes.forEach(cb => { cb.checked = checked; });
+                if (checked) { filtered.forEach(l => state.ui.selectedLogIds.add(l.id)); } else { filtered.forEach(l => state.ui.selectedLogIds.delete(l.id)); }
+                const checkboxes = document.querySelectorAll('.log-checkbox'); checkboxes.forEach(cb => { cb.checked = checked; });
                 app.updateLogBatchActionsUI();
             },
             deleteSelectedLogs: () => {
                 const count = state.ui.selectedLogIds.size;
                 if (count === 0) return;
                 showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">일괄 삭제 확인</h3><p class="text-sm text-slate-500 mb-6">선택한 <span class="font-bold text-red-600">${count}개</span>의 일지를 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDeleteSelectedLogs()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">아니오</button></div></div></div>`);
-                lucide.createIcons();
+                if(window.lucide) lucide.createIcons();
             },
             openBatchEditClientModal: () => {
                 const count = state.ui.selectedClientIds.size;
                 if (count === 0) return;
                 const html = `<div class="bg-white w-full max-w-md p-6 rounded-xl shadow-xl mx-4"><div class="flex items-center gap-2 mb-4"><div class="p-2 bg-blue-100 text-blue-600 rounded-full"><i data-lucide="edit-3" size="20"></i></div><h3 class="font-bold text-lg text-slate-900">대상자 일괄 수정 (${count}명)</h3></div><p class="text-sm text-slate-500 mb-6 bg-slate-50 p-3 rounded">체크박스를 선택한 항목만 일괄 변경됩니다.<br>선택하지 않은 항목은 기존 값이 유지됩니다.</p><form onsubmit="app.executeBatchEditClients(event)"><div class="space-y-4"><div class="flex items-center gap-3"><input type="checkbox" id="chk-region" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-region').disabled = !this.checked"><label for="chk-region" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">행정동</label><select id="val-region" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>${CONSTANTS.DONG_LIST.map(d => `<option value="${d}">${d}</option>`).join('')}</select></div><div class="flex items-center gap-3"><input type="checkbox" id="chk-careLevel" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-careLevel').disabled = !this.checked"><label for="chk-careLevel" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">등급</label><select id="val-careLevel" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>${CONSTANTS.CARE_LEVEL_LIST.map(v => `<option value="${v}">${v}</option>`).join('')}</select></div><div class="flex items-center gap-3"><input type="checkbox" id="chk-economicStatus" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-economicStatus').disabled = !this.checked"><label for="chk-economicStatus" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">경제상황</label><select id="val-economicStatus" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>${CONSTANTS.ECONOMIC_LIST.map(v => `<option value="${v}">${v}</option>`).join('')}</select></div><div class="flex items-center gap-3"><input type="checkbox" id="chk-householdType" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-householdType').disabled = !this.checked"><label for="chk-householdType" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">세대유형</label><select id="val-householdType" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>${CONSTANTS.HOUSEHOLD_LIST.map(v => `<option value="${v}">${v}</option>`).join('')}</select></div><div class="flex items-center gap-3"><input type="checkbox" id="chk-duplicateService" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-duplicateService').disabled = !this.checked"><label for="chk-duplicateService" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">중복서비스</label><select id="val-duplicateService" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>${CONSTANTS.DUPLICATE_SERVICE_LIST.map(v => `<option value="${v}">${v}</option>`).join('')}</select></div><div class="flex items-center gap-3"><input type="checkbox" id="chk-ictStatus" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-ictStatus').disabled = !this.checked"><label for="chk-ictStatus" class="w-24 text-sm font-bold text-slate-700 cursor-pointer">ICT현황</label><select id="val-ictStatus" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>${CONSTANTS.ICT_STATUS_LIST.map(v => `<option value="${v}">${v}</option>`).join('')}</select></div></div><div class="flex justify-end gap-2 mt-8 pt-4 border-t border-slate-100"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">취소</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors">수정 완료</button></div></form></div>`;
                 showModal(html);
-                lucide.createIcons();
+                if(window.lucide) lucide.createIcons();
             },
             executeBatchEditClients: async (e) => {
                 e.preventDefault();
@@ -1650,7 +1651,7 @@
                 if (count === 0) return;
                 const html = `<div class="bg-white w-full max-w-2xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto"><div class="flex items-center gap-2 mb-4"><div class="p-2 bg-blue-100 text-blue-600 rounded-full"><i data-lucide="edit-3" size="20"></i></div><h3 class="font-bold text-lg text-slate-900">일괄 수정 (${count}건)</h3></div><p class="text-sm text-slate-500 mb-6 bg-slate-50 p-3 rounded">체크박스를 선택한 항목만 일괄 변경됩니다.<br>선택하지 않은 항목은 기존 값이 유지됩니다.</p><form onsubmit="app.executeBatchEditLogs(event)"><div class="space-y-4"><div class="flex items-center gap-3"><input type="checkbox" id="chk-date" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-date').disabled = !this.checked"><label for="chk-date" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">날짜</label><input type="date" id="val-date" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" max="9999-12-31" disabled></div><div class="flex items-center gap-3"><input type="checkbox" id="chk-method" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-method').disabled = !this.checked"><label for="chk-method" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">제공방법</label><select id="val-method" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}">${m}</option>`).join('')}</select></div><div class="flex items-center gap-3"><input type="checkbox" id="chk-provider" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-provider').disabled = !this.checked"><label for="chk-provider" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">제공자</label><input type="text" id="val-provider" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" placeholder="변경할 이름" disabled></div><div class="flex items-start gap-3 pt-2 border-t border-dashed border-slate-200"><input type="checkbox" id="chk-service" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mt-1 cursor-pointer" onchange="app.toggleBatchService(this.checked)"><label for="chk-service" class="w-20 text-sm font-bold text-slate-700 mt-1 cursor-pointer">서비스</label><div class="flex-1"><div class="flex justify-between items-center mb-2"><span class="text-xs text-slate-500">체크 시 아래 목록으로 덮어씌워집니다 (최대 6개)</span><button type="button" id="btn-add-batch-svc" onclick="app.addBatchSvcRow()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed" disabled>추가</button></div><div id="batch-svc-container" class="space-y-2 p-2 bg-slate-50 rounded border border-slate-200 min-h-[50px]"><div class="text-center text-xs text-slate-400 py-2">변경하려면 체크박스를 선택하세요</div></div></div></div><div class="flex items-start gap-3 pt-2 border-t border-dashed border-slate-200"><input type="checkbox" id="chk-content" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mt-1 cursor-pointer" onchange="document.getElementById('val-content').disabled = !this.checked"><label for="chk-content" class="w-20 text-sm font-bold text-slate-700 mt-1 cursor-pointer">진행내용</label><textarea id="val-content" class="input-field flex-1 py-1.5 text-sm h-24 disabled:bg-slate-100 disabled:text-slate-400" placeholder="변경할 내용" disabled></textarea></div></div><div class="flex justify-end gap-2 mt-8 pt-4 border-t border-slate-100"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">취소</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors">수정 완료</button></div></form></div>`;
                 showModal(html);
-                lucide.createIcons();
+                if(window.lucide) lucide.createIcons();
             },
             toggleBatchService: (checked) => {
                 const btn = document.getElementById('btn-add-batch-svc');
@@ -1672,7 +1673,7 @@
                 div.innerHTML = `<select class="batch-cat-sel input-field w-full sm:w-1/4 text-xs" onchange="app.updateOpts(this)"><option value="">분류</option>${cats.map(c => `<option value="${c}" ${c === defCat ? 'selected' : ''}>${c}</option>`).join('')}</select><select class="batch-svc-sel input-field w-full sm:w-1/3 text-xs"><option value="${defSvc}">${defSvc || '서비스 선택'}</option></select><div class="flex w-full sm:flex-1 gap-2"><input class="batch-det-inp input-field flex-1 text-xs" placeholder="메모" value="${defNote}"><button type="button" onclick="app.removeBatchSvcRow('${id}')" class="text-red-400 p-1 hover:text-red-600"><i data-lucide="minus-circle" size="16"></i></button></div>`;
                 container.appendChild(div);
                 if (defCat) { const sel = div.querySelector('.batch-svc-sel'); const svcs = state.services.filter(s => s.category === defCat); sel.innerHTML = svcs.map(s => `<option value="${s.name}" ${s.name === defSvc ? 'selected' : ''}>${s.name}</option>`).join(''); }
-                lucide.createIcons();
+                if(window.lucide) lucide.createIcons();
             },
             removeBatchSvcRow: (id) => { const el = document.getElementById(`batch-row-${id}`); if (el) el.remove(); },
             executeBatchEditLogs: async (e) => {
@@ -1702,144 +1703,43 @@
                 } catch (err) { alert("수정 중 오류가 발생했습니다: " + err.message); }
             },
             executeDeleteSelectedLogs: async () => { try { const promises = Array.from(state.ui.selectedLogIds).map(id => deleteDoc(doc(db, "logs", id))); await Promise.all(promises); state.ui.selectedLogIds.clear(); closeDialog(); } catch (err) { alert("삭제 중 오류가 발생했습니다: " + err.message); } },
-            
-            // [수정] 대상자 선택 시 전체 화면 새로고침(render) 방지 및 부분 UI 업데이트
             toggleClientSelection: (id) => { 
-                if (state.ui.selectedClientIds.has(id)) {
-                    state.ui.selectedClientIds.delete(id); 
-                } else {
-                    state.ui.selectedClientIds.add(id); 
-                }
-                // render() 제거 -> 전체 화면 깜빡임 방지
+                if (state.ui.selectedClientIds.has(id)) { state.ui.selectedClientIds.delete(id); } else { state.ui.selectedClientIds.add(id); }
                 app.updateClientBatchActionsUI(); 
             },
-
-            // [신규] 대상자 일괄 작업 버튼 영역만 부분 업데이트하는 함수
             updateClientBatchActionsUI: () => {
                 const container = document.getElementById('client-batch-actions');
                 if (!container) return;
-                
                 const count = state.ui.selectedClientIds.size;
                 if (count > 0) {
-                    container.innerHTML = `
-                        <button onclick="app.openBatchEditClientModal()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${count})</button>
-                        <button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제(${count})</button>
-                    `;
-                    lucide.createIcons();
-                } else {
-                    container.innerHTML = '';
-                }
+                    container.innerHTML = `<button onclick="app.openBatchEditClientModal()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${count})</button><button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제(${count})</button>`;
+                    if(window.lucide) lucide.createIcons();
+                } else { container.innerHTML = ''; }
             },
-
             deleteSelectedClients: () => {
                 const count = state.ui.selectedClientIds.size;
                 if (count === 0) return;
                 showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">대상자 일괄 삭제</h3><p class="text-sm text-slate-500 mb-6">선택한 <span class="font-bold text-red-600">${count}명</span>의 대상자를 삭제하시겠습니까?<br>삭제 시 해당 대상자의 정보가 영구적으로 사라집니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDeleteSelectedClients()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">아니오</button></div></div></div>`);
-                lucide.createIcons();
+                if(window.lucide) lucide.createIcons();
             },
             executeDeleteSelectedClients: async () => { try { const promises = Array.from(state.ui.selectedClientIds).map(id => deleteDoc(doc(db, "clients", id))); await Promise.all(promises); state.ui.selectedClientIds.clear(); closeDialog(); } catch (err) { alert("삭제 중 오류가 발생했습니다: " + err.message); } },
-
-            // 올해 현황 모달 기능
             showYearStatsModal: () => {
                 const currentYear = String(new Date().getFullYear());
                 const newClients = state.clients.filter(c => c.serviceStartDate && c.serviceStartDate.startsWith(currentYear)).sort((a,b) => b.serviceStartDate.localeCompare(a.serviceStartDate));
                 const endClients = state.clients.filter(c => c.endDate && c.endDate.startsWith(currentYear)).sort((a,b) => b.endDate.localeCompare(a.endDate));
-
-                const html = `
-                    <div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
-                        <div class="flex justify-between items-center mb-6 flex-shrink-0">
-                            <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
-                                <i data-lucide="calendar" class="text-slate-500"></i> ${currentYear}년 대상자 현황
-                            </h3>
-                            <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
-                        </div>
-                        
-                        <div class="flex flex-col md:flex-row gap-6 overflow-hidden min-h-0 flex-1">
-                            <!-- 신규 대상자 목록 -->
-                            <div class="flex-1 flex flex-col min-h-0 bg-emerald-50/50 rounded-xl border border-emerald-100 overflow-hidden">
-                                <div class="p-4 bg-emerald-100/50 border-b border-emerald-200 flex justify-between items-center flex-shrink-0">
-                                    <h4 class="font-bold text-emerald-800 flex items-center gap-2"><i data-lucide="user-plus" size="18"></i> 신규 등록 (${newClients.length}명)</h4>
-                                </div>
-                                <div class="overflow-y-auto p-2 flex-1">
-                                    <table class="w-full text-sm text-left border-separate border-spacing-y-1">
-                                        <thead class="text-xs text-emerald-700 font-bold sticky top-0 bg-emerald-50 z-10">
-                                            <tr>
-                                                <th class="px-3 py-2">이름</th>
-                                                <th class="px-3 py-2">시작일</th>
-                                                <th class="px-3 py-2">등급/동</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${newClients.length ? newClients.map(c => `
-                                                <tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')" title="클릭하여 상세정보 보기">
-                                                    <td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td>
-                                                    <td class="px-3 py-2 text-slate-600 bg-transparent">${c.serviceStartDate}</td>
-                                                    <td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.careLevel} · ${c.region}</td>
-                                                </tr>
-                                            `).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <!-- 종결 대상자 목록 -->
-                            <div class="flex-1 flex flex-col min-h-0 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-                                <div class="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
-                                    <h4 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="user-minus" size="18"></i> 종결 (${endClients.length}명)</h4>
-                                </div>
-                                <div class="overflow-y-auto p-2 flex-1">
-                                    <table class="w-full text-sm text-left border-separate border-spacing-y-1">
-                                        <thead class="text-xs text-slate-600 font-bold sticky top-0 bg-slate-100 z-10">
-                                            <tr>
-                                                <th class="px-3 py-2">이름</th>
-                                                <th class="px-3 py-2">종결일</th>
-                                                <th class="px-3 py-2">사유/상태</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${endClients.length ? endClients.map(c => `
-                                                <tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')" title="클릭하여 상세정보 보기">
-                                                    <td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td>
-                                                    <td class="px-3 py-2 text-slate-600 bg-transparent">${c.endDate}</td>
-                                                    <td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.status}</td>
-                                                </tr>
-                                            `).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-4 text-right flex-shrink-0 pt-2 border-t border-slate-100">
-                            <button onclick="app.closeModal()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button>
-                        </div>
-                    </div>
-                `;
+                const html = `<div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col"><div class="flex justify-between items-center mb-6 flex-shrink-0"><h3 class="font-bold text-xl text-slate-800 flex items-center gap-2"><i data-lucide="calendar" class="text-slate-500"></i> ${currentYear}년 대상자 현황</h3><button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button></div><div class="flex flex-col md:flex-row gap-6 overflow-hidden min-h-0 flex-1"><div class="flex-1 flex flex-col min-h-0 bg-emerald-50/50 rounded-xl border border-emerald-100 overflow-hidden"><div class="p-4 bg-emerald-100/50 border-b border-emerald-200 flex justify-between items-center flex-shrink-0"><h4 class="font-bold text-emerald-800 flex items-center gap-2"><i data-lucide="user-plus" size="18"></i> 신규 등록 (${newClients.length}명)</h4></div><div class="overflow-y-auto p-2 flex-1"><table class="w-full text-sm text-left border-separate border-spacing-y-1"><thead class="text-xs text-emerald-700 font-bold sticky top-0 bg-emerald-50 z-10"><tr><th class="px-3 py-2">이름</th><th class="px-3 py-2">시작일</th><th class="px-3 py-2">등급/동</th></tr></thead><tbody>${newClients.length ? newClients.map(c => `<tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')"><td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td><td class="px-3 py-2 text-slate-600 bg-transparent">${c.serviceStartDate}</td><td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.careLevel} · ${c.region}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}</tbody></table></div></div><div class="flex-1 flex flex-col min-h-0 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden"><div class="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center flex-shrink-0"><h4 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="user-minus" size="18"></i> 종결 (${endClients.length}명)</h4></div><div class="overflow-y-auto p-2 flex-1"><table class="w-full text-sm text-left border-separate border-spacing-y-1"><thead class="text-xs text-slate-600 font-bold sticky top-0 bg-slate-100 z-10"><tr><th class="px-3 py-2">이름</th><th class="px-3 py-2">종결일</th><th class="px-3 py-2">사유/상태</th></tr></thead><tbody>${endClients.length ? endClients.map(c => `<tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')"><td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td><td class="px-3 py-2 text-slate-600 bg-transparent">${c.endDate}</td><td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.status}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}</tbody></table></div></div></div><div class="mt-4 text-right flex-shrink-0 pt-2 border-t border-slate-100"><button onclick="app.closeModal()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button></div></div>`;
                 showModal(html);
-                lucide.createIcons();
+                if(window.lucide) lucide.createIcons();
             },
-
-            // 대상자 모달 탭 및 하위 탭 기능
             setClientModalTab: (tabName) => {
                 state.ui.clientModalTab = tabName;
-                document.querySelectorAll('.modal-tab-btn').forEach(btn => {
-                    if (btn.dataset.tab === tabName) btn.classList.add('active');
-                    else btn.classList.remove('active');
-                });
-                document.querySelectorAll('.modal-tab-content').forEach(content => {
-                    if (content.id === `tab-${tabName}`) content.classList.add('active');
-                    else content.classList.remove('active');
-                });
+                document.querySelectorAll('.modal-tab-btn').forEach(btn => { if (btn.dataset.tab === tabName) btn.classList.add('active'); else btn.classList.remove('active'); });
+                document.querySelectorAll('.modal-tab-content').forEach(content => { if (content.id === `tab-${tabName}`) content.classList.add('active'); else content.classList.remove('active'); });
             },
             setCaseSubTab: (tabName) => {
                 state.ui.caseSubTab = tabName;
-                document.querySelectorAll('.sub-tab-btn').forEach(btn => {
-                    if (btn.dataset.subtab === tabName) btn.classList.add('active');
-                    else btn.classList.remove('active');
-                });
-                document.querySelectorAll('.sub-tab-content').forEach(content => {
-                    if (content.id === `sub-tab-${tabName}`) content.classList.add('active');
-                    else content.classList.remove('active');
-                });
+                document.querySelectorAll('.sub-tab-btn').forEach(btn => { if (btn.dataset.subtab === tabName) btn.classList.add('active'); else btn.classList.remove('active'); });
+                document.querySelectorAll('.sub-tab-content').forEach(content => { if (content.id === `sub-tab-${tabName}`) content.classList.add('active'); else content.classList.remove('active'); });
             },
             openClientModal: (id) => {
                 const c = id ? state.clients.find(x => x.id === id) : {};
@@ -1848,121 +1748,10 @@
                 const initialAge = c.birthDate ? `만 ${calculateAge(c.birthDate)}세` : '';
                 const cm = c.caseManagement || {};
                 const getVal = (obj, path) => path.split('.').reduce((o, i) => o ? o[i] : '', obj);
-
-                // 상태 초기화
-                state.ui.clientModalTab = 'basic';
-                state.ui.caseSubTab = 'initial';
-
-                const html = `
-                <div class="bg-white w-full max-w-4xl p-0 rounded-xl shadow-xl max-h-[90vh] overflow-hidden flex flex-col mx-2">
-                    <div class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-white z-10">
-                        <h3 class="font-bold text-lg">${c.id ? '수정' : '등록'}</h3>
-                        <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
-                    </div>
-                    <!-- 메인 탭 (기본정보 / 사례관리) -->
-                    <div class="flex border-b border-slate-100 bg-slate-50 sticky top-0 z-10">
-                        <button type="button" class="modal-tab-btn active" data-tab="basic" onclick="app.setClientModalTab('basic')">기본 정보</button>
-                        <button type="button" class="modal-tab-btn" data-tab="case" onclick="app.setClientModalTab('case')">사례관리</button>
-                    </div>
-                    <div class="p-4 sm:p-6 overflow-y-auto flex-1 bg-white">
-                        <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" class="space-y-4">
-                            <!-- 1. 기본 정보 탭 -->
-                            <div id="tab-basic" class="modal-tab-content active space-y-4">
-                                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                                    <div class="sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div>
-                                    <div class="sm:col-span-6 md:col-span-2"><label class="text-sm block mb-1">성별</label><select name="gender" class="input-field" id="gender-select"><option value="남성">남성</option><option value="여성" ${c.gender==='여성'?'selected':''}>여성</option></select></div>
-                                    <div class="sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">주민등록번호</label><input name="residentNum" class="input-field" placeholder="YYMMDD-1..." value="${c.residentNum||''}" maxlength="14" oninput="app.calcBirthFromRR(this)"></div>
-                                    <div class="sm:col-span-6 md:col-span-4"><label class="text-sm block mb-1">생년월일</label><div class="flex items-center gap-2"><input type="date" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" max="9999-12-31" oninput="app.updateAgeDisplay(this)"><input id="age-display" class="input-field !w-[25%] min-w-[60px] text-center bg-slate-100 text-slate-600 focus:outline-none cursor-default font-bold" readonly value="${initialAge}" placeholder="나이" tabindex="-1"></div></div>
-                                </div>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                    <div><label class="text-sm block mb-1">연락처 1</label><input name="phone" class="input-field" placeholder="본인 연락처" value="${c.phone||''}"></div>
-                                    <div><label class="text-sm block mb-1">연락처 2</label><input name="phone2" class="input-field" placeholder="비상/추가 연락처" value="${c.phone2||''}"></div>
-                                    <div><label class="text-sm block mb-1">보호자 연락처</label><div class="flex gap-2"><input name="guardianRelation" class="input-field w-20" placeholder="관계" value="${c.guardianRelation||''}"><input name="guardianPhone" class="input-field flex-1" placeholder="번호" value="${c.guardianPhone||''}"></div></div>
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                                    <div class="sm:col-span-1"><label class="text-sm block mb-1">행정동</label><select name="region" class="input-field">${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${c.region===d?'selected':''}>${d}</option>`).join('')}</select></div>
-                                    <div class="sm:col-span-3"><label class="text-sm block mb-1">주소</label><input name="address" class="input-field" value="${c.address||''}" placeholder="상세 주소 입력"></div>
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                                    <div><label class="text-sm block mb-1">등급</label><select name="careLevel" class="input-field">${CONSTANTS.CARE_LEVEL_LIST.map(v=>`<option value="${v}" ${c.careLevel===v?'selected':''}>${v}</option>`).join('')}</select></div>
-                                    <div><label class="text-sm block mb-1">경제상황</label><select name="economicStatus" class="input-field">${CONSTANTS.ECONOMIC_LIST.map(v=>`<option value="${v}" ${c.economicStatus===v?'selected':''}>${v}</option>`).join('')}</select></div>
-                                    <div><label class="text-sm block mb-1">세대유형</label><select name="householdType" class="input-field">${CONSTANTS.HOUSEHOLD_LIST.map(v=>`<option value="${v}" ${c.householdType===v?'selected':''}>${v}</option>`).join('')}</select></div>
-                                    <div><label class="text-sm block mb-1">중복서비스</label><select name="duplicateService" class="input-field">${CONSTANTS.DUPLICATE_SERVICE_LIST.map(v=>`<option value="${v}" ${c.duplicateService===v?'selected':''}>${v}</option>`).join('')}</select></div>
-                                    <div><label class="text-sm block mb-1">ICT 현황</label><select name="ictStatus" class="input-field">${CONSTANTS.ICT_STATUS_LIST.map(v=>`<option value="${v}" ${c.ictStatus===v?'selected':''}>${v}</option>`).join('')}</select></div>
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                                    <div class="sm:col-span-2"><label class="text-sm block mb-1">상태</label><select name="status" class="input-field">${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
-                                    <div class="sm:col-span-3"><label class="text-sm block mb-1">시작일</label><input type="date" name="serviceStartDate" class="input-field" value="${c.serviceStartDate||''}" max="9999-12-31"></div>
-                                    <div class="sm:col-span-4"><label class="text-sm block mb-1">장기부재기간</label><div class="flex items-center gap-1"><input type="date" name="absStart" class="input-field px-1 text-sm text-center" value="${absStart}" max="9999-12-31" style="font-size: 0.8rem;"><span class="text-slate-400">~</span><input type="date" name="absEnd" class="input-field px-1 text-sm text-center" value="${absEnd}" max="9999-12-31" style="font-size: 0.8rem;"></div></div>
-                                    <div class="sm:col-span-3"><label class="text-sm block mb-1">종결일</label><input type="date" name="endDate" class="input-field" value="${c.endDate||''}" max="9999-12-31"></div>
-                                </div>
-                                <div><label class="text-sm block mb-1">비고</label><textarea name="note" class="input-field" rows="2">${c.note||''}</textarea></div>
-                            </div>
-                            
-                            <!-- 2. 사례관리 탭 (하위 탭 포함) -->
-                            <div id="tab-case" class="modal-tab-content space-y-4">
-                                <!-- ... (사례관리 폼 내용 유지) ... -->
-                                <div class="flex gap-2 overflow-x-auto pb-2 border-b border-slate-100 mb-4 sticky top-0 bg-white z-0">
-                                    <button type="button" class="sub-tab-btn active" data-subtab="initial" onclick="app.setCaseSubTab('initial')">초기면접지</button>
-                                    <button type="button" class="sub-tab-btn" data-subtab="assessment" onclick="app.setCaseSubTab('assessment')">사정기록지</button>
-                                    <button type="button" class="sub-tab-btn" data-subtab="reassess" onclick="app.setCaseSubTab('reassess')">재사정</button>
-                                    <button type="button" class="sub-tab-btn" data-subtab="satisfaction" onclick="app.setCaseSubTab('satisfaction')">만족도조사</button>
-                                </div>
-
-                                <div id="sub-tab-initial" class="sub-tab-content active space-y-4">
-                                    <div class="bg-blue-50 p-3 rounded text-sm text-blue-700 mb-2 flex items-start gap-2"><i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>대상자의 초기 상태와 욕구를 파악하기 위한 면접 기록입니다.</div>
-                                    <div class="grid grid-cols-2 gap-3"><div><label class="text-sm block mb-1 font-bold">면접일자</label><input type="date" id="cm-initial-date" class="input-field" value="${getVal(cm, 'initial.date')}"></div><div><label class="text-sm block mb-1 font-bold">면접자</label><input type="text" id="cm-initial-interviewer" class="input-field" value="${getVal(cm, 'initial.interviewer')}"></div></div>
-                                    <div><label class="text-sm block mb-1 font-bold">호소 문제 및 욕구</label><textarea id="cm-initial-problem" class="input-field h-20" placeholder="대상자가 주로 호소하는 문제와 요구사항">${getVal(cm, 'initial.problem')}</textarea></div>
-                                    <div><label class="text-sm block mb-1 font-bold">가족 및 사회적 관계</label><textarea id="cm-initial-family" class="input-field h-20" placeholder="가족 관계 및 지지체계">${getVal(cm, 'initial.family')}</textarea></div>
-                                    <div><label class="text-sm block mb-1 font-bold">주거 및 경제 상황</label><textarea id="cm-initial-economic" class="input-field h-20" placeholder="주거 환경 및 경제적 어려움">${getVal(cm, 'initial.economic')}</textarea></div>
-                                    <div><label class="text-sm block mb-1 font-bold">신체 및 정신 건강</label><textarea id="cm-initial-health" class="input-field h-20" placeholder="질병 유무 및 정신 건강 상태">${getVal(cm, 'initial.health')}</textarea></div>
-                                    <div><label class="text-sm block mb-1 font-bold">종합 소견</label><textarea id="cm-initial-conclusion" class="input-field h-24" placeholder="면접자 종합 의견">${getVal(cm, 'initial.conclusion')}</textarea></div>
-                                </div>
-
-                                <div id="sub-tab-assessment" class="sub-tab-content space-y-4">
-                                    <div class="bg-purple-50 p-3 rounded text-sm text-purple-700 mb-2 flex items-start gap-2"><i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>위기도 및 생활 실태를 점수화하여 기록합니다. (1점: 매우 나쁨 ~ 5점: 매우 좋음/안정)</div>
-                                    <div class="grid grid-cols-2 gap-3"><div><label class="text-sm block mb-1 font-bold">사정일자</label><input type="date" id="cm-assess-date" class="input-field" value="${getVal(cm, 'assessment.date')}"></div><div><label class="text-sm block mb-1 font-bold">작성자</label><input type="text" id="cm-assess-writer" class="input-field" value="${getVal(cm, 'assessment.writer')}"></div></div>
-                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded border border-slate-200">
-                                        <div><label class="text-xs block mb-1 text-slate-500">신체건강 (1-5)</label><input type="number" id="cm-assess-score-health" class="input-field text-center" min="1" max="5" value="${getVal(cm, 'assessment.scoreHealth')}"></div>
-                                        <div><label class="text-xs block mb-1 text-slate-500">정신건강 (1-5)</label><input type="number" id="cm-assess-score-mental" class="input-field text-center" min="1" max="5" value="${getVal(cm, 'assessment.scoreMental')}"></div>
-                                        <div><label class="text-xs block mb-1 text-slate-500">경제상태 (1-5)</label><input type="number" id="cm-assess-score-eco" class="input-field text-center" min="1" max="5" value="${getVal(cm, 'assessment.scoreEco')}"></div>
-                                        <div><label class="text-xs block mb-1 text-slate-500">사회지지 (1-5)</label><input type="number" id="cm-assess-score-social" class="input-field text-center" min="1" max="5" value="${getVal(cm, 'assessment.scoreSocial')}"></div>
-                                    </div>
-                                    <div><label class="text-sm block mb-1 font-bold">위기 사정 내용</label><textarea id="cm-assess-content" class="input-field h-24" placeholder="위기 상황 및 사정 상세 내용">${getVal(cm, 'assessment.content')}</textarea></div>
-                                    <div><label class="text-sm block mb-1 font-bold">개입 계획</label><textarea id="cm-assess-plan" class="input-field h-24" placeholder="서비스 제공 계획 및 목표">${getVal(cm, 'assessment.plan')}</textarea></div>
-                                </div>
-
-                                <div id="sub-tab-reassess" class="sub-tab-content space-y-4">
-                                    <div class="bg-orange-50 p-3 rounded text-sm text-orange-700 mb-2 flex items-start gap-2"><i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>서비스 제공 후 변화 확인 및 계획 재수립을 위한 기록입니다.</div>
-                                    <div class="grid grid-cols-2 gap-3"><div><label class="text-sm block mb-1 font-bold">재사정일자</label><input type="date" id="cm-re-date" class="input-field" value="${getVal(cm, 'reAssessment.date')}"></div><div><label class="text-sm block mb-1 font-bold">진행기간</label><input type="text" id="cm-re-period" class="input-field" placeholder="예: 6개월" value="${getVal(cm, 'reAssessment.period')}"></div></div>
-                                    <div><label class="text-sm block mb-1 font-bold">목표 달성 정도</label><textarea id="cm-re-goal" class="input-field h-20" placeholder="기존 목표 달성 여부 및 변화">${getVal(cm, 'reAssessment.goal')}</textarea></div>
-                                    <div><label class="text-sm block mb-1 font-bold">주요 변화 사항</label><textarea id="cm-re-change" class="input-field h-20" placeholder="대상자의 신체, 정서, 환경적 변화">${getVal(cm, 'reAssessment.change')}</textarea></div>
-                                    <div><label class="text-sm block mb-1 font-bold">향후 계획 (유지/종결/변경)</label><select id="cm-re-plan-type" class="input-field mb-2"><option value="유지" ${getVal(cm, 'reAssessment.planType')==='유지'?'selected':''}>현 서비스 유지</option><option value="변경" ${getVal(cm, 'reAssessment.planType')==='변경'?'selected':''}>서비스 변경/추가</option><option value="종결" ${getVal(cm, 'reAssessment.planType')==='종결'?'selected':''}>서비스 종결</option></select><textarea id="cm-re-plan-detail" class="input-field h-16" placeholder="향후 계획 상세">${getVal(cm, 'reAssessment.planDetail')}</textarea></div>
-                                </div>
-
-                                <div id="sub-tab-satisfaction" class="sub-tab-content space-y-4">
-                                    <div class="bg-green-50 p-3 rounded text-sm text-green-700 mb-2 flex items-start gap-2"><i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>서비스 이용에 대한 만족도 평가 기록입니다.</div>
-                                    <div><label class="text-sm block mb-1 font-bold">조사일자</label><input type="date" id="cm-sat-date" class="input-field w-1/2" value="${getVal(cm, 'satisfaction.date')}"></div>
-                                    <div class="p-4 border border-slate-200 rounded-lg">
-                                        <div class="mb-3 flex items-center justify-between"><label class="font-bold">전반적 만족도</label><select id="cm-sat-score" class="input-field w-32 font-bold text-emerald-600"><option value="5" ${getVal(cm, 'satisfaction.score')==='5'?'selected':''}>★★★★★ (매우만족)</option><option value="4" ${getVal(cm, 'satisfaction.score')==='4'?'selected':''}>★★★★ (만족)</option><option value="3" ${getVal(cm, 'satisfaction.score')==='3'?'selected':''}>★★★ (보통)</option><option value="2" ${getVal(cm, 'satisfaction.score')==='2'?'selected':''}>★★ (불만족)</option><option value="1" ${getVal(cm, 'satisfaction.score')==='1'?'selected':''}>★ (매우불만족)</option></select></div>
-                                        <div class="space-y-2 text-sm text-slate-600">
-                                            <div class="flex items-center gap-2"><input type="checkbox" id="cm-sat-kind" class="w-4 h-4 text-emerald-600 rounded" ${getVal(cm, 'satisfaction.kind')?'checked':''}> 담당자가 친절했습니까?</div>
-                                            <div class="flex items-center gap-2"><input type="checkbox" id="cm-sat-help" class="w-4 h-4 text-emerald-600 rounded" ${getVal(cm, 'satisfaction.help')?'checked':''}> 서비스가 도움이 되었습니까?</div>
-                                            <div class="flex items-center gap-2"><input type="checkbox" id="cm-sat-time" class="w-4 h-4 text-emerald-600 rounded" ${getVal(cm, 'satisfaction.time')?'checked':''}> 약속 시간을 잘 지켰습니까?</div>
-                                        </div>
-                                    </div>
-                                    <div><label class="text-sm block mb-1 font-bold">건의사항 및 기타의견</label><textarea id="cm-sat-comment" class="input-field h-24" placeholder="대상자의 의견">${getVal(cm, 'satisfaction.comment')}</textarea></div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="p-4 border-t border-slate-100 bg-white flex justify-end gap-2 z-10">
-                        <button type="button" onclick="app.closeModal()" class="px-5 py-2.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">취소</button>
-                        <button type="button" onclick="document.getElementById('client-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))" class="bg-emerald-600 text-white px-6 py-2.5 rounded-lg hover:bg-emerald-700 font-bold shadow-md transition-colors transform hover:scale-[1.02]">저장</button>
-                    </div>
-                </div>`;
+                state.ui.clientModalTab = 'basic'; state.ui.caseSubTab = 'initial';
+                const html = `<div class="bg-white w-full max-w-4xl p-0 rounded-xl shadow-xl max-h-[90vh] overflow-hidden flex flex-col mx-2"><div class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-white z-10"><h3 class="font-bold text-lg">${c.id ? '수정' : '등록'}</h3><button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button></div><div class="flex border-b border-slate-100 bg-slate-50 sticky top-0 z-10"><button type="button" class="modal-tab-btn active" data-tab="basic" onclick="app.setClientModalTab('basic')">기본 정보</button><button type="button" class="modal-tab-btn" data-tab="case" onclick="app.setClientModalTab('case')">사례관리</button></div><div class="p-4 sm:p-6 overflow-y-auto flex-1 bg-white"><form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" class="space-y-4"><div id="tab-basic" class="modal-tab-content active space-y-4"><div class="grid grid-cols-1 sm:grid-cols-12 gap-3"><div class="sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div><div class="sm:col-span-6 md:col-span-2"><label class="text-sm block mb-1">성별</label><select name="gender" class="input-field" id="gender-select"><option value="남성">남성</option><option value="여성" ${c.gender==='여성'?'selected':''}>여성</option></select></div><div class="sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">주민등록번호</label><input name="residentNum" class="input-field" placeholder="YYMMDD-1..." value="${c.residentNum||''}" maxlength="14" oninput="app.calcBirthFromRR(this)"></div><div class="sm:col-span-6 md:col-span-4"><label class="text-sm block mb-1">생년월일</label><div class="flex items-center gap-2"><input type="date" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" max="9999-12-31" oninput="app.updateAgeDisplay(this)"><input id="age-display" class="input-field !w-[25%] min-w-[60px] text-center bg-slate-100 text-slate-600 focus:outline-none cursor-default font-bold" readonly value="${initialAge}" placeholder="나이" tabindex="-1"></div></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-3"><div><label class="text-sm block mb-1">연락처 1</label><input name="phone" class="input-field" placeholder="본인 연락처" value="${c.phone||''}"></div><div><label class="text-sm block mb-1">연락처 2</label><input name="phone2" class="input-field" placeholder="비상/추가 연락처" value="${c.phone2||''}"></div><div><label class="text-sm block mb-1">보호자 연락처</label><div class="flex gap-2"><input name="guardianRelation" class="input-field w-20" placeholder="관계" value="${c.guardianRelation||''}"><input name="guardianPhone" class="input-field flex-1" placeholder="번호" value="${c.guardianPhone||''}"></div></div></div><div class="grid grid-cols-1 sm:grid-cols-4 gap-3"><div class="sm:col-span-1"><label class="text-sm block mb-1">행정동</label><select name="region" class="input-field">${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${c.region===d?'selected':''}>${d}</option>`).join('')}</select></div><div class="sm:col-span-3"><label class="text-sm block mb-1">주소</label><input name="address" class="input-field" value="${c.address||''}" placeholder="상세 주소 입력"></div></div><div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-3"><div><label class="text-sm block mb-1">등급</label><select name="careLevel" class="input-field">${CONSTANTS.CARE_LEVEL_LIST.map(v=>`<option value="${v}" ${c.careLevel===v?'selected':''}>${v}</option>`).join('')}</select></div><div><label class="text-sm block mb-1">경제상황</label><select name="economicStatus" class="input-field">${CONSTANTS.ECONOMIC_LIST.map(v=>`<option value="${v}" ${c.economicStatus===v?'selected':''}>${v}</option>`).join('')}</select></div><div><label class="text-sm block mb-1">세대유형</label><select name="householdType" class="input-field">${CONSTANTS.HOUSEHOLD_LIST.map(v=>`<option value="${v}" ${c.householdType===v?'selected':''}>${v}</option>`).join('')}</select></div><div><label class="text-sm block mb-1">중복서비스</label><select name="duplicateService" class="input-field">${CONSTANTS.DUPLICATE_SERVICE_LIST.map(v=>`<option value="${v}" ${c.duplicateService===v?'selected':''}>${v}</option>`).join('')}</select></div><div><label class="text-sm block mb-1">ICT 현황</label><select name="ictStatus" class="input-field">${CONSTANTS.ICT_STATUS_LIST.map(v=>`<option value="${v}" ${c.ictStatus===v?'selected':''}>${v}</option>`).join('')}</select></div></div><div class="grid grid-cols-1 sm:grid-cols-12 gap-3"><div class="sm:col-span-2"><label class="text-sm block mb-1">상태</label><select name="status" class="input-field">${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div><div class="sm:col-span-3"><label class="text-sm block mb-1">시작일</label><input type="date" name="serviceStartDate" class="input-field" value="${c.serviceStartDate||''}" max="9999-12-31"></div><div class="sm:col-span-4"><label class="text-sm block mb-1">장기부재기간</label><div class="flex items-center gap-1"><input type="date" name="absStart" class="input-field px-1 text-sm text-center" value="${absStart}" max="9999-12-31" style="font-size: 0.8rem;"><span class="text-slate-400">~</span><input type="date" name="absEnd" class="input-field px-1 text-sm text-center" value="${absEnd}" max="9999-12-31" style="font-size: 0.8rem;"></div></div><div class="sm:col-span-3"><label class="text-sm block mb-1">종결일</label><input type="date" name="endDate" class="input-field" value="${c.endDate||''}" max="9999-12-31"></div></div><div><label class="text-sm block mb-1">비고</label><textarea name="note" class="input-field" rows="2">${c.note||''}</textarea></div></div><div id="tab-case" class="modal-tab-content space-y-4"><div class="flex gap-2 overflow-x-auto pb-2 border-b border-slate-100 mb-4 sticky top-0 bg-white z-0"><button type="button" class="sub-tab-btn active" data-subtab="initial" onclick="app.setCaseSubTab('initial')">초기면접지</button><button type="button" class="sub-tab-btn" data-subtab="assessment" onclick="app.setCaseSubTab('assessment')">사정기록지</button><button type="button" class="sub-tab-btn" data-subtab="reassess" onclick="app.setCaseSubTab('reassess')">재사정</button><button type="button" class="sub-tab-btn" data-subtab="satisfaction" onclick="app.setCaseSubTab('satisfaction')">만족도조사</button></div><div id="sub-tab-initial" class="sub-tab-content active space-y-4"><div class="bg-blue-50 p-3 rounded text-sm text-blue-700 mb-2 flex items-start gap-2"><i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>대상자의 초기 상태와 욕구를 파악하기 위한 면접 기록입니다.</div><div class="grid grid-cols-2 gap-3"><div><label class="text-sm block mb-1 font-bold">면접일자</label><input type="date" id="cm-initial-date" class="input-field" value="${getVal(cm, 'initial.date')}"></div><div><label class="text-sm block mb-1 font-bold">면접자</label><input type="text" id="cm-initial-interviewer" class="input-field" value="${getVal(cm, 'initial.interviewer')}"></div></div><div><label class="text-sm block mb-1 font-bold">호소 문제 및 욕구</label><textarea id="cm-initial-problem" class="input-field h-20" placeholder="대상자가 주로 호소하는 문제와 요구사항">${getVal(cm, 'initial.problem')}</textarea></div><div><label class="text-sm block mb-1 font-bold">가족 및 사회적 관계</label><textarea id="cm-initial-family" class="input-field h-20" placeholder="가족 관계 및 지지체계">${getVal(cm, 'initial.family')}</textarea></div><div><label class="text-sm block mb-1 font-bold">주거 및 경제 상황</label><textarea id="cm-initial-economic" class="input-field h-20" placeholder="주거 환경 및 경제적 어려움">${getVal(cm, 'initial.economic')}</textarea></div><div><label class="text-sm block mb-1 font-bold">신체 및 정신 건강</label><textarea id="cm-initial-health" class="input-field h-20" placeholder="질병 유무 및 정신 건강 상태">${getVal(cm, 'initial.health')}</textarea></div><div><label class="text-sm block mb-1 font-bold">종합 소견</label><textarea id="cm-initial-conclusion" class="input-field h-24" placeholder="면접자 종합 의견">${getVal(cm, 'initial.conclusion')}</textarea></div></div><div id="sub-tab-assessment" class="sub-tab-content space-y-4"><div class="bg-purple-50 p-3 rounded text-sm text-purple-700 mb-2 flex items-start gap-2"><i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>위기도 및 생활 실태를 점수화하여 기록합니다. (1점: 매우 나쁨 ~ 5점: 매우 좋음/안정)</div><div class="grid grid-cols-2 gap-3"><div><label class="text-sm block mb-1 font-bold">사정일자</label><input type="date" id="cm-assess-date" class="input-field" value="${getVal(cm, 'assessment.date')}"></div><div><label class="text-sm block mb-1 font-bold">작성자</label><input type="text" id="cm-assess-writer" class="input-field" value="${getVal(cm, 'assessment.writer')}"></div></div><div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded border border-slate-200"><div><label class="text-xs block mb-1 text-slate-500">신체건강 (1-5)</label><input type="number" id="cm-assess-score-health" class="input-field text-center" min="1" max="5" value="${getVal(cm, 'assessment.scoreHealth')}"></div><div><label class="text-xs block mb-1 text-slate-500">정신건강 (1-5)</label><input type="number" id="cm-assess-score-mental" class="input-field text-center" min="1" max="5" value="${getVal(cm, 'assessment.scoreMental')}"></div><div><label class="text-xs block mb-1 text-slate-500">경제상태 (1-5)</label><input type="number" id="cm-assess-score-eco" class="input-field text-center" min="1" max="5" value="${getVal(cm, 'assessment.scoreEco')}"></div><div><label class="text-xs block mb-1 text-slate-500">사회지지 (1-5)</label><input type="number" id="cm-assess-score-social" class="input-field text-center" min="1" max="5" value="${getVal(cm, 'assessment.scoreSocial')}"></div></div><div><label class="text-sm block mb-1 font-bold">위기 사정 내용</label><textarea id="cm-assess-content" class="input-field h-24" placeholder="위기 상황 및 사정 상세 내용">${getVal(cm, 'assessment.content')}</textarea></div><div><label class="text-sm block mb-1 font-bold">개입 계획</label><textarea id="cm-assess-plan" class="input-field h-24" placeholder="서비스 제공 계획 및 목표">${getVal(cm, 'assessment.plan')}</textarea></div></div><div id="sub-tab-reassess" class="sub-tab-content space-y-4"><div class="bg-orange-50 p-3 rounded text-sm text-orange-700 mb-2 flex items-start gap-2"><i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>서비스 제공 후 변화 확인 및 계획 재수립을 위한 기록입니다.</div><div class="grid grid-cols-2 gap-3"><div><label class="text-sm block mb-1 font-bold">재사정일자</label><input type="date" id="cm-re-date" class="input-field" value="${getVal(cm, 'reAssessment.date')}"></div><div><label class="text-sm block mb-1 font-bold">진행기간</label><input type="text" id="cm-re-period" class="input-field" placeholder="예: 6개월" value="${getVal(cm, 'reAssessment.period')}"></div></div><div><label class="text-sm block mb-1 font-bold">목표 달성 정도</label><textarea id="cm-re-goal" class="input-field h-20" placeholder="기존 목표 달성 여부 및 변화">${getVal(cm, 'reAssessment.goal')}</textarea></div><div><label class="text-sm block mb-1 font-bold">주요 변화 사항</label><textarea id="cm-re-change" class="input-field h-20" placeholder="대상자의 신체, 정서, 환경적 변화">${getVal(cm, 'reAssessment.change')}</textarea></div><div><label class="text-sm block mb-1 font-bold">향후 계획 (유지/종결/변경)</label><select id="cm-re-plan-type" class="input-field mb-2"><option value="유지" ${getVal(cm, 'reAssessment.planType')==='유지'?'selected':''}>현 서비스 유지</option><option value="변경" ${getVal(cm, 'reAssessment.planType')==='변경'?'selected':''}>서비스 변경/추가</option><option value="종결" ${getVal(cm, 'reAssessment.planType')==='종결'?'selected':''}>서비스 종결</option></select><textarea id="cm-re-plan-detail" class="input-field h-16" placeholder="향후 계획 상세">${getVal(cm, 'reAssessment.planDetail')}</textarea></div></div><div id="sub-tab-satisfaction" class="sub-tab-content space-y-4"><div class="bg-green-50 p-3 rounded text-sm text-green-700 mb-2 flex items-start gap-2"><i data-lucide="info" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>서비스 이용에 대한 만족도 평가 기록입니다.</div><div><label class="text-sm block mb-1 font-bold">조사일자</label><input type="date" id="cm-sat-date" class="input-field w-1/2" value="${getVal(cm, 'satisfaction.date')}"></div><div class="p-4 border border-slate-200 rounded-lg"><div class="mb-3 flex items-center justify-between"><label class="font-bold">전반적 만족도</label><select id="cm-sat-score" class="input-field w-32 font-bold text-emerald-600"><option value="5" ${getVal(cm, 'satisfaction.score')==='5'?'selected':''}>★★★★★ (매우만족)</option><option value="4" ${getVal(cm, 'satisfaction.score')==='4'?'selected':''}>★★★★ (만족)</option><option value="3" ${getVal(cm, 'satisfaction.score')==='3'?'selected':''}>★★★ (보통)</option><option value="2" ${getVal(cm, 'satisfaction.score')==='2'?'selected':''}>★★ (불만족)</option><option value="1" ${getVal(cm, 'satisfaction.score')==='1'?'selected':''}>★ (매우불만족)</option></select></div><div class="space-y-2 text-sm text-slate-600"><div class="flex items-center gap-2"><input type="checkbox" id="cm-sat-kind" class="w-4 h-4 text-emerald-600 rounded" ${getVal(cm, 'satisfaction.kind')?'checked':''}> 담당자가 친절했습니까?</div><div class="flex items-center gap-2"><input type="checkbox" id="cm-sat-help" class="w-4 h-4 text-emerald-600 rounded" ${getVal(cm, 'satisfaction.help')?'checked':''}> 서비스가 도움이 되었습니까?</div><div class="flex items-center gap-2"><input type="checkbox" id="cm-sat-time" class="w-4 h-4 text-emerald-600 rounded" ${getVal(cm, 'satisfaction.time')?'checked':''}> 약속 시간을 잘 지켰습니까?</div></div></div><div><label class="text-sm block mb-1 font-bold">건의사항 및 기타의견</label><textarea id="cm-sat-comment" class="input-field h-24" placeholder="대상자의 의견">${getVal(cm, 'satisfaction.comment')}</textarea></div></div></div></form></div><div class="p-4 border-t border-slate-100 bg-white flex justify-end gap-2 z-10"><button type="button" onclick="app.closeModal()" class="px-5 py-2.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">취소</button><button type="button" onclick="document.getElementById('client-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))" class="bg-emerald-600 text-white px-6 py-2.5 rounded-lg hover:bg-emerald-700 font-bold shadow-md transition-colors transform hover:scale-[1.02]">저장</button></div></div>`;
                 showModal(html);
-                lucide.createIcons();
+                if(window.lucide) lucide.createIcons();
             },
             saveClient: async (e, id) => {
                 e.preventDefault();
@@ -1973,7 +1762,6 @@
                 delete data.absStart; delete data.absEnd;
                 if (!id) data.createdAt = new Date().toISOString();
                 
-                // 사례관리 데이터 수집
                 const cmData = {
                     initial: {
                         date: document.getElementById('cm-initial-date').value,
@@ -2018,7 +1806,7 @@
                     if (duplicate) {
                         state.pendingClientData = data;
                         showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4"><i data-lucide="alert-circle" class="text-orange-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">중복 대상자 확인</h3><p class="text-sm text-slate-500 mb-4">이름: <span class="font-bold text-slate-800">${data.name}</span><br>생년월일: <span class="font-bold text-slate-800">${data.birthDate}</span></p><p class="text-sm text-slate-600 mb-6">이미 등록된 대상자와 정보가 일치합니다.<br>그래도 등록하시겠습니까?</p><div class="flex gap-3 justify-center"><button onclick="app.confirmSaveClient()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium shadow-sm">예, 등록</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">아니오</button></div></div></div>`);
-                        lucide.createIcons();
+                        if(window.lucide) lucide.createIcons();
                         return;
                     }
                 }
@@ -2035,10 +1823,7 @@
                     if (yearPrefix) {
                         const fullDate = `${yearPrefix}${yy}-${mm}-${dd}`;
                         const birthInput = document.getElementById('birth-date-input'); 
-                        if (birthInput) { 
-                            birthInput.value = fullDate;
-                            app.updateAgeDisplay(birthInput);
-                        }
+                        if (birthInput) { birthInput.value = fullDate; app.updateAgeDisplay(birthInput); }
                         const genderSelect = document.getElementById('gender-select');
                         if (genderSelect) { if (['1', '3', '5', '7'].includes(g)) genderSelect.value = '남성'; else if (['2', '4', '6', '8'].includes(g)) genderSelect.value = '여성'; }
                     }
@@ -2046,11 +1831,7 @@
             },
             updateAgeDisplay: (input) => {
                 const ageInput = document.getElementById('age-display');
-                if (input.value && ageInput) {
-                    ageInput.value = `만 ${calculateAge(input.value)}세`;
-                } else if (ageInput) {
-                    ageInput.value = '';
-                }
+                if (input.value && ageInput) { ageInput.value = `만 ${calculateAge(input.value)}세`; } else if (ageInput) { ageInput.value = ''; }
             },
             confirmSaveClient: async () => { if (state.pendingClientData) { await app.processSaveClient(state.pendingClientData, null); state.pendingClientData = null; closeDialog(); } },
             processSaveClient: async (data, id) => { try { if (id) await updateDoc(doc(db, "clients", id), data); else await addDoc(collection(db, "clients"), data); closeModal(); } catch(err) { alert("저장 실패: " + err.message); } },
@@ -2061,59 +1842,15 @@
                 if (!l) l = { date: new Date().toISOString().split('T')[0], provideMethod: '방문', provider: '', serviceItems: [{id: Date.now(), category:'', serviceName:'', detailNote:''}] };
                 const c = l.clientName ? (state.clients.find(x => x.name === l.clientName) || {}) : {};
                 if (id || prefillData) { window.tempSelectedClients = l.clientName ? [l.clientName] : []; window.tempServiceItems = l.serviceItems ? l.serviceItems.map(i => ({...i, id: Date.now() + Math.random()})) : [{id: Date.now(), category:'', serviceName:'', detailNote:''}]; } else { window.tempSelectedClients = []; window.tempServiceItems = [{id: Date.now(), category: '노인상담 및 정보제공', serviceName: '정서지원서비스(안전안부확인)', detailNote: ''}, {id: Date.now() + 1, category: '', serviceName: '', detailNote: ''}]; }
-                const html = `
-                <div class="bg-white w-full max-w-4xl p-4 sm:p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto mx-2">
-                    <h3 class="font-bold text-lg mb-4">${id ? '수정' : (prefillData ? '일지 복사 등록' : '작성')}</h3>
-                    <form onsubmit="app.saveLog(event, '${id || ''}')" class="space-y-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded">
-                            <div><label class="block text-sm font-medium mb-1">날짜</label><input type="date" name="date" class="input-field" value="${l.date}" required max="9999-12-31"></div>
-                            <div><label class="block text-sm font-medium mb-1">제공방법</label><select name="provideMethod" class="input-field">${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${l.provideMethod===m?'selected':''}>${m}</option>`).join('')}</select></div>
-                            <div><label class="block text-sm font-medium mb-1">제공자</label><input name="provider" class="input-field" value="${l.provider || ''}" placeholder="담당자"></div>
-                        </div>
-                        <div class="bg-slate-50 p-4 rounded mt-2">
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                <div class="md:col-span-1">
-                                    <label class="block text-sm font-medium mb-1">대상자 검색</label>
-                                    <div class="flex gap-2">
-                                        <input list="cl-list" id="client-input" class="input-field" placeholder="이름 검색" onchange="app.fillClientInfo(this)" onkeydown="if(event.key === 'Enter') { event.preventDefault(); app.addClientToSelection(); }" autocomplete="off" ${id ? 'disabled title="수정 시 대상자 변경 불가"' : ''}>
-                                        <datalist id="cl-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist>
-                                        ${!id ? `<button type="button" onclick="app.addClientToSelection()" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded text-sm font-medium whitespace-nowrap hover:bg-emerald-200">+추가</button>` : ''}
-                                    </div>
-                                </div>
-                                <div class="md:col-span-3 flex flex-col sm:flex-row gap-2">
-                                    <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">생년월일</label><input id="d-birth" class="input-field bg-slate-100" readonly value="${c.birthDate||''}"></div>
-                                    <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">행정동</label><input id="d-region" class="input-field bg-slate-100" readonly value="${c.region||''}"></div>
-                                    <div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">관리등급</label><input id="d-level" class="input-field bg-slate-100" readonly value="${c.careLevel||''}"></div>
-                                </div>
-                            </div>
-                            <div id="selected-clients-area" class="flex flex-wrap gap-2 mt-3 pt-2 border-t border-slate-200"></div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between mb-2"><label class="font-bold text-sm">서비스 (최대 6개)</label><button type="button" onclick="app.addSvcRow()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">추가</button></div>
-                            <div id="svc-container" class="space-y-2"></div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between mb-1"><label class="text-sm">내용</label><button type="button" onclick="app.aiDraft()" class="text-xs bg-purple-100 text-purple-700 px-2 rounded">AI 다듬기</button></div>
-                            <textarea id="log-content" name="content" class="input-field h-32" required>${l.content||''}</textarea>
-                        </div>
-                        <div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg">취소</button><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">${id ? '수정 저장' : '등록'}</button></div>
-                    </form>
-                </div>`;
+                const html = `<div class="bg-white w-full max-w-4xl p-4 sm:p-6 rounded-xl shadow-xl max-h-[90vh] overflow-y-auto mx-2"><h3 class="font-bold text-lg mb-4">${id ? '수정' : (prefillData ? '일지 복사 등록' : '작성')}</h3><form onsubmit="app.saveLog(event, '${id || ''}')" class="space-y-4"><div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-4 rounded"><div><label class="block text-sm font-medium mb-1">날짜</label><input type="date" name="date" class="input-field" value="${l.date}" required max="9999-12-31"></div><div><label class="block text-sm font-medium mb-1">제공방법</label><select name="provideMethod" class="input-field">${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${l.provideMethod===m?'selected':''}>${m}</option>`).join('')}</select></div><div><label class="block text-sm font-medium mb-1">제공자</label><input name="provider" class="input-field" value="${l.provider || ''}" placeholder="담당자"></div></div><div class="bg-slate-50 p-4 rounded mt-2"><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><div class="md:col-span-1"><label class="block text-sm font-medium mb-1">대상자 검색</label><div class="flex gap-2"><input list="cl-list" id="client-input" class="input-field" placeholder="이름 검색" onchange="app.fillClientInfo(this)" onkeydown="if(event.key === 'Enter') { event.preventDefault(); app.addClientToSelection(); }" autocomplete="off" ${id ? 'disabled title="수정 시 대상자 변경 불가"' : ''}><datalist id="cl-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist>${!id ? `<button type="button" onclick="app.addClientToSelection()" class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded text-sm font-medium whitespace-nowrap hover:bg-emerald-200">+추가</button>` : ''}</div></div><div class="md:col-span-3 flex flex-col sm:flex-row gap-2"><div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">생년월일</label><input id="d-birth" class="input-field bg-slate-100" readonly value="${c.birthDate||''}"></div><div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">행정동</label><input id="d-region" class="input-field bg-slate-100" readonly value="${c.region||''}"></div><div class="flex-1"><label class="block text-sm font-medium mb-1 text-slate-500">관리등급</label><input id="d-level" class="input-field bg-slate-100" readonly value="${c.careLevel||''}"></div></div></div><div id="selected-clients-area" class="flex flex-wrap gap-2 mt-3 pt-2 border-t border-slate-200"></div></div><div><div class="flex justify-between mb-2"><label class="font-bold text-sm">서비스 (최대 6개)</label><button type="button" onclick="app.addSvcRow()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded">추가</button></div><div id="svc-container" class="space-y-2"></div></div><div><div class="flex justify-between mb-1"><label class="text-sm">내용</label><button type="button" onclick="app.aiDraft()" class="text-xs bg-purple-100 text-purple-700 px-2 rounded">AI 다듬기</button></div><textarea id="log-content" name="content" class="input-field h-32" required>${l.content||''}</textarea></div><div class="flex justify-end gap-2"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg">취소</button><button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg">${id ? '수정 저장' : '등록'}</button></div></form></div>`;
                 showModal(html);
                 window.tempServiceItems.forEach(item => renderSvcRow(item));
                 app.renderSelectedClients(!!id); 
             },
             fillClientInfo: (input) => {
                 const c = state.clients.find(x => x.name === input.value);
-                if(c) {
-                    document.getElementById('d-birth').value = c.birthDate || '';
-                    document.getElementById('d-region').value = c.region || '';
-                    document.getElementById('d-level').value = c.careLevel || '';
-                } else {
-                    document.getElementById('d-birth').value = '';
-                    document.getElementById('d-region').value = '';
-                    document.getElementById('d-level').value = '';
-                }
+                if(c) { document.getElementById('d-birth').value = c.birthDate || ''; document.getElementById('d-region').value = c.region || ''; document.getElementById('d-level').value = c.careLevel || ''; } 
+                else { document.getElementById('d-birth').value = ''; document.getElementById('d-region').value = ''; document.getElementById('d-level').value = ''; }
             },
             addClientToSelection: () => {
                 const input = document.getElementById('client-input');
@@ -2122,15 +1859,14 @@
                 const isValid = state.clients.some(c => c.name === name);
                 if(!isValid) { alert("등록된 대상자가 아닙니다."); return; }
                 if(!window.tempSelectedClients.includes(name)) { window.tempSelectedClients.push(name); app.renderSelectedClients(); }
-                input.value = ''; 
-                document.getElementById('d-birth').value = ''; document.getElementById('d-region').value = ''; document.getElementById('d-level').value = '';
+                input.value = ''; document.getElementById('d-birth').value = ''; document.getElementById('d-region').value = ''; document.getElementById('d-level').value = '';
             },
             removeClientFromSelection: (index) => { window.tempSelectedClients.splice(index, 1); app.renderSelectedClients(); },
             renderSelectedClients: (isEditMode = false) => {
                 const container = document.getElementById('selected-clients-area');
                 if(!container) return;
                 container.innerHTML = window.tempSelectedClients.map((name, idx) => `<span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm flex items-center gap-1 border border-emerald-200">${name}${!isEditMode ? `<button type="button" onclick="app.removeClientFromSelection(${idx})" class="text-emerald-400 hover:text-red-500"><i data-lucide="x" size="14"></i></button>` : ''}</span>`).join('');
-                lucide.createIcons();
+                if(window.lucide) lucide.createIcons();
             },
             addSvcRow: () => { if(document.querySelectorAll('.svc-row').length >= 6) return alert('최대 6개까지입니다.'); renderSvcRow({id: Date.now(), category:'', serviceName:'', detailNote:''}); },
             removeSvcRow: (id) => document.getElementById(`row-${id}`).remove(),
@@ -2155,46 +1891,29 @@
                     if (duplicateFound) {
                         state.pendingLogData = { baseData, items, clients: [...window.tempSelectedClients] };
                         showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4"><i data-lucide="alert-circle" class="text-orange-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">중복 일지 확인</h3><p class="text-sm text-slate-500 mb-4"><span class="font-bold text-slate-800">${duplicateInfo}</span>의<br>동일한 서비스 일지가 이미 존재합니다.</p><p class="text-sm text-slate-600 mb-6">그래도 등록하시겠습니까?</p><div class="flex gap-3 justify-center"><button onclick="app.confirmSaveLog()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium shadow-sm">예, 등록</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">아니오</button></div></div></div>`);
-                        lucide.createIcons();
+                        if(window.lucide) lucide.createIcons();
                         return;
                     }
                 }
                 await app.processSaveLog(baseData, items, window.tempSelectedClients, id);
             },
             confirmSaveLog: async () => { if (state.pendingLogData) { const { baseData, items, clients } = state.pendingLogData; await app.processSaveLog(baseData, items, clients, null); state.pendingLogData = null; closeDialog(); } },
-            
-            // [수정] 일괄 처리(Batch) 로직 적용으로 속도 대폭 개선
             processSaveLog: async (baseData, items, clients, id) => { 
                 try { 
-                    // Batch 인스턴스 생성
                     const batch = writeBatch(db);
-                    
                     clients.forEach((cName, idx) => {
                         const client = state.clients.find(x => x.name === cName);
                         const logData = { ...baseData, clientName: cName, clientId: client ? client.id : 'unknown' };
-                        
-                        if (id && idx === 0) {
-                            // 수정 모드인 경우 (첫 번째 대상자는 기존 ID로 업데이트)
-                            const logRef = doc(db, "logs", id);
-                            batch.update(logRef, logData);
-                        } else {
-                            // 신규 등록인 경우 (새 문서 ID 생성 후 Batch에 추가)
-                            const newLogRef = doc(collection(db, "logs"));
-                            batch.set(newLogRef, logData);
-                        }
+                        if (id && idx === 0) { const logRef = doc(db, "logs", id); batch.update(logRef, logData); } 
+                        else { const newLogRef = doc(collection(db, "logs")); batch.set(newLogRef, logData); }
                     });
-
-                    // 모든 작업을 한 번의 통신으로 처리
                     await batch.commit(); 
-                    
                     closeModal(); 
-                } catch(err) { 
-                    alert("저장 실패: " + err.message); 
-                } 
+                } catch(err) { alert("저장 실패: " + err.message); } 
             },
             duplicateLog: (id) => { const l = state.logs.find(x => x.id === id); if(l) { const { id: originId, ...data } = l; data.date = new Date().toISOString().split('T')[0]; app.openLogModal(null, data); } },
             aiDraft: () => { const t = document.getElementById('log-content'); if(!t.value) return alert('내용을 입력하세요'); t.value = "AI 분석 중..."; setTimeout(() => { t.value = "[AI] 대상자 안부 확인 및 물품 전달 완료. 건강 상태 양호함."; }, 1000); },
-            deleteData: (col, id) => { showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">삭제 확인</h3><p class="text-sm text-slate-500 mb-6">정말로 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDelete('${col}', '${id}')" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">아니오</button></div></div></div>`); lucide.createIcons(); },
+            deleteData: (col, id) => { showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">삭제 확인</h3><p class="text-sm text-slate-500 mb-6">정말로 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDelete('${col}', '${id}')" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">아니오</button></div></div></div>`); if(window.lucide) lucide.createIcons(); },
             executeDelete: async (col, id) => { try { await deleteDoc(doc(db, col, id)); closeDialog(); } catch (err) { alert("삭제 실패: " + err.message); } },
             closeModal: () => closeModal(),
             editService: (id) => { state.editingServiceId = id; if(state.viewMode==='single') updateTabContent('services'); else render(); },
@@ -2207,14 +1926,62 @@
                     if (duplicate) {
                         state.pendingServiceData = data;
                         showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4"><i data-lucide="alert-circle" class="text-orange-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">중복 서비스 확인</h3><p class="text-sm text-slate-500 mb-4">대분류: ${data.majorCategory || '-'}<br>서비스: ${data.category || '-'}<br>상세내용: <span class="font-bold text-slate-800">${data.name}</span></p><p class="text-sm text-slate-600 mb-6">이미 등록된 서비스입니다.<br>(예시 내용이 달라도 위 항목이 같으면 중복입니다)<br>그래도 추가하시겠습니까?</p><div class="flex gap-3 justify-center"><button onclick="app.confirmAddService()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium shadow-sm">예, 추가</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">아니오</button></div></div></div>`);
-                        lucide.createIcons();
+                        if(window.lucide) lucide.createIcons();
                         return;
                     }
                 }
                 await app.processAddService(data);
             },
             confirmAddService: async () => { if (state.pendingServiceData) { await app.processAddService(state.pendingServiceData); state.pendingServiceData = null; closeDialog(); } },
-            processAddService: async (data) => { try { if (state.editingServiceId) { await updateDoc(doc(db, "services", state.editingServiceId), data); state.editingServiceId = null; } else { await addDoc(collection(db, "services"), data); } document.querySelector('form[onsubmit="app.addService(event)"]').reset(); /* render 호출 제거 (자동갱신됨) */ } catch (err) { alert("오류 발생: " + err.message); } },
+            processAddService: async (data) => { try { if (state.editingServiceId) { await updateDoc(doc(db, "services", state.editingServiceId), data); state.editingServiceId = null; } else { await addDoc(collection(db, "services"), data); } document.querySelector('form[onsubmit="app.addService(event)"]').reset(); } catch (err) { alert("오류 발생: " + err.message); } },
+            
+            downloadPerformanceExcel: () => {
+                const { year, months } = state.filters.performance; // [수정] months 사용
+                const selectedMonths = (months && months.length > 0) ? months.sort((a, b) => a - b) : [];
+                
+                const targetLogs = state.logs.filter(l => l.date.startsWith(year)); // [수정] region 필터 제거
+                
+                const stats = {};
+                state.services.forEach(s => { const key = `${s.category}|${s.name}`; if (!stats[key]) { stats[key] = { category: s.category, serviceName: s.name, counts: Array(12).fill(0), total: 0 }; } });
+                
+                targetLogs.forEach(l => { const month = parseInt(l.date.split('-')[1]) - 1; if (month < 0 || month > 11) return; if (l.serviceItems && l.serviceItems.length > 0) { l.serviceItems.forEach(item => { const key = `${item.category}|${item.serviceName}`; if (stats[key]) { stats[key].counts[month]++; /* 전체 합계는 일단 무시 */ } }); } });
+                
+                const rows = Object.values(stats).sort((a, b) => { if (a.category !== b.category) return a.category.localeCompare(b.category); return a.serviceName.localeCompare(b.serviceName); });
+                if (rows.length === 0) { alert("다운로드할 데이터가 없습니다."); return; }
+                
+                // [수정] 엑셀 다운로드 시에도 선택된 월만 포함
+                const excelData = rows.map(r => {
+                    const row = { '분류': r.category, '서비스명': r.serviceName };
+                    let rowSum = 0;
+                    selectedMonths.forEach(m => {
+                        const count = r.counts[m - 1];
+                        row[`${m}월`] = count;
+                        rowSum += count;
+                    });
+                    row['합계'] = rowSum;
+                    return row;
+                });
+                
+                const monthlyTotals = Array(12).fill(0); 
+                let grandTotal = 0; 
+                rows.forEach(r => { 
+                    selectedMonths.forEach(m => {
+                        const val = r.counts[m - 1];
+                        monthlyTotals[m - 1] += val;
+                        grandTotal += val;
+                    });
+                });
+                
+                const totalRow = { '분류': '총계', '서비스명': '' }; 
+                selectedMonths.forEach(m => totalRow[`${m}월`] = monthlyTotals[m - 1]); 
+                totalRow['합계'] = grandTotal; 
+                excelData.push(totalRow);
+                
+                const ws = XLSX.utils.json_to_sheet(excelData); 
+                const wb = XLSX.utils.book_new(); 
+                XLSX.utils.book_append_sheet(wb, ws, "월별실적"); 
+                XLSX.writeFile(wb, `월별서비스실적_${year}년.xlsx`);
+            },
             downloadTemplate: () => { const headers = ['이름', '성별', '생년월일', '행정동', '주소', '연락처1', '연락처2', '보호자관계', '보호자연락처', '등급', '경제상황', '세대유형', '상태', '서비스시작일', '비고']; const ws = XLSX.utils.aoa_to_sheet([headers]); ws['!cols'] = [{ wch: 10 }, { wch: 6 }, { wch: 12 }, { wch: 10 }, { wch: 30 }, { wch: 13 }, { wch: 13 }, { wch: 10 }, { wch: 13 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 30 }]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "양식"); XLSX.writeFile(wb, "대상자등록양식_전체.xlsx"); },
             uploadExcel: (input) => {
                 const reader = new FileReader();
@@ -2225,181 +1992,11 @@
                     let count = 0;
                     json.forEach(async row => {
                         if(row[0]) {
-                            await addDoc(collection(db,"clients"), {
-                                name: String(row[0]), gender: String(row[1] || '남성'), birthDate: fmtDate(row[2]), region: String(row[3] || '대연동'), address: String(row[4] || ''), phone: String(row[5] || ''), phone2: String(row[6] || ''), guardianRelation: String(row[7] || ''), guardianPhone: String(row[8] || ''), careLevel: String(row[9] || '일반'), economicStatus: String(row[10] || '일반(저소득)'), householdType: String(row[11] || '독거세대'), status: String(row[12] || '이용'), serviceStartDate: fmtDate(row[13]) || new Date().toISOString().split('T')[0], note: String(row[14] || ''), createdAt: new Date().toISOString()
-                            });
+                            await addDoc(collection(db,"clients"), { name: String(row[0]), gender: String(row[1] || '남성'), birthDate: fmtDate(row[2]), region: String(row[3] || '대연동'), address: String(row[4] || ''), phone: String(row[5] || ''), phone2: String(row[6] || ''), guardianRelation: String(row[7] || ''), guardianPhone: String(row[8] || ''), careLevel: String(row[9] || '일반'), economicStatus: String(row[10] || '일반(저소득)'), householdType: String(row[11] || '독거세대'), status: String(row[12] || '이용'), serviceStartDate: fmtDate(row[13]) || new Date().toISOString().split('T')[0], note: String(row[14] || ''), createdAt: new Date().toISOString() });
                             count++;
                         }
                     });
                     alert(`${count}명 등록이 시작되었습니다. 잠시 후 새로고침 됩니다.`); input.value = '';
-                };
-                reader.readAsBinaryString(input.files[0]);
-            },
-            downloadStatsExcel: () => {
-                const { start, end, type, region, name } = state.filters.stats;
-                const targetClients = state.clients.filter(c => { const matchBasic = (region.length === 0 || region.includes(c.region)) && (!name || c.name.includes(name)); if (!matchBasic) return false; const cS = c.serviceStartDate || '0000-01-01'; const cE = c.endDate || '9999-12-31'; return cS <= end && cE >= start; });
-                let serviceHeaders = [];
-                if (type === 'category') { serviceHeaders = [...new Set(state.services.map(s => s.category))].filter(Boolean); } else { const headerGroups = {}; const orderedCategories = [...new Set(state.services.map(s => s.category || '기타'))]; state.services.forEach(s => { const cat = s.category || '기타'; if (!headerGroups[cat]) headerGroups[cat] = []; if (!headerGroups[cat].includes(s.name)) headerGroups[cat].push(s.name); }); serviceHeaders = orderedCategories.flatMap(cat => headerGroups[cat]); }
-                const dataMap = {}; 
-                targetClients.forEach(c => { dataMap[c.id] = { name: c.name, birthDate: c.birthDate || '-', region: (c.region || '-').replace(/동$/, ''), total: 0, counts: {} }; serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0); });
-                state.logs.forEach(l => {
-                    if (l.date < start || l.date > end) return;
-                    let cid = l.clientId;
-                    if (!dataMap[cid] && l.clientName) { const found = targetClients.find(c => c.name === l.clientName); if(found) cid = found.id; }
-                    if (dataMap[cid]) {
-                        const items = l.serviceItems || [{ serviceName: l.serviceName, category: l.serviceCategory }];
-                        items.forEach(item => {
-                            let key = type === 'category' ? item.category : item.serviceName;
-                            if (!key && item.serviceName && type === 'category') { const s = state.services.find(svc => svc.name === item.serviceName); if(s) key = s.category; }
-                            if (key && dataMap[cid].counts[key] !== undefined) { dataMap[cid].counts[key]++; dataMap[cid].total++; }
-                        });
-                    }
-                });
-                const excelData = Object.values(dataMap).sort((a,b) => b.total - a.total).map(r => { const row = { '대상자': r.name, '생년월일': r.birthDate, '행정동': r.region, '합계': r.total }; serviceHeaders.forEach(h => { row[h] = r.counts[h]; }); return row; });
-                if (excelData.length === 0) { alert("다운로드할 데이터가 없습니다."); return; }
-                const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "서비스제공통계"); XLSX.writeFile(wb, `서비스제공통계_${new Date().toISOString().slice(0,10)}.xlsx`);
-            },
-            downloadLogsExcel: () => {
-                const { start, end, search, category, service } = state.filters.log;
-                const filtered = state.logs.filter(l => (!start || l.date >= start) && (!end || l.date <= end) && (!search || l.clientName.includes(search)) && (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) && (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))).sort((a, b) => new Date(a.date) - new Date(b.date));
-                if (filtered.length === 0) { alert("다운로드할 데이터가 없습니다."); return; }
-                const excelData = [];
-                filtered.forEach(l => {
-                    const client = state.clients.find(c => c.id === l.clientId);
-                    const baseData = { 
-                        '날짜': l.date, 
-                        '이름': l.clientName, 
-                        '제공방법': l.provideMethod || '방문', 
-                        '제공자': l.provider || '', 
-                        '진행내용': l.content 
-                    };
-                    if (l.serviceItems && l.serviceItems.length > 0) { 
-                        l.serviceItems.forEach(item => { 
-                            excelData.push({ 
-                                ...baseData, 
-                                '서비스': item.category, 
-                                '서비스 상세내용': item.serviceName, 
-                                '서비스 메모': item.detailNote || '' 
-                            }); 
-                        }); 
-                    } else { 
-                        excelData.push({ 
-                            ...baseData, 
-                            '서비스': '', 
-                            '서비스 상세내용': '',
-                            '서비스 메모': ''
-                        }); 
-                    }
-                }); 
-                const ws = XLSX.utils.json_to_sheet(excelData);
-                ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
-                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "서비스일지"); XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
-            },
-            
-            // 일지 업로드 양식 다운로드
-            downloadLogTemplate: () => {
-                const headers = ['날짜', '이름', '제공방법', '서비스', '서비스 상세내용', '서비스 메모', '진행내용', '제공자'];
-                const example = ['2024-01-01', '홍길동', '방문', '위기관리체계구축', '초기상담', '특이사항 없음', '대상자 가정 방문하여 상담 진행함.', '김사회'];
-                const ws = XLSX.utils.aoa_to_sheet([headers, example]);
-                ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 10 }];
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "일지등록양식");
-                XLSX.writeFile(wb, "일지등록양식.xlsx");
-            },
-
-            // 일지 엑셀 업로드 로직 (날짜+이름 기준 병합)
-            uploadLogExcel: (input) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const wb = XLSX.read(e.target.result, {type:'binary'});
-                        const sheet = wb.Sheets[wb.SheetNames[0]];
-                        const json = XLSX.utils.sheet_to_json(sheet, {header:1});
-                        
-                        const rows = json.slice(1);
-                        if (rows.length === 0) { alert("데이터가 없습니다."); return; }
-
-                        const logGroups = {}; 
-
-                        rows.forEach(row => {
-                            // 필수 값 확인 (날짜, 이름)
-                            if (!row[0] || !row[1]) return;
-
-                            // 날짜 포맷팅 (YYYY-MM-DD)
-                            let dateStr = String(row[0]).trim();
-                            if (!isNaN(dateStr) && dateStr.length < 8) {
-                                const dateObj = new Date((dateStr - (25567 + 2)) * 86400 * 1000); 
-                                dateStr = dateObj.toISOString().split('T')[0];
-                            } else {
-                                const nums = dateStr.replace(/[^0-9]/g, '');
-                                if(nums.length === 8) dateStr = `${nums.slice(0,4)}-${nums.slice(4,6)}-${nums.slice(6,8)}`;
-                            }
-
-                            const clientName = String(row[1]).trim();
-                            const groupKey = `${dateStr}_${clientName}`; 
-
-                            if (!logGroups[groupKey]) {
-                                const client = state.clients.find(c => c.name === clientName);
-                                const clientId = client ? client.id : 'unknown';
-
-                                logGroups[groupKey] = {
-                                    date: dateStr,
-                                    clientName: clientName,
-                                    clientId: clientId,
-                                    provideMethod: row[2] ? String(row[2]).trim() : '방문',
-                                    content: row[6] ? String(row[6]).trim() : '', 
-                                    provider: row[7] ? String(row[7]).trim() : '',
-                                    serviceItems: []
-                                };
-                            }
-
-                            const category = row[3] ? String(row[3]).trim() : '';
-                            const serviceName = row[4] ? String(row[4]).trim() : '';
-                            const serviceNote = row[5] ? String(row[5]).trim() : ''; 
-
-                            if (category || serviceName) {
-                                logGroups[groupKey].serviceItems.push({
-                                    id: Date.now() + Math.random(),
-                                    category: category,
-                                    serviceName: serviceName,
-                                    detailNote: serviceNote
-                                });
-                            }
-                        });
-
-                        let successCount = 0;
-                        const promises = Object.values(logGroups).map(async (logData) => {
-                            const mandatoryService = '정서지원서비스(안전안부확인)';
-                            const hasMandatory = logData.serviceItems.some(item => item.serviceName === mandatoryService);
-                            
-                            if (!hasMandatory) {
-                                logData.serviceItems.unshift({
-                                    id: Date.now() + Math.random(),
-                                    category: '노인상담 및 정보제공',
-                                    serviceName: mandatoryService,
-                                    detailNote: ''
-                                });
-                            }
-
-                            const serviceNameSummary = logData.serviceItems.map(i => i.serviceName).filter(Boolean).join(', ');
-                            
-                            await addDoc(collection(db, "logs"), {
-                                ...logData,
-                                serviceName: serviceNameSummary
-                            });
-                            successCount++;
-                        });
-
-                        Promise.all(promises).then(() => {
-                            alert(`${successCount}건의 일지가 등록되었습니다.\n(날짜와 이름이 같은 항목은 하나로 합쳐졌으며,\n필수 서비스[안전안부확인]가 자동 추가되었습니다)`);
-                            input.value = ''; 
-                        });
-
-                    } catch (err) {
-                        console.error(err);
-                        alert("파일 읽기 실패: 양식을 확인해주세요.");
-                        input.value = '';
-                    }
                 };
                 reader.readAsBinaryString(input.files[0]);
             },
@@ -2408,95 +2005,114 @@
                 const filtered = state.logs.filter(l => (!start || l.date >= start) && (!end || l.date <= end) && (!search || l.clientName.includes(search)) && (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) && (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))).sort((a, b) => new Date(a.date) - new Date(b.date));
                 if (filtered.length === 0) { alert("인쇄할 일지가 없습니다."); return; }
                 const printWindow = window.open('', '', 'width=1100,height=800');
-                const minDate = filtered[0].date;
-                const maxDate = filtered[filtered.length - 1].date;
-                const dateRangeText = `기간 : ${minDate} ~ ${maxDate}`;
+                const minDate = filtered[0].date; const maxDate = filtered[filtered.length - 1].date; const dateRangeText = `기간 : ${minDate} ~ ${maxDate}`;
                 let rowsHTML = '';
                 filtered.forEach(l => {
                     const client = state.clients.find(c => c.id === l.clientId);
-                    let clientInfo = '';
-                    if (client) {
-                        let birthShort = '-';
-                        if (client.birthDate && client.birthDate.length >= 4) {
-                            birthShort = client.birthDate.substring(2).replace(/-/g, '.');
-                        }
-                        const level = client.careLevel || '-';
-                        clientInfo = `(${birthShort} / ${level})`;
-                    }
+                    let clientInfo = client ? `(${client.birthDate?.substring(2).replace(/-/g, '.') || '-'} / ${client.careLevel || '-'})` : '';
                     const servicesHTML = l.serviceItems && l.serviceItems.length > 0 ? l.serviceItems.map((i, idx, arr) => {
                         const style = idx < arr.length - 1 ? 'border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 4px;' : '';
-                        return `<div style="${style} text-align: left; font-size: 11px;">
-                            <div style="font-weight:bold; margin-bottom: 2px;">[${i.category}]</div>
-                            <div style="padding-left: 2px;">${i.serviceName}${i.detailNote ? ` - <span style="color:#555;">${i.detailNote}</span>` : ''}</div>
-                        </div>`;
+                        return `<div style="${style} text-align: left; font-size: 11px;"><div style="font-weight:bold; margin-bottom: 2px;">[${i.category}]</div><div style="padding-left: 2px;">${i.serviceName}${i.detailNote ? ` - <span style="color:#555;">${i.detailNote}</span>` : ''}</div></div>`;
                     }).join('') : '-';
                     rowsHTML += `<tr><td style="text-align:center;">${l.date}</td><td style="text-align:center;"><b>${l.clientName}</b><br><span style="font-size:0.8em; color:#666; letter-spacing: -1px; white-space: nowrap;">${clientInfo}</span></td><td style="text-align:center;">${l.provideMethod || '방문'}</td><td style="padding:5px; vertical-align: top;">${servicesHTML}</td><td style="white-space:pre-wrap; padding:5px;">${l.content}</td><td style="text-align:center; vertical-align: middle;">${l.provider || ''}</td></tr>`;
                 });
-                
                 const printDocument = `<html><head><title>서비스제공 · 과정상담기록지</title><style>@media print { @page { margin-left: 1.5cm; margin-right: 0.5cm; margin-top: 1cm; margin-bottom: 1cm; } body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; font-size: 12px; } table { page-break-inside: auto; } tr { page-break-inside: avoid; page-break-after: auto; } .header-container { display: block !important; } } body { font-family: "Malgun Gothic", sans-serif; padding: 20px; } .header-container { position: relative; width: 100%; height: 80px; border-bottom: 2px solid #333; margin-bottom: 10px; } .header-title { margin: 0; padding: 0; line-height: 80px; text-align: center; font-size: 22px; font-weight: bold; } .approval-box { position: absolute; right: 0; bottom: 5px; border-collapse: collapse; text-align: center; font-size: 11px; background: white; } .approval-box td { border: 1px solid #333; padding: 0; } .approval-header { background: #f0f0f0; height: 20px; width: 60px; font-weight: bold; } .approval-sign { height: 50px; } .date-range { text-align: left; font-size: 12px; margin-bottom: 10px; font-weight: bold; color: #555; } table.main-table { width: 100%; border-collapse: collapse; font-size: 12px; } table.main-table th, table.main-table td { border: 1px solid #999; padding: 6px; vertical-align: top; } table.main-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; height: 30px; } </style></head><body><div class="header-container"><h1 class="header-title">서비스제공 · 과정상담기록지</h1><table class="approval-box"><tr><td rowspan="2" style="width: 20px; background: #f0f0f0; font-weight: bold; vertical-align: middle;">결<br>재</td><td class="approval-header">담당자</td><td class="approval-header">센터장</td></tr><tr><td class="approval-sign"></td><td class="approval-sign"></td></tr></table></div><div class="date-range">${dateRangeText}</div><table class="main-table"><thead><tr><th width="75">일자</th><th width="55">대상자</th><th width="40">방법</th><th width="180">서비스 내용</th><th>진행 내용</th><th width="45">제공자</th></tr></thead><tbody>${rowsHTML}</tbody></table><script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }<\/script></body></html>`;
                 printWindow.document.write(printDocument); printWindow.document.close();
             },
+            downloadLogsExcel: () => {
+                const { start, end, search, category, service } = state.filters.log;
+                const filtered = state.logs.filter(l => (!start || l.date >= start) && (!end || l.date <= end) && (!search || l.clientName.includes(search)) && (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) && (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))).sort((a, b) => new Date(a.date) - new Date(b.date));
+                if (filtered.length === 0) { alert("다운로드할 데이터가 없습니다."); return; }
+                const excelData = [];
+                filtered.forEach(l => {
+                    const baseData = { '날짜': l.date, '이름': l.clientName, '제공방법': l.provideMethod || '방문', '제공자': l.provider || '', '진행내용': l.content };
+                    if (l.serviceItems && l.serviceItems.length > 0) {
+                        l.serviceItems.forEach(item => { excelData.push({ ...baseData, '서비스': item.category, '서비스 상세내용': item.serviceName, '서비스 메모': item.detailNote || '' }); });
+                    } else { excelData.push({ ...baseData, '서비스': '', '서비스 상세내용': '', '서비스 메모': '' }); }
+                });
+                const ws = XLSX.utils.json_to_sheet(excelData);
+                ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
+                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "서비스일지"); XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
+            },
+            downloadLogTemplate: () => {
+                const headers = ['날짜', '이름', '제공방법', '서비스', '서비스 상세내용', '서비스 메모', '진행내용', '제공자'];
+                const example = ['2024-01-01', '홍길동', '방문', '위기관리체계구축', '초기상담', '특이사항 없음', '대상자 가정 방문하여 상담 진행함.', '김사회'];
+                const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+                ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 10 }];
+                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "일지등록양식"); XLSX.writeFile(wb, "일지등록양식.xlsx");
+            },
+            uploadLogExcel: (input) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const wb = XLSX.read(e.target.result, {type:'binary'});
+                        const sheet = wb.Sheets[wb.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(sheet, {header:1});
+                        const rows = json.slice(1);
+                        if (rows.length === 0) { alert("데이터가 없습니다."); return; }
+                        const logGroups = {}; 
+                        rows.forEach(row => {
+                            if (!row[0] || !row[1]) return;
+                            let dateStr = String(row[0]).trim();
+                            if (!isNaN(dateStr) && dateStr.length < 8) { const dateObj = new Date((dateStr - (25567 + 2)) * 86400 * 1000); dateStr = dateObj.toISOString().split('T')[0]; } else { const nums = dateStr.replace(/[^0-9]/g, ''); if(nums.length === 8) dateStr = `${nums.slice(0,4)}-${nums.slice(4,6)}-${nums.slice(6,8)}`; }
+                            const clientName = String(row[1]).trim();
+                            const groupKey = `${dateStr}_${clientName}`; 
+                            if (!logGroups[groupKey]) {
+                                const client = state.clients.find(c => c.name === clientName);
+                                const clientId = client ? client.id : 'unknown';
+                                logGroups[groupKey] = { date: dateStr, clientName: clientName, clientId: clientId, provideMethod: row[2] ? String(row[2]).trim() : '방문', content: row[6] ? String(row[6]).trim() : '', provider: row[7] ? String(row[7]).trim() : '', serviceItems: [] };
+                            }
+                            const category = row[3] ? String(row[3]).trim() : '';
+                            const serviceName = row[4] ? String(row[4]).trim() : '';
+                            const serviceNote = row[5] ? String(row[5]).trim() : ''; 
+                            if (category || serviceName) { logGroups[groupKey].serviceItems.push({ id: Date.now() + Math.random(), category: category, serviceName: serviceName, detailNote: serviceNote }); }
+                        });
+                        let successCount = 0;
+                        const promises = Object.values(logGroups).map(async (logData) => {
+                            const mandatoryService = '정서지원서비스(안전안부확인)';
+                            const hasMandatory = logData.serviceItems.some(item => item.serviceName === mandatoryService);
+                            if (!hasMandatory) { logData.serviceItems.unshift({ id: Date.now() + Math.random(), category: '노인상담 및 정보제공', serviceName: mandatoryService, detailNote: '' }); }
+                            const serviceNameSummary = logData.serviceItems.map(i => i.serviceName).filter(Boolean).join(', ');
+                            await addDoc(collection(db, "logs"), { ...logData, serviceName: serviceNameSummary });
+                            successCount++;
+                        });
+                        Promise.all(promises).then(() => { alert(`${successCount}건의 일지가 등록되었습니다.`); input.value = ''; });
+                    } catch (err) { console.error(err); alert("파일 읽기 실패: 양식을 확인해주세요."); input.value = ''; }
+                };
+                reader.readAsBinaryString(input.files[0]);
+            },
             setStatsStart: (val) => {
                 state.filters.stats.start = val;
-                // [최적화] 전체 렌더링 대신 해당 탭만 업데이트
                 if (state.viewMode === 'single') updateTabContent('statistics'); else render();
                 setTimeout(() => {
                     const endInput = document.getElementById('stats-end');
-                    if (endInput) {
-                        endInput.focus();
-                        if (typeof endInput.showPicker === 'function') {
-                            try { endInput.showPicker(); } catch (e) { console.log('showPicker not supported:', e); }
-                        }
-                    }
+                    if (endInput) { endInput.focus(); if (typeof endInput.showPicker === 'function') { try { endInput.showPicker(); } catch (e) { console.log(e); } } }
                 }, 50);
             },
             closeDialog: () => closeDialog(),
             updateOpts: (el) => { const svcs = state.services.filter(s => s.category === el.value); el.nextElementSibling.innerHTML = svcs.map(s => `<option value="${s.name}">${s.name}</option>`).join(''); }
         };
 
-        // [신규] 전역 클릭 리스너: 모바일 메뉴 닫기 (메뉴 영역 밖 클릭 시)
         document.addEventListener('click', (e) => {
             const menu = document.getElementById('mobile-menu');
             const btn = document.getElementById('mobile-menu-btn');
-            
-            // 모바일 메뉴가 열려있고, 클릭된 요소가 메뉴나 버튼 내부가 아닐 경우
-            if (state.isMobileMenuOpen && menu && !menu.contains(e.target) && !btn.contains(e.target)) {
-                app.closeMobileMenu();
-            }
+            if (state.isMobileMenuOpen && menu && !menu.contains(e.target) && !btn.contains(e.target)) { app.closeMobileMenu(); }
         });
 
-        // [신규] 브라우저 뒤로가기/앞으로가기 이벤트 처리 (History API)
         window.addEventListener('popstate', (event) => {
-            // 1. 열려있는 모달이 있다면 닫기 (UX 개선)
             const modal = document.getElementById('modal-container');
             const dialog = document.getElementById('dialog-container');
-            if (modal && !modal.classList.contains('hidden')) {
-                app.closeModal();
-            }
-            if (dialog && !dialog.classList.contains('hidden')) {
-                app.closeDialog();
-            }
-
-            // 2. 히스토리 상태에 따라 탭 전환 (히스토리 추가 없이 전환)
+            if (modal && !modal.classList.contains('hidden')) app.closeModal();
+            if (dialog && !dialog.classList.contains('hidden')) app.closeDialog();
             const tab = event.state && event.state.tab ? event.state.tab : 'dashboard';
-            // URL 해시가 있다면 그것을 우선할 수도 있음 (직접 접속 시)
-            // const hashTab = window.location.hash.replace('#', '');
-            // const targetTab = TAB_NAMES[hashTab] ? hashTab : tab;
-            
-            app.setTab(tab, false); // false: 히스토리 중복 추가 방지
+            app.setTab(tab, false); 
         });
 
-        // [신규] 초기 로드 시 URL 해시 체크 및 히스토리 초기화
         window.addEventListener('load', () => {
             const hash = window.location.hash.replace('#', '');
             const initialTab = (hash && TAB_NAMES[hash]) ? hash : 'dashboard';
-            
-            // 현재 상태를 히스토리에 replace (초기 진입점 설정)
             window.history.replaceState({ tab: initialTab }, '', `#${initialTab}`);
-            
-            if (initialTab !== 'dashboard') {
-                app.setTab(initialTab, false);
-            }
+            if (initialTab !== 'dashboard') app.setTab(initialTab, false);
         });
 
         function showModal(html) { const m = document.getElementById('modal-container'); m.innerHTML = html; m.classList.remove('hidden'); }
@@ -2516,35 +2132,23 @@
             `;
             document.getElementById('svc-container').appendChild(div);
             if(item.category) { const sel = div.querySelector('.svc-sel'); const svcs = state.services.filter(s => s.category === item.category); sel.innerHTML = svcs.map(s => `<option value="${s.name}" ${s.name===item.serviceName?'selected':''}>${s.name}</option>`).join(''); }
-            lucide.createIcons();
+            if(window.lucide) lucide.createIcons();
         }
 
         function render() {
-            // [최적화] Single 모드일 때는 render()가 데이터 갱신 역할만 수행
             if (state.viewMode === 'single') {
-                // 현재 보고 있는 탭의 내용만 업데이트 (데이터가 변경되었을 때 호출됨)
-                // 로딩 화면 제거
                 const loader = document.getElementById('initial-loader');
                 if (loader) loader.remove();
-                
                 updateTabContent(state.activeTab);
-                app.updateTabVisibility(); // 탭바 상태 동기화
+                app.updateTabVisibility(); 
                 return;
             }
-
-            // [윈도우 모드 렌더링]
-            let main = document.getElementById('main-view-container'); // ID 변경됨
+            let main = document.getElementById('main-view-container'); 
             if (!main) return;
-            
-            // 상단 탭 렌더링
             app.renderTabBar(state.activeTab);
+            main.className = "fixed inset-0 top-14 bg-slate-100 z-0 overflow-hidden"; 
+            main.innerHTML = ""; 
 
-            // 분할 뷰 모드 설정
-            // [수정] 윈도우 모드는 화면 전체를 덮는 고정 컨테이너여야 함
-            main.className = "fixed inset-0 top-14 bg-slate-100 z-0 overflow-hidden"; // fixed로 변경하여 전체 덮기
-            main.innerHTML = ""; // 기존 컨텐츠 초기화 (윈도우 모드는 래퍼 방식 아님)
-
-            // 윈도우 생성 헬퍼 함수
             const createWindow = (paneId) => {
                 const winState = state.windows[paneId];
                 const tabKey = state.paneTabs[paneId];
@@ -2552,18 +2156,14 @@
                 
                 const winDiv = document.createElement('div');
                 winDiv.id = `window-${paneId}`;
-                // [수정] 윈도우 모드 내부에서는 flex 및 overflow-hidden 필요 (창 내부 스크롤)
                 winDiv.className = `window-pane ${isActive ? 'active' : ''}`;
                 winDiv.style.left = `${winState.x}px`;
                 winDiv.style.top = `${winState.y}px`;
                 winDiv.style.width = `${winState.w}px`;
                 winDiv.style.height = `${winState.h}px`;
                 winDiv.style.zIndex = winState.z;
-                
-                // 마우스 다운 시 활성화 (Z-Index 처리)
                 winDiv.onmousedown = () => app.setFocusedPane(paneId);
 
-                // 8방향 리사이즈 핸들 HTML 생성
                 const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map(dir => 
                     `<div class="resizer resizer-${dir}" onmousedown="app.startResize(event, '${paneId}', '${dir}')"></div>`
                 ).join('');
@@ -2575,11 +2175,9 @@
                             <span>${TAB_NAMES[tabKey] || tabKey}</span>
                         </div>
                         <div class="window-controls">
-                            <!-- 최소화/최대화 버튼 제거 -->
                             <div class="window-control-btn btn-close" onclick="app.toggleSplitView()" title="창 닫기 (분할 모드 종료)"></div>
                         </div>
                     </div>
-                    <!-- [수정] 윈도우 내부 컨텐츠: overflow-auto 적용 -->
                     <div class="window-content p-4 overflow-y-auto h-full flex-1">
                         ${getTabHTML(tabKey)}
                     </div>
@@ -2590,37 +2188,10 @@
 
             main.appendChild(createWindow('left'));
             main.appendChild(createWindow('right'));
-
-            lucide.createIcons();
+            if(window.lucide) lucide.createIcons();
         }
 
-        // [신규] 브라우저 뒤로가기(popstate) 이벤트 핸들러 추가
-        window.addEventListener('popstate', (event) => {
-            // 히스토리 상태가 있으면 해당 탭으로 이동, 없으면 홈(dashboard)으로 이동
-            const tabName = event.state ? event.state.tab : 'dashboard';
-            
-            // setTab 호출 시 두 번째 인자를 false로 주어 히스토리에 다시 쌓이는 것 방지 (무한 루프 방지)
-            app.setTab(tabName, false);
-        });
-
-        // [신규] 초기 로드 시 URL 해시를 기반으로 탭 설정
-        const initTabFromHash = () => {
-            const hash = location.hash.replace('#', '');
-            if (hash && TAB_NAMES[hash]) {
-                // 해시에 해당하는 탭이 있으면 열기 (히스토리 추가 안함 - replaceState로 처리)
-                app.setTab(hash, false);
-                history.replaceState({ tab: hash }, '', `#${hash}`);
-            } else {
-                // 없으면 홈으로 설정하고 초기 히스토리 기록
-                history.replaceState({ tab: 'dashboard' }, '', '#dashboard');
-            }
-        };
-
         initDataSync();
-        
-        // 데이터 동기화 시작 후 초기 탭 설정 실행
-        initTabFromHash();
-
     </script>
 </body>
 </html>
