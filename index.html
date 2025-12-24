@@ -292,7 +292,7 @@
         </div>
     </main>
 
-    <div id="modal-container" class="fixed inset-0 z-[60] hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto"></div>
+    <div id="modal-container" class="fixed inset-0 z-[60] hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto" onclick="if(event.target === this) app.handleModalOverlayClick()"></div>
     <div id="dialog-container" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/50 p-4"></div>
 
     <script type="module">
@@ -366,7 +366,8 @@
                 selectedLogIds: new Set(),
                 selectedClientIds: new Set(),
                 clientModalTab: 'basic',
-                caseSubTab: 'initial' 
+                caseSubTab: 'initial',
+                allowOverlayClose: false
             },
             pendingClientData: null,
             pendingLogData: null,
@@ -1144,7 +1145,7 @@
             }
             const dataMap = {}; 
             targetClients.forEach(c => {
-                dataMap[c.id] = { name: c.name, birthDate: c.birthDate || '-', careLevel: c.careLevel || '-', region: (c.region || '-').replace(/동$/, ''), endDate: c.endDate || '9999-12-31', total: 0, emotionalCount: 0, counts: {} };
+                dataMap[c.id] = { id: c.id, name: c.name, birthDate: c.birthDate || '-', careLevel: c.careLevel || '-', region: (c.region || '-').replace(/동$/, ''), endDate: c.endDate || '9999-12-31', total: 0, emotionalCount: 0, counts: {} };
                 serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0);
             });
             state.logs.forEach(l => {
@@ -1221,7 +1222,7 @@
                                     return `
                                     <tr class="hover:bg-slate-50 group">
                                         <td class="py-1.5 px-1 border-r text-center text-slate-400 text-xs bg-white" style="${stickColStyle(L_No, 30)}">${index + 1}</td>
-                                        <td class="py-1.5 px-1 border-r group-hover:bg-slate-50 text-center font-medium text-slate-800 bg-white" style="${stickColStyle(L1, 30)}">${r.name}</td>
+                                        <td class="py-1.5 px-1 border-r group-hover:bg-slate-50 text-center font-medium text-slate-800 bg-white cursor-pointer hover:text-blue-600" style="${stickColStyle(L1, 30)}" onclick="app.showClientStatsDetail('${r.id}', '${r.name}')" title="상세 내역 보기">${r.name}</td>
                                         <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs bg-white" style="${stickColStyle(L2, 30)}">${r.birthDate}</td>
                                         <td class="py-1.5 px-1 text-center border-r text-xs bg-white ${careLevelClass}" style="${stickColStyle(L3, 30)}">${r.careLevel}</td>
                                         <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs bg-white" style="${stickColStyle(L4, 30)}">${r.region}</td>
@@ -2262,6 +2263,77 @@
                     if (endInput) { endInput.focus(); if (typeof endInput.showPicker === 'function') { try { endInput.showPicker(); } catch (e) { console.log(e); } } }
                 }, 50);
             },
+            handleModalOverlayClick: () => {
+                if (state.ui.allowOverlayClose) app.closeModal();
+            },
+            showClientStatsDetail: (clientId, clientName) => {
+                const { start, end } = state.filters.stats;
+                // 기간 내 해당 대상자의 로그 필터링
+                const logs = state.logs.filter(l => l.clientId === clientId && l.date >= start && l.date <= end).sort((a,b) => b.date.localeCompare(a.date));
+                
+                // 서비스 항목 펼치기
+                const history = [];
+                logs.forEach(l => {
+                    if (l.serviceItems && l.serviceItems.length > 0) {
+                        l.serviceItems.forEach(item => {
+                            history.push({
+                                date: l.date,
+                                category: item.category,
+                                serviceName: item.serviceName,
+                                detailNote: item.detailNote,
+                                provider: l.provider
+                            });
+                        });
+                    }
+                });
+
+                const html = `
+                    <div class="bg-white w-full max-w-5xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+                        <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                            <div>
+                                <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
+                                    <span class="text-emerald-600">${clientName}</span>님 서비스 상세 내역
+                                </h3>
+                                <p class="text-sm text-slate-500 mt-1">조회 기간: ${start} ~ ${end}</p>
+                            </div>
+                            <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                        </div>
+                        <div class="flex-1 overflow-auto min-h-0 border rounded-lg border-slate-200">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead class="bg-slate-50 text-slate-700 font-bold sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th class="px-4 py-3 border-b border-slate-200 whitespace-nowrap">날짜</th>
+                                        <th class="px-4 py-3 border-b border-slate-200 whitespace-nowrap">서비스 분류</th>
+                                        <!-- 간격 조절: 상세내용 우측 패딩 축소 (pr-1) -->
+                                        <th class="pl-4 pr-1 py-3 border-b border-slate-200 whitespace-nowrap">서비스 상세내용</th>
+                                        <!-- 간격 조절: 메모 좌측 패딩 축소 (pl-1) -->
+                                        <th class="pl-1 pr-4 py-3 border-b border-slate-200 whitespace-nowrap">서비스 메모</th>
+                                        <th class="px-4 py-3 border-b border-slate-200 text-center whitespace-nowrap">제공자</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white">
+                                    ${history.length > 0 ? history.map(h => `
+                                        <tr class="hover:bg-slate-50 transition-colors">
+                                            <td class="px-4 py-3 text-slate-600 font-medium whitespace-nowrap">${h.date}</td>
+                                            <td class="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">${h.category}</td>
+                                            <!-- 상세내용: 우측 패딩 줄임 -->
+                                            <td class="pl-4 pr-1 py-3 text-slate-800 font-bold whitespace-nowrap">${h.serviceName}</td>
+                                            <!-- 메모: 좌측 패딩 줄임 -->
+                                            <td class="pl-1 pr-4 py-3 text-slate-600 text-xs whitespace-nowrap">${h.detailNote || '-'}</td>
+                                            <td class="px-4 py-3 text-slate-500 text-xs text-center whitespace-nowrap">${h.provider || '-'}</td>
+                                        </tr>
+                                    `).join('') : `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">해당 기간 내 서비스 이력이 없습니다.</td></tr>`}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4 text-right flex-shrink-0 pt-2 border-t border-slate-100">
+                            <button onclick="app.closeModal()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button>
+                        </div>
+                    </div>
+                `;
+                showModal(html, true);
+                if(window.lucide) lucide.createIcons();
+            },
             closeDialog: () => closeDialog(),
             updateOpts: (el) => { const svcs = state.services.filter(s => s.category === el.value); el.nextElementSibling.innerHTML = svcs.map(s => `<option value="${s.name}">${s.name}</option>`).join(''); }
         };
@@ -2288,7 +2360,12 @@
             if (initialTab !== 'dashboard') app.setTab(initialTab, false);
         });
 
-        function showModal(html) { const m = document.getElementById('modal-container'); m.innerHTML = html; m.classList.remove('hidden'); }
+        function showModal(html, allowOverlayClose = false) { 
+            const m = document.getElementById('modal-container'); 
+            m.innerHTML = html; 
+            m.classList.remove('hidden'); 
+            state.ui.allowOverlayClose = allowOverlayClose;
+        }
         function closeModal() { document.getElementById('modal-container').classList.add('hidden'); }
         function showDialog(html) { const d = document.getElementById('dialog-container'); d.innerHTML = html; d.classList.remove('hidden'); }
         function closeDialog() { document.getElementById('dialog-container').classList.add('hidden'); }
