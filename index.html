@@ -2384,19 +2384,20 @@
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[20%] align-middle">기능상태변화</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-sat-mon-func" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden" placeholder="신체 및 인지 기능의 변화 내용 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.funcChange')}</textarea>
+                                                            <!-- [수정] 입력칸 높이 축소 (min-h-[80px] -> min-h-[50px], padding p-3 -> p-2) -->
+                                                            <textarea id="cm-sat-mon-func" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-2 resize-none overflow-hidden" placeholder="신체 및 인지 기능의 변화 내용 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.funcChange')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[20%] align-middle">생활 환경 및<br>능력변화</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-sat-mon-env" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden" placeholder="주거 환경, 경제 상황, 일상생활 수행 능력 등의 변화 내용 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.envChange')}</textarea>
+                                                            <textarea id="cm-sat-mon-env" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-2 resize-none overflow-hidden" placeholder="주거 환경, 경제 상황, 일상생활 수행 능력 등의 변화 내용 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.envChange')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[20%] align-middle">변화된 욕구</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-sat-mon-needs" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden" placeholder="새롭게 파악된 욕구 및 요청 사항 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.needsChange')}</textarea>
+                                                            <textarea id="cm-sat-mon-needs" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-2 resize-none overflow-hidden" placeholder="새롭게 파악된 욕구 및 요청 사항 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.needsChange')}</textarea>
                                                         </td>
                                                     </tr>
                                                 </tbody>
