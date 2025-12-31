@@ -398,11 +398,14 @@
                 clientExportDropdownOpen: false, 
                 selectedLogIds: new Set(),
                 selectedClientIds: new Set(),
+                selectedMeetingIds: new Set(), // [신규] 선택된 회의록 ID 관리
                 clientModalTab: 'basic',
                 caseSubTab: 'initial',
                 allowOverlayClose: false,
                 cmYear: new Date().getFullYear(), 
-                visibleLogLimit: 50 
+                visibleLogLimit: 50,
+                meetingTargetMonth: new Date().getMonth() + 1,
+                meetingCandidateType: 'regular' // [신규] 회의 대상자 조회 타입 (regular, new, end)
             },
             pendingClientData: null,
             pendingLogData: null,
@@ -413,11 +416,14 @@
                     region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' 
                 },
                 log: { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] },
-                // [신규] 회의록 필터 초기화
+                // [수정] 회의록 필터 확장 (구분, 대상자, 작성자 추가)
                 meeting: {
                     start: (() => { const d = new Date(); return `${d.getFullYear()}-01-01`; })(),
                     end: (() => { const d = new Date(); return `${d.getFullYear()}-12-31`; })(),
-                    search: ''
+                    search: '',
+                    type: '',
+                    clientName: '',
+                    writer: ''
                 },
                 stats: { 
                     start: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; })(),
@@ -457,6 +463,26 @@
                 if (providerA !== providerB) return providerA.localeCompare(providerB);
                 return (a.clientName || '').localeCompare(b.clientName || '');
             });
+        }
+
+        // [수정] 회의록 필터링 로직 강화 (구분, 대상자, 작성자 조건 추가)
+        function getFilteredMeetings() {
+            const { start, end, search, type, clientName, writer } = state.filters.meeting;
+            return state.meetings.filter(m => {
+                const matchDate = (!start || m.date >= start) && (!end || m.date <= end);
+                
+                // 기존 통합 검색은 안건(topic)과 참석자(attendees) 검색으로 활용
+                const matchSearch = !search || 
+                    (m.topic && m.topic.includes(search)) || 
+                    (m.attendees && m.attendees.includes(search));
+                
+                // [추가] 상세 필터 조건
+                const matchType = !type || m.type === type;
+                const matchClient = !clientName || (m.clientName && m.clientName.includes(clientName));
+                const matchWriter = !writer || (m.writer && m.writer.includes(writer));
+
+                return matchDate && matchSearch && matchType && matchClient && matchWriter;
+            }).sort((a, b) => b.date.localeCompare(a.date));
         }
 
         function initDataSync() {
@@ -979,26 +1005,46 @@
 
         // [신규] 사례회의 관리 렌더링 함수 추가
         function renderMeetingManager() {
-            const { start, end, search } = state.filters.meeting;
+            const { start, end, search, type, clientName, writer } = state.filters.meeting;
             
-            // [추가] 이번 달 도래 대상자 필터링 (서비스 시작 월 기준)
-            const todayDate = new Date();
-            const currentMonth = todayDate.getMonth() + 1;
+            // [추가] 조회 대상 월 설정 (기본값: 현재 월)
+            const today = new Date();
+            const currentRealMonth = today.getMonth() + 1;
+            const currentYear = today.getFullYear();
+            const targetMonth = state.ui.meetingTargetMonth || currentRealMonth;
+            const candidateType = state.ui.meetingCandidateType || 'regular';
+            
+            // 이번 달 도래 대상자 필터링 (선택된 기준에 따름)
             const targetClients = state.clients.filter(c => {
-                if (c.status === '종결' || !c.serviceStartDate) return false;
-                // YYYY-MM-DD 형식에서 MM 추출
-                const startMonth = parseInt(c.serviceStartDate.split('-')[1]);
-                return startMonth === currentMonth;
-            }).sort((a, b) => (a.serviceStartDate || '').localeCompare(b.serviceStartDate || ''));
+                if (candidateType === 'regular') {
+                    // 정기(재사정): 이용 중이며, 서비스 시작 월이 해당 월인 경우 (연도 무관)
+                    if (c.status === '종결' || !c.serviceStartDate) return false;
+                    const startMonth = parseInt(c.serviceStartDate.split('-')[1]);
+                    return startMonth === targetMonth;
+                } else if (candidateType === 'new') {
+                    // 신규(초기): 금년도 해당 월에 시작한 대상자
+                    if (!c.serviceStartDate) return false;
+                    const [y, m, d] = c.serviceStartDate.split('-').map(Number);
+                    return y === currentYear && m === targetMonth;
+                } else if (candidateType === 'end') {
+                    // 종결(심사): 금년도 해당 월에 종결한 대상자
+                    if (!c.endDate) return false;
+                    const [y, m, d] = c.endDate.split('-').map(Number);
+                    return y === currentYear && m === targetMonth;
+                }
+                return false;
+            }).sort((a, b) => {
+                if (candidateType === 'end') return (b.endDate || '').localeCompare(a.endDate || '');
+                return (a.serviceStartDate || '').localeCompare(b.serviceStartDate || '');
+            });
 
-            const filtered = state.meetings.filter(m => {
-                const matchDate = (!start || m.date >= start) && (!end || m.date <= end);
-                const matchSearch = !search || 
-                    (m.topic && m.topic.includes(search)) || 
-                    (m.clientName && m.clientName.includes(search)) ||
-                    (m.attendees && m.attendees.includes(search));
-                return matchDate && matchSearch;
-            }).sort((a, b) => b.date.localeCompare(a.date));
+            // [수정] 분리된 필터링 함수 사용
+            const filtered = getFilteredMeetings();
+            const allSelected = filtered.length > 0 && filtered.every(m => state.ui.selectedMeetingIds.has(m.id));
+
+            // 기준별 라벨 매핑
+            const typeLabels = { regular: '재사정', new: '초기상담', end: '종결심사' };
+            const defaultMeetingTypeMap = { regular: '재사정', new: '초기', end: '종결' };
 
             return `
                 <div class="flex flex-col animate-fade-in h-full">
@@ -1006,61 +1052,151 @@
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
                             <h2 class="text-xl md:text-2xl font-bold text-slate-800">사례회의록</h2>
                             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                                <!-- [삭제됨] 양식 및 불러오기 버튼 제거 -->
+                                
+                                <!-- [수정] 버튼 텍스트 변경: 선택 인쇄 -> 인쇄 -->
+                                <button onclick="app.printSelectedMeetings()" class="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm"><i data-lucide="printer" size="16"></i> 인쇄</button>
                                 <button onclick="app.openMeetingModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 회의록 작성</button>
                             </div>
                         </div>
 
-                        <!-- [추가] 이번 달 도래 대상자 섹션 (슬림 버전) -->
+                        <!-- 이번 달 도래 대상자 섹션 (슬림 버전) + 월 선택 기능 -->
                         <div class="bg-blue-50/50 border border-blue-100 rounded-xl p-3">
                             <div class="flex items-center gap-2 mb-2">
                                 <div class="bg-blue-100 text-blue-600 p-1 rounded"><i data-lucide="calendar-clock" size="14"></i></div>
-                                <h3 class="font-bold text-slate-800 text-sm">이번 달 사례회의 대상자 <span class="text-blue-600">(${currentMonth}월 서비스 시작)</span> <span class="text-xs font-normal text-slate-500 ml-1">총 ${targetClients.length}명</span></h3>
+                                <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                    <select class="bg-transparent text-slate-800 font-bold outline-none cursor-pointer hover:text-blue-700 transition-colors" onchange="app.setMeetingCandidateType(this.value)">
+                                        <option value="regular" ${candidateType==='regular'?'selected':''}>월 사례회의 대상자</option>
+                                        <option value="new" ${candidateType==='new'?'selected':''}>신규(초기) 대상자</option>
+                                        <option value="end" ${candidateType==='end'?'selected':''}>종결(심사) 대상자</option>
+                                    </select>
+                                    
+                                    <!-- [수정] 월 선택 드롭다운 (버튼 분리됨) -->
+                                    <div class="flex items-center bg-white border border-blue-200 rounded px-2 py-0.5 shadow-sm ml-1">
+                                        <select class="text-blue-600 text-xs font-bold focus:outline-none cursor-pointer bg-transparent" onchange="app.setMeetingTargetMonth(this.value)">
+                                            ${Array.from({length: 12}, (_, i) => i + 1).map(m => `<option value="${m}" ${m === targetMonth ? 'selected' : ''}>${m}월</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- [수정] 분리된 초기화 버튼 -->
+                                    <button onclick="app.resetMeetingTargetMonth()" class="bg-white border border-blue-200 text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-1 rounded shadow-sm transition-colors flex items-center justify-center" title="초기화 (이번 달 & 기본 조회)">
+                                        <i data-lucide="rotate-ccw" size="12"></i>
+                                    </button>
+
+                                    <span class="text-xs font-normal text-slate-500 ml-1">총 ${targetClients.length}명</span>
+                                </h3>
                             </div>
                             ${targetClients.length === 0 ? 
-                                '<div class="text-center text-slate-400 text-xs py-1">이번 달에 서비스가 시작된 대상자가 없습니다.</div>' : 
+                                `<div class="text-center text-slate-400 text-xs py-1">${targetMonth}월에 해당하는 ${typeLabels[candidateType]} 대상자가 없습니다.</div>` : 
                                 `<div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar snap-x">
-                                    ${targetClients.map(c => `
-                                        <div class="flex-shrink-0 bg-white border border-slate-200 rounded-lg p-2.5 min-w-[140px] shadow-sm snap-start hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group"
-                                             onclick="app.openMeetingModal(null, { clientName: '${c.name}', clientBirth: '${c.birthDate}', clientLevel: '${c.careLevel}' })"
-                                             title="클릭하여 회의록 작성">
-                                            <div class="flex justify-between items-center mb-1">
-                                                <span class="font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors text-sm">${c.name}</span>
+                                    ${targetClients.map(c => {
+                                        // [신규] 해당 월에 회의 진행 여부 확인 (조회 기준에 따른 타입 체크 적용)
+                                        const isCompleted = state.meetings.some(m => {
+                                            const mDate = new Date(m.date);
+                                            // 대상자 일치 확인 (ID 우선, 없으면 이름)
+                                            const isSameClient = (m.clientId && m.clientId === c.id) || (!m.clientId && m.clientName === c.name);
+                                            // 날짜(년/월) 일치 확인
+                                            const isSameMonth = mDate.getFullYear() === currentYear && (mDate.getMonth() + 1) === targetMonth;
+                                            
+                                            if (!isSameClient || !isSameMonth) return false;
+
+                                            // 조회 기준에 따른 회의록 구분 체크
+                                            if (candidateType === 'new') return m.type === '초기';
+                                            if (candidateType === 'end') return m.type === '종결';
+                                            
+                                            // [수정] 월 사례회의(정기)인 경우 '수시' 또는 '재사정' 회의록만 인정
+                                            if (candidateType === 'regular') return m.type === '수시' || m.type === '재사정';
+                                            
+                                            return true;
+                                        });
+
+                                        // [수정] 완료 시 배경색을 더 진한 회색(bg-slate-200)으로 변경
+                                        const bgClass = isCompleted ? 'bg-slate-200' : 'bg-white';
+                                        const textColorClass = isCompleted ? 'text-slate-500' : 'text-slate-800';
+                                        const hoverClass = isCompleted ? '' : 'hover:border-blue-400 hover:shadow-md';
+                                        const dateLabel = candidateType === 'end' ? '종결일' : '시작일';
+                                        const dateValue = candidateType === 'end' ? c.endDate : c.serviceStartDate;
+
+                                        return `
+                                        <div class="flex-shrink-0 ${bgClass} border border-slate-200 rounded-lg p-2.5 min-w-[140px] shadow-sm snap-start ${hoverClass} transition-all cursor-pointer group relative"
+                                             onclick="app.openMeetingModal(null, { clientName: '${c.name}', clientBirth: '${c.birthDate}', clientLevel: '${c.careLevel}', type: '${defaultMeetingTypeMap[candidateType]}' })"
+                                             title="${isCompleted ? '작성된 회의록이 있습니다.' : '클릭하여 회의록 작성'}">
+                                            ${isCompleted ? `<div class="absolute top-1.5 right-1.5 text-slate-500"><i data-lucide="check-circle" size="14"></i></div>` : ''}
+                                            <div class="flex justify-between items-center mb-1 pr-4">
+                                                <span class="font-bold ${textColorClass} truncate group-hover:${isCompleted ? 'text-slate-600' : 'text-blue-600'} transition-colors text-sm">${c.name}</span>
                                                 <span class="text-[10px] px-1.5 py-0.5 rounded ${c.careLevel === '중점' ? 'bg-pink-50 text-pink-600' : 'bg-blue-50 text-blue-600'} font-bold">${c.careLevel}</span>
                                             </div>
                                             <div class="flex items-center gap-1 text-[10px] text-slate-500">
-                                                <span>${c.serviceStartDate}</span>
+                                                <span>${dateValue}</span>
                                                 <span class="text-slate-300">|</span>
                                                 <span class="truncate max-w-[60px]">${c.region}</span>
                                             </div>
                                         </div>
-                                    `).join('')}
+                                    `}).join('')}
                                 </div>`
                             }
                         </div>
 
+                        <!-- [수정] 필터 UI: 한 줄 배치로 변경 -->
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
-                            <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0"><i data-lucide="filter" size="14"></i> 필터</div>
-                            <div class="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
+                            <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0">
+                                <i data-lucide="filter" size="14"></i> 필터
+                            </div>
+                            
+                            <div class="flex items-center gap-2 p-1 bg-slate-50 rounded-lg border border-slate-200">
                                 <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('meeting','start',this.value)" max="9999-12-31">
                                 <span class="text-slate-400">~</span>
                                 <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('meeting','end',this.value)" max="9999-12-31">
                             </div>
-                            <div class="flex-1 min-w-[200px]">
-                                <input class="input-field py-1.5 w-full text-sm" placeholder="안건, 대상자, 참석자 검색 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('meeting','search',this.value)" oninput="if(this.value === '') app.setFilter('meeting','search','')">
+
+                            <select class="input-field py-1.5 px-2 text-sm w-32 font-medium" onchange="app.setFilter('meeting','type',this.value)">
+                                <option value="">구분(전체)</option>
+                                <option value="수시" ${type==='수시'?'selected':''}>수시 사례회의</option>
+                                <option value="초기" ${type==='초기'?'selected':''}>초기 상담 회의</option>
+                                <option value="재사정" ${type==='재사정'?'selected':''}>재사정 회의</option>
+                                <option value="종결" ${type==='종결'?'selected':''}>종결 심사 회의</option>
+                                <option value="기타" ${type==='기타'?'selected':''}>기타</option>
+                            </select>
+
+                            <input class="input-field py-1.5 w-32 text-sm" placeholder="대상자 (Enter)" value="${clientName}" onkeydown="if(event.key === 'Enter') app.setFilter('meeting','clientName',this.value)" oninput="if(this.value === '') app.setFilter('meeting','clientName','')">
+                            
+                            <input class="input-field py-1.5 w-28 text-sm" placeholder="작성자 (Enter)" value="${writer}" onkeydown="if(event.key === 'Enter') app.setFilter('meeting','writer',this.value)" oninput="if(this.value === '') app.setFilter('meeting','writer','')">
+
+                            <button onclick="app.resetFilters('meeting')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 px-2 py-1 rounded hover:bg-slate-100 transition-colors"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                        </div>
+
+                        <!-- [수정] 일괄 작업 영역에 ID 부여 (부분 업데이트용) -->
+                        <div class="flex items-center justify-between px-1 h-8">
+                            <div class="flex items-center gap-2" id="meeting-batch-actions">
+                                <span class="text-sm text-slate-500">총 <span class="font-bold text-slate-800">${filtered.length}</span>건</span>
+                                ${state.ui.selectedMeetingIds.size > 0 ? `
+                                    <div class="h-4 w-px bg-slate-300 mx-1"></div>
+                                    <button onclick="app.deleteSelectedMeetings()" class="bg-red-50 text-red-600 px-2 py-1 rounded text-xs font-bold flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in">
+                                        <i data-lucide="trash-2" size="12"></i> 선택삭제 (${state.ui.selectedMeetingIds.size})
+                                    </button>
+                                ` : ''}
                             </div>
-                            <button onclick="app.setFilter('meeting', 'search', ''); app.setFilter('meeting', 'start', ''); app.setFilter('meeting', 'end', '');" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                         </div>
                     </div>
 
                     <div id="meeting-list-container" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-[400px]">
-                        <!-- 테이블 헤더: 작성자(w-36), 관리(w-40) 너비 유지 -->
+                        <!-- 테이블 헤더: 전체선택 체크박스에 ID 부여 -->
                         <div class="flex items-center bg-slate-50 border-b border-slate-200 font-bold text-xs text-slate-500 sticky top-0 z-10">
+                            <div class="w-10 text-center py-3 flex-shrink-0 border-r border-slate-100">
+                                <input type="checkbox" id="meeting-select-all" class="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" 
+                                    ${allSelected ? 'checked' : ''} 
+                                    onchange="app.toggleAllMeetings(this.checked)"
+                                    ${filtered.length === 0 ? 'disabled' : ''}>
+                            </div>
                             <div class="w-24 text-center py-3 flex-shrink-0">날짜</div>
                             <div class="w-16 text-center py-3 flex-shrink-0">대상자</div>
                             <div class="w-16 text-center py-3 flex-shrink-0">구분</div>
-                            <div class="flex-1 text-center py-3 px-2 min-w-[100px]">안건</div>
-                            <div class="w-36 text-center py-3 flex-shrink-0">작성자</div>
-                            <div class="w-40 text-center py-3 flex-shrink-0">관리</div>
+                            
+                            <!-- [수정] 안건 너비 확대 (w-80 -> w-[400px]) -->
+                            <div class="w-[400px] text-center py-3 px-2 flex-shrink-0">안건</div>
+                            
+                            <div class="w-24 text-center py-3 flex-shrink-0">작성자</div>
+                            <div class="w-24 text-center py-3 flex-shrink-0">관리</div>
                         </div>
                         
                         <!-- 리스트 영역 -->
@@ -1069,12 +1205,20 @@
                                 '<div class="text-center py-12 text-slate-400">작성된 회의록이 없습니다.</div>' : 
                                 '<div class="divide-y divide-slate-100">' + filtered.map(m => `
                                 <div class="flex items-center hover:bg-slate-50 transition-colors py-2 group">
+                                    <div class="w-10 text-center flex-shrink-0 flex items-center justify-center">
+                                        <input type="checkbox" class="meeting-checkbox w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                            ${state.ui.selectedMeetingIds.has(m.id) ? 'checked' : ''}
+                                            onchange="app.toggleMeetingSelection('${m.id}')">
+                                    </div>
                                     <div class="w-24 text-center text-xs font-bold text-slate-700 flex-shrink-0 whitespace-nowrap">${m.date}</div>
                                     <div class="w-16 text-center text-sm font-bold text-emerald-600 truncate px-1 flex-shrink-0" title="${m.clientName || '미지정'}">${m.clientName || '-'}</div>
-                                    <div class="w-16 text-center flex-shrink-0"><span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] font-bold border border-slate-200 whitespace-nowrap">${m.type || '수시'}</span></div>
-                                    <div class="flex-1 text-sm text-slate-800 font-medium truncate px-3 cursor-pointer hover:text-blue-600 min-w-[100px]" onclick="app.openMeetingModal('${m.id}')" title="${m.topic || ''}">${m.topic || '제목 없음'}</div>
-                                    <div class="w-36 text-center text-sm text-slate-500 truncate px-1 flex-shrink-0" title="${m.writer}">${m.writer || '-'}</div>
-                                    <div class="w-40 flex justify-center gap-1 flex-shrink-0">
+                                    <div class="w-16 text-center flex-shrink-0"><span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 whitespace-nowrap">${m.type || '수시'}</span></div>
+                                    
+                                    <!-- [수정] 안건 너비 확대 (w-80 -> w-[400px]) -->
+                                    <div class="w-[400px] text-sm text-slate-800 font-medium truncate px-3 cursor-pointer hover:text-blue-600 flex-shrink-0 text-left" onclick="app.openMeetingModal('${m.id}')" title="${m.topic || ''}">${m.topic || '제목 없음'}</div>
+                                    
+                                    <div class="w-24 text-center text-sm text-slate-500 truncate px-1 flex-shrink-0" title="${m.writer}">${m.writer || '-'}</div>
+                                    <div class="w-24 flex justify-center gap-1 flex-shrink-0">
                                         <button onclick="app.printMeeting('${m.id}')" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors" title="인쇄/PDF"><i data-lucide="printer" size="14"></i></button>
                                         <button onclick="app.openMeetingModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="수정"><i data-lucide="edit" size="14"></i></button>
                                         <button onclick="app.deleteData('meetings', '${m.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
@@ -1844,6 +1988,18 @@
                     // [신규] 일지 필터 초기화 시 표시 제한도 초기화
                     state.ui.visibleLogLimit = 50;
                     if(state.viewMode==='single') updateTabContent('logs');
+                } else if (section === 'meeting') {
+                    // [수정] 회의록 필터 초기화 로직 (신규 필드 포함)
+                    const d = new Date();
+                    state.filters.meeting = {
+                        start: `${d.getFullYear()}-01-01`,
+                        end: `${d.getFullYear()}-12-31`,
+                        search: '',
+                        type: '',
+                        clientName: '',
+                        writer: ''
+                    };
+                    if(state.viewMode==='single') updateTabContent('meeting');
                 } else if (section === 'stats') {
                     const d = new Date(); const s = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; const l = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); const e = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${l}`;
                     state.filters.stats = { start: s, end: e, type: 'detail', region: [], name: '' };
@@ -1938,6 +2094,22 @@
                 if(window.lucide) lucide.createIcons();
             },
             removeBatchSvcRow: (id) => { const el = document.getElementById(`batch-row-${id}`); if (el) el.remove(); },
+            // [신규] 사례회의 조회 대상 월 변경 함수
+            setMeetingTargetMonth: (val) => {
+                state.ui.meetingTargetMonth = parseInt(val);
+                if(state.viewMode === 'single') updateTabContent('meeting'); else render();
+            },
+            // [신규] 사례회의 조회 기준 변경 함수 (정기/신규/종결)
+            setMeetingCandidateType: (val) => {
+                state.ui.meetingCandidateType = val;
+                if(state.viewMode === 'single') updateTabContent('meeting'); else render();
+            },
+            // [신규] 사례회의 조회 대상 월 초기화 함수 (현재 월로 복귀 및 기준 초기화)
+            resetMeetingTargetMonth: () => {
+                state.ui.meetingTargetMonth = new Date().getMonth() + 1;
+                state.ui.meetingCandidateType = 'regular'; // 조회 기준도 기본값(정기)으로 초기화
+                if(state.viewMode === 'single') updateTabContent('meeting'); else render();
+            },
             // [신규] 회의록 모달 열기 함수 추가 (prefillData 파라미터 추가)
             openMeetingModal: (id = null, prefillData = null) => {
                 const m = id ? state.meetings.find(x => x.id === id) : (prefillData || {});
@@ -1950,9 +2122,18 @@
                             <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
                                 <i data-lucide="clipboard-list" class="text-emerald-600"></i> ${id ? '사례회의록 수정' : '사례회의록 작성'}
                             </h3>
-                            <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                            <div class="flex items-center gap-2">
+                                ${!id ? `<button type="button" onclick="app.openMeetingHistorySelector()" class="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 transition-colors flex items-center gap-1 mr-1"><i data-lucide="history" size="14"></i> 이전 회의록 불러오기</button>` : ''}
+                                
+                                <!-- [수정] 취소/저장 버튼 상단 이동 -->
+                                <button type="button" onclick="app.closeModal()" class="px-3 py-1.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium whitespace-nowrap">취소</button>
+                                <button type="button" onclick="document.getElementById('meeting-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-700 text-sm font-bold shadow-sm transition-colors whitespace-nowrap">저장</button>
+                                
+                                <div class="w-px h-4 bg-slate-300 mx-1"></div>
+                                <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                            </div>
                         </div>
-                        <form onsubmit="app.saveMeeting(event, '${id || ''}')" class="space-y-6 flex-1 overflow-y-auto p-1">
+                        <form id="meeting-form" onsubmit="app.saveMeeting(event, '${id || ''}')" class="space-y-6 flex-1 overflow-y-auto p-1">
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">회의 일자</label><input type="date" name="date" class="input-field" value="${m.date || today}" required></div>
                                 <div>
@@ -1971,7 +2152,8 @@
                             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
                                 <label class="block text-sm font-bold text-slate-700 mb-2">대상자 정보 (선택)</label>
                                 <div class="flex gap-2">
-                                    <input id="mt-client-name" name="clientName" class="input-field w-32" placeholder="이름 검색" list="client-list" value="${m.clientName || ''}" oninput="app.fillMeetingClientInfo(this)">
+                                    <!-- [수정] 엔터 키 입력 시 폼 제출 방지 (onkeydown 추가) -->
+                                    <input id="mt-client-name" name="clientName" class="input-field w-32" placeholder="이름 검색" list="client-list" value="${m.clientName || ''}" oninput="app.fillMeetingClientInfo(this)" onkeydown="if(event.key === 'Enter') { event.preventDefault(); }">
                                     <input id="mt-client-birth" name="clientBirth" class="input-field w-32 bg-slate-100 text-slate-500" placeholder="생년월일" value="${m.clientBirth || ''}" readonly tabindex="-1">
                                     <input id="mt-client-level" name="clientLevel" class="input-field w-24 bg-slate-100 text-slate-500" placeholder="등급" value="${m.clientLevel || ''}" readonly tabindex="-1">
                                 </div>
@@ -1982,16 +2164,102 @@
                             <div><label class="block text-sm font-bold text-slate-700 mb-1">결정 사항 및 향후 계획</label><textarea name="decision" class="input-field h-24 leading-relaxed" placeholder="결론 및 실행 계획">${m.decision || ''}</textarea></div>
                             <div><label class="block text-sm font-bold text-slate-700 mb-1">작성자</label><input name="writer" class="input-field" placeholder="작성자 성명" value="${m.writer || ''}" required></div>
 
-                            <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 flex-shrink-0">
-                                <button type="button" onclick="app.closeModal()" class="px-5 py-2.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">취소</button>
-                                <button type="submit" class="bg-emerald-600 text-white px-6 py-2.5 rounded-lg hover:bg-emerald-700 font-bold shadow-md transition-colors">저장</button>
-                            </div>
+                            <!-- [수정] 하단 버튼 영역 제거 (상단으로 이동됨) -->
                         </form>
                     </div>
                 `;
                 showModal(html, false, targetContainerId);
                 if(window.lucide) lucide.createIcons();
             },
+            
+            // [신규] 이전 회의록 불러오기 다이얼로그
+            openMeetingHistorySelector: () => {
+                const clientNameInput = document.getElementById('mt-client-name');
+                const clientName = clientNameInput ? clientNameInput.value.trim() : '';
+                
+                if (!clientName) {
+                    alert("이전 기록을 찾기 위해 먼저 대상자 이름을 입력해주세요.");
+                    return;
+                }
+
+                const history = state.meetings.filter(m => 
+                    (m.clientName === clientName) || 
+                    (state.clients.find(c => c.name === clientName && c.id === m.clientId))
+                ).sort((a, b) => b.date.localeCompare(a.date));
+
+                if (history.length === 0) {
+                    alert(`${clientName}님의 이전 회의록이 없습니다.`);
+                    return;
+                }
+
+                const html = `
+                    <div class="bg-white w-full max-w-xl p-6 rounded-xl shadow-2xl mx-4">
+                        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                            <div class="p-2 bg-blue-50 text-blue-600 rounded-full"><i data-lucide="history" size="20"></i></div>
+                            <div>
+                                <h3 class="font-bold text-lg text-slate-900">${clientName}님 회의록 목록</h3>
+                                <p class="text-xs text-slate-500">불러올 회의록을 선택하세요. (날짜 제외하고 덮어씌워집니다)</p>
+                            </div>
+                        </div>
+                        <div class="max-h-[300px] overflow-y-auto custom-scrollbar border border-slate-200 rounded-lg mb-4">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead class="bg-slate-50 font-bold text-slate-600 sticky top-0 z-10">
+                                    <tr>
+                                        <!-- [수정] 일자 너비 확대 및 줄바꿈 방지 -->
+                                        <th class="p-3 border-b border-slate-200 w-28 text-center whitespace-nowrap">일자</th>
+                                        <th class="p-3 border-b border-slate-200 w-20 text-center whitespace-nowrap">구분</th>
+                                        <th class="p-3 border-b border-slate-200">안건</th>
+                                        <th class="p-3 border-b border-slate-200 w-20 text-center whitespace-nowrap">선택</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    ${history.map(m => `
+                                        <tr class="hover:bg-slate-50 transition-colors">
+                                            <!-- [수정] 데이터 셀에도 줄바꿈 방지 적용 -->
+                                            <td class="p-3 text-center text-slate-600 font-medium whitespace-nowrap">${m.date}</td>
+                                            <td class="p-3 text-center"><span class="px-2 py-0.5 rounded bg-white border border-slate-200 text-xs font-bold text-slate-500 whitespace-nowrap">${m.type}</span></td>
+                                            <td class="p-3 text-slate-800 truncate max-w-[150px]" title="${m.topic}">${m.topic}</td>
+                                            <td class="p-3 text-center">
+                                                <button onclick="app.applyMeetingData('${m.id}')" class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded text-xs font-bold hover:bg-emerald-200 transition-colors shadow-sm whitespace-nowrap">선택</button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-right">
+                            <button onclick="app.closeDialog()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-medium hover:bg-slate-200 transition-colors">닫기</button>
+                        </div>
+                    </div>
+                `;
+                showDialog(html);
+                if(window.lucide) lucide.createIcons();
+            },
+
+            // [수정] 선택한 회의록 데이터 적용 함수 (폼 요소 접근 방식 개선)
+            applyMeetingData: (id) => {
+                const m = state.meetings.find(x => x.id === id);
+                if (!m) return;
+                
+                // [수정] confirm 확인창 제거 (즉시 적용)
+                // if (!confirm(`${m.date} 회의록 내용을 불러오시겠습니까?\n현재 작성 중인 내용은 덮어씌워집니다.`)) return;
+
+                const form = document.getElementById('meeting-form');
+                if (form) {
+                    // form.elements를 사용하여 안전하게 접근
+                    if (form.elements['type']) form.elements['type'].value = m.type || '수시';
+                    if (form.elements['attendees']) form.elements['attendees'].value = m.attendees || '';
+                    if (form.elements['topic']) form.elements['topic'].value = m.topic || '';
+                    if (form.elements['content']) form.elements['content'].value = m.content || '';
+                    if (form.elements['decision']) form.elements['decision'].value = m.decision || '';
+                    if (form.elements['writer']) form.elements['writer'].value = m.writer || '';
+                } else {
+                    console.error("작성 폼을 찾을 수 없습니다.");
+                }
+                
+                closeDialog();
+            },
+
             // [신규] 회의록 대상자 정보 자동입력
             fillMeetingClientInfo: (input) => {
                 const c = state.clients.find(x => x.name === input.value);
@@ -2032,81 +2300,123 @@
             printMeeting: (id) => {
                 const m = state.meetings.find(x => x.id === id);
                 if (!m) return alert("데이터를 찾을 수 없습니다.");
+                app.printMeetingsData([m]);
+            },
+            
+            // [삭제됨] 회의록 엑셀 양식 다운로드 및 업로드 함수 제거
 
-                const contentHtml = `
-                    <div style="font-family: 'Malgun Gothic', sans-serif; padding: 20px; color: #000;">
-                        <h1 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px; text-decoration: underline;">사 례 회 의 록</h1>
+            // [신규] 선택된 회의록 일괄 인쇄 기능
+            printSelectedMeetings: () => {
+                const selectedIds = Array.from(state.ui.selectedMeetingIds);
+                if (selectedIds.length === 0) return alert("인쇄할 회의록을 선택해주세요.");
+                
+                const targets = state.meetings.filter(m => selectedIds.includes(m.id));
+                // 날짜 내림차순 정렬 (최신순) 혹은 오름차순 등 필요에 따라 조정
+                targets.sort((a, b) => b.date.localeCompare(a.date));
+                
+                app.printMeetingsData(targets);
+            },
+            // [신규] 회의록 데이터 배열을 받아 인쇄창을 띄우는 공통 함수
+            printMeetingsData: (meetings) => {
+                if (!meetings || meetings.length === 0) return;
+
+                const commonCss = `
+                    body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; color: #000; margin: 0; }
+                    .doc-wrapper { page-break-after: always; margin-bottom: 30px; }
+                    .doc-wrapper:last-child { page-break-after: auto; }
+                    h1 { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px; text-decoration: underline; }
+                    .approval-table { border-collapse: collapse; display: inline-table; font-size: 12px; margin-bottom: 10px; float: right; }
+                    .approval-table td { border: 1px solid #000; text-align: center; }
+                    .bg-gray { background: #f0f0f0; }
+                    .info-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; }
+                    .info-table th, .info-table td { border: 1px solid #000; padding: 8px; }
+                    .info-table th { background: #f8f9fa; text-align: center; }
+                    .content-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+                    .content-table th { border: 1px solid #000; padding: 10px; background: #f8f9fa; text-align: left; }
+                    .content-table td { border: 1px solid #000; padding: 15px; vertical-align: top; }
+                    .clearfix::after { content: ""; clear: both; display: table; }
+                `;
+
+                let fullHtml = `<html><head><title>사례회의록 인쇄</title><style>${commonCss}</style></head><body onload="window.print();">`;
+
+                meetings.forEach(m => {
+                    fullHtml += `
+                    <div class="doc-wrapper clearfix">
+                        <h1>사 례 회 의 록</h1>
                         
-                        <div style="text-align: right; margin-bottom: 10px;">
-                            <table style="border-collapse: collapse; display: inline-table; font-size: 12px;">
+                        <div class="clearfix">
+                            <table class="approval-table">
                                 <tr>
-                                    <td rowspan="2" style="border: 1px solid #000; width: 20px; padding: 5px; text-align: center; background: #f0f0f0;">결<br>재</td>
-                                    <td style="border: 1px solid #000; width: 70px; height: 20px; text-align: center; background: #f0f0f0;">담 당</td>
-                                    <td style="border: 1px solid #000; width: 70px; height: 20px; text-align: center; background: #f0f0f0;">센터장</td>
+                                    <td rowspan="2" style="width: 20px; padding: 5px; background: #f0f0f0;">결<br>재</td>
+                                    <td style="width: 70px; height: 20px; background: #f0f0f0;">담 당</td>
+                                    <td style="width: 70px; height: 20px; background: #f0f0f0;">센터장</td>
                                 </tr>
                                 <tr>
-                                    <td style="border: 1px solid #000; height: 50px;"></td>
-                                    <td style="border: 1px solid #000; height: 50px;"></td>
+                                    <td style="height: 50px;"></td>
+                                    <td style="height: 50px;"></td>
                                 </tr>
                             </table>
                         </div>
 
-                        <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
+                        <table class="info-table">
                             <colgroup>
-                                <col style="width: 15%; background: #f8f9fa;">
+                                <col style="width: 15%;">
                                 <col style="width: 35%;">
-                                <col style="width: 15%; background: #f8f9fa;">
+                                <col style="width: 15%;">
                                 <col style="width: 35%;">
                             </colgroup>
                             <tr>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">일 시</th>
-                                <td style="border: 1px solid #000; padding: 8px;">${m.date}</td>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">장 소</th>
-                                <td style="border: 1px solid #000; padding: 8px;">상담실</td>
+                                <th>일 시</th>
+                                <td>${m.date}</td>
+                                <th>장 소</th>
+                                <td>상담실</td>
                             </tr>
                             <tr>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">구 분</th>
-                                <td style="border: 1px solid #000; padding: 8px;">${m.type}</td>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">작성자</th>
-                                <td style="border: 1px solid #000; padding: 8px;">${m.writer}</td>
+                                <th>구 분</th>
+                                <td>${m.type}</td>
+                                <th>작성자</th>
+                                <td>${m.writer}</td>
                             </tr>
                             <tr>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">참석자</th>
-                                <td colspan="3" style="border: 1px solid #000; padding: 8px;">${m.attendees}</td>
+                                <th>참석자</th>
+                                <td colspan="3">${m.attendees}</td>
                             </tr>
                             <tr>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">대상자</th>
-                                <td style="border: 1px solid #000; padding: 8px;">${m.clientName || '-'}</td>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">생년월일</th>
-                                <td style="border: 1px solid #000; padding: 8px;">${m.clientBirth || '-'}</td>
+                                <th>대상자</th>
+                                <td>${m.clientName || '-'}</td>
+                                <th>생년월일</th>
+                                <td>${m.clientBirth || '-'}</td>
                             </tr>
                         </table>
 
-                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <table class="content-table">
                             <tr>
-                                <th style="border: 1px solid #000; padding: 10px; background: #f8f9fa; text-align: left;">주요 안건</th>
+                                <th>주요 안건</th>
                             </tr>
                             <tr>
-                                <td style="border: 1px solid #000; padding: 15px; height: 50px; vertical-align: top;">${(m.topic || '').replace(/\n/g, '<br>')}</td>
+                                <td style="height: 50px;">${(m.topic || '').replace(/\n/g, '<br>')}</td>
                             </tr>
                             <tr>
-                                <th style="border: 1px solid #000; padding: 10px; background: #f8f9fa; text-align: left; border-top: none;">회의 내용</th>
+                                <th style="border-top: none;">회의 내용</th>
                             </tr>
                             <tr>
-                                <td style="border: 1px solid #000; padding: 15px; height: 300px; vertical-align: top;">${(m.content || '').replace(/\n/g, '<br>')}</td>
+                                <td style="height: 300px;">${(m.content || '').replace(/\n/g, '<br>')}</td>
                             </tr>
                             <tr>
-                                <th style="border: 1px solid #000; padding: 10px; background: #f8f9fa; text-align: left; border-top: none;">결정 사항 및 향후 계획</th>
+                                <th style="border-top: none;">결정 사항 및 향후 계획</th>
                             </tr>
                             <tr>
-                                <td style="border: 1px solid #000; padding: 15px; height: 150px; vertical-align: top;">${(m.decision || '').replace(/\n/g, '<br>')}</td>
+                                <td style="height: 150px;">${(m.decision || '').replace(/\n/g, '<br>')}</td>
                             </tr>
                         </table>
                     </div>
-                `;
+                    `;
+                });
+
+                fullHtml += `</body></html>`;
 
                 const printWindow = window.open('', '', 'width=800,height=900');
-                printWindow.document.write(`<html><head><title>사례회의록 인쇄</title></head><body onload="window.print(); window.close();">${contentHtml}</body></html>`);
+                printWindow.document.write(fullHtml);
                 printWindow.document.close();
             },
             executeBatchEditLogs: async (e) => {
@@ -2157,6 +2467,68 @@
             },
             executeDeleteSelectedClients: async () => { try { const promises = Array.from(state.ui.selectedClientIds).map(id => deleteDoc(doc(db, "clients", id))); await Promise.all(promises); state.ui.selectedClientIds.clear(); closeDialog(); } catch (err) { alert("삭제 중 오류가 발생했습니다: " + err.message); } },
             
+            // [신규] 회의록 체크박스 관련 기능 (부분 업데이트 적용)
+            toggleMeetingSelection: (id) => {
+                if (state.ui.selectedMeetingIds.has(id)) state.ui.selectedMeetingIds.delete(id);
+                else state.ui.selectedMeetingIds.add(id);
+                
+                // [수정] 전체 렌더링 대신 UI 부분 업데이트 호출
+                app.updateMeetingBatchActionsUI();
+            },
+            toggleAllMeetings: (checked) => {
+                const filtered = getFilteredMeetings();
+                if (checked) { filtered.forEach(m => state.ui.selectedMeetingIds.add(m.id)); } 
+                else { filtered.forEach(m => state.ui.selectedMeetingIds.delete(m.id)); }
+                
+                // [수정] DOM의 체크박스 상태 강제 동기화
+                const checkboxes = document.querySelectorAll('.meeting-checkbox');
+                checkboxes.forEach(cb => cb.checked = checked);
+                
+                // [수정] 전체 렌더링 대신 UI 부분 업데이트 호출
+                app.updateMeetingBatchActionsUI();
+            },
+            // [신규] 회의록 일괄 작업 UI 부분 업데이트 함수
+            updateMeetingBatchActionsUI: () => {
+                const filtered = getFilteredMeetings();
+                const container = document.getElementById('meeting-batch-actions');
+                const selectAllCheckbox = document.getElementById('meeting-select-all');
+                
+                if (container) {
+                    container.innerHTML = `
+                        <span class="text-sm text-slate-500">총 <span class="font-bold text-slate-800">${filtered.length}</span>건</span>
+                        ${state.ui.selectedMeetingIds.size > 0 ? `
+                            <div class="h-4 w-px bg-slate-300 mx-1"></div>
+                            <button onclick="app.deleteSelectedMeetings()" class="bg-red-50 text-red-600 px-2 py-1 rounded text-xs font-bold flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in">
+                                <i data-lucide="trash-2" size="12"></i> 선택삭제 (${state.ui.selectedMeetingIds.size})
+                            </button>
+                        ` : ''}
+                    `;
+                    if(window.lucide) lucide.createIcons();
+                }
+                
+                if (selectAllCheckbox) {
+                    const allSelected = filtered.length > 0 && filtered.every(m => state.ui.selectedMeetingIds.has(m.id));
+                    selectAllCheckbox.checked = allSelected;
+                }
+            },
+            deleteSelectedMeetings: () => {
+                const count = state.ui.selectedMeetingIds.size;
+                if (count === 0) return;
+                showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">회의록 일괄 삭제</h3><p class="text-sm text-slate-500 mb-6">선택한 <span class="font-bold text-red-600">${count}건</span>의 회의록을 삭제하시겠습니까?<br>삭제 시 복구할 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDeleteSelectedMeetings()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">아니오</button></div></div></div>`);
+                if(window.lucide) lucide.createIcons();
+            },
+            executeDeleteSelectedMeetings: async () => {
+                try {
+                    const promises = Array.from(state.ui.selectedMeetingIds).map(id => deleteDoc(doc(db, "meetings", id)));
+                    await Promise.all(promises);
+                    state.ui.selectedMeetingIds.clear();
+                    closeDialog();
+                    // 자동 갱신됨 (onSnapshot)
+                } catch (err) {
+                    alert("삭제 중 오류가 발생했습니다: " + err.message);
+                }
+            },
+
             openCasePdfSelector: () => {
                 if (state.ui.selectedClientIds.size === 0) {
                     alert("대상을 선택해주세요.");
