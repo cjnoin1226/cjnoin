@@ -614,7 +614,10 @@
         }
 
         function renderDashboard() {
-            const today = new Date().toISOString().split('T')[0];
+            const todayDate = new Date();
+            const today = todayDate.toISOString().split('T')[0];
+            const currentMonth = todayDate.getMonth() + 1;
+
             const todayLogs = state.logs.filter(l => l.date === today).length;
             const activeClients = state.clients.filter(c => {
                 const isTerminated = c.status === '종결' || (c.endDate && c.endDate < today);
@@ -624,6 +627,13 @@
             const totalActive = activeClients.length;
             const highFocus = activeClients.filter(c => c.careLevel === '중점').length;
             const general = activeClients.filter(c => c.careLevel === '일반').length;
+
+            // [신규] 이번 달 사례회의 대상자 (정기/재사정 기준) 계산
+            const meetingCandidates = state.clients.filter(c => {
+                if (c.status === '종결' || !c.serviceStartDate) return false;
+                const startMonth = parseInt(c.serviceStartDate.split('-')[1]);
+                return startMonth === currentMonth;
+            }).length;
 
             return `
                 <div class="space-y-6 animate-fade-in p-1">
@@ -644,9 +654,10 @@
                             <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg"><i data-lucide="file-text"></i></div>
                             <div><p class="text-sm text-slate-500">오늘 일지</p><p class="text-2xl font-bold text-slate-800">${todayLogs}<span class="text-sm font-normal text-slate-500">건</span></p></div>
                         </div>
-                        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
-                            <div class="p-3 bg-purple-100 text-purple-600 rounded-lg"><i data-lucide="settings"></i></div>
-                            <div><p class="text-sm text-slate-500">제공 서비스</p><p class="text-2xl font-bold text-slate-800">${state.services.length}<span class="text-sm font-normal text-slate-500">개</span></p></div>
+                        <!-- [수정] 제공 서비스 박스 -> 월 사례회의 대상자 박스로 변경 -->
+                        <div onclick="app.setTab('meeting')" class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors">
+                            <div class="p-3 bg-purple-100 text-purple-600 rounded-lg"><i data-lucide="calendar-clock"></i></div>
+                            <div><p class="text-sm text-slate-500">${currentMonth}월 사례회의 대상</p><p class="text-2xl font-bold text-slate-800">${meetingCandidates}<span class="text-sm font-normal text-slate-500">명</span></p></div>
                         </div>
                     </div>
                     <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-4 md:p-6">
