@@ -3027,13 +3027,18 @@
 
                                                     <!-- 5. 가족 사항 -->
                                                     <tr>
-                                                        <th colspan="10" class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">가족사항</th>
+                                                        <th colspan="10" class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700 relative">
+                                                            <span>가족사항</span>
+                                                            <button type="button" onclick="app.addFamilyRow()" class="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm" title="가족 추가 (최대 6명)">
+                                                                <i data-lucide="plus" size="12"></i>
+                                                            </button>
+                                                        </th>
                                                     </tr>
                                                     <tr>
                                                         <td colspan="10" class="border border-slate-300 p-0">
                                                             <table class="w-full border-collapse text-xs">
                                                                 <colgroup>
-                                                                    <col width="15%"><col width="20%"><col width="15%"><col width="20%"><col width="30%">
+                                                                    <col width="15%"><col width="20%"><col width="10%"><col width="15%"><col width="30%"><col width="10%">
                                                                 </colgroup>
                                                                 <thead class="bg-slate-50 text-slate-600">
                                                                     <tr>
@@ -3041,66 +3046,467 @@
                                                                         <th class="border-b border-r border-slate-200 p-1 text-center">성명</th>
                                                                         <th class="border-b border-r border-slate-200 p-1 text-center">연령</th>
                                                                         <th class="border-b border-r border-slate-200 p-1 text-center">동거여부</th>
-                                                                        <th class="border-b border-slate-200 p-1 text-center">비고(직업 등)</th>
+                                                                        <th class="border-b border-r border-slate-200 p-1 text-center">비고(직업 등)</th>
+                                                                        <th class="border-b border-slate-200 p-1 text-center">관리</th>
                                                                     </tr>
                                                                 </thead>
-                                                                <tbody>
-                                                                    ${[0, 1, 2, 3].map(i => `
-                                                                    <tr>
-                                                                        <td class="border-r border-b border-slate-200 p-0"><input type="text" id="cm-init-fam-rel-${i}" class="w-full p-1 text-center outline-none" value="${getVal(cm, `initial.familyDetails.${i}.rel`)}"></td>
-                                                                        <td class="border-r border-b border-slate-200 p-0"><input type="text" id="cm-init-fam-name-${i}" class="w-full p-1 text-center outline-none" value="${getVal(cm, `initial.familyDetails.${i}.name`)}"></td>
-                                                                        <td class="border-r border-b border-slate-200 p-0"><input type="text" id="cm-init-fam-age-${i}" class="w-full p-1 text-center outline-none" value="${getVal(cm, `initial.familyDetails.${i}.age`)}"></td>
-                                                                        <td class="border-r border-b border-slate-200 p-0"><select id="cm-init-fam-co-${i}" class="w-full p-1 text-center outline-none bg-white"><option value=""></option><option value="동거" ${getVal(cm, `initial.familyDetails.${i}.co`)==='동거'?'selected':''}>동거</option><option value="비동거" ${getVal(cm, `initial.familyDetails.${i}.co`)==='비동거'?'selected':''}>비동거</option></select></td>
-                                                                        <td class="border-b border-slate-200 p-0"><input type="text" id="cm-init-fam-note-${i}" class="w-full p-1 outline-none" value="${getVal(cm, `initial.familyDetails.${i}.note`)}"></td>
-                                                                    </tr>`).join('')}
+                                                                <tbody id="cm-fam-tbody">
+                                                                    ${(() => {
+                                                                        const famData = getVal(cm, 'initial.familyDetails') || [];
+                                                                        // 기본 2줄 보장, 데이터가 더 있으면 그만큼 렌더링
+                                                                        let rows = [...famData];
+                                                                        if (rows.length < 2) {
+                                                                            const diff = 2 - rows.length;
+                                                                            for(let k=0; k<diff; k++) rows.push({});
+                                                                        }
+                                                                        // 최대 6개까지만 렌더링 (데이터가 오염되었을 경우 대비)
+                                                                        rows = rows.slice(0, 6);
+
+                                                                        return rows.map((f, i) => `
+                                                                            <tr class="fam-row group hover:bg-slate-50">
+                                                                                <td class="border-r border-b border-slate-200 p-0"><input type="text" class="fam-rel w-full p-1 text-center outline-none bg-transparent" value="${f.rel || ''}" placeholder="관계"></td>
+                                                                                <td class="border-r border-b border-slate-200 p-0"><input type="text" class="fam-name w-full p-1 text-center outline-none bg-transparent" value="${f.name || ''}" placeholder="이름"></td>
+                                                                                <td class="border-r border-b border-slate-200 p-0"><input type="text" class="fam-age w-full p-1 text-center outline-none bg-transparent" value="${f.age || ''}" placeholder="나이"></td>
+                                                                                <td class="border-r border-b border-slate-200 p-0">
+                                                                                    <select class="fam-co w-full p-1 text-center outline-none bg-transparent cursor-pointer">
+                                                                                        <option value=""></option>
+                                                                                        <option value="동거" ${f.co === '동거' ? 'selected' : ''}>동거</option>
+                                                                                        <option value="비동거" ${f.co === '비동거' ? 'selected' : ''}>비동거</option>
+                                                                                    </select>
+                                                                                </td>
+                                                                                <td class="border-r border-b border-slate-200 p-0"><input type="text" class="fam-note w-full p-1 outline-none bg-transparent" value="${f.note || ''}"></td>
+                                                                                <td class="border-b border-slate-200 p-0 text-center">
+                                                                                    <button type="button" onclick="app.removeFamilyRow(this)" class="text-slate-400 hover:text-red-500 p-1 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
+                                                                                </td>
+                                                                            </tr>
+                                                                        `).join('');
+                                                                    })()}
                                                                 </tbody>
                                                             </table>
                                                         </td>
                                                     </tr>
+
+                                                    <!-- 6. 생활상태 (신규 추가) -->
+                                                    <tr>
+                                                        <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">생활상태</th>
+                                                        <td colspan="9" class="border border-slate-300 p-3 bg-white">
+                                                            <div class="space-y-3">
+                                                                <!-- 1) 경제상황 -->
+                                                                <div class="flex items-start gap-2">
+                                                                    <!-- [수정] 소제목 너비 축소 (w-24 -> w-20), 패딩 축소 (px-1.5 -> px-1) -->
+                                                                    <span class="text-xs font-bold text-slate-700 w-20 flex-shrink-0 mt-0.5 bg-slate-100 px-1 py-0.5 rounded text-center border border-slate-200">① 경제상황</span>
+                                                                    <!-- [수정] 체크박스와 소득 입력란을 세로로 배치하기 위한 래퍼 추가 -->
+                                                                    <div class="flex flex-col w-full gap-2">
+                                                                        <!-- 체크박스 영역 -->
+                                                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 w-full">
+                                                                            ${(() => {
+                                                                                const savedEcos = getVal(cm, 'initial.living.economic') || [];
+                                                                                const condDetail = getVal(cm, 'initial.living.economicDetail.conditional');
+                                                                                const otherDetail = getVal(cm, 'initial.living.economicDetail.other');
+                                                                                
+                                                                                const mkCb = (val, label) => `
+                                                                                    <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                        <input type="checkbox" name="cm-init-live-eco" value="${val}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${savedEcos.includes(val) ? 'checked' : ''}>
+                                                                                        <span class="text-xs text-slate-600">${label}</span>
+                                                                                    </label>`;
+                                                                                
+                                                                                return `
+                                                                                    ${mkCb('기초수급(의료/생계/주거)', '기초수급(의료/생계/주거)')}
+                                                                                    
+                                                                                    <div class="flex items-center gap-1 transition-all">
+                                                                                        <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                            <input type="checkbox" name="cm-init-live-eco" value="조건부 수급" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${savedEcos.includes('조건부 수급') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-init-live-eco-cond-detail')">
+                                                                                            <span class="text-xs text-slate-600">조건부 수급</span>
+                                                                                        </label>
+                                                                                        <input type="text" id="cm-init-live-eco-cond-detail" class="input-field py-0.5 px-2 text-xs w-28 border-slate-200 ${savedEcos.includes('조건부 수급') ? '' : 'hidden'}" placeholder="내용 입력" value="${condDetail}">
+                                                                                    </div>
+
+                                                                                    ${mkCb('차상위', '차상위')}
+                                                                                    ${mkCb('일반(저소득)', '일반(저소득)')}
+
+                                                                                    <div class="flex items-center gap-1 transition-all">
+                                                                                        <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                            <input type="checkbox" name="cm-init-live-eco" value="기타" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${savedEcos.includes('기타') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-init-live-eco-other-detail')">
+                                                                                            <span class="text-xs text-slate-600">기타</span>
+                                                                                        </label>
+                                                                                        <input type="text" id="cm-init-live-eco-other-detail" class="input-field py-0.5 px-2 text-xs w-28 border-slate-200 ${savedEcos.includes('기타') ? '' : 'hidden'}" placeholder="내용 입력" value="${otherDetail}">
+                                                                                    </div>
+                                                                                `;
+                                                                            })()}
+                                                                        </div>
+                                                                        <!-- [신규] 월소득 및 주소득원 입력란 -->
+                                                                        <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-dashed border-slate-100 w-full">
+                                                                            <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded border border-slate-200">
+                                                                                <span class="text-xs font-bold text-slate-600">월소득 :</span>
+                                                                                <input type="text" id="cm-init-live-eco-income" class="bg-transparent text-xs w-16 text-right outline-none font-medium text-slate-800" placeholder="0" value="${getVal(cm, 'initial.living.economicDetail.monthlyIncome') || ''}">
+                                                                                <span class="text-xs text-slate-500">만원</span>
+                                                                            </div>
+                                                                            <div class="w-px h-3 bg-slate-300 hidden sm:block"></div>
+                                                                            <div class="flex items-center gap-1 flex-1 min-w-[200px]">
+                                                                                <span class="text-xs font-bold text-slate-600 whitespace-nowrap">주소득원 :</span>
+                                                                                <input type="text" id="cm-init-live-eco-source" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" placeholder="입력 (예: 기초연금, 자녀용돈 등)" value="${getVal(cm, 'initial.living.economicDetail.mainSource') || ''}">
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <!-- 2) 세대유형 -->
+                                                                <div class="flex items-start gap-2 border-t border-dashed border-slate-100 pt-2">
+                                                                    <!-- [수정] 소제목 너비 축소 (w-24 -> w-20), 패딩 축소 (px-1.5 -> px-1) -->
+                                                                    <span class="text-xs font-bold text-slate-700 w-20 flex-shrink-0 mt-0.5 bg-slate-100 px-1 py-0.5 rounded text-center border border-slate-200">② 세대유형</span>
+                                                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 w-full">
+                                                                        ${(() => {
+                                                                            const savedHouses = getVal(cm, 'initial.living.household') || [];
+                                                                            const cohabitationDetail = getVal(cm, 'initial.living.householdDetail.cohabitation');
+                                                                            const childDetail = getVal(cm, 'initial.living.householdDetail.childCohabitation');
+
+                                                                            return CONSTANTS.HOUSEHOLD_LIST.map(house => {
+                                                                                const isChecked = savedHouses.includes(house) ? 'checked' : '';
+                                                                                let inputHtml = '';
+                                                                                let targetId = '';
+
+                                                                                if (house === '동거') {
+                                                                                    targetId = 'cm-init-live-house-cohabitation-detail';
+                                                                                    inputHtml = `<input type="text" id="${targetId}" class="input-field py-0.5 px-2 text-xs w-28 border-slate-200 ${isChecked ? '' : 'hidden'}" placeholder="내용 입력" value="${cohabitationDetail}">`;
+                                                                                } else if (house === '자녀동거세대') {
+                                                                                    targetId = 'cm-init-live-house-child-detail';
+                                                                                    inputHtml = `<input type="text" id="${targetId}" class="input-field py-0.5 px-2 text-xs w-28 border-slate-200 ${isChecked ? '' : 'hidden'}" placeholder="내용 입력" value="${childDetail}">`;
+                                                                                }
+
+                                                                                const onChangeAttr = targetId ? `onchange="app.toggleDisplay(this, '${targetId}')"` : '';
+
+                                                                                return `
+                                                                                    <div class="flex items-center gap-1 transition-all">
+                                                                                        <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                            <input type="checkbox" name="cm-init-live-house" value="${house}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked} ${onChangeAttr}>
+                                                                                            <span class="text-xs text-slate-600">${house}</span>
+                                                                                        </label>
+                                                                                        ${inputHtml}
+                                                                                    </div>`;
+                                                                            }).join('');
+                                                                        })()}
+                                                                    </div>
+                                                                </div>
+                                                                <!-- 3) 주거형태 -->
+                                                                <div class="flex items-start gap-2 border-t border-dashed border-slate-100 pt-2">
+                                                                    <!-- [수정] 소제목 너비 축소 (w-24 -> w-20), 패딩 축소 (px-1.5 -> px-1) -->
+                                                                    <span class="text-xs font-bold text-slate-700 w-20 flex-shrink-0 mt-0.5 bg-slate-100 px-1 py-0.5 rounded text-center border border-slate-200">③ 주거형태</span>
+                                                                    <div class="flex flex-col w-full gap-2">
+                                                                        <!-- 점유 형태 -->
+                                                                        <div class="flex flex-wrap gap-x-4 gap-y-2 items-center">
+                                                                            <span class="text-xs font-bold text-slate-500 mr-1">[점유]</span>
+                                                                            ${(() => {
+                                                                                const savedHousings = getVal(cm, 'initial.living.housing') || [];
+                                                                                const jeonseDeposit = getVal(cm, 'initial.living.housingDetail.jeonseDeposit');
+                                                                                const wolseDeposit = getVal(cm, 'initial.living.housingDetail.wolseDeposit');
+                                                                                const wolseRent = getVal(cm, 'initial.living.housingDetail.wolseRent');
+
+                                                                                return ['자가', '전세', '월세', '영구임대', '무상거주', '시설', '기타'].map(housing => {
+                                                                                    const isChecked = savedHousings.includes(housing) ? 'checked' : '';
+                                                                                    
+                                                                                    if (housing === '전세') {
+                                                                                        return `
+                                                                                        <div class="flex items-center gap-1 transition-all">
+                                                                                            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                                <input type="checkbox" name="cm-init-live-housing" value="${housing}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked} onchange="app.toggleDisplay(this, 'wrapper-jeonse')">
+                                                                                                <span class="text-xs text-slate-600">${housing}</span>
+                                                                                            </label>
+                                                                                            <div id="wrapper-jeonse" class="flex items-center gap-1 ${isChecked ? '' : 'hidden'} bg-slate-50 rounded px-1 border border-slate-100">
+                                                                                                <span class="text-[10px] text-slate-500">보증금</span>
+                                                                                                <input type="text" id="cm-init-housing-jeonse-deposit" class="input-field py-0.5 px-1 text-xs w-16 text-right border-slate-200 h-6" placeholder="0" value="${jeonseDeposit}">
+                                                                                                <span class="text-[10px] text-slate-500">만</span>
+                                                                                            </div>
+                                                                                        </div>`;
+                                                                                    } else if (housing === '월세') {
+                                                                                        return `
+                                                                                        <div class="flex items-center gap-1 transition-all">
+                                                                                            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                                <input type="checkbox" name="cm-init-live-housing" value="${housing}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked} onchange="app.toggleDisplay(this, 'wrapper-wolse')">
+                                                                                                <span class="text-xs text-slate-600">${housing}</span>
+                                                                                            </label>
+                                                                                            <div id="wrapper-wolse" class="flex items-center gap-1 ${isChecked ? '' : 'hidden'} bg-slate-50 rounded px-1 border border-slate-100">
+                                                                                                <span class="text-[10px] text-slate-500">보</span>
+                                                                                                <input type="text" id="cm-init-housing-wolse-deposit" class="input-field py-0.5 px-1 text-xs w-12 text-right border-slate-200 h-6" placeholder="0" value="${wolseDeposit}">
+                                                                                                <span class="text-[10px] text-slate-500">/ 월</span>
+                                                                                                <input type="text" id="cm-init-housing-wolse-rent" class="input-field py-0.5 px-1 text-xs w-12 text-right border-slate-200 h-6" placeholder="0" value="${wolseRent}">
+                                                                                                <span class="text-[10px] text-slate-500">만</span>
+                                                                                            </div>
+                                                                                        </div>`;
+                                                                                    } else {
+                                                                                        return `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors"><input type="checkbox" name="cm-init-live-housing" value="${housing}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked}><span class="text-xs text-slate-600">${housing}</span></label>`;
+                                                                                    }
+                                                                                }).join('');
+                                                                            })()}
+                                                                        </div>
+                                                                        <!-- 주거 유형 (신규) -->
+                                                                        <div class="flex flex-wrap gap-x-4 gap-y-2 items-center border-t border-dashed border-slate-100 pt-2">
+                                                                            <span class="text-xs font-bold text-slate-500 mr-1">[유형]</span>
+                                                                            ${['단독주택', '아파트', '빌라/연립', '다세대주택', '기타'].map(type => {
+                                                                                const savedTypes = getVal(cm, 'initial.living.dwellingType') || [];
+                                                                                const isChecked = savedTypes.includes(type) ? 'checked' : '';
+                                                                                return `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors"><input type="checkbox" name="cm-init-live-dwelling" value="${type}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked}><span class="text-xs text-slate-600">${type}</span></label>`;
+                                                                            }).join('')}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
                                                     
-                                                    <!-- 6. 건강 상태 -->
+                                                    <!-- 7. 신체상태 (신규 추가 및 기존 대체) -->
                                                     <tr>
-                                                        <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">신체/건강<br>상태</th>
-                                                        <td colspan="9" class="border border-slate-300 p-0">
-                                                            <div class="grid grid-cols-2">
-                                                                <div class="border-r border-slate-200 p-2">
-                                                                    <div class="text-xs text-slate-500 font-bold mb-1">진단명(질병)</div>
-                                                                    <input type="text" id="cm-initial-disease" class="w-full border-b border-slate-200 outline-none mb-2 text-sm" value="${getVal(cm, 'initial.health.disease')}" placeholder="예: 고혈압, 당뇨">
-                                                                    <div class="text-xs text-slate-500 font-bold mb-1">장애유무/등급</div>
-                                                                    <input type="text" id="cm-initial-disability" class="w-full outline-none text-sm" value="${getVal(cm, 'initial.health.disability')}" placeholder="예: 지체장애 2급">
+                                                        <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">신체상태</th>
+                                                        <td colspan="9" class="border border-slate-300 p-3 bg-white">
+                                                            <div class="space-y-3">
+                                                                <!-- 1) 건강상태 -->
+                                                                <div class="flex items-start gap-2">
+                                                                    <!-- [수정] 소제목 너비 축소 (w-24 -> w-20), 패딩 축소 (px-1.5 -> px-1) -->
+                                                                    <span class="text-xs font-bold text-slate-700 w-20 flex-shrink-0 mt-0.5 bg-slate-100 px-1 py-0.5 rounded text-center border border-slate-200">① 건강상태</span>
+                                                                    <!-- [수정] 2x2 그리드 배열, radio -> checkbox 변경 -->
+                                                                    <div class="flex-1 grid grid-cols-2 gap-2">
+                                                                        ${(() => {
+                                                                            const rawHealth = getVal(cm, 'initial.physical.health');
+                                                                            // 배열/문자열 호환 처리
+                                                                            const savedHealthList = Array.isArray(rawHealth) ? rawHealth : (rawHealth ? [rawHealth] : []);
+                                                                            
+                                                                            const options = [
+                                                                                '건강하다',
+                                                                                '질환은 있지만 건강한 편이다',
+                                                                                '특별한 질환은 없지만 노환으로 건강하지 못하다',
+                                                                                '질환으로 건강이 나쁘다'
+                                                                            ];
+                                                                            return options.map(opt => `
+                                                                                <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                    <input type="checkbox" name="cm-init-phy-health-option" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${savedHealthList.includes(opt) ? 'checked' : ''}>
+                                                                                    <span class="text-xs text-slate-600 break-keep">${opt}</span>
+                                                                                </label>
+                                                                            `).join('');
+                                                                        })()}
+                                                                    </div>
                                                                 </div>
-                                                                <div class="p-2">
-                                                                    <div class="text-xs text-slate-500 font-bold mb-1">복용약물</div>
-                                                                    <textarea id="cm-initial-medication" class="w-full h-16 outline-none resize-none text-sm" placeholder="복용 중인 약물 기록">${getVal(cm, 'initial.health.medication')}</textarea>
+                                                                <!-- 2) 만성질환 (기존 질병 데이터 연동) -->
+                                                                <div class="flex items-start gap-2 border-t border-dashed border-slate-100 pt-2">
+                                                                    <!-- [수정] 소제목 너비 축소 (w-24 -> w-20), 패딩 축소 (px-1.5 -> px-1) -->
+                                                                    <span class="text-xs font-bold text-slate-700 w-20 flex-shrink-0 mt-0.5 bg-slate-100 px-1 py-0.5 rounded text-center border border-slate-200">② 만성질환</span>
+                                                                    <div class="flex-1">
+                                                                        <input type="text" id="cm-init-phy-chronic" class="input-field py-0.5 px-2 text-xs w-full border-slate-200" placeholder="내용 입력" value="${getVal(cm, 'initial.physical.chronic') || getVal(cm, 'initial.health.disease')}">
+                                                                    </div>
+                                                                </div>
+                                                                <!-- 3) 장애여부 (UI 변경: radio -> checkbox) -->
+                                                                <div class="flex items-start gap-2 border-t border-dashed border-slate-100 pt-2">
+                                                                    <!-- [수정] 소제목 너비 축소 (w-24 -> w-20), 패딩 축소 (px-1.5 -> px-1) -->
+                                                                    <span class="text-xs font-bold text-slate-700 w-20 flex-shrink-0 mt-0.5 bg-slate-100 px-1 py-0.5 rounded text-center border border-slate-200">③ 장애여부</span>
+                                                                    <div class="flex-1 flex flex-wrap items-center gap-4">
+                                                                        ${(() => {
+                                                                            const oldDisability = getVal(cm, 'initial.physical.disability') || getVal(cm, 'initial.health.disability');
+                                                                            const newStatus = getVal(cm, 'initial.physical.disabilityStatus');
+                                                                            const newType = getVal(cm, 'initial.physical.disabilityType');
+                                                                            
+                                                                            let status = newStatus;
+                                                                            let typeValue = newType;
+
+                                                                            if (!status && oldDisability) {
+                                                                                if (oldDisability.trim() === '무' || oldDisability.trim() === '없음') {
+                                                                                    status = '무';
+                                                                                } else {
+                                                                                    status = '유';
+                                                                                    typeValue = oldDisability;
+                                                                                }
+                                                                            }
+
+                                                                            return `
+                                                                                <div class="flex items-center gap-1 transition-all">
+                                                                                    <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                        <input type="checkbox" name="cm-init-phy-disability-status" value="유" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${status === '유' ? 'checked' : ''} onchange="if(this.checked) { document.getElementById('cm-init-phy-disability-type-wrapper').classList.remove('hidden'); document.getElementById('cm-init-phy-disability-type').focus(); } else { document.getElementById('cm-init-phy-disability-type-wrapper').classList.add('hidden'); }">
+                                                                                        <span class="text-xs text-slate-600">유</span>
+                                                                                    </label>
+                                                                                    <div id="cm-init-phy-disability-type-wrapper" class="flex items-center gap-1 ${status === '유' ? '' : 'hidden'}">
+                                                                                        <span class="text-[10px] text-slate-500">(장애유형:</span>
+                                                                                        <input type="text" id="cm-init-phy-disability-type" class="input-field py-0.5 px-2 text-xs w-32 border-slate-200" placeholder="입력" value="${typeValue || ''}">
+                                                                                        <span class="text-[10px] text-slate-500">)</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                    <input type="checkbox" name="cm-init-phy-disability-status" value="무" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${status === '무' ? 'checked' : ''} onchange="if(this.checked) { document.getElementById('cm-init-phy-disability-type-wrapper').classList.add('hidden'); }">
+                                                                                    <span class="text-xs text-slate-600">무</span>
+                                                                                </label>
+                                                                            `;
+                                                                        })()}
+                                                                    </div>
+                                                                </div>
+                                                                <!-- 4) 보장구 -->
+                                                                <div class="flex items-start gap-2 border-t border-dashed border-slate-100 pt-2">
+                                                                    <!-- [수정] 소제목 너비 축소 (w-24 -> w-20), 패딩 축소 (px-1.5 -> px-1) -->
+                                                                    <span class="text-xs font-bold text-slate-700 w-20 flex-shrink-0 mt-0.5 bg-slate-100 px-1 py-0.5 rounded text-center border border-slate-200">④ 보장구</span>
+                                                                    <div class="flex-1 flex flex-wrap items-center gap-x-4 gap-y-2">
+                                                                        ${(() => {
+                                                                            const rawDevice = getVal(cm, 'initial.physical.device');
+                                                                            const savedDevices = Array.isArray(rawDevice) ? rawDevice : (rawDevice ? [rawDevice] : []);
+                                                                            const deviceDetail = getVal(cm, 'initial.physical.deviceDetail') || '';
+                                                                            
+                                                                            const options = ['사용안함', '휠체어', '지팡이', '목발', '보청기', '틀니', '돋보기', '기타'];
+                                                                            
+                                                                            return options.map(opt => {
+                                                                                const isChecked = savedDevices.includes(opt) ? 'checked' : '';
+                                                                                
+                                                                                if (opt === '기타') {
+                                                                                    return `
+                                                                                        <div class="flex items-center gap-1 transition-all">
+                                                                                            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                                <input type="checkbox" name="cm-init-phy-device-check" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked} onchange="app.toggleDisplay(this, 'cm-init-phy-device-detail')">
+                                                                                                <span class="text-xs text-slate-600">${opt}</span>
+                                                                                            </label>
+                                                                                            <input type="text" id="cm-init-phy-device-detail" class="input-field py-0.5 px-2 text-xs w-28 border-slate-200 ${isChecked ? '' : 'hidden'}" placeholder="내용 입력" value="${deviceDetail}">
+                                                                                        </div>
+                                                                                    `;
+                                                                                } else {
+                                                                                    return `
+                                                                                        <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                            <input type="checkbox" name="cm-init-phy-device-check" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked}>
+                                                                                            <span class="text-xs text-slate-600">${opt}</span>
+                                                                                        </label>
+                                                                                    `;
+                                                                                }
+                                                                            }).join('');
+                                                                        })()}
+                                                                    </div>
+                                                                </div>
+                                                                <!-- 5) 등급 (UI 변경: radio -> checkbox) -->
+                                                                <div class="flex items-start gap-2 border-t border-dashed border-slate-100 pt-2">
+                                                                    <!-- [수정] 소제목 너비 축소 (w-24 -> w-20), 패딩 축소 (px-1.5 -> px-1) -->
+                                                                    <span class="text-xs font-bold text-slate-700 w-20 flex-shrink-0 mt-0.5 bg-slate-100 px-1 py-0.5 rounded text-center border border-slate-200">⑤ 등급</span>
+                                                                    <div class="flex-1 flex flex-wrap items-center gap-x-4 gap-y-2">
+                                                                        ${(() => {
+                                                                            const rawGrade = getVal(cm, 'initial.physical.grade');
+                                                                            // 배열/문자열 호환 처리
+                                                                            const savedGrades = Array.isArray(rawGrade) ? rawGrade : (rawGrade ? [rawGrade] : []);
+                                                                            const options = ['없음', '1등급', '2등급', '3등급', '4등급', '5등급', '등급 외'];
+                                                                            
+                                                                            return options.map(opt => `
+                                                                                <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                    <input type="checkbox" name="cm-init-phy-grade-check" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${savedGrades.includes(opt) ? 'checked' : ''}>
+                                                                                    <span class="text-xs text-slate-600">${opt}</span>
+                                                                                </label>
+                                                                            `).join('');
+                                                                        })()}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </td>
                                                     </tr>
 
-                                                    <!-- 7. 주거/경제 -->
+                                                    <!-- 8. 타서비스 이용현황 (신규 추가) -->
                                                     <tr>
-                                                        <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">주거/경제<br>상황</th>
-                                                        <td colspan="9" class="border border-slate-300 p-0">
-                                                            <div class="flex border-b border-slate-200">
-                                                                <div class="w-24 p-2 bg-slate-50 text-xs font-bold text-center flex items-center justify-center border-r border-slate-200">주거형태</div>
-                                                                <input type="text" id="cm-initial-housing" class="flex-1 p-2 outline-none text-sm" value="${getVal(cm, 'initial.economic.housing')}" placeholder="예: 자가(단독주택), 전세(아파트)">
-                                                            </div>
-                                                            <div class="flex">
-                                                                <div class="w-24 p-2 bg-slate-50 text-xs font-bold text-center flex items-center justify-center border-r border-slate-200">경제수준</div>
-                                                                <input type="text" id="cm-initial-income" class="flex-1 p-2 outline-none text-sm" value="${getVal(cm, 'initial.economic.income')}" placeholder="예: 기초연금, 국민연금, 자녀용돈">
+                                                        <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">타서비스<br>이용현황</th>
+                                                        <td colspan="9" class="border border-slate-300 p-3 bg-white">
+                                                            <div class="flex flex-wrap items-center gap-4">
+                                                                <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                                                                    <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">서비스명</span>
+                                                                    <input type="text" id="cm-init-other-service-name" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" placeholder="이용 중인 서비스 입력" value="${getVal(cm, 'initial.otherServices.serviceName')}">
+                                                                </div>
+                                                                <div class="w-px h-4 bg-slate-200 hidden sm:block"></div>
+                                                                <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                                                                    <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">이용기관</span>
+                                                                    <input type="text" id="cm-init-other-service-institution" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" placeholder="기관명 입력" value="${getVal(cm, 'initial.otherServices.institution')}">
+                                                                </div>
                                                             </div>
                                                         </td>
                                                     </tr>
 
-                                                    <!-- 8. 주호소문제 -->
+                                                    <!-- 9. 신청서비스 (신규 추가) -->
                                                     <tr>
-                                                        <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">주호소문제<br>(욕구)</th>
+                                                        <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">신청<br>서비스</th>
                                                         <td colspan="9" class="border border-slate-300 p-0">
-                                                            <textarea id="cm-initial-problem" class="input-field w-full h-24 border-0 focus:ring-inset rounded-none resize-none p-2 leading-relaxed" placeholder="대상자의 주된 어려움이나 요청사항을 상세히 기록">${getVal(cm, 'initial.problem')}</textarea>
+                                                            <textarea id="cm-init-requested-services" class="input-field w-full h-14 border-0 focus:ring-inset rounded-none resize-none p-2 leading-relaxed" placeholder="신청 서비스 내용 입력">${getVal(cm, 'initial.requestedServices')}</textarea>
                                                         </td>
                                                     </tr>
 
-                                                    <!-- 9. 종합소견 -->
+                                                    <!-- 10. 서비스 제공여부 (통합 항목) -->
+                                                    <tr>
+                                                        <th rowspan="3" class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">서비스<br>제공여부</th>
+                                                        <td colspan="9" class="border border-slate-300 p-2 bg-white border-b-0">
+                                                            <div class="flex items-center gap-4">
+                                                                <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200">① 판정</span>
+                                                                <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                    <input type="checkbox" name="cm-init-prov-status" value="적격" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${getVal(cm, 'initial.provision.status') === '적격' ? 'checked' : ''} onchange="if(this.checked) document.querySelectorAll('input[name=\'cm-init-prov-status\']').forEach(el => { if(el !== this) el.checked = false; })">
+                                                                    <span class="text-xs text-slate-700 font-bold">적격</span>
+                                                                </label>
+                                                                <div class="flex items-center gap-2">
+                                                                    <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                        <input type="checkbox" name="cm-init-prov-status" value="부적격" class="w-3.5 h-3.5 text-red-600 focus:ring-red-500 border-slate-300 rounded cursor-pointer" ${getVal(cm, 'initial.provision.status') === '부적격' ? 'checked' : ''} onchange="if(this.checked) document.querySelectorAll('input[name=\'cm-init-prov-status\']').forEach(el => { if(el !== this) el.checked = false; })">
+                                                                        <span class="text-xs text-slate-700 font-bold">부적격</span>
+                                                                    </label>
+                                                                    <input type="text" id="cm-init-prov-disq-reason" class="input-field py-0.5 px-2 text-xs w-64 border-slate-200" placeholder="부적격 사유 입력" value="${getVal(cm, 'initial.provision.disqualifiedReason')}">
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="9" class="border border-slate-300 p-2 bg-white border-b-0 border-t-0">
+                                                            <div class="flex flex-wrap items-start gap-2">
+                                                                <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">② 사유</span>
+                                                                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 flex-1">
+                                                                    ${(() => {
+                                                                        const reasons = getVal(cm, 'initial.provision.reasons') || [];
+                                                                        const otherReason = getVal(cm, 'initial.provision.reasonOther');
+                                                                        const list = ['자조능력 없음', '부양자의 부양능력 약화', '긴급지원'];
+                                                                        
+                                                                        let html = list.map(r => `
+                                                                            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                <input type="checkbox" name="cm-init-prov-reason" value="${r}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${reasons.includes(r) ? 'checked' : ''}>
+                                                                                <span class="text-xs text-slate-600">${r}</span>
+                                                                            </label>
+                                                                        `).join('');
+
+                                                                        html += `
+                                                                            <div class="flex items-center gap-1 transition-all">
+                                                                                <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
+                                                                                    <input type="checkbox" name="cm-init-prov-reason" value="기타" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${reasons.includes('기타') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-init-prov-reason-other')">
+                                                                                    <span class="text-xs text-slate-600">기타</span>
+                                                                                </label>
+                                                                                <input type="text" id="cm-init-prov-reason-other" class="input-field py-0.5 px-2 text-xs w-40 border-slate-200 ${reasons.includes('기타') ? '' : 'hidden'}" placeholder="내용 입력" value="${otherReason}">
+                                                                            </div>
+                                                                        `;
+                                                                        return html;
+                                                                    })()}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="9" class="border border-slate-300 p-2 bg-white border-t-0">
+                                                            <div class="flex items-start gap-2">
+                                                                <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">③ 내용</span>
+                                                                <textarea id="cm-init-prov-content" class="input-field flex-1 h-14 border-slate-200 focus:ring-inset resize-none p-2 leading-relaxed text-xs" placeholder="제공할 서비스 내용 입력">${getVal(cm, 'initial.provision.content')}</textarea>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+
+                                                    <!-- 11. 의뢰인 (신규 추가) -->
+                                                    <tr>
+                                                        <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">의뢰인</th>
+                                                        <td colspan="9" class="border border-slate-300 p-2 bg-white">
+                                                            <div class="flex flex-wrap items-center gap-2 w-full">
+                                                                <div class="flex items-center gap-1 flex-1 min-w-[110px]">
+                                                                    <span class="text-xs font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">성명</span>
+                                                                    <input type="text" id="cm-init-referrer-name" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" value="${getVal(cm, 'initial.referrer.name')}">
+                                                                </div>
+                                                                <div class="flex items-center gap-1 flex-1 min-w-[90px]">
+                                                                    <span class="text-xs font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">관계</span>
+                                                                    <input type="text" id="cm-init-referrer-relation" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" value="${getVal(cm, 'initial.referrer.relation')}">
+                                                                </div>
+                                                                <div class="flex items-center gap-1 flex-1 min-w-[130px]">
+                                                                    <span class="text-xs font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">전화번호</span>
+                                                                    <input type="text" id="cm-init-referrer-phone" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" value="${getVal(cm, 'initial.referrer.phone')}">
+                                                                </div>
+                                                                <div class="flex items-center gap-1 flex-1 min-w-[130px]">
+                                                                    <span class="text-xs font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">의뢰경로</span>
+                                                                    <input type="text" id="cm-init-referrer-path" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" value="${getVal(cm, 'initial.referrer.path')}">
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+
+                                                    <!-- 12. 종합소견 -->
                                                     <tr>
                                                         <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">상담자<br>종합의견</th>
                                                         <td colspan="9" class="border border-slate-300 p-0">
@@ -3553,6 +3959,8 @@
                 const getEl = (id) => document.getElementById(id)?.value || '';
                 const getRadio = (name) => document.querySelector(`input[name="${name}"]:checked`)?.value || '';
                 const getCheck = (name) => document.querySelector(`input[name="${name}"]`)?.checked || false;
+                // [신규] 다중 체크박스 값 수집 헬퍼
+                const getCheckedValues = (name) => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
 
                 // [신규] 연도별 저장 데이터 분리
                 const targetYear = state.ui.cmYear;
@@ -3563,7 +3971,6 @@
                     interviewer: getEl('cm-initial-interviewer'),
                     religion: getEl('cm-initial-religion'), // [신규] 종교 필드 추가
                     // 기존 필드 유지
-                    problem: getEl('cm-initial-problem'),
                     conclusion: getEl('cm-initial-conclusion'),
                     // [신규] 확장된 필드 매핑
                     familyDetails: [0,1,2,3].map(i => ({
@@ -3573,16 +3980,84 @@
                         co: getEl(`cm-init-fam-co-${i}`),
                         note: getEl(`cm-init-fam-note-${i}`)
                     })),
-                    health: {
-                        disease: getEl('cm-initial-disease'),
-                        disability: getEl('cm-initial-disability'),
+                    // [신규] 생활상태 (체크박스 데이터)
+                    living: {
+                        economic: getCheckedValues('cm-init-live-eco'),
+                        economicDetail: {
+                            conditional: getEl('cm-init-live-eco-cond-detail'),
+                            other: getEl('cm-init-live-eco-other-detail'),
+                            monthlyIncome: getEl('cm-init-live-eco-income'),
+                            mainSource: getEl('cm-init-live-eco-source')
+                        },
+                        household: getCheckedValues('cm-init-live-house'),
+                        householdDetail: {
+                            cohabitation: getEl('cm-init-live-house-cohabitation-detail'),
+                            childCohabitation: getEl('cm-init-live-house-child-detail')
+                        },
+                        housing: getCheckedValues('cm-init-live-housing'),
+                        housingDetail: {
+                            jeonseDeposit: getEl('cm-init-housing-jeonse-deposit'),
+                            wolseDeposit: getEl('cm-init-housing-wolse-deposit'),
+                            wolseRent: getEl('cm-init-housing-wolse-rent')
+                        },
+                        dwellingType: getCheckedValues('cm-init-live-dwelling')
+                    },
+                    // [수정] 신체상태 (Physical Condition)
+                    physical: {
+                        health: getCheckedValues('cm-init-phy-health-option'),
+                        chronic: getEl('cm-init-phy-chronic'),
+                        disabilityStatus: document.querySelector('input[name="cm-init-phy-disability-status"]:checked')?.value || '',
+                        disabilityType: getEl('cm-init-phy-disability-type'),
+                        disability: (() => {
+                            const s = document.querySelector('input[name="cm-init-phy-disability-status"]:checked')?.value;
+                            const t = getEl('cm-init-phy-disability-type');
+                            if (s === '유') return t ? `유(${t})` : '유';
+                            if (s === '무') return '무';
+                            return '';
+                        })(),
+                        device: getCheckedValues('cm-init-phy-device-check'),
+                        deviceDetail: getEl('cm-init-phy-device-detail'),
+                        grade: getCheckedValues('cm-init-phy-grade-check')
+                    },
+                    // [신규] 타서비스 이용현황
+                    otherServices: {
+                        serviceName: getEl('cm-init-other-service-name'),
+                        institution: getEl('cm-init-other-service-institution')
+                    },
+                    // [신규] 신청서비스
+                    requestedServices: getEl('cm-init-requested-services'),
+                    // [신규] 서비스 제공 정보
+                    provision: {
+                        status: getRadio('cm-init-prov-status'),
+                        disqualifiedReason: getEl('cm-init-prov-disq-reason'),
+                        reasons: getCheckedValues('cm-init-prov-reason'),
+                        reasonOther: getEl('cm-init-prov-reason-other'),
+                        content: getEl('cm-init-prov-content')
+                    },
+                    // [신규] 의뢰인 정보
+                    referrer: {
+                        name: getEl('cm-init-referrer-name'),
+                        relation: getEl('cm-init-referrer-relation'),
+                        phone: getEl('cm-init-referrer-phone'),
+                        path: getEl('cm-init-referrer-path')
+                    },
+                    health: { // 기존 데이터 호환성 유지
+                        disease: getEl('cm-init-phy-chronic'), 
+                        disability: (() => {
+                            const s = document.querySelector('input[name="cm-init-phy-disability-status"]:checked')?.value;
+                            const t = getEl('cm-init-phy-disability-type');
+                            if (s === '유') return t ? `유(${t})` : '유';
+                            if (s === '무') return '무';
+                            return '';
+                        })(),
                         medication: getEl('cm-initial-medication')
                     },
                     economic: {
-                        housing: getEl('cm-initial-housing'),
-                        income: getEl('cm-initial-income')
+                        housing: '', // 기존 필드 삭제됨
+                        income: ''   // 기존 필드 삭제됨
                     }
                 };
+
                 const assessment = {
                     date: getEl('cm-assess-date'),
                     writer: getEl('cm-assess-writer'),
@@ -3594,7 +4069,6 @@
                     plan: getEl('cm-assess-plan')
                 };
 
-                // 2. 재사정, 만족도, 평가서 (연도별 history에 저장)
                 const reAssessment = {
                     date: getEl('cm-re-date'),
                     period: getEl('cm-re-period'),
@@ -3603,6 +4077,7 @@
                     planType: getEl('cm-re-plan-type'),
                     planDetail: getEl('cm-re-plan-detail')
                 };
+
                 const satisfaction = {
                     type: getEl('cm-sat-type'),
                     date: getEl('cm-sat-date'),
@@ -3632,6 +4107,7 @@
                     },
                     comprehensivePlan: getEl('cm-sat-plan-detail')
                 };
+
                 const evaluation = {
                     date: getEl('cm-eval-date'),
                     writer: getEl('cm-eval-writer'),
@@ -3660,22 +4136,10 @@
                     generalOpinion: getEl('cm-eval-opinion')
                 };
 
-                // [신규] history 객체 구성
                 const history = currentCm.history || {};
                 history[targetYear] = { reAssessment, satisfaction, evaluation };
 
-                // 최종 저장 데이터 구성
-                const caseManagement = {
-                    ...currentCm, // 기존 데이터 유지 (history 등)
-                    initial,
-                    assessment,
-                    history // 업데이트된 history 덮어쓰기
-                };
-
-                // [주의] 구버전 데이터 호환성을 위해 최신 연도(올해) 데이터라면 루트에도 복사해둘 수 있지만,
-                // 데이터 중복을 피하기 위해 여기서는 생략하고 getVal에서 처리함.
-                // 다만, 최초 마이그레이션이 없으므로 구버전 데이터는 그대로 둠.
-
+                const caseManagement = { ...currentCm, initial, assessment, history };
                 const updateData = { ...data, caseManagement };
                 if (updateData.name) updateData.name = updateData.name.trim();
                 
@@ -3683,18 +4147,13 @@
                     if (id) {
                         await updateDoc(doc(db, "clients", id), updateData);
                         alert("대상자 정보가 수정되었습니다.");
-                        // [수정] 창 닫기 코드 제거 (계속 편집 가능)
-                        // app.closeModal(); 
                     } else {
                         updateData.createdAt = new Date().toISOString();
                         const docRef = await addDoc(collection(db, "clients"), updateData);
                         alert("대상자가 등록되었습니다.");
-                        // [수정] 신규 등록 후 해당 대상자의 수정 화면으로 전환 (창 유지 효과)
                         app.openClientModal(docRef.id);
-                        return; // 리렌더링 되므로 여기서 종료
+                        return; 
                     }
-                    
-                    // 목록 갱신 (모달 뒤쪽)
                     if (state.viewMode === 'single') updateTabContent('clients'); else render();
                 } catch (err) {
                     console.error(err);
@@ -3702,14 +4161,319 @@
                 }
             },
 
-            // [추가] 서비스 내역 행 생성 함수
+            // [신규] 사례관리 인쇄 및 PDF 저장 기능
+            printCaseManagement: async (clientId, mode = 'print', docType = null, targetYear = null) => {
+                const client = state.clients.find(c => c.id === clientId);
+                if (!client) return alert("대상자 정보를 찾을 수 없습니다.");
+
+                const cm = client.caseManagement || {};
+                const year = targetYear || state.ui.cmYear;
+                
+                // 문서 타입 자동 판별 (인자가 없으면 현재 탭 기준)
+                if (!docType) {
+                    const subTab = state.ui.caseSubTab;
+                    if (subTab === 'initial') docType = 'initial';
+                    else if (subTab === 'assessment') docType = 'assessment';
+                    else if (subTab === 'reassess') docType = 'reassess';
+                    else if (subTab === 'satisfaction') docType = 'satisfaction';
+                    else if (subTab === 'evaluation') docType = 'evaluation';
+                    else if (subTab === 'history-list') docType = 'history-list';
+                    else return alert("인쇄할 문서를 선택해주세요.");
+                }
+
+                // 데이터 조회 헬퍼 (연도별 데이터 호환)
+                const getVal = (obj, path) => {
+                    const parts = path.split('.');
+                    const section = parts[0];
+                    const fieldPath = parts.slice(1).join('.');
+                    
+                    // 초기면접, 사정은 연도 무관 (루트 데이터 사용)
+                    if (section === 'initial' || section === 'assessment') {
+                        return path.split('.').reduce((o, i) => (o ? o[i] : undefined), obj) || '';
+                    }
+                    
+                    // 연도별 히스토리 우선 확인
+                    let val = undefined;
+                    if (obj.history && obj.history[year] && obj.history[year][section]) {
+                        val = fieldPath.split('.').reduce((o, i) => (o ? o[i] : undefined), obj.history[year][section]);
+                    }
+                    
+                    // 구버전 데이터 호환 (날짜 일치 시)
+                    if ((val === undefined || val === null || val === '') && obj[section]) {
+                        const oldDate = obj[section].date;
+                        if (oldDate && oldDate.startsWith(String(year))) {
+                            val = fieldPath.split('.').reduce((o, i) => (o ? o[i] : undefined), obj[section]);
+                        }
+                    }
+                    return (val === undefined || val === null) ? '' : val;
+                };
+
+                const commonCss = `
+                    <style>
+                        body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; font-size: 12px; line-height: 1.4; color: #000; }
+                        h1 { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px; text-decoration: underline; }
+                        h2 { font-size: 16px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; border-left: 4px solid #333; padding-left: 8px; background: #eee; padding: 5px; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
+                        th, td { border: 1px solid #000; padding: 5px; word-break: break-all; vertical-align: middle; }
+                        th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
+                        .text-center { text-align: center; }
+                        .text-bold { font-weight: bold; }
+                        .chk { display: inline-block; width: 12px; height: 12px; border: 1px solid #000; margin-right: 3px; vertical-align: middle; text-align: center; line-height: 10px; font-size: 10px; }
+                        .chk.checked { background: #000; color: #fff; }
+                        .row-flex { display: flex; gap: 10px; align-items: center; }
+                        .sign-box { float: right; margin-bottom: 20px; border-collapse: collapse; }
+                        .sign-box td { border: 1px solid #000; text-align: center; padding: 5px; }
+                        .clearfix::after { content: ""; clear: both; display: table; }
+                    </style>
+                `;
+
+                const renderChk = (val) => `<span class="chk ${val ? 'checked' : ''}">${val ? 'V' : ''}</span>`;
+                const renderRadio = (current, target) => `<span class="chk ${current === target ? 'checked' : ''}">${current === target ? 'V' : ''}</span>${target}`;
+
+                let htmlContent = '';
+                let docTitle = '';
+
+                // --- 문서별 HTML 생성 ---
+                if (docType === 'initial') {
+                    docTitle = '초기면접지';
+                    const famData = getVal(cm, 'initial.familyDetails') || [];
+                    const famRows = famData.map(f => `<tr><td class="text-center">${f.rel||''}</td><td class="text-center">${f.name||''}</td><td class="text-center">${f.age||''}</td><td class="text-center">${f.co||''}</td><td>${f.note||''}</td></tr>`).join('') || '<tr><td colspan="5" class="text-center">없음</td></tr>';
+                    
+                    // 체크박스/라디오 렌더링 헬퍼
+                    const eco = getVal(cm, 'initial.living.economic') || [];
+                    const house = getVal(cm, 'initial.living.household') || [];
+                    const housing = getVal(cm, 'initial.living.housing') || [];
+                    const health = getVal(cm, 'initial.physical.health') || [];
+                    
+                    const provStatus = getVal(cm, 'initial.provision.status');
+                    const provReasons = getVal(cm, 'initial.provision.reasons') || [];
+
+                    htmlContent = `
+                        <h1>초 기 면 접 지</h1>
+                        <table class="sign-box" style="width: 200px;">
+                            <tr><td rowspan="2" class="bg-gray">결<br>재</td><td>담 당</td><td>센터장</td></tr>
+                            <tr><td style="height: 50px;"></td><td></td></tr>
+                        </table>
+                        <div class="clearfix"></div>
+
+                        <table>
+                            <col width="15%"><col width="35%"><col width="15%"><col width="35%">
+                            <tr><th>상담일시</th><td>${getVal(cm, 'initial.date')}</td><th>상담자</th><td>${getVal(cm, 'initial.interviewer')}</td></tr>
+                            <tr><th>대상자명</th><td>${client.name}</td><th>주민번호</th><td>${client.residentNum || ''}</td></tr>
+                            <tr><th>연락처</th><td>${client.phone}</td><th>보호자</th><td>${client.guardianRelation ? client.guardianRelation + '/' : ''}${client.guardianPhone}</td></tr>
+                            <tr><th>주소</th><td colspan="3">${client.address}</td></tr>
+                            <tr><th>종교</th><td>${getVal(cm, 'initial.religion')}</td><th>의뢰인</th><td>${getVal(cm, 'initial.referrer.name')} (${getVal(cm, 'initial.referrer.relation')})</td></tr>
+                        </table>
+
+                        <h2>1. 가족사항</h2>
+                        <table>
+                            <tr><th>관계</th><th>성명</th><th>연령</th><th>동거여부</th><th>비고</th></tr>
+                            ${famRows}
+                        </table>
+
+                        <h2>2. 생활상태</h2>
+                        <table>
+                            <tr><th width="20%">경제상황</th><td>${eco.join(', ') || '-'} ${getVal(cm, 'initial.living.economicDetail.monthlyIncome') ? `(월소득: ${getVal(cm, 'initial.living.economicDetail.monthlyIncome')}만)` : ''}</td></tr>
+                            <tr><th>세대유형</th><td>${house.join(', ') || '-'}</td></tr>
+                            <tr><th>주거형태</th><td>${housing.join(', ') || '-'} ${getVal(cm, 'initial.living.housingDetail.jeonseDeposit') ? `(전세:${getVal(cm, 'initial.living.housingDetail.jeonseDeposit')})` : ''}</td></tr>
+                        </table>
+
+                        <h2>3. 신체상태</h2>
+                        <table>
+                            <tr><th width="20%">건강상태</th><td>${health.join(', ') || '-'}</td></tr>
+                            <tr><th>만성질환</th><td>${getVal(cm, 'initial.physical.chronic')}</td></tr>
+                            <tr><th>장애여부</th><td>${getVal(cm, 'initial.physical.disability')}</td></tr>
+                            <tr><th>등급</th><td>${(getVal(cm, 'initial.physical.grade') || []).join(', ') || '-'}</td></tr>
+                        </table>
+
+                        <h2>4. 서비스 판정</h2>
+                        <table>
+                            <tr><th width="20%">판정</th><td>${renderRadio(provStatus, '적격')} &nbsp; ${renderRadio(provStatus, '부적격')} ${provStatus === '부적격' ? `(${getVal(cm, 'initial.provision.disqualifiedReason')})` : ''}</td></tr>
+                            <tr><th>사유</th><td>${provReasons.join(', ') || '-'} ${getVal(cm, 'initial.provision.reasonOther') ? `(${getVal(cm, 'initial.provision.reasonOther')})` : ''}</td></tr>
+                            <tr><th>제공내용</th><td>${getVal(cm, 'initial.provision.content')}</td></tr>
+                        </table>
+
+                        <h2>5. 주호소문제(욕구) 및 종합의견</h2>
+                        <table>
+                            <tr><th width="20%">신청서비스</th><td>${getVal(cm, 'initial.requestedServices')}</td></tr>
+                            <tr><th height="100">종합의견</th><td style="vertical-align: top;">${(getVal(cm, 'initial.conclusion')||'').replace(/\n/g, '<br>')}</td></tr>
+                        </table>
+                    `;
+                } else if (docType === 'assessment') {
+                    docTitle = '사정기록지';
+                    htmlContent = `
+                        <h1>위기도 사정 기록지</h1>
+                        <table class="sign-box" style="width: 200px;">
+                            <tr><td rowspan="2" class="bg-gray">결<br>재</td><td>담 당</td><td>센터장</td></tr>
+                            <tr><td style="height: 50px;"></td><td></td></tr>
+                        </table>
+                        <div class="clearfix"></div>
+
+                        <table>
+                            <tr><th>대상자명</th><td>${client.name}</td><th>작성일자</th><td>${getVal(cm, 'assessment.date')}</td></tr>
+                            <tr><th>작성자</th><td>${getVal(cm, 'assessment.writer')}</td><th>판정점수</th><td>${Number(getVal(cm, 'assessment.scoreHealth')||0) + Number(getVal(cm, 'assessment.scoreMental')||0) + Number(getVal(cm, 'assessment.scoreEco')||0) + Number(getVal(cm, 'assessment.scoreSocial')||0)}점</td></tr>
+                        </table>
+
+                        <h2>1. 사정 영역별 점수</h2>
+                        <table>
+                            <tr><th>신체적 영역</th><td>${getVal(cm, 'assessment.scoreHealth')}점</td><th>정서적 영역</th><td>${getVal(cm, 'assessment.scoreMental')}점</td></tr>
+                            <tr><th>경제적 영역</th><td>${getVal(cm, 'assessment.scoreEco')}점</td><th>사회적 영역</th><td>${getVal(cm, 'assessment.scoreSocial')}점</td></tr>
+                        </table>
+
+                        <h2>2. 사정 내용 및 개입 계획</h2>
+                        <table>
+                            <tr><th width="20%" height="200">사정 내용</th><td style="vertical-align: top;">${(getVal(cm, 'assessment.content')||'').replace(/\n/g, '<br>')}</td></tr>
+                            <tr><th width="20%" height="200">개입 계획</th><td style="vertical-align: top;">${(getVal(cm, 'assessment.plan')||'').replace(/\n/g, '<br>')}</td></tr>
+                        </table>
+                    `;
+                } else if (docType === 'reassess') {
+                    docTitle = `재사정기록지(${year}년)`;
+                    htmlContent = `
+                        <h1>재 사 정 기 록 지 (${year}년)</h1>
+                        <table class="sign-box" style="width: 200px;">
+                            <tr><td rowspan="2" class="bg-gray">결<br>재</td><td>담 당</td><td>센터장</td></tr>
+                            <tr><td style="height: 50px;"></td><td></td></tr>
+                        </table>
+                        <div class="clearfix"></div>
+
+                        <table>
+                            <tr><th>대상자명</th><td>${client.name}</td><th>재사정일자</th><td>${getVal(cm, 'reAssessment.date')}</td></tr>
+                            <tr><th>진행기간</th><td colspan="3">${getVal(cm, 'reAssessment.period')}</td></tr>
+                        </table>
+
+                        <h2>1. 재사정 내용</h2>
+                        <table>
+                            <tr><th width="20%" height="150">목표달성 정도</th><td style="vertical-align: top;">${(getVal(cm, 'reAssessment.goal')||'').replace(/\n/g, '<br>')}</td></tr>
+                            <tr><th width="20%" height="150">주요 변화</th><td style="vertical-align: top;">${(getVal(cm, 'reAssessment.change')||'').replace(/\n/g, '<br>')}</td></tr>
+                        </table>
+
+                        <h2>2. 향후 계획</h2>
+                        <table>
+                            <tr><th width="20%">계획 구분</th><td>${renderRadio(getVal(cm, 'reAssessment.planType'), '유지')} &nbsp; ${renderRadio(getVal(cm, 'reAssessment.planType'), '변경')} &nbsp; ${renderRadio(getVal(cm, 'reAssessment.planType'), '종결')}</td></tr>
+                            <tr><th width="20%" height="100">상세 계획</th><td style="vertical-align: top;">${(getVal(cm, 'reAssessment.planDetail')||'').replace(/\n/g, '<br>')}</td></tr>
+                        </table>
+                    `;
+                } else if (docType === 'satisfaction') {
+                    docTitle = `만족도조사(${year}년)`;
+                    const goals = getVal(cm, 'satisfaction.serviceGoals') || [];
+                    const goalRows = goals.map(g => `<tr><td>${g.goal}</td><td>${(g.action||'').replace(/\n/g, '<br>')}</td><td class="text-center">${g.userSat}</td><td>${g.workerEval}</td></tr>`).join('') || '<tr><td colspan="4" class="text-center">내용 없음</td></tr>';
+
+                    htmlContent = `
+                        <h1>서비스 만족도 및 욕구조사 (${year}년)</h1>
+                        <table class="sign-box" style="width: 200px;">
+                            <tr><td rowspan="2" class="bg-gray">결<br>재</td><td>담 당</td><td>센터장</td></tr>
+                            <tr><td style="height: 50px;"></td><td></td></tr>
+                        </table>
+                        <div class="clearfix"></div>
+
+                        <table>
+                            <tr><th>대상자명</th><td>${client.name}</td><th>조사일자</th><td>${getVal(cm, 'satisfaction.date')}</td></tr>
+                            <tr><th>조사자</th><td>${getVal(cm, 'satisfaction.surveyor')}</td><th>방법</th><td>${getVal(cm, 'satisfaction.method')}</td></tr>
+                        </table>
+
+                        <h2>1. 서비스 만족도</h2>
+                        <table>
+                            <tr class="bg-gray"><th>목표</th><th>실행내용</th><th>이용자 만족도</th><th>담당자 평가</th></tr>
+                            ${goalRows}
+                        </table>
+
+                        <h2>2. 전반적 만족도</h2>
+                        <table>
+                            <tr><th width="70%">문항</th><th>점수(5점만점)</th></tr>
+                            <tr><td>1. 시간 준수</td><td class="text-center">${getVal(cm, 'satisfaction.q1')}</td></tr>
+                            <tr><td>2. 친절성</td><td class="text-center">${getVal(cm, 'satisfaction.q2')}</td></tr>
+                            <tr><td>3. 정보 제공</td><td class="text-center">${getVal(cm, 'satisfaction.q3')}</td></tr>
+                            <tr><td>4. 서비스 효과</td><td class="text-center">${getVal(cm, 'satisfaction.q4')}</td></tr>
+                            <tr><td>5. 전반적 만족도</td><td class="text-center">${getVal(cm, 'satisfaction.q5')}</td></tr>
+                        </table>
+
+                        <h2>3. 모니터링 및 종합계획</h2>
+                        <table>
+                            <tr><th width="20%">기능상태 변화</th><td>${getVal(cm, 'satisfaction.monitor.funcChange')}</td></tr>
+                            <tr><th width="20%">욕구 변화</th><td>${getVal(cm, 'satisfaction.monitor.needsChange')}</td></tr>
+                            <tr><th width="20%">결과 반영</th><td>
+                                ${renderChk(getVal(cm, 'satisfaction.monitorResult.maintain'))} 유지 &nbsp;
+                                ${renderChk(getVal(cm, 'satisfaction.monitorResult.change'))} 변경 &nbsp;
+                                ${renderChk(getVal(cm, 'satisfaction.monitorResult.revisit'))} 재상담
+                            </td></tr>
+                            <tr><th width="20%" height="80">종합의견</th><td>${(getVal(cm, 'satisfaction.comprehensivePlan')||'').replace(/\n/g, '<br>')}</td></tr>
+                        </table>
+                    `;
+                } else if (docType === 'evaluation') {
+                    docTitle = `사례평가서(${year}년)`;
+                    htmlContent = `
+                        <h1>사 례 평 가 서 (${year}년)</h1>
+                        <table class="sign-box" style="width: 200px;">
+                            <tr><td rowspan="2" class="bg-gray">결<br>재</td><td>담 당</td><td>센터장</td></tr>
+                            <tr><td style="height: 50px;"></td><td></td></tr>
+                        </table>
+                        <div class="clearfix"></div>
+
+                        <table>
+                            <tr><th>대상자명</th><td>${client.name}</td><th>평가일자</th><td>${getVal(cm, 'evaluation.date')}</td></tr>
+                            <tr><th>작성자</th><td>${getVal(cm, 'evaluation.writer')}</td><th>생년월일</th><td>${client.birthDate}</td></tr>
+                        </table>
+
+                        <h2>1. 영역별 평가</h2>
+                        <table>
+                            <tr class="bg-gray"><th>구분</th><th>평가 점수 (5점 만점)</th></tr>
+                            <tr><td>아웃리치 (초기면접 등)</td><td class="text-center">${getVal(cm, 'evaluation.ratings.outreach_0')} / ${getVal(cm, 'evaluation.ratings.outreach_1')}</td></tr>
+                            <tr><td>사정 (욕구파악 등)</td><td class="text-center">${getVal(cm, 'evaluation.ratings.assessment_0')} / ${getVal(cm, 'evaluation.ratings.assessment_1')}</td></tr>
+                            <tr><td>서비스 계획 및 제공</td><td class="text-center">${getVal(cm, 'evaluation.ratings.service_0')} / ${getVal(cm, 'evaluation.ratings.service_1')}</td></tr>
+                            <tr><td>재사정 및 종결</td><td class="text-center">${getVal(cm, 'evaluation.ratings.reassessment_0')} / ${getVal(cm, 'evaluation.ratings.reassessment_1')}</td></tr>
+                        </table>
+
+                        <h2>2. 영향 및 변화</h2>
+                        <table>
+                            <tr><th width="20%" height="80">긍정적 영향</th><td style="vertical-align: top;">${(getVal(cm, 'evaluation.impact.positive')||'').replace(/\n/g, '<br>')}</td></tr>
+                            <tr><th width="20%" height="80">부정적 영향</th><td style="vertical-align: top;">${(getVal(cm, 'evaluation.impact.negative')||'').replace(/\n/g, '<br>')}</td></tr>
+                            <tr><th width="20%" height="80">변화된 욕구</th><td style="vertical-align: top;">${(getVal(cm, 'evaluation.impact.changedNeeds')||'').replace(/\n/g, '<br>')}</td></tr>
+                        </table>
+
+                        <h2>3. 종합 소견</h2>
+                        <table>
+                            <tr><th width="20%">향후 방향</th><td>${renderRadio(getVal(cm, 'evaluation.direction'), '계속지원')} &nbsp; ${renderRadio(getVal(cm, 'evaluation.direction'), '종결')}</td></tr>
+                            <tr><th width="20%" height="120">종합 의견</th><td style="vertical-align: top;">${(getVal(cm, 'evaluation.generalOpinion')||'').replace(/\n/g, '<br>')}</td></tr>
+                        </table>
+                    `;
+                }
+
+                if (!htmlContent) return alert("문서 내용을 생성할 수 없습니다.");
+
+                // HTML 출력 또는 PDF 생성
+                if (mode === 'print') {
+                    const win = window.open('', '_blank');
+                    win.document.write(`<html><head><title>${client.name} - ${docTitle}</title>${commonCss}</head><body>${htmlContent}</body></html>`);
+                    win.document.close();
+                    win.focus();
+                    setTimeout(() => win.print(), 500);
+                } else if (mode === 'pdf' || mode === 'blob') {
+                    const element = document.createElement('div');
+                    element.innerHTML = `${commonCss}<div style="padding: 20px;">${htmlContent}</div>`;
+                    
+                    const opt = {
+                        margin: 10,
+                        filename: `${client.name}_${docTitle}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+
+                    if (mode === 'blob') {
+                        return html2pdf().set(opt).from(element).output('blob');
+                    } else {
+                        html2pdf().set(opt).from(element).save();
+                    }
+                }
+            },
+
             generateHistoryRows: (logs) => {
                 const historyItems = [];
                 logs.forEach(l => {
                     if (l.serviceItems && l.serviceItems.length > 0) {
                         l.serviceItems.forEach(item => {
                             historyItems.push({
-                                logId: l.id, // [수정] 클릭 이벤트를 위한 로그 ID 추가
+                                logId: l.id,
                                 date: l.date,
                                 provideMethod: l.provideMethod || '방문',
                                 category: item.category,
@@ -3724,7 +4488,6 @@
                 if (historyItems.length > 0) {
                     return historyItems.map(h => `
                         <tr class="hover:bg-slate-50 transition-colors cursor-pointer" onclick="app.openLogModal('${h.logId}')" title="클릭하여 일지 상세보기">
-                            <!-- [수정] 날짜 열 오른쪽 패딩 축소 (pr-8 -> pr-3) -->
                             <td class="pl-4 pr-3 py-3 text-slate-600 font-medium whitespace-nowrap">${h.date}</td>
                             <td class="pl-2 pr-4 py-3 text-slate-600 text-sm text-center whitespace-nowrap">${h.provideMethod}</td>
                             <td class="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">${h.category}</td>
@@ -3737,13 +4500,9 @@
                     return `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">해당 연도에 서비스 이력이 없습니다.</td></tr>`;
                 }
             },
-            // [추가] 연도 변경 시 서비스 내역 업데이트
             updateClientHistory: (clientId, year) => {
                 if (!clientId) return;
-                const clientLogs = state.logs.filter(l => 
-                    l.clientId === clientId && l.date.startsWith(year)
-                ).sort((a,b) => b.date.localeCompare(a.date));
-                
+                const clientLogs = state.logs.filter(l => l.clientId === clientId && l.date.startsWith(year)).sort((a,b) => b.date.localeCompare(a.date));
                 const rows = app.generateHistoryRows(clientLogs);
                 const container = document.getElementById('client-history-list');
                 if (container) container.innerHTML = rows;
@@ -3770,953 +4529,340 @@
                 if(window.lucide) lucide.createIcons();
             },
             
-            // [복구] 서비스 일지 작성 모달 열기 함수
-            openLogModal: (id = null, data = null) => {
-                const log = id ? state.logs.find(l => l.id === id) : (data || {});
-                const isEdit = !!id;
-                window.tempSelectedClients = isEdit ? [log.clientName] : (data?.clientName ? [data.clientName] : []);
-                
-                const today = new Date().toISOString().split('T')[0];
-                const defaultProvider = log.provider || '';
+            // [수정] 팝업 닫기 기능 연결
+            closeModal: () => closeModal(),
+            closeDialog: () => closeDialog(),
+            handleModalOverlayClick: () => { if (state.ui.allowOverlayClose) closeModal(); },
+            handleSubModalOverlayClick: () => { if (state.ui.allowOverlayClose) closeModal(); },
 
+            // [복구 및 수정] 서비스 일지 관련 기능 및 공통 함수
+            openLogModal: (id = null) => {
+                const l = id ? state.logs.find(x => x.id === id) : {};
+                const today = new Date().toISOString().split('T')[0];
+                const isEdit = !!id;
+                
+                // 선택된 대상자 목록 초기화 (수정 시에는 기존 대상자 한 명만)
+                window.currentLogClients = [];
+                if (l.clientName) {
+                    window.currentLogClients.push(l.clientName);
+                }
+                
                 const html = `
                     <div class="bg-white w-full max-w-3xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto flex flex-col">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="font-bold text-xl text-slate-800">${isEdit ? '서비스 일지 수정' : '서비스 일지 작성'}</h3>
+                        <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                            <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
+                                <i data-lucide="file-text" class="text-emerald-600"></i> ${isEdit ? '일지 수정' : '일지 작성'}
+                            </h3>
                             <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
-                        
-                        <form onsubmit="app.saveLog(event, '${id || ''}')" class="space-y-6 flex-1 overflow-y-auto p-1">
+                        <form onsubmit="app.saveLog(event, '${id || ''}')" class="space-y-4 flex-1 overflow-y-auto p-1">
                             
-                            <!-- [수정] 일자, 제공방법, 제공자를 맨 위로 이동 -->
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <!-- [유지] 상단 배치: 날짜, 제공방법, 제공자 -->
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-1">일자</label>
-                                    <input type="date" name="date" class="input-field" value="${log.date || today}" required max="9999-12-31">
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">날짜</label>
+                                    <input type="date" name="date" class="input-field" value="${l.date || today}" required>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">제공방법</label>
                                     <select name="provideMethod" class="input-field">
-                                        ${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${log.provideMethod === m ? 'selected' : ''}>${m}</option>`).join('')}
+                                        ${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${l.provideMethod === m ? 'selected' : ''}>${m}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">제공자</label>
-                                    <input name="provider" class="input-field" value="${defaultProvider}" placeholder="작성자 이름" required>
+                                    <input name="provider" class="input-field" value="${l.provider || ''}" placeholder="담당자명">
                                 </div>
                             </div>
 
-                            <!-- [수정] 대상자 선택 섹션 레이아웃 변경: 한 줄로 통합 -->
-                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                <label class="block text-sm font-bold text-slate-700 mb-2">대상자 선택 ${isEdit ? '(수정 불가)' : ''}</label>
+                            <!-- [수정] 대상자 선택 영역: 각각의 칸으로 분리 -->
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                <label class="block text-sm font-bold text-slate-700 mb-2">대상자 선택 ${isEdit ? '<span class="text-xs font-normal text-red-500">(수정 모드에서는 변경 불가)</span>' : ''}</label>
                                 ${!isEdit ? `
-                                <div class="flex items-center gap-2 mb-3 overflow-x-auto">
-                                    <div class="flex-1 min-w-[90px]">
-                                        <input id="client-input" class="input-field w-full text-sm font-bold text-center" placeholder="이름" list="client-list" oninput="app.fillClientInfo(this)" onkeydown="if(event.key==='Enter'){event.preventDefault(); app.addClientToSelection();}">
-                                        <datalist id="client-list">${state.clients.map(c => `<option value="${c.name}">`).join('')}</datalist>
+                                <div class="flex flex-col gap-2 mb-2">
+                                    <div class="flex items-end gap-2 w-full">
+                                        <div class="flex-[1.5] min-w-[100px]">
+                                            <label class="block text-xs font-bold text-slate-500 mb-1">이름</label>
+                                            <input id="log-client-input" class="input-field w-full" list="client-list" placeholder="검색" autocomplete="off" 
+                                                onkeydown="if(event.key === 'Enter') { event.preventDefault(); app.addLogClient(); }"
+                                                oninput="app.previewLogClientInfo(this.value)">
+                                            <datalist id="client-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist>
+                                        </div>
+                                        <div class="flex-1 min-w-[90px]">
+                                            <label class="block text-xs font-bold text-slate-500 mb-1">생년월일</label>
+                                            <input id="log-client-birth" class="input-field w-full bg-slate-100 text-slate-600 text-center" readonly tabindex="-1">
+                                        </div>
+                                        <div class="flex-1 min-w-[70px]">
+                                            <label class="block text-xs font-bold text-slate-500 mb-1">행정동</label>
+                                            <input id="log-client-region" class="input-field w-full bg-slate-100 text-slate-600 text-center" readonly tabindex="-1">
+                                        </div>
+                                        <div class="flex-1 min-w-[60px]">
+                                            <label class="block text-xs font-bold text-slate-500 mb-1">등급</label>
+                                            <input id="log-client-level" class="input-field w-full bg-slate-100 text-slate-600 text-center" readonly tabindex="-1">
+                                        </div>
+                                        <button type="button" onclick="app.addLogClient()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-700 whitespace-nowrap h-[38px] mb-[1px] shadow-sm flex-none">추가</button>
                                     </div>
-                                    <input id="d-birth" class="input-field flex-1 min-w-[90px] text-center bg-slate-100 text-slate-500 text-xs" placeholder="생년월일" readonly tabindex="-1">
-                                    <input id="d-region" class="input-field flex-1 min-w-[90px] text-center bg-slate-100 text-slate-500 text-xs" placeholder="행정동" readonly tabindex="-1">
-                                    <input id="d-level" class="input-field flex-1 min-w-[90px] text-center bg-slate-100 text-slate-500 text-xs" placeholder="등급" readonly tabindex="-1">
-                                    <button type="button" onclick="app.addClientToSelection()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm whitespace-nowrap shrink-0">추가</button>
                                 </div>
                                 ` : ''}
-                                <div id="selected-clients-area" class="flex flex-wrap gap-2 min-h-[32px] p-2 bg-white rounded border border-slate-200"></div>
-                            </div>
-
-                            <!-- 서비스 목록 -->
-                            <div>
-                                <div class="flex justify-between items-center mb-2">
-                                    <label class="block text-sm font-bold text-slate-700">제공 서비스 (최대 6개)</label>
-                                    <button type="button" onclick="app.addSvcRow()" class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 font-bold transition-colors">+ 서비스 추가</button>
+                                <div id="log-selected-clients" class="flex flex-wrap gap-2 min-h-[38px] p-2 bg-white rounded border border-slate-200">
+                                    <!-- 자바스크립트로 렌더링됨 -->
                                 </div>
-                                <div id="svc-container" class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200"></div>
+                            </div>
+                            
+                            <!-- 서비스 목록 -->
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="block text-sm font-bold text-slate-700">제공 서비스</label>
+                                    <button type="button" onclick="app.addSvcRow()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 font-bold"><i data-lucide="plus" size="12" class="inline"></i> 서비스 추가</button>
+                                </div>
+                                <div id="svc-container" class="space-y-2"></div>
                             </div>
 
                             <!-- 진행 내용 -->
                             <div>
-                                <div class="flex justify-between items-center mb-2">
-                                    <label class="block text-sm font-bold text-slate-700">진행 내용</label>
-                                    <button type="button" onclick="app.aiDraft()" class="text-xs bg-purple-50 text-purple-600 px-2 py-1 rounded hover:bg-purple-100 font-bold transition-colors flex items-center gap-1"><i data-lucide="sparkles" size="12"></i> AI 초안 작성</button>
-                                </div>
-                                <textarea id="log-content" name="content" class="input-field h-32 leading-relaxed" placeholder="서비스 진행 내용을 상세히 입력하세요." required>${log.content || ''}</textarea>
+                                <label class="block text-sm font-bold text-slate-700 mb-1">진행 내용</label>
+                                <textarea name="content" class="input-field h-32 leading-relaxed" required placeholder="서비스 진행 내용을 입력하세요">${l.content || ''}</textarea>
                             </div>
 
-                            <div class="flex justify-end gap-2 pt-4 border-t border-slate-100">
-                                <button type="button" onclick="app.closeModal()" class="px-5 py-2.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">취소</button>
-                                <button type="submit" class="bg-emerald-600 text-white px-6 py-2.5 rounded-lg hover:bg-emerald-700 font-bold shadow-md transition-colors transform hover:scale-[1.02]">저장</button>
+                            <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 mt-4">
+                                <button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">취소</button>
+                                <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 font-bold shadow-sm transition-colors">저장</button>
                             </div>
                         </form>
                     </div>
                 `;
                 showModal(html);
-                app.renderSelectedClients(isEdit);
                 
-                const svcContainer = document.getElementById('svc-container');
-                if (svcContainer) {
-                    svcContainer.innerHTML = '';
-                    if (log.serviceItems && log.serviceItems.length > 0) {
-                        log.serviceItems.forEach(item => renderSvcRow(item));
-                    } else {
-                        renderSvcRow({id: Date.now(), category: '노인상담 및 정보제공', serviceName: '정서지원서비스(안전안부확인)', detailNote: ''});
-                    }
-                }
+                // 초기 데이터 렌더링
+                app.renderLogClients(isEdit);
                 
-                if(window.lucide) lucide.createIcons();
-            },
-
-            addSvcRow: () => { if(document.querySelectorAll('.svc-row').length >= 6) return alert('최대 6개까지입니다.'); renderSvcRow({id: Date.now(), category:'', serviceName:'', detailNote:''}); },
-            removeSvcRow: (id) => document.getElementById(`row-${id}`).remove(),
-            saveLog: async (e, id) => {
-                e.preventDefault();
-                if(window.tempSelectedClients.length === 0) return alert("대상자를 1명 이상 추가해주세요.");
-                const fd = new FormData(e.target);
-                const items = Array.from(document.querySelectorAll('.svc-row')).map(row => ({ category: row.querySelector('.cat-sel').value, serviceName: row.querySelector('.svc-sel').value, detailNote: row.querySelector('.det-inp').value })).filter(i => i.serviceName);
-                if(items.length === 0) return alert('서비스를 하나 이상 선택하세요.');
-                const baseData = { date: fd.get('date'), provideMethod: fd.get('provideMethod'), provider: fd.get('provider'), content: fd.get('content'), serviceItems: items, serviceName: items.map(i=>i.serviceName).join(', ') };
-                if (!id) {
-                    let duplicateFound = false;
-                    let duplicateInfo = "";
-                    for (const cName of window.tempSelectedClients) {
-                        const existingLogs = state.logs.filter(l => l.date === baseData.date && l.clientName === cName);
-                        for (const log of existingLogs) {
-                            const hasOverlap = items.some(newItem => log.serviceItems && log.serviceItems.some(oldItem => oldItem.serviceName === newItem.serviceName));
-                            if (hasOverlap) { duplicateFound = true; duplicateInfo = `${cName}님 (${baseData.date})`; break; }
-                        }
-                        if (duplicateFound) break;
-                    }
-                    if (duplicateFound) {
-                        state.pendingLogData = { baseData, items, clients: [...window.tempSelectedClients] };
-                        showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4"><i data-lucide="alert-circle" class="text-orange-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">중복 일지 확인</h3><p class="text-sm text-slate-500 mb-4"><span class="font-bold text-slate-800">${duplicateInfo}</span>의<br>동일한 서비스 일지가 이미 존재합니다.</p><p class="text-sm text-slate-600 mb-6">그래도 등록하시겠습니까?</p><div class="flex gap-3 justify-center"><button onclick="app.confirmSaveLog()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium shadow-sm">예, 등록</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">아니오</button></div></div></div>`);
-                        if(window.lucide) lucide.createIcons();
-                        return;
-                    }
-                }
-                await app.processSaveLog(baseData, items, window.tempSelectedClients, id);
-            },
-            confirmSaveLog: async () => { if (state.pendingLogData) { const { baseData, items, clients } = state.pendingLogData; await app.processSaveLog(baseData, items, clients, null); state.pendingLogData = null; closeDialog(); } },
-            processSaveLog: async (baseData, items, clients, id) => { 
-                try { 
-                    const batch = writeBatch(db);
-                    clients.forEach((cName, idx) => {
-                        const client = state.clients.find(x => x.name === cName);
-                        const logData = { ...baseData, clientName: cName, clientId: client ? client.id : 'unknown' };
-                        if (id && idx === 0) { const logRef = doc(db, "logs", id); batch.update(logRef, logData); } 
-                        else { const newLogRef = doc(collection(db, "logs")); batch.set(newLogRef, logData); }
-                    });
-                    await batch.commit(); 
-                    closeModal(); 
-
-                    // [추가] 만약 대상자 관리 모달(부모)이 열려있다면, 서비스 내역 목록을 즉시 새로고침
-                    const parentModal = document.getElementById('client-form');
-                    if (parentModal) {
-                        const clientId = parentModal.dataset.id;
-                        const yearSelect = document.querySelector('#tab-history select'); // 현재 선택된 연도 가져오기
-                        if (clientId && yearSelect) {
-                            app.updateClientHistory(clientId, yearSelect.value);
-                        }
-                    }
-                } catch(err) { alert("저장 실패: " + err.message); } 
-            },
-            duplicateLog: (id) => { const l = state.logs.find(x => x.id === id); if(l) { const { id: originId, ...data } = l; data.date = new Date().toISOString().split('T')[0]; app.openLogModal(null, data); } },
-            aiDraft: () => { const t = document.getElementById('log-content'); if(!t.value) return alert('내용을 입력하세요'); t.value = "AI 분석 중..."; setTimeout(() => { t.value = "[AI] 대상자 안부 확인 및 물품 전달 완료. 건강 상태 양호함."; }, 1000); },
-            deleteData: (col, id) => { showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">삭제 확인</h3><p class="text-sm text-slate-500 mb-6">정말로 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDelete('${col}', '${id}')" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">아니오</button></div></div></div>`); if(window.lucide) lucide.createIcons(); },
-            executeDelete: async (col, id) => { try { await deleteDoc(doc(db, col, id)); closeDialog(); } catch (err) { alert("삭제 실패: " + err.message); } },
-            closeModal: () => closeModal(),
-            
-            // [복구] 서비스 일지 작성 모달 열기 함수 (이중 모달 지원 수정)
-            openLogModal: (id = null, data = null) => {
-                const log = id ? state.logs.find(l => l.id === id) : (data || {});
-                const isEdit = !!id;
-                window.tempSelectedClients = isEdit ? [log.clientName] : (data?.clientName ? [data.clientName] : []);
-                
-                const today = new Date().toISOString().split('T')[0];
-                const defaultProvider = log.provider || '';
-
-                // [수정] 메인 모달이 열려있는지 확인하여 타겟 컨테이너 결정
-                const isMainModalOpen = !document.getElementById('modal-container').classList.contains('hidden');
-                const targetContainerId = isMainModalOpen ? 'sub-modal-container' : 'modal-container';
-
-                const html = `
-                    <div class="bg-white w-full max-w-3xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto flex flex-col">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="font-bold text-xl text-slate-800">${isEdit ? '서비스 일지 수정' : '서비스 일지 작성'}</h3>
-                            <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
-                        </div>
-                        
-                        <form onsubmit="app.saveLog(event, '${id || ''}')" class="space-y-6 flex-1 overflow-y-auto p-1">
-                            
-                            <!-- [수정] 일자, 제공방법, 제공자를 맨 위로 이동 -->
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-1">일자</label>
-                                    <input type="date" name="date" class="input-field" value="${log.date || today}" required max="9999-12-31">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-1">제공방법</label>
-                                    <select name="provideMethod" class="input-field">
-                                        ${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${log.provideMethod === m ? 'selected' : ''}>${m}</option>`).join('')}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-1">제공자</label>
-                                    <input name="provider" class="input-field" value="${defaultProvider}" placeholder="작성자 이름" required>
-                                </div>
-                            </div>
-
-                            <!-- [수정] 대상자 선택 섹션 -->
-                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                <label class="block text-sm font-bold text-slate-700 mb-2">대상자 선택 ${isEdit ? '(수정 불가)' : ''}</label>
-                                ${!isEdit ? `
-                                <div class="flex items-center gap-2 mb-3 overflow-x-auto">
-                                    <div class="flex-1 min-w-[90px]">
-                                        <input id="client-input" class="input-field w-full text-sm font-bold text-center" placeholder="이름" list="client-list" oninput="app.fillClientInfo(this)" onkeydown="if(event.key==='Enter'){event.preventDefault(); app.addClientToSelection();}">
-                                        <datalist id="client-list">${state.clients.map(c => `<option value="${c.name}">`).join('')}</datalist>
-                                    </div>
-                                    <input id="d-birth" class="input-field flex-1 min-w-[90px] text-center bg-slate-100 text-slate-500 text-xs" placeholder="생년월일" readonly tabindex="-1">
-                                    <input id="d-region" class="input-field flex-1 min-w-[90px] text-center bg-slate-100 text-slate-500 text-xs" placeholder="행정동" readonly tabindex="-1">
-                                    <input id="d-level" class="input-field flex-1 min-w-[90px] text-center bg-slate-100 text-slate-500 text-xs" placeholder="등급" readonly tabindex="-1">
-                                    <button type="button" onclick="app.addClientToSelection()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors shadow-sm whitespace-nowrap shrink-0">추가</button>
-                                </div>
-                                ` : ''}
-                                <div id="selected-clients-area" class="flex flex-wrap gap-2 min-h-[32px] p-2 bg-white rounded border border-slate-200"></div>
-                            </div>
-
-                            <!-- 서비스 목록 -->
-                            <div>
-                                <div class="flex justify-between items-center mb-2">
-                                    <label class="block text-sm font-bold text-slate-700">제공 서비스 (최대 6개)</label>
-                                    <button type="button" onclick="app.addSvcRow()" class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100 font-bold transition-colors">+ 서비스 추가</button>
-                                </div>
-                                <div id="svc-container" class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200"></div>
-                            </div>
-
-                            <!-- 진행 내용 -->
-                            <div>
-                                <div class="flex justify-between items-center mb-2">
-                                    <label class="block text-sm font-bold text-slate-700">진행 내용</label>
-                                    <button type="button" onclick="app.aiDraft()" class="text-xs bg-purple-50 text-purple-600 px-2 py-1 rounded hover:bg-purple-100 font-bold transition-colors flex items-center gap-1"><i data-lucide="sparkles" size="12"></i> AI 초안 작성</button>
-                                </div>
-                                <textarea id="log-content" name="content" class="input-field h-32 leading-relaxed" placeholder="서비스 진행 내용을 상세히 입력하세요." required>${log.content || ''}</textarea>
-                            </div>
-
-                            <div class="flex justify-end gap-2 pt-4 border-t border-slate-100">
-                                <button type="button" onclick="app.closeModal()" class="px-5 py-2.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">취소</button>
-                                <button type="submit" class="bg-emerald-600 text-white px-6 py-2.5 rounded-lg hover:bg-emerald-700 font-bold shadow-md transition-colors transform hover:scale-[1.02]">저장</button>
-                            </div>
-                        </form>
-                    </div>
-                `;
-                
-                // [수정] showModal 호출 시 타겟 컨테이너 지정
-                showModal(html, false, targetContainerId);
-                
-                app.renderSelectedClients(isEdit);
-                
-                const svcContainer = document.getElementById('svc-container');
-                if (svcContainer) {
-                    svcContainer.innerHTML = '';
-                    if (log.serviceItems && log.serviceItems.length > 0) {
-                        log.serviceItems.forEach(item => renderSvcRow(item));
-                    } else {
-                        renderSvcRow({id: Date.now(), category: '노인상담 및 정보제공', serviceName: '정서지원서비스(안전안부확인)', detailNote: ''});
-                    }
-                }
-                
-                if(window.lucide) lucide.createIcons();
-            },
-
-            editService: (id) => { state.editingServiceId = id; if(state.viewMode==='single') updateTabContent('services'); else render(); },
-            cancelEditService: () => { state.editingServiceId = null; if(state.viewMode==='single') updateTabContent('services'); else render(); },
-            addService: async (e) => {
-                e.preventDefault();
-                const data = Object.fromEntries(new FormData(e.target));
-                if (!state.editingServiceId) {
-                    const duplicate = state.services.find(s => (s.majorCategory || '').trim() === (data.majorCategory || '').trim() && (s.category || '').trim() === (data.category || '').trim() && (s.name || '').trim() === (data.name || '').trim());
-                    if (duplicate) {
-                        state.pendingServiceData = data;
-                        showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4"><i data-lucide="alert-circle" class="text-orange-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">중복 서비스 확인</h3><p class="text-sm text-slate-500 mb-4">대분류: ${data.majorCategory || '-'}<br>서비스: ${data.category || '-'}<br>상세내용: <span class="font-bold text-slate-800">${data.name}</span></p><p class="text-sm text-slate-600 mb-6">이미 등록된 서비스입니다.<br>(예시 내용이 달라도 위 항목이 같으면 중복입니다)<br>그래도 추가하시겠습니까?</p><div class="flex gap-3 justify-center"><button onclick="app.confirmAddService()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium shadow-sm">예, 추가</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium">아니오</button></div></div></div>`);
-                        if(window.lucide) lucide.createIcons();
-                        return;
-                    }
-                }
-                await app.processAddService(data);
-            },
-            confirmAddService: async () => { if (state.pendingServiceData) { await app.processAddService(state.pendingServiceData); state.pendingServiceData = null; closeDialog(); } },
-            processAddService: async (data) => { try { if (state.editingServiceId) { await updateDoc(doc(db, "services", state.editingServiceId), data); state.editingServiceId = null; } else { await addDoc(collection(db, "services"), data); } document.querySelector('form[onsubmit="app.addService(event)"]').reset(); } catch (err) { alert("오류 발생: " + err.message); } },
-            
-            // [수정] 사례관리 인쇄 및 PDF 저장 기능 (PDF 잘림 현상 수정: 너비 700px 고정)
-            printCaseManagement: (clientId, mode = 'print', docTypeOverride = null, yearOverride = null) => {
-                const c = state.clients.find(x => x.id === clientId);
-                if (!c) return alert("대상자 정보를 찾을 수 없습니다.");
-                
-                const cm = c.caseManagement || {};
-                const subTab = docTypeOverride || state.ui.caseSubTab;
-                const targetYear = yearOverride || state.ui.cmYear; 
-
-                // getVal 헬퍼
-                const getVal = (obj, path) => {
-                    const parts = path.split('.');
-                    const section = parts[0];
-                    const fieldPath = parts.slice(1).join('.');
-                    if (section === 'initial' || section === 'assessment') { return path.split('.').reduce((o, i) => (o ? o[i] : undefined), obj) || ''; }
-                    let val = undefined;
-                    if (obj.history && obj.history[targetYear] && obj.history[targetYear][section]) {
-                        val = fieldPath.split('.').reduce((o, i) => (o ? o[i] : undefined), obj.history[targetYear][section]);
-                    }
-                    if ((val === undefined || val === null || val === '') && obj[section]) {
-                        const oldDate = obj[section].date;
-                        if (oldDate && oldDate.startsWith(String(targetYear))) { val = fieldPath.split('.').reduce((o, i) => (o ? o[i] : undefined), obj[section]); }
-                    }
-                    return (val === undefined || val === null) ? '' : val;
-                };
-                
-                const fmt = (text) => (text || '').replace(/\n/g, '<br>');
-
-                let title = "";
-                let contentHtml = "";
-
-                // [신규] 공통 스타일 정의 (인쇄/PDF 완전 일치)
-                const commonCss = `
-                    body { font-family: "Malgun Gothic", sans-serif; line-height: 1.4; color: #000; margin: 0; padding: 0; font-size: 11px; }
-                    /* 인쇄 시에만 바디 패딩 적용 */
-                    @media print { body { padding: 20px; } }
-                    
-                    /* 문서 내부 래퍼 */
-                    .doc-wrapper { padding: 5px; }
-
-                    .header-container { position: relative; width: 100%; height: 80px; border-bottom: 2px solid #333; margin-bottom: 20px; }
-                    .header-title { margin: 0; padding: 0; line-height: 80px; text-align: center; font-size: 24px; font-weight: bold; }
-                    .approval-box { position: absolute; right: 0; bottom: 5px; border-collapse: collapse; text-align: center; font-size: 11px; background: white; }
-                    .approval-box td { border: 1px solid #333; padding: 0; }
-                    .approval-header { background: #f0f0f0; height: 20px; width: 60px; font-weight: bold; }
-                    .approval-sign { height: 50px; width: 60px; }
-                    .client-info { margin-bottom: 10px; font-size: 12px; font-weight: bold; }
-                    table.main-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; table-layout: fixed; }
-                    table.main-table th, table.main-table td { border: 1px solid #999; padding: 6px 8px; vertical-align: middle; word-break: break-all; word-wrap: break-word; }
-                    table.main-table th { background-color: #f8f9fa; text-align: center; font-weight: bold; }
-                    .text-center { text-align: center; }
-                    .text-left { text-align: left; }
-                    .bg-gray { background-color: #f8f9fa; }
-                    .section-title { font-size: 14px; font-weight: bold; margin: 20px 0 10px 0; border-left: 4px solid #333; padding-left: 8px; }
-                    .check-mark { font-weight: bold; color: #000; }
-                `;
-
-                // [탭별 콘텐츠 생성 로직 유지] (기존 로직과 동일)
-                if (subTab === 'initial') {
-                    title = "초기면접지";
-                    contentHtml = `
-                        <table class="main-table">
-                            <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
-                            <tr>
-                                <th>대상자명</th><td>${c.name}</td>
-                                <th>생년월일</th><td>${c.birthDate}</td>
-                            </tr>
-                            <tr>
-                                <th>면접일자</th><td>${getVal(cm, 'initial.date')}</td>
-                                <th>면접자</th><td>${getVal(cm, 'initial.interviewer')}</td>
-                            </tr>
-                        </table>
-                        
-                        <!-- [수정] 하위 내용 삭제됨 -->
-                    `;
-                } else if (subTab === 'assessment') {
-                    title = "사정기록지";
-                    contentHtml = `
-                        <table class="main-table">
-                            <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
-                            <tr>
-                                <th>대상자명</th><td>${c.name}</td>
-                                <th>생년월일</th><td>${c.birthDate}</td>
-                            </tr>
-                            <tr>
-                                <th>사정일자</th><td>${getVal(cm, 'assessment.date')}</td>
-                                <th>작성자</th><td>${getVal(cm, 'assessment.writer')}</td>
-                            </tr>
-                        </table>
-                        <div class="section-title">1. 생활 실태 평가 (1~5점)</div>
-                        <table class="main-table">
-                            <tr><th>신체건강</th><th>정신건강</th><th>경제상태</th><th>사회지지</th></tr>
-                            <tr class="text-center">
-                                <td>${getVal(cm, 'assessment.scoreHealth') || '-'}점</td>
-                                <td>${getVal(cm, 'assessment.scoreMental') || '-'}점</td>
-                                <td>${getVal(cm, 'assessment.scoreEco') || '-'}점</td>
-                                <td>${getVal(cm, 'assessment.scoreSocial') || '-'}점</td>
-                            </tr>
-                        </table>
-                        <div class="section-title">2. 위기 사정 내용</div>
-                        <table class="main-table"><tr><td style="height: 200px; vertical-align: top;">${fmt(getVal(cm, 'assessment.content'))}</td></tr></table>
-                        <div class="section-title">3. 개입 계획</div>
-                        <table class="main-table"><tr><td style="height: 200px; vertical-align: top;">${fmt(getVal(cm, 'assessment.plan'))}</td></tr></table>
-                    `;
-                } else if (subTab === 'reassess') {
-                    title = `재사정 기록지 (${targetYear})`;
-                    const planType = getVal(cm, 'reAssessment.planType');
-                    contentHtml = `
-                        <table class="main-table">
-                            <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
-                            <tr>
-                                <th>대상자명</th><td>${c.name}</td>
-                                <th>생년월일</th><td>${c.birthDate}</td>
-                            </tr>
-                            <tr>
-                                <th>재사정일자</th><td>${getVal(cm, 'reAssessment.date')}</td>
-                                <th>진행기간</th><td>${getVal(cm, 'reAssessment.period')}</td>
-                            </tr>
-                        </table>
-                        <div class="section-title">1. 목표 달성 정도</div>
-                        <table class="main-table"><tr><td style="height: 120px; vertical-align: top;">${fmt(getVal(cm, 'reAssessment.goal'))}</td></tr></table>
-                        <div class="section-title">2. 주요 변화 사항</div>
-                        <table class="main-table"><tr><td style="height: 120px; vertical-align: top;">${fmt(getVal(cm, 'reAssessment.change'))}</td></tr></table>
-                        <div class="section-title">3. 향후 계획</div>
-                        <table class="main-table">
-                            <tr>
-                                <th width="20%">구분</th>
-                                <td>
-                                    <span style="${planType === '유지' ? 'font-weight:bold; text-decoration:underline;' : ''}">[ ] 유지</span> &nbsp;&nbsp;
-                                    <span style="${planType === '변경' ? 'font-weight:bold; text-decoration:underline;' : ''}">[ ] 변경/추가</span> &nbsp;&nbsp;
-                                    <span style="${planType === '종결' ? 'font-weight:bold; text-decoration:underline;' : ''}">[ ] 종결</span>
-                                </td>
-                            </tr>
-                            <tr><th>상세내용</th><td style="height: 150px; vertical-align: top;">${fmt(getVal(cm, 'reAssessment.planDetail'))}</td></tr>
-                        </table>
-                    `;
-                } else if (subTab === 'satisfaction') {
-                    title = `만족도 조사 및 모니터링 (${targetYear})`;
-                    const goals = Array.from({length: 6}).map((_, i) => ({
-                        goal: getVal(cm, `satisfaction.serviceGoals.${i}.goal`),
-                        action: getVal(cm, `satisfaction.serviceGoals.${i}.action`),
-                        userSat: getVal(cm, `satisfaction.serviceGoals.${i}.userSat`),
-                        workerEval: getVal(cm, `satisfaction.serviceGoals.${i}.workerEval`)
-                    })).filter(g => g.goal || g.action);
-
-                    const goalRows = goals.length > 0 ? goals.map(g => `<tr><td class="text-center">${fmt(g.goal)}</td><td>${fmt(g.action)}</td><td class="text-center">${g.userSat || '-'}</td><td>${fmt(g.workerEval)}</td></tr>`).join('') : '<tr><td colspan="4" class="text-center">등록된 내용이 없습니다.</td></tr>';
-                    const chk = (val, target) => val === target ? '●' : '';
-                    const q1 = getVal(cm, 'satisfaction.q1');
-                    const q2 = getVal(cm, 'satisfaction.q2');
-                    const q3 = getVal(cm, 'satisfaction.q3');
-                    const q4 = getVal(cm, 'satisfaction.q4');
-                    const q5 = getVal(cm, 'satisfaction.q5');
-
-                    contentHtml = `
-                        <table class="main-table">
-                            <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
-                            <tr>
-                                <th>대상자명</th><td>${c.name}</td>
-                                <th>모니터링 구분</th><td>${getVal(cm, 'satisfaction.type')}</td>
-                            </tr>
-                            <tr>
-                                <th>조사일자</th><td>${getVal(cm, 'satisfaction.date')}</td>
-                                <th>조사방법</th><td>${getVal(cm, 'satisfaction.method')}</td>
-                            </tr>
-                            <tr>
-                                <th>조사자</th><td>${getVal(cm, 'satisfaction.surveyor')}</td>
-                                <th>담당자</th><td>${getVal(cm, 'satisfaction.manager')}</td>
-                            </tr>
-                        </table>
-
-                        <div class="section-title">1. 서비스 만족도 조사</div>
-                        <table class="main-table">
-                            <thead><tr><th width="20%">서비스목표</th><th width="35%">서비스 실행내용</th><th width="15%">이용자 만족도</th><th width="30%">사회복지사 평가</th></tr></thead>
-                            <tbody>${goalRows}</tbody>
-                        </table>
-
-                        <div class="section-title">2. 전반적 만족도 조사</div>
-                        <table class="main-table">
-                            <thead><tr><th width="60%">평가 문항</th><th width="8%">5</th><th width="8%">4</th><th width="8%">3</th><th width="8%">2</th><th width="8%">1</th></tr></thead>
-                            <tbody>
-                                <tr><td class="text-left">1. 담당 직원은 약속 시간을 잘 지켰습니까?</td><td class="text-center">${chk(q1,'5')}</td><td class="text-center">${chk(q1,'4')}</td><td class="text-center">${chk(q1,'3')}</td><td class="text-center">${chk(q1,'2')}</td><td class="text-center">${chk(q1,'1')}</td></tr>
-                                <tr><td class="text-left">2. 담당 직원은 친절하고 예의 바르게 대하였습니까?</td><td class="text-center">${chk(q2,'5')}</td><td class="text-center">${chk(q2,'4')}</td><td class="text-center">${chk(q2,'3')}</td><td class="text-center">${chk(q2,'2')}</td><td class="text-center">${chk(q2,'1')}</td></tr>
-                                <tr><td class="text-left">3. 서비스 내용과 절차에 대해 충분히 설명을 들으셨습니까?</td><td class="text-center">${chk(q3,'5')}</td><td class="text-center">${chk(q3,'4')}</td><td class="text-center">${chk(q3,'3')}</td><td class="text-center">${chk(q3,'2')}</td><td class="text-center">${chk(q3,'1')}</td></tr>
-                                <tr><td class="text-left">4. 제공된 서비스가 귀하의 어려움을 해결하는 데 도움이 되었습니까?</td><td class="text-center">${chk(q4,'5')}</td><td class="text-center">${chk(q4,'4')}</td><td class="text-center">${chk(q4,'3')}</td><td class="text-center">${chk(q4,'2')}</td><td class="text-center">${chk(q4,'1')}</td></tr>
-                                <tr><td class="text-left">5. 전반적으로 제공된 서비스에 만족하십니까?</td><td class="text-center">${chk(q5,'5')}</td><td class="text-center">${chk(q5,'4')}</td><td class="text-center">${chk(q5,'3')}</td><td class="text-center">${chk(q5,'2')}</td><td class="text-center">${chk(q5,'1')}</td></tr>
-                            </tbody>
-                        </table>
-
-                        <div class="section-title">3. 욕구변화 모니터링</div>
-                        <table class="main-table">
-                            <tr><th width="20%">기능상태변화</th><td>${fmt(getVal(cm, 'satisfaction.monitor.funcChange'))}</td></tr>
-                            <tr><th width="20%">생활 환경 및<br>능력변화</th><td>${fmt(getVal(cm, 'satisfaction.monitor.envChange'))}</td></tr>
-                            <tr><th width="20%">변화된 욕구</th><td>${fmt(getVal(cm, 'satisfaction.monitor.needsChange'))}</td></tr>
-                        </table>
-
-                        <div class="section-title">4. 서비스 종합계획</div>
-                        <table class="main-table">
-                            <tr>
-                                <th width="20%">결과 반영</th>
-                                <td>
-                                    <span style="${getVal(cm, 'satisfaction.monitorResult.maintain') ? 'font-weight:bold; text-decoration:underline;' : ''}">[${getVal(cm, 'satisfaction.monitorResult.maintain') ? 'V' : ' '}] 서비스 유지</span> &nbsp;
-                                    <span style="${getVal(cm, 'satisfaction.monitorResult.change') ? 'font-weight:bold; text-decoration:underline;' : ''}">[${getVal(cm, 'satisfaction.monitorResult.change') ? 'V' : ' '}] 서비스 계획 변경</span> &nbsp;
-                                    <span style="${getVal(cm, 'satisfaction.monitorResult.revisit') ? 'font-weight:bold; text-decoration:underline;' : ''}">[${getVal(cm, 'satisfaction.monitorResult.revisit') ? 'V' : ' '}] 재방문 상담</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>종합평가 및<br>향후계획</th>
-                                <td style="height: 100px; vertical-align: top;">${fmt(getVal(cm, 'satisfaction.comprehensivePlan'))}</td>
-                            </tr>
-                        </table>
-                    `;
-                } else if (subTab === 'evaluation') {
-                    title = `사례평가서 (${targetYear})`;
-                    const chk = (key, val) => getVal(cm, `evaluation.ratings.${key}`) === val ? '●' : '';
-                    
-                    const evalRows = [
-                        { cat: '아웃리치', items: ["의뢰 이유 확인 및 초기면접 진행여부가 적절했는가?", "재가노인 신상 관련 기본정보파악이 적절했는가?"], key: 'outreach' },
-                        { cat: '사정', items: ["재가노인의 욕구사정에 의거한 욕구사정이 적절했는가?", "재가노인서비스 제공 여부에 대한 사례회의 진행이 적절했는가?"], key: 'assessment' },
-                        { cat: '서비스계획', items: ["서비스계획수립이 적절했는가?", "서비스이용안내 및 계약이 적절했는가?", "계약서에 명시된 내용에 따라 서비스 계획대로 실행되었는가?", "계획에 맞는 자원이 어느 정도 확보되었는가?"], key: 'planning' },
-                        { cat: '서비스제공', items: ["사례점검회의가 적절히 실행되었는가?", "서비스제공과정에서 서비스제공과정 기록이 적절했는가?"], key: 'service' },
-                        { cat: '재사정/종결', items: ["서비스연계 및 의뢰가 적절했는가?", "재사정 기록지가 적절하게 작성되었는가?", "서비스 종결 및 서비스 해지 안내가 적절 했는가?"], key: 'reassessment' },
-                        { cat: '기타', items: ["전반적인 서비스 만족은 어떠한가?"], key: 'etc' }
-                    ].map(group => {
-                        return group.items.map((q, idx) => {
-                            const uniqueKey = `${group.key}_${idx}`;
-                            const catCell = idx === 0 ? `<td rowspan="${group.items.length}" class="text-center font-bold bg-gray">${group.cat}</td>` : '';
-                            return `
-                                <tr>
-                                    ${catCell}
-                                    <td class="text-left">${q}</td>
-                                    <td class="text-center">${chk(uniqueKey, '5')}</td>
-                                    <td class="text-center">${chk(uniqueKey, '4')}</td>
-                                    <td class="text-center">${chk(uniqueKey, '3')}</td>
-                                    <td class="text-center">${chk(uniqueKey, '2')}</td>
-                                    <td class="text-center">${chk(uniqueKey, '1')}</td>
-                                </tr>
-                            `;
-                        }).join('');
-                    }).join('');
-
-                    contentHtml = `
-                        <table class="main-table">
-                            <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
-                            <tr>
-                                <th>대상자명</th><td>${c.name}</td>
-                                <th>생년월일</th><td>${c.birthDate}</td>
-                            </tr>
-                            <tr>
-                                <th>평가일자</th><td>${getVal(cm, 'evaluation.date')}</td>
-                                <th>작성자</th><td>${getVal(cm, 'evaluation.writer')}</td>
-                            </tr>
-                        </table>
-
-                        <div class="section-title">1. 서비스 목표달성 평가</div>
-                        <table class="main-table">
-                            <thead><tr><th width="15%">단계</th><th width="45%">평가항목</th><th width="8%">5</th><th width="8%">4</th><th width="8%">3</th><th width="8%">2</th><th width="8%">1</th></tr></thead>
-                            <tbody>${evalRows}</tbody>
-                        </table>
-
-                        <div class="section-title">2. 재가노인에게 미친 영향</div>
-                        <table class="main-table">
-                            <tr><th width="20%">긍정적</th><td style="height: 50px;">${fmt(getVal(cm, 'evaluation.impact.positive'))}</td></tr>
-                            <tr><th width="20%">부정적</th><td style="height: 50px;">${fmt(getVal(cm, 'evaluation.impact.negative'))}</td></tr>
-                            <tr><th width="20%">변화된 욕구</th><td style="height: 50px;">${fmt(getVal(cm, 'evaluation.impact.changedNeeds'))}</td></tr>
-                        </table>
-
-                        <div class="section-title">3. 종합소견 (향후계획)</div>
-                        <table class="main-table">
-                            <tr>
-                                <th width="20%">방향</th>
-                                <td>
-                                    <span style="${getVal(cm, 'evaluation.direction') === '계속지원' ? 'font-weight:bold; text-decoration:underline;' : ''}">[${getVal(cm, 'evaluation.direction') === '계속지원' ? 'V' : ' '}] 계속지원</span> &nbsp;&nbsp;
-                                    <span style="${getVal(cm, 'evaluation.direction') === '종결' ? 'font-weight:bold; text-decoration:underline;' : ''}">[${getVal(cm, 'evaluation.direction') === '종결' ? 'V' : ' '}] 종결</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" style="height: 150px; vertical-align: top;">${fmt(getVal(cm, 'evaluation.generalOpinion'))}</td>
-                            </tr>
-                        </table>
-                    `;
-                } else {
-                    return alert("인쇄/저장할 수 없는 탭이거나 지원되지 않는 서식입니다.");
-                }
-
-                // [공통 HTML 구조 생성] (인쇄와 PDF 모두 동일한 구조 사용)
-                const fullHtmlBody = `
-                    <div class="doc-wrapper">
-                        <div class="header-container">
-                            <div class="header-title">${title}</div>
-                            <table class="approval-box">
-                                <tr>
-                                    <td rowspan="2" style="width: 20px; background: #f0f0f0; font-weight: bold; vertical-align: middle;">결<br>재</td>
-                                    <td class="approval-header">담당자</td>
-                                    <td class="approval-header">센터장</td>
-                                </tr>
-                                <tr>
-                                    <td class="approval-sign"></td>
-                                    <td class="approval-sign"></td>
-                                </tr>
-                            </table>
-                        </div>
-                        ${contentHtml}
-                    </div>
-                `;
-
-                // [PDF 저장/Blob 생성 분기 처리]
-                if (mode === 'pdf' || mode === 'blob') {
-                    const element = document.createElement('div');
-                    // PDF용 HTML: 공통 CSS + 내용 (페이지 분할 규칙만 추가)
-                    // [수정] PDF 생성 시 컨테이너 너비 700px 고정 (A4 190mm 내외의 안전한 px)
-                    // body padding 0으로 초기화하여 불필요한 여백 제거
-                    element.style.width = '700px'; 
-                    element.style.margin = '0 auto';
-                    element.style.padding = '0';
-                    element.style.boxSizing = 'border-box';
-                    
-                    const pdfCss = commonCss + `
-                        * { box-sizing: border-box; }
-                        body { margin: 0; padding: 0; }
-                    `;
-                    
-                    element.innerHTML = `<style>${pdfCss} table { page-break-inside: auto; } tr { page-break-inside: avoid; }</style>${fullHtmlBody}`;
-
-                    const opt = {
-                        margin: 10,
-                        filename: `${c.name}_${title}.pdf`,
-                        image: { type: 'jpeg', quality: 0.98 },
-                        // [수정] windowWidth 제거, scroll 옵션 0으로 초기화하여 캡처 오프셋 방지
-                        html2canvas: { scale: 2, scrollY: 0, scrollX: 0, useCORS: true, letterRendering: true },
-                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                    };
-
-                    if (mode === 'blob') {
-                        return html2pdf().set(opt).from(element).output('blob');
-                    } else {
-                        html2pdf().set(opt).from(element).save().catch(err => {
-                            console.error('PDF 저장 실패:', err);
-                            alert('PDF 저장 중 오류가 발생했습니다.');
-                        });
-                    }
-
-                } else {
-                    // [인쇄]
-                    const fullContent = `
-                        <html>
-                        <head>
-                            <meta charset="utf-8">
-                            <title>${title}</title>
-                            <style>
-                                ${commonCss}
-                                @media print {
-                                    @page { margin: 1.5cm 1cm; size: A4; }
-                                    body { -webkit-print-color-adjust: exact; margin: 0; padding: 0; }
-                                    table { page-break-inside: auto; }
-                                    tr { page-break-inside: avoid; }
-                                    .no-print { display: none; }
-                                }
-                            </style>
-                        </head>
-                        <body>
-                            ${fullHtmlBody}
-                            <script>window.onload = function() { setTimeout(function() { window.print(); window.close(); }, 500); }<\/script>
-                        </body>
-                        </html>
-                    `;
-                    const printWindow = window.open('', '', 'width=800,height=900');
-                    printWindow.document.write(fullContent);
-                    printWindow.document.close();
-                }
-            },
-
-            downloadLogsExcel: () => {
-                const { start, end, search, category, service } = state.filters.log;
-                const filtered = state.logs.filter(l => (!start || l.date >= start) && (!end || l.date <= end) && (!search || l.clientName.includes(search)) && (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) && (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service)))).sort((a, b) => new Date(a.date) - new Date(b.date));
-                if (filtered.length === 0) { alert("다운로드할 데이터가 없습니다."); return; }
-                const excelData = [];
-                filtered.forEach(l => {
-                    const baseData = { '날짜': l.date, '이름': l.clientName, '제공방법': l.provideMethod || '방문', '제공자': l.provider || '', '진행내용': l.content };
+                const container = document.getElementById('svc-container');
+                setTimeout(() => {
                     if (l.serviceItems && l.serviceItems.length > 0) {
-                        l.serviceItems.forEach(item => { excelData.push({ ...baseData, '서비스': item.category, '서비스 상세내용': item.serviceName, '서비스 메모': item.detailNote || '' }); });
-                    } else { excelData.push({ ...baseData, '서비스': '', '서비스 상세내용': '', '서비스 메모': '' }); }
-                });
-                const ws = XLSX.utils.json_to_sheet(excelData);
-                ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
-                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "서비스일지"); XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
+                        l.serviceItems.forEach(item => renderSvcRow(item));
+                    } else if (l.serviceName) { 
+                        renderSvcRow({ category: l.serviceCategory, serviceName: l.serviceName, detailNote: '' });
+                    } else {
+                        renderSvcRow({ category: '노인상담 및 정보제공', serviceName: '정서지원서비스(안전안부확인)', detailNote: '' }); 
+                    }
+                    if(window.lucide) lucide.createIcons();
+                }, 0);
             },
-            downloadLogTemplate: () => {
-                const headers = ['날짜', '이름', '제공방법', '서비스', '서비스 상세내용', '서비스 메모', '진행내용', '제공자'];
-                const example = ['2024-01-01', '홍길동', '방문', '위기관리체계구축', '초기상담', '특이사항 없음', '대상자 가정 방문하여 상담 진행함.', '김사회'];
-                const ws = XLSX.utils.aoa_to_sheet([headers, example]);
-                ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 10 }];
-                const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "일지등록양식"); XLSX.writeFile(wb, "일지등록양식.xlsx");
-            },
-            uploadLogExcel: (input) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const wb = XLSX.read(e.target.result, {type:'binary'});
-                        const sheet = wb.Sheets[wb.SheetNames[0]];
-                        const json = XLSX.utils.sheet_to_json(sheet, {header:1});
-                        const rows = json.slice(1);
-                        if (rows.length === 0) { alert("데이터가 없습니다."); return; }
-                        const logGroups = {}; 
-                        rows.forEach(row => {
-                            if (!row[0] || !row[1]) return;
-                            let dateStr = String(row[0]).trim();
-                            if (!isNaN(dateStr) && dateStr.length < 8) { const dateObj = new Date((dateStr - (25567 + 2)) * 86400 * 1000); dateStr = dateObj.toISOString().split('T')[0]; } else { const nums = dateStr.replace(/[^0-9]/g, ''); if(nums.length === 8) dateStr = `${nums.slice(0,4)}-${nums.slice(4,6)}-${nums.slice(6,8)}`; }
-                            const clientName = String(row[1]).trim();
-                            const groupKey = `${dateStr}_${clientName}`; 
-                            if (!logGroups[groupKey]) {
-                                const client = state.clients.find(c => c.name === clientName);
-                                const clientId = client ? client.id : 'unknown';
-                                logGroups[groupKey] = { date: dateStr, clientName: clientName, clientId: clientId, provideMethod: row[2] ? String(row[2]).trim() : '방문', content: row[6] ? String(row[6]).trim() : '', provider: row[7] ? String(row[7]).trim() : '', serviceItems: [] };
-                            }
-                            const category = row[3] ? String(row[3]).trim() : '';
-                            const serviceName = row[4] ? String(row[4]).trim() : '';
-                            const serviceNote = row[5] ? String(row[5]).trim() : ''; 
-                            if (category || serviceName) { logGroups[groupKey].serviceItems.push({ id: Date.now() + Math.random(), category: category, serviceName: serviceName, detailNote: serviceNote }); }
-                        });
-                        let successCount = 0;
-                        const promises = Object.values(logGroups).map(async (logData) => {
-                            const mandatoryService = '정서지원서비스(안전안부확인)';
-                            const hasMandatory = logData.serviceItems.some(item => item.serviceName === mandatoryService);
-                            if (!hasMandatory) { logData.serviceItems.unshift({ id: Date.now() + Math.random(), category: '노인상담 및 정보제공', serviceName: mandatoryService, detailNote: '' }); }
-                            const serviceNameSummary = logData.serviceItems.map(i => i.serviceName).filter(Boolean).join(', ');
-                            await addDoc(collection(db, "logs"), { ...logData, serviceName: serviceNameSummary });
-                            successCount++;
-                        });
-                        Promise.all(promises).then(() => { alert(`${successCount}건의 일지가 등록되었습니다.`); input.value = ''; });
-                    } catch (err) { console.error(err); alert("파일 읽기 실패: 양식을 확인해주세요."); input.value = ''; }
-                };
-                reader.readAsBinaryString(input.files[0]);
-            },
-            downloadStatsExcel: () => {
-                const { start, end, type, region, name } = state.filters.stats;
-                const sYear = start.split('-')[0];
-                const eYear = end.split('-')[0];
-                const fullYearStart = `${sYear}-01-01`;
-                const fullYearEnd = `${eYear}-12-31`;
 
-                const targetClients = state.clients.filter(c => {
-                    const matchBasic = (region.length === 0 || region.includes(c.region)) && (!name || c.name.includes(name));
-                    if (!matchBasic) return false;
-                    const cS = c.serviceStartDate || '0000-01-01';
-                    const cE = c.endDate || '9999-12-31';
-                    return cS <= fullYearEnd && cE >= fullYearStart;
-                });
+            // [신규] 일지 작성용 대상자 관리 함수들 (수정됨)
+            previewLogClientInfo: (name) => {
+                const birthEl = document.getElementById('log-client-birth');
+                const regionEl = document.getElementById('log-client-region');
+                const levelEl = document.getElementById('log-client-level');
+                
+                if (!birthEl || !regionEl || !levelEl) return;
 
-                let serviceHeaders = [];
-                if (type === 'category') {
-                    serviceHeaders = [...new Set(state.services.map(s => s.category))].filter(Boolean);
+                const c = state.clients.find(client => client.name === name);
+                if (c) {
+                    birthEl.value = c.birthDate || '';
+                    regionEl.value = c.region || '';
+                    levelEl.value = c.careLevel || '';
                 } else {
-                    const headerGroups = {};
-                    const orderedCategories = [...new Set(state.services.map(s => s.category || '기타'))];
-                    state.services.forEach(s => {
-                        const cat = s.category || '기타';
-                        if (!headerGroups[cat]) headerGroups[cat] = [];
-                        if (!headerGroups[cat].includes(s.name)) headerGroups[cat].push(s.name);
-                    });
-                    serviceHeaders = orderedCategories.flatMap(cat => headerGroups[cat]);
+                    birthEl.value = '';
+                    regionEl.value = '';
+                    levelEl.value = '';
                 }
-
-                const dataMap = {};
-                targetClients.forEach(c => {
-                    dataMap[c.id] = {
-                        name: c.name,
-                        birthDate: c.birthDate || '-',
-                        careLevel: c.careLevel || '-',
-                        region: c.region || '-',
-                        total: 0,
-                        counts: {}
-                    };
-                    serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0);
-                });
-
-                state.logs.forEach(l => {
-                    if (l.date < start || l.date > end) return;
-                    let cid = l.clientId;
-                    if (!dataMap[cid] && l.clientName) {
-                        const found = targetClients.find(c => c.name === l.clientName);
-                        if(found) cid = found.id;
-                    }
-
-                    if (dataMap[cid]) {
-                        const items = l.serviceItems || [{ serviceName: l.serviceName, category: l.serviceCategory }];
-                        items.forEach(item => {
-                            let key = type === 'category' ? item.category : item.serviceName;
-                            if (!key && item.serviceName && type === 'category') {
-                                const s = state.services.find(svc => svc.name === item.serviceName);
-                                if(s) key = s.category;
-                            }
-                            if (key && dataMap[cid].counts[key] !== undefined) {
-                                dataMap[cid].counts[key]++;
-                                dataMap[cid].total++;
-                            }
-                        });
-                    }
-                });
-
-                const rows = Object.values(dataMap).filter(r => r.total >= 0).sort((a, b) => {
-                    const levelPriority = { '중점': 1, '일반': 2 };
-                    const pA = levelPriority[a.careLevel] || 3;
-                    const pB = levelPriority[b.careLevel] || 3;
-                    if (pA !== pB) return pA - pB;
-                    return a.name.localeCompare(b.name);
-                });
-
-                if (rows.length === 0) {
-                    alert("다운로드할 데이터가 없습니다.");
+            },
+            addLogClient: () => {
+                const input = document.getElementById('log-client-input');
+                const name = input.value.trim();
+                if(!name) return;
+                
+                // 유효성 검사 (등록된 대상자인지)
+                const isValid = state.clients.some(c => c.name === name);
+                if(!isValid) { alert("등록된 대상자가 아닙니다."); return; }
+                
+                if(!window.currentLogClients.includes(name)) {
+                    window.currentLogClients.push(name);
+                    app.renderLogClients(false);
+                }
+                
+                // 입력 필드 초기화
+                input.value = '';
+                document.getElementById('log-client-birth').value = '';
+                document.getElementById('log-client-region').value = '';
+                document.getElementById('log-client-level').value = '';
+                
+                input.focus();
+            },
+            removeLogClient: (index) => {
+                window.currentLogClients.splice(index, 1);
+                app.renderLogClients(false);
+            },
+            renderLogClients: (isEdit) => {
+                const container = document.getElementById('log-selected-clients');
+                if(!container) return;
+                
+                if (window.currentLogClients.length === 0) {
+                    container.innerHTML = '<span class="text-sm text-slate-400 self-center">대상자를 추가해주세요.</span>';
                     return;
                 }
 
-                const excelData = rows.map((r, i) => {
-                    const row = {
-                        'No': i + 1,
-                        '대상자': r.name,
-                        '생년월일': r.birthDate,
-                        '등급': r.careLevel,
-                        '행정동': r.region,
-                        '합계': r.total
-                    };
-                    serviceHeaders.forEach(k => {
-                        row[k] = r.counts[k];
-                    });
-                    return row;
-                });
-
-                const totalRow = {
-                    'No': '', '대상자': '총계', '생년월일': '', '등급': '', '행정동': '',
-                    '합계': rows.reduce((sum, r) => sum + r.total, 0)
-                };
-                serviceHeaders.forEach(k => {
-                    totalRow[k] = rows.reduce((sum, r) => sum + (r.counts[k] || 0), 0);
-                });
-                excelData.push(totalRow);
-
-                const ws = XLSX.utils.json_to_sheet(excelData);
-                const wscols = [
-                    {wch: 5}, {wch: 10}, {wch: 12}, {wch: 8}, {wch: 10}, {wch: 8}
-                ];
-                serviceHeaders.forEach(() => wscols.push({wch: 15}));
-                ws['!cols'] = wscols;
-
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "서비스통계");
-                XLSX.writeFile(wb, `서비스제공통계_${start}_${end}.xlsx`);
-            },
-            setStatsStart: (val) => {
-                state.filters.stats.start = val;
-                if (state.viewMode === 'single') updateTabContent('statistics'); else render();
-                setTimeout(() => {
-                    const endInput = document.getElementById('stats-end');
-                    if (endInput) { endInput.focus(); if (typeof endInput.showPicker === 'function') { try { endInput.showPicker(); } catch (e) { console.log(e); } } }
-                }, 50);
-            },
-            handleModalOverlayClick: () => {
-                if (state.ui.allowOverlayClose) app.closeModal();
-            },
-            // [추가] 서브 모달 오버레이 클릭 핸들러
-            handleSubModalOverlayClick: () => {
-                if (state.ui.allowOverlayClose) app.closeModal();
-            },
-            showClientStatsDetail: (clientId, clientName) => {
-                const { start, end } = state.filters.stats;
-                // 기간 내 해당 대상자의 로그 필터링
-                const logs = state.logs.filter(l => l.clientId === clientId && l.date >= start && l.date <= end).sort((a,b) => b.date.localeCompare(a.date));
-                
-                // 서비스 항목 펼치기
-                const history = [];
-                logs.forEach(l => {
-                    if (l.serviceItems && l.serviceItems.length > 0) {
-                        l.serviceItems.forEach(item => {
-                            history.push({
-                                logId: l.id, // [수정] 로그 ID 추가
-                                date: l.date,
-                                provideMethod: l.provideMethod || '방문',
-                                category: item.category,
-                                serviceName: item.serviceName,
-                                detailNote: item.detailNote,
-                                provider: l.provider
-                            });
-                        });
-                    }
-                });
-
-                const html = `
-                    <div class="bg-white w-full max-w-5xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
-                        <div class="flex justify-between items-center mb-4 flex-shrink-0">
-                            <div>
-                                <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
-                                    <span class="text-emerald-600">${clientName}</span>님 서비스 상세 내역
-                                </h3>
-                                <p class="text-sm text-slate-500 mt-1">조회 기간: ${start} ~ ${end}</p>
-                            </div>
-                            <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
-                        </div>
-                        <div class="flex-1 overflow-auto min-h-0 border rounded-lg border-slate-200">
-                            <table class="w-full text-sm text-left border-collapse">
-                                <thead class="bg-slate-50 text-slate-700 font-bold sticky top-0 z-10 shadow-sm">
-                                    <tr>
-                                        <!-- [수정] 날짜 열 오른쪽 패딩 축소 (pr-8 -> pr-3) -->
-                                        <th class="pl-4 pr-3 py-3 border-b border-slate-200 whitespace-nowrap">날짜</th>
-                                        <th class="pl-2 pr-4 py-3 border-b border-slate-200 whitespace-nowrap">제공방법</th>
-                                        <th class="px-4 py-3 border-b border-slate-200 whitespace-nowrap">서비스 분류</th>
-                                        <th class="pl-4 pr-1 py-3 border-b border-slate-200 whitespace-nowrap">서비스 상세내용</th>
-                                        <th class="pl-1 pr-4 py-3 border-b border-slate-200 whitespace-nowrap">서비스 메모</th>
-                                        <th class="px-4 py-3 border-b border-slate-200 text-center whitespace-nowrap">제공자</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100 bg-white">
-                                    ${history.length > 0 ? history.map(h => `
-                                        <tr class="hover:bg-slate-50 transition-colors cursor-pointer" onclick="app.openLogModal('${h.logId}')" title="클릭하여 일지 상세보기">
-                                            <!-- [수정] 날짜 열 오른쪽 패딩 축소 (pr-8 -> pr-3) -->
-                                            <td class="pl-4 pr-3 py-3 text-slate-600 font-medium whitespace-nowrap">${h.date}</td>
-                                            <td class="pl-2 pr-4 py-3 text-slate-600 text-sm text-center whitespace-nowrap">${h.provideMethod}</td>
-                                            <td class="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">${h.category}</td>
-                                            <td class="pl-4 pr-1 py-3 text-slate-800 font-bold whitespace-nowrap">${h.serviceName}</td>
-                                            <td class="pl-1 pr-4 py-3 text-slate-600 text-xs whitespace-nowrap">${h.detailNote || '-'}</td>
-                                            <td class="px-4 py-3 text-slate-500 text-xs text-center whitespace-nowrap">${h.provider || '-'}</td>
-                                        </tr>
-                                    `).join('') : `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">해당 기간 내 서비스 이력이 없습니다.</td></tr>`}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="mt-4 text-right flex-shrink-0 pt-2 border-t border-slate-100">
-                            <button onclick="app.closeModal()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button>
-                        </div>
-                    </div>
-                `;
-                showModal(html, true);
+                container.innerHTML = window.currentLogClients.map((name, idx) => `
+                    <span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm flex items-center gap-1 border border-emerald-200 font-bold">
+                        ${name}
+                        ${!isEdit ? `<button type="button" onclick="app.removeLogClient(${idx})" class="text-emerald-400 hover:text-red-500 ml-1"><i data-lucide="x" size="14"></i></button>` : ''}
+                    </span>
+                `).join('');
                 if(window.lucide) lucide.createIcons();
             },
-            closeDialog: () => closeDialog(),
-            updateOpts: (el) => { const svcs = state.services.filter(s => s.category === el.value); el.nextElementSibling.innerHTML = svcs.map(s => `<option value="${s.name}">${s.name}</option>`).join(''); },
+
+            addSvcRow: () => renderSvcRow({}),
+            removeSvcRow: (id) => { const el = document.getElementById(`row-${id}`); if(el) el.remove(); },
             
-            // [수정] 체크박스/라디오버튼 초기화 함수 (confirm 제거 및 즉시 실행)
-            resetInputs: (containerId) => {
-                const container = document.getElementById(containerId);
-                if(container) {
-                    const inputs = container.querySelectorAll('input[type="radio"], input[type="checkbox"]');
-                    let count = 0;
-                    inputs.forEach(el => {
-                        if (el.checked) {
-                            el.checked = false;
-                            count++;
-                        }
-                    });
-                    
-                    // 선택된 항목이 없었을 경우에만 알림 (선택된게 있으면 시각적으로 바로 보임)
-                    if (count === 0) {
-                        // 선택된 것이 없으면 조용히 넘어감 (또는 필요시 알림)
+            saveLog: async (e, id) => {
+                e.preventDefault();
+                
+                if (window.currentLogClients.length === 0) {
+                    return alert("대상자를 최소 1명 이상 선택해주세요.");
+                }
+
+                const fd = new FormData(e.target);
+                const commonData = Object.fromEntries(fd.entries());
+                
+                // 서비스 항목 수집
+                const rows = document.querySelectorAll('.svc-row');
+                const items = [];
+                rows.forEach(row => {
+                    const cat = row.querySelector('.cat-sel').value;
+                    const svc = row.querySelector('.svc-sel').value;
+                    const det = row.querySelector('.det-inp').value;
+                    if(svc) items.push({ id: Date.now() + Math.random(), category: cat, serviceName: svc, detailNote: det });
+                });
+                if(items.length === 0) return alert("최소 1개의 서비스를 입력해주세요.");
+                
+                commonData.serviceItems = items;
+                commonData.serviceCategory = items[0].category;
+                commonData.serviceName = items.map(i => i.serviceName).join(', ');
+
+                try {
+                    if (id) {
+                        // 수정 모드 (단일 건)
+                        const clientName = window.currentLogClients[0]; // 수정 시에는 1명만 있음
+                        const client = state.clients.find(c => c.name === clientName);
+                        if (client) commonData.clientId = client.id;
+                        commonData.clientName = clientName;
+
+                        await updateDoc(doc(db, "logs", id), commonData);
+                        alert("일지가 수정되었습니다.");
+                    } else {
+                        // 작성 모드 (다중 건 생성 가능)
+                        const batchPromises = window.currentLogClients.map(async (clientName) => {
+                            const data = { ...commonData, clientName };
+                            const client = state.clients.find(c => c.name === clientName);
+                            if (client) data.clientId = client.id;
+                            data.createdAt = new Date().toISOString();
+                            return addDoc(collection(db, "logs"), data);
+                        });
+                        
+                        await Promise.all(batchPromises);
+                        alert(`${window.currentLogClients.length}건의 일지가 저장되었습니다.`);
                     }
-                } else {
-                    console.error("초기화할 영역을 찾을 수 없습니다:", containerId);
+                    
+                    app.closeModal();
+                    if(state.viewMode==='single') updateTabContent('logs'); else render();
+                } catch (err) { 
+                    console.error(err);
+                    alert("저장 실패: " + err.message); 
                 }
             },
-            
-            // [신규] 사례관리 내역 필터링 함수
-            filterCaseHistory: (type) => {
-                const rows = document.querySelectorAll('#cm-history-table-body tr');
-                let visibleCount = 0;
-                rows.forEach(r => {
-                    // 데이터 없음 행 등 필터 속성이 없는 경우 건너뛰거나 항상 표시 (여기서는 데이터 행만 제어)
-                    if (!r.dataset.filterType && !r.classList.contains('no-data')) return;
-                    
-                    if (!type || r.dataset.filterType === type) {
-                        r.style.display = '';
-                        visibleCount++;
+
+            duplicateLog: async (id) => {
+                const l = state.logs.find(x => x.id === id);
+                if (!l) return;
+                // eslint-disable-next-line no-unused-vars
+                const { id: _, ...data } = l;
+                data.date = new Date().toISOString().split('T')[0]; // 오늘 날짜로 복사
+                data.createdAt = new Date().toISOString();
+                try {
+                    await addDoc(collection(db, "logs"), data);
+                    alert("일지가 복사되었습니다 (오늘 날짜).");
+                    if(state.viewMode==='single') updateTabContent('logs'); else render();
+                } catch (err) { alert("복사 실패: " + err.message); }
+            },
+
+            deleteData: async (collectionName, id) => {
+                if (!confirm("정말 삭제하시겠습니까?")) return;
+                try {
+                    await deleteDoc(doc(db, collectionName, id));
+                    if(state.viewMode==='single') {
+                        if(collectionName === 'logs') updateTabContent('logs');
+                        else if(collectionName === 'clients') updateTabContent('clients');
+                        else if(collectionName === 'services') updateTabContent('services');
+                        else if(collectionName === 'meetings') updateTabContent('meeting');
                     } else {
-                        r.style.display = 'none';
+                        render();
                     }
-                });
+                } catch (err) { alert("삭제 실패: " + err.message); }
+            },
+            
+            updateOpts: (el) => {
+                const cat = el.value;
+                const row = el.closest('.svc-row') || el.closest('.batch-svc-row');
+                const svcSel = row.querySelector('.svc-sel') || row.querySelector('.batch-svc-sel');
+                const svcs = state.services.filter(s => s.category === cat);
+                svcSel.innerHTML = svcs.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            },
+            
+            // 엑셀/인쇄 관련 유틸리티
+            printLogs: () => { window.print(); },
+            downloadLogsExcel: () => {
+                const data = getFilteredLogs().map(l => ({
+                    날짜: l.date,
+                    대상자: l.clientName,
+                    제공방법: l.provideMethod,
+                    서비스내용: l.serviceName,
+                    상세내용: l.content,
+                    제공자: l.provider
+                }));
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "ServiceLogs");
+                XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
+            },
+            downloadLogTemplate: () => {
+                const ws = XLSX.utils.json_to_sheet([{날짜: '2024-01-01', 대상자: '홍길동', 제공방법: '방문', 서비스분류: '사례관리', 서비스명: '안부확인', 내용: '잘 지내심', 제공자: '김복지'}]);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Template");
+                XLSX.writeFile(wb, "일지_업로드_양식.xlsx");
+            },
+            uploadLogExcel: (input) => {
+                const file = input.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    
+                    if (confirm(`${json.length}건의 데이터를 업로드하시겠습니까?`)) {
+                        let success = 0;
+                        for (const row of json) {
+                            try {
+                                await addDoc(collection(db, "logs"), {
+                                    date: row['날짜'] || new Date().toISOString().split('T')[0],
+                                    clientName: row['대상자'],
+                                    provideMethod: row['제공방법'],
+                                    serviceItems: [{ category: row['서비스분류'], serviceName: row['서비스명'], detailNote: '' }],
+                                    serviceName: row['서비스명'],
+                                    content: row['내용'],
+                                    provider: row['제공자'],
+                                    createdAt: new Date().toISOString()
+                                });
+                                success++;
+                            } catch(e) { console.error(e); }
+                        }
+                        alert(`${success}건 업로드 완료`);
+                        render();
+                    }
+                    input.value = '';
+                };
+                reader.readAsArrayBuffer(file);
             }
         };
 
@@ -4742,7 +4888,6 @@
             if (initialTab !== 'dashboard') app.setTab(initialTab, false);
         });
 
-        // [수정] showModal 함수: targetId 매개변수 추가 (기본값: 메인 컨테이너)
         function showModal(html, allowOverlayClose = false, targetId = 'modal-container') { 
             const m = document.getElementById(targetId); 
             m.innerHTML = html; 
@@ -4750,12 +4895,11 @@
             state.ui.allowOverlayClose = allowOverlayClose;
         }
 
-        // [수정] closeModal 함수: 서브 모달이 열려있으면 서브만 닫고, 아니면 메인 닫기
         function closeModal() { 
             const sub = document.getElementById('sub-modal-container');
             if (sub && !sub.classList.contains('hidden')) {
                 sub.classList.add('hidden');
-                sub.innerHTML = ''; // 내용 초기화
+                sub.innerHTML = ''; 
             } else {
                 document.getElementById('modal-container').classList.add('hidden'); 
             }
@@ -4780,12 +4924,10 @@
         }
 
         function render() {
-            // [포커스 유지 시작]
             const activeEl = document.activeElement;
             const focusedId = activeEl ? activeEl.id : null;
             const cursorStart = activeEl ? activeEl.selectionStart : null;
             const cursorEnd = activeEl ? activeEl.selectionEnd : null;
-            // [포커스 유지 끝]
 
             if (state.viewMode === 'single') {
                 const loader = document.getElementById('initial-loader');
@@ -4841,7 +4983,6 @@
             main.appendChild(createWindow('right'));
             if(window.lucide) lucide.createIcons();
 
-            // [포커스 복구 시작]
             if (focusedId) {
                 const newEl = document.getElementById(focusedId);
                 if (newEl) {
@@ -4851,7 +4992,6 @@
                     }
                 }
             }
-            // [포커스 복구 끝]
         }
 
         initDataSync();
