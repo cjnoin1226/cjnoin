@@ -2677,13 +2677,40 @@
                 state.ui.caseSubTab = tabName;
                 document.querySelectorAll('.sub-tab-btn').forEach(btn => { if (btn.dataset.subtab === tabName) btn.classList.add('active'); else btn.classList.remove('active'); });
                 document.querySelectorAll('.sub-tab-content').forEach(content => { if (content.id === `sub-tab-${tabName}`) content.classList.add('active'); else content.classList.remove('active'); });
+                
+                // [추가] 탭 변경 시 연도 선택 박스 표시 여부 제어
+                const yearWrapper = document.getElementById('year-select-wrapper');
+                if (yearWrapper) {
+                    if (['reassess', 'satisfaction', 'evaluation'].includes(tabName)) {
+                        yearWrapper.classList.remove('hidden');
+                    } else {
+                        yearWrapper.classList.add('hidden');
+                    }
+                }
             },
             // [신규] 사례관리 연도 변경 핸들러
             setCmYear: (year) => {
                 state.ui.cmYear = parseInt(year);
-                // 모달 내용을 리렌더링하여 데이터 갱신
-                const clientId = document.getElementById('client-form').dataset.id;
-                app.openClientModal(clientId);
+                
+                // [수정] 스크롤 위치 저장 및 모달 갱신
+                const formEl = document.getElementById('client-form');
+                let savedScrollTop = 0;
+                if (formEl && formEl.parentElement) {
+                    savedScrollTop = formEl.parentElement.scrollTop;
+                }
+
+                const clientId = formEl ? formEl.dataset.id : null;
+                if (clientId) {
+                    app.openClientModal(clientId);
+                    
+                    // [수정] 스크롤 위치 복원
+                    setTimeout(() => {
+                        const newForm = document.getElementById('client-form');
+                        if (newForm && newForm.parentElement) {
+                            newForm.parentElement.scrollTop = savedScrollTop;
+                        }
+                    }, 0);
+                }
             },
             openClientModal: (id) => {
                 const c = id ? state.clients.find(x => x.id === id) : {};
@@ -2730,8 +2757,14 @@
                 };
                 
                 // 탭 상태 유지 로직 (처음 열 때만 초기화)
-                if (!document.getElementById('modal-container').classList.contains('hidden') && document.getElementById('client-form')?.dataset.id === id) {
-                    // 이미 열려있고 같은 ID면 탭 유지
+                const mainModal = document.getElementById('modal-container');
+                const subModal = document.getElementById('sub-modal-container');
+                const openMainForm = !mainModal.classList.contains('hidden') ? mainModal.querySelector('#client-form') : null;
+                const openSubForm = !subModal.classList.contains('hidden') ? subModal.querySelector('#client-form') : null;
+                const isRefreshing = (openMainForm && openMainForm.dataset.id === id) || (openSubForm && openSubForm.dataset.id === id);
+
+                if (isRefreshing) {
+                    // 이미 열려있고 같은 ID면 탭 유지 (state.ui.clientModalTab 값 사용)
                 } else {
                     state.ui.clientModalTab = 'basic'; 
                     state.ui.caseSubTab = 'initial';
@@ -2752,9 +2785,9 @@
                     cmYearOptionsHTML = `<option value="${y}" ${y === state.ui.cmYear ? 'selected' : ''}>${y}년</option>` + cmYearOptionsHTML;
                 }
                 
-                // [수정] 헤더 생성 함수 (연도 선택만 남김) - 삭제됨 (상단 고정바에 통합)
-                // const getCmHeader = () => ... ;
-
+                // [추가] 현재 활성 탭이 연도 선택이 필요한 탭인지 확인
+                const showYearSelect = ['reassess', 'satisfaction', 'evaluation'].includes(state.ui.caseSubTab);
+                
                 // [신규] 섹션별 초기화 버튼 생성 헬퍼
                 const getSectionResetBtn = (targetId) => `
                     <button type="button" onclick="app.resetInputs('${targetId}')" class="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-1 ml-2" title="이 항목의 선택값 초기화">
@@ -2834,7 +2867,7 @@
 
                 const isChecked = (q, val) => getVal(cm, `satisfaction.${q}`) === val ? 'checked' : '';
 
-                // [신규] 사례관리 내역 데이터 생성 (모든 연도 통합 + 각 탭의 작성일 기준)
+                // [신규] 사례관리 내역 데이터 생성
                 const caseHistory = [];
                 // 기존 루트 데이터 체크
                 if (cm.initial?.date) caseHistory.push({ type: '초기면접지', date: cm.initial.date, writer: cm.initial.interviewer, summary: '초기 상태 및 욕구 파악' });
@@ -2850,9 +2883,6 @@
                     });
                 }
                 
-                // 구버전(루트) 데이터가 히스토리에 없는 경우 체크 (중복 방지 로직 필요하나 단순화를 위해 날짜 비교는 생략하고 추가하되, 정렬로 해결)
-                // (여기서는 복잡성을 피하기 위해 루트에 있는 reAssessment 등은 getVal로 현재 연도에 매핑해서 보여주기만 하고, 리스트에는 명시적으로 있는 것만 표시)
-                // 단, 루트에 있는데 history에 없는 경우 리스트에 안 뜰 수 있음. -> 루트 데이터도 추가.
                 if (cm.reAssessment?.date && !caseHistory.some(h => h.date === cm.reAssessment.date && h.type === '재사정')) 
                     caseHistory.push({ type: '재사정', date: cm.reAssessment.date, writer: '-', summary: `향후계획: ${cm.reAssessment.planType || '-'}` });
                 if (cm.satisfaction?.date && !caseHistory.some(h => h.date === cm.satisfaction.date && h.type === '만족도조사')) 
@@ -2877,17 +2907,15 @@
                         date: m.date,
                         writer: m.writer || '-',
                         summary: m.topic || '안건 없음',
-                        meetingId: m.id // 클릭 시 이동을 위한 ID
+                        meetingId: m.id 
                     });
                 });
 
                 caseHistory.sort((a, b) => a.date.localeCompare(b.date));
 
                 const caseHistoryRows = caseHistory.length > 0 ? caseHistory.map((h, idx) => {
-                    // 필터링을 위한 타입 분류
                     let filterType = h.type;
                     if (['서비스 시작', '장기부재', '서비스 종결'].includes(h.type)) filterType = '주요일정';
-                    
                     return `
                     <tr class="hover:bg-slate-50 transition-colors ${h.meetingId ? 'cursor-pointer group' : ''}" data-filter-type="${filterType}" ${h.meetingId ? `onclick="app.openMeetingModal('${h.meetingId}')" title="클릭하여 회의록 보기"` : ''}>
                         <td class="p-3 text-center text-slate-400 text-xs">${idx + 1}</td>
@@ -2902,6 +2930,7 @@
                     </tr>
                 `}).join('') : `<tr><td colspan="5" class="p-8 text-center text-slate-400">작성된 사례관리 내역이 없습니다.<br><span class="text-xs">각 탭에서 작성일자를 입력하면 이곳에 표시됩니다.</span></td></tr>`;
 
+                // [수정] 탭 활성화 클래스를 상태(state.ui)에 따라 동적으로 부여하도록 변경
                 const html = `
                     <div class="bg-white w-full max-w-4xl p-0 rounded-xl shadow-xl max-h-[90vh] overflow-hidden flex flex-col mx-2">
                         <div class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-white z-10 shrink-0">
@@ -2924,31 +2953,30 @@
                             </div>
                         </div>
                         <div class="flex border-b border-slate-100 bg-slate-50 sticky top-0 z-10 shrink-0">
-                            <button type="button" class="modal-tab-btn active" data-tab="basic" onclick="app.setClientModalTab('basic')">기본 정보</button>
-                            <button type="button" class="modal-tab-btn" data-tab="case" onclick="app.setClientModalTab('case')">사례관리</button>
-                            <button type="button" class="modal-tab-btn" data-tab="history" onclick="app.setClientModalTab('history')">서비스 내역</button>
-                            <button type="button" class="modal-tab-btn" data-tab="meetings" onclick="app.setClientModalTab('meetings')">회의 이력</button>
+                            <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'basic' ? 'active' : ''}" data-tab="basic" onclick="app.setClientModalTab('basic')">기본 정보</button>
+                            <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'case' ? 'active' : ''}" data-tab="case" onclick="app.setClientModalTab('case')">사례관리</button>
+                            <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'history' ? 'active' : ''}" data-tab="history" onclick="app.setClientModalTab('history')">서비스 내역</button>
+                            <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'meetings' ? 'active' : ''}" data-tab="meetings" onclick="app.setClientModalTab('meetings')">회의 이력</button>
                         </div>
                         <div class="p-4 sm:p-6 overflow-y-auto flex-1 bg-white">
                             <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" data-id="${c.id||''}" class="space-y-4">
-                                <div id="tab-basic" class="modal-tab-content active space-y-4">
+                                <div id="tab-basic" class="modal-tab-content ${state.ui.clientModalTab === 'basic' ? 'active' : ''} space-y-4">
                                     <div class="grid grid-cols-1 sm:grid-cols-12 gap-3"><div class="sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div><div class="sm:col-span-6 md:col-span-2"><label class="text-sm block mb-1">성별</label><select name="gender" class="input-field" id="gender-select"><option value="남성">남성</option><option value="여성" ${c.gender==='여성'?'selected':''}>여성</option></select></div><div class="sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">주민등록번호</label><input name="residentNum" class="input-field" placeholder="YYMMDD-1..." value="${c.residentNum||''}" maxlength="14" oninput="app.calcBirthFromRR(this)"></div><div class="sm:col-span-6 md:col-span-4"><label class="text-sm block mb-1">생년월일</label><div class="flex items-center gap-2"><input type="date" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" max="9999-12-31" oninput="app.updateAgeDisplay(this)"><input id="age-display" class="input-field !w-[25%] min-w-[60px] text-center bg-slate-100 text-slate-600 focus:outline-none cursor-default font-bold" readonly value="${initialAge}" placeholder="나이" tabindex="-1"></div></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-3"><div><label class="text-sm block mb-1">연락처 1</label><input name="phone" class="input-field" placeholder="본인 연락처" value="${c.phone||''}"></div><div><label class="text-sm block mb-1">연락처 2</label><input name="phone2" class="input-field" placeholder="비상/추가 연락처" value="${c.phone2||''}"></div><div><label class="text-sm block mb-1">보호자 연락처</label><div class="flex gap-2"><input name="guardianRelation" class="input-field w-20" placeholder="관계" value="${c.guardianRelation||''}"><input name="guardianPhone" class="input-field flex-1" placeholder="번호" value="${c.guardianPhone||''}"></div></div></div><div class="grid grid-cols-1 sm:grid-cols-4 gap-3"><div class="sm:col-span-1"><label class="text-sm block mb-1">행정동</label><select name="region" class="input-field">${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${c.region===d?'selected':''}>${d}</option>`).join('')}</select></div><div class="sm:col-span-3"><label class="text-sm block mb-1">주소</label><input name="address" class="input-field" value="${c.address||''}" placeholder="상세 주소 입력"></div></div><div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-3"><div><label class="text-sm block mb-1">등급</label><select name="careLevel" class="input-field">${CONSTANTS.CARE_LEVEL_LIST.map(v=>`<option value="${v}" ${c.careLevel===v?'selected':''}>${v}</option>`).join('')}</select></div><div><label class="text-sm block mb-1">경제상황</label><select name="economicStatus" class="input-field">${CONSTANTS.ECONOMIC_LIST.map(v=>`<option value="${v}" ${c.economicStatus===v?'selected':''}>${v}</option>`).join('')}</select></div><div><label class="text-sm block mb-1">세대유형</label><select name="householdType" class="input-field">${CONSTANTS.HOUSEHOLD_LIST.map(v=>`<option value="${v}" ${c.householdType===v?'selected':''}>${v}</option>`).join('')}</select></div><div><label class="text-sm block mb-1">중복서비스</label><select name="duplicateService" class="input-field">${CONSTANTS.DUPLICATE_SERVICE_LIST.map(v=>`<option value="${v}" ${c.duplicateService===v?'selected':''}>${v}</option>`).join('')}</select></div><div><label class="text-sm block mb-1">ICT 현황</label><select name="ictStatus" class="input-field">${CONSTANTS.ICT_STATUS_LIST.map(v=>`<option value="${v}" ${c.ictStatus===v?'selected':''}>${v}</option>`).join('')}</select></div></div><div class="grid grid-cols-1 sm:grid-cols-12 gap-3"><div class="sm:col-span-2"><label class="text-sm block mb-1">상태</label><select name="status" class="input-field">${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div><div class="sm:col-span-3"><label class="text-sm block mb-1">시작일</label><input type="date" name="serviceStartDate" class="input-field" value="${c.serviceStartDate||''}" max="9999-12-31"></div><div class="sm:col-span-4"><label class="text-sm block mb-1">장기부재기간</label><div class="flex items-center gap-1"><input type="date" name="absStart" class="input-field px-1 text-sm text-center" value="${absStart}" max="9999-12-31" style="font-size: 0.8rem;"><span class="text-slate-400">~</span><input type="date" name="absEnd" class="input-field px-1 text-sm text-center" value="${absEnd}" max="9999-12-31" style="font-size: 0.8rem;"></div></div><div class="sm:col-span-3"><label class="text-sm block mb-1">종결일</label><input type="date" name="endDate" class="input-field" value="${c.endDate||''}" max="9999-12-31"></div></div><div><label class="text-sm block mb-1">비고</label><textarea name="note" class="input-field" rows="2">${c.note||''}</textarea></div>
                                 </div>
                                 
-                                <div id="tab-case" class="modal-tab-content space-y-4">
+                                <div id="tab-case" class="modal-tab-content ${state.ui.clientModalTab === 'case' ? 'active' : ''} space-y-4">
                                     <div class="flex gap-0.5 items-center overflow-x-auto pb-1 border-b border-slate-100 mb-3 sticky top-0 bg-white z-20">
-                                        <button type="button" class="sub-tab-btn active" data-subtab="initial" onclick="app.setCaseSubTab('initial')">초기면접지</button>
-                                        <!-- [추가] 선정기준표 탭 버튼 -->
-                                        <button type="button" class="sub-tab-btn" data-subtab="selection" onclick="app.setCaseSubTab('selection')">선정기준표</button>
-                                        <button type="button" class="sub-tab-btn" data-subtab="assessment" onclick="app.setCaseSubTab('assessment')">사정기록지</button>
-                                        <button type="button" class="sub-tab-btn" data-subtab="reassess" onclick="app.setCaseSubTab('reassess')">재사정</button>
-                                        <button type="button" class="sub-tab-btn" data-subtab="satisfaction" onclick="app.setCaseSubTab('satisfaction')">만족도조사</button>
-                                        <button type="button" class="sub-tab-btn" data-subtab="evaluation" onclick="app.setCaseSubTab('evaluation')">사례평가서</button>
-                                        <button type="button" class="sub-tab-btn" data-subtab="history-list" onclick="app.setCaseSubTab('history-list')">내역</button>
+                                        <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'initial' ? 'active' : ''}" data-subtab="initial" onclick="app.setCaseSubTab('initial')">초기면접지</button>
+                                        <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'selection' ? 'active' : ''}" data-subtab="selection" onclick="app.setCaseSubTab('selection')">선정기준표</button>
+                                        <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'assessment' ? 'active' : ''}" data-subtab="assessment" onclick="app.setCaseSubTab('assessment')">사정기록지</button>
+                                        <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'reassess' ? 'active' : ''}" data-subtab="reassess" onclick="app.setCaseSubTab('reassess')">재사정</button>
+                                        <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'satisfaction' ? 'active' : ''}" data-subtab="satisfaction" onclick="app.setCaseSubTab('satisfaction')">만족도조사</button>
+                                        <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'evaluation' ? 'active' : ''}" data-subtab="evaluation" onclick="app.setCaseSubTab('evaluation')">사례평가서</button>
+                                        <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'history-list' ? 'active' : ''}" data-subtab="history-list" onclick="app.setCaseSubTab('history-list')">내역</button>
                                         
-                                        <!-- [수정] 관리 연도 및 인쇄 버튼 배치 (아이콘 버튼으로 변경) -->
+                                        <!-- [수정] 관리 연도 선택 박스(ID 부여 및 조건부 hidden) 및 인쇄 버튼 배치 -->
                                         <div class="ml-auto flex items-center gap-1 flex-shrink-0">
-                                            <div class="flex items-center bg-slate-100 rounded-lg px-1.5 py-0.5 border border-slate-200 mr-1" title="사례관리 작성 연도 선택">
+                                            <div id="year-select-wrapper" class="flex items-center bg-slate-100 rounded-lg px-1.5 py-0.5 border border-slate-200 mr-1 ${showYearSelect ? '' : 'hidden'}" title="사례관리 작성 연도 선택">
                                                 <span class="text-[10px] font-bold text-slate-500 mr-1"><i data-lucide="calendar-clock" class="inline w-3 h-3 mb-0.5"></i></span>
                                                 <select class="bg-transparent text-[10px] font-bold text-slate-700 outline-none cursor-pointer hover:text-emerald-600 transition-colors" onchange="app.setCmYear(this.value)">
                                                     ${cmYearOptionsHTML}
@@ -2963,8 +2991,8 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- [수정] 안내 문구 박스 제거됨 -->
-                                    <div id="sub-tab-initial" class="sub-tab-content active space-y-4">
+                                    <!-- [수정] 서브탭 활성화 클래스를 상태(state.ui.caseSubTab)에 따라 동적으로 부여 -->
+                                    <div id="sub-tab-initial" class="sub-tab-content ${state.ui.caseSubTab === 'initial' ? 'active' : ''} space-y-4">
                                         <!-- [수정] 1페이지 컨테이너 (단일 페이지로 변경됨) -->
                                         <div>
                                             <!-- [수정] 초기면접지 서식 테이블 구현 (10열 구조로 변경하여 한 줄 배치) -->
@@ -3524,7 +3552,7 @@
                                     </div>
 
                                     <!-- [신규] 선정기준표 탭 내용 추가 -->
-                                    <div id="sub-tab-selection" class="sub-tab-content space-y-4">
+                                    <div id="sub-tab-selection" class="sub-tab-content ${state.ui.caseSubTab === 'selection' ? 'active' : ''} space-y-4">
                                         <!-- 상단 정보 -->
                                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-wrap gap-4 items-center justify-between">
                                             <div class="flex flex-wrap gap-4 items-center">
@@ -4139,12 +4167,12 @@
                                         </div>
                                     </div>
 
-                                    <div id="sub-tab-reassess" class="sub-tab-content space-y-4">
+                                    <div id="sub-tab-reassess" class="sub-tab-content ${state.ui.caseSubTab === 'reassess' ? 'active' : ''} space-y-4">
                                         <div class="grid grid-cols-2 gap-3"><div><label class="text-sm block mb-1 font-bold">재사정일자</label><input type="date" id="cm-re-date" class="input-field" value="${getVal(cm, 'reAssessment.date')}"></div><div><label class="text-sm block mb-1 font-bold">진행기간</label><input type="text" id="cm-re-period" class="input-field" placeholder="예: 6개월" value="${getVal(cm, 'reAssessment.period')}"></div></div><div><label class="text-sm block mb-1 font-bold">목표 달성 정도</label><textarea id="cm-re-goal" class="input-field h-20" placeholder="기존 목표 달성 여부 및 변화">${getVal(cm, 'reAssessment.goal')}</textarea></div><div><label class="text-sm block mb-1 font-bold">주요 변화 사항</label><textarea id="cm-re-change" class="input-field h-20" placeholder="대상자의 신체, 정서, 환경적 변화">${getVal(cm, 'reAssessment.change')}</textarea></div><div><label class="text-sm block mb-1 font-bold">향후 계획 (유지/종결/변경)</label><select id="cm-re-plan-type" class="input-field mb-2"><option value="유지" ${getVal(cm, 'reAssessment.planType')==='유지'?'selected':''}>현 서비스 유지</option><option value="변경" ${getVal(cm, 'reAssessment.planType')==='변경'?'selected':''}>서비스 변경/추가</option><option value="종결" ${getVal(cm, 'reAssessment.planType')==='종결'?'selected':''}>서비스 종결</option></select><textarea id="cm-re-plan-detail" class="input-field h-16" placeholder="향후 계획 상세">${getVal(cm, 'reAssessment.planDetail')}</textarea></div>
                                     </div>
                                     
                                     <!-- [수정] 만족도조사 탭: 항목별 초기화 버튼 배치 -->
-                                    <div id="sub-tab-satisfaction" class="sub-tab-content space-y-4">
+                                    <div id="sub-tab-satisfaction" class="sub-tab-content ${state.ui.caseSubTab === 'satisfaction' ? 'active' : ''} space-y-4">
                                         
                                         <!-- [수정] 대상자 정보 레이아웃 제거됨 -->
 
@@ -4330,7 +4358,7 @@
                                     </div>
 
                                     <!-- [수정] 사례평가서 탭: 항목별 초기화 버튼 배치 -->
-                                    <div id="sub-tab-evaluation" class="sub-tab-content space-y-4">
+                                    <div id="sub-tab-evaluation" class="sub-tab-content ${state.ui.caseSubTab === 'evaluation' ? 'active' : ''} space-y-4">
                                         <div class="grid grid-cols-2 gap-3">
                                             <div>
                                                 <label class="text-sm block mb-1 font-bold">평가일자</label>
@@ -4434,7 +4462,7 @@
                                         <textarea id="cm-eval-opinion" class="input-field w-full h-32 leading-relaxed resize-none p-3" placeholder="종합적인 소견 및 향후 계획을 입력하세요.">${getVal(cm, 'evaluation.generalOpinion')}</textarea>
                                     </div>
 
-                                    <div id="sub-tab-history-list" class="sub-tab-content space-y-4">
+                                    <div id="sub-tab-history-list" class="sub-tab-content ${state.ui.caseSubTab === 'history-list' ? 'active' : ''} space-y-4">
                                         <div class="bg-slate-50 p-2 pl-3 rounded flex flex-col sm:flex-row justify-between items-center gap-2 border border-slate-200">
                                             <div class="text-sm text-slate-600 flex items-center gap-2">
                                                 <i data-lucide="history" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
@@ -4474,7 +4502,7 @@
                                     </div>
                                 </div>
 
-                                <div id="tab-history" class="modal-tab-content space-y-4">
+                                <div id="tab-history" class="modal-tab-content ${state.ui.clientModalTab === 'history' ? 'active' : ''} space-y-4">
                                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
                                         <div class="text-sm font-bold text-slate-700 flex items-center gap-2">
                                             <div class="p-1.5 bg-blue-100 text-blue-600 rounded"><i data-lucide="list" class="w-4 h-4"></i></div>
@@ -4508,7 +4536,7 @@
                                     </div>
                                 </div>
 
-                                <div id="tab-meetings" class="modal-tab-content space-y-4">
+                                <div id="tab-meetings" class="modal-tab-content ${state.ui.clientModalTab === 'meetings' ? 'active' : ''} space-y-4">
                                     <div class="bg-slate-50 p-3 rounded text-sm text-slate-600 mb-2 flex items-start gap-2">
                                         <i data-lucide="clipboard-list" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
                                         <span>이 대상자와 관련된 사례회의 기록입니다.</span>
@@ -4554,7 +4582,19 @@
                         </div>
                         <!-- [수정] 하단 Footer(저장/취소 버튼 영역) 제거됨 -->
                     </div>`;
-                showModal(html);
+                
+                // [수정] 타겟 컨테이너 결정 로직 개선 (기존 모달 재활용)
+                let targetContainerId = 'modal-container';
+                if (openMainForm && openMainForm.dataset.id === id) {
+                    targetContainerId = 'modal-container';
+                } else if (openSubForm && openSubForm.dataset.id === id) {
+                    targetContainerId = 'sub-modal-container';
+                } else {
+                    // 새로운 ID면 빈 컨테이너 사용
+                    targetContainerId = !mainModal.classList.contains('hidden') ? 'sub-modal-container' : 'modal-container';
+                }
+
+                showModal(html, false, targetContainerId);
                 if(window.lucide) lucide.createIcons();
 
                 // [수정] 모달 열릴 때 모든 Textarea(선정기준표 포함) 높이 자동 조절
@@ -4570,7 +4610,20 @@
             // [추가] 대상자 정보 저장 (사례관리 내용 포함)
             saveClient: async (e, id) => {
                 e.preventDefault();
-                    // [신규] 연도별 저장 데이터 분리
+
+                // [수정] 폼 데이터 수집 및 헬퍼 함수, 기존 데이터 정의 추가 (오류 해결)
+                const fd = new FormData(e.target);
+                const data = Object.fromEntries(fd.entries());
+
+                const getEl = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+                const getRadio = (name) => { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; };
+                const getCheck = (name) => { const el = document.querySelector(`input[name="${name}"]`); return el ? el.checked : false; };
+                const getCheckedValues = (name) => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(el => el.value);
+
+                const client = state.clients.find(c => c.id === id);
+                const currentCm = client ? (client.caseManagement || {}) : {};
+
+                // [신규] 연도별 저장 데이터 분리
                 const targetYear = state.ui.cmYear;
                 
                 // [신규] 선정기준표 데이터 수집 (5개 영역 구조 반영)
@@ -5471,6 +5524,24 @@
                 } catch (err) { alert("삭제 실패: " + err.message); }
             },
             
+            // [신규] 초기화 기능 구현 (체크박스/라디오만 초기화, 텍스트 유지)
+            resetInputs: (id) => {
+                const container = document.getElementById(id);
+                if (!container) return;
+                // 체크박스와 라디오 버튼만 선택 해제 (text, textarea 등은 건드리지 않음)
+                const inputs = container.querySelectorAll('input[type="checkbox"], input[type="radio"]');
+                inputs.forEach(input => input.checked = false);
+            },
+
+            // [신규] 토글 디스플레이 함수 추가 (선정기준표 등에서 사용)
+            toggleDisplay: (checkbox, targetId) => {
+                const target = document.getElementById(targetId);
+                if (target) {
+                    if (checkbox.checked) target.classList.remove('hidden');
+                    else target.classList.add('hidden');
+                }
+            },
+
             updateOpts: (el) => {
                 const cat = el.value;
                 const row = el.closest('.svc-row') || el.closest('.batch-svc-row');
