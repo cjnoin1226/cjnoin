@@ -2126,6 +2126,13 @@
                 const m = id ? state.meetings.find(x => x.id === id) : (prefillData || {});
                 const today = new Date().toISOString().split('T')[0];
                 const targetContainerId = !document.getElementById('modal-container').classList.contains('hidden') ? 'sub-modal-container' : 'modal-container';
+                
+                // [신규] 초기 회의 유형에 따른 결정사항 표시 여부 결정
+                const currentType = m.type || '수시';
+                const isDecisionHidden = ['수시', '기타'].includes(currentType);
+
+                // [신규] 회의 내용 기본 템플릿 (소제목 추가)
+                const defaultContent = "1. 서비스 의뢰사유\n\n2. 생활수준 및 건강상태\n\n3. 세부내용\n";
 
                 const html = `
                     <div class="bg-white w-full max-w-3xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto flex flex-col">
@@ -2134,8 +2141,6 @@
                                 <i data-lucide="clipboard-list" class="text-emerald-600"></i> ${id ? '사례회의록 수정' : '사례회의록 작성'}
                             </h3>
                             <div class="flex items-center gap-2">
-                                ${!id ? `<button type="button" onclick="app.openMeetingHistorySelector()" class="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 transition-colors flex items-center gap-1 mr-1"><i data-lucide="history" size="14"></i> 이전 회의록 불러오기</button>` : ''}
-                                
                                 <!-- [수정] 취소/저장 버튼 상단 이동 -->
                                 <button type="button" onclick="app.closeModal()" class="px-3 py-1.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium whitespace-nowrap">취소</button>
                                 <button type="button" onclick="document.getElementById('meeting-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-700 text-sm font-bold shadow-sm transition-colors whitespace-nowrap">저장</button>
@@ -2149,7 +2154,7 @@
                                 <div><label class="block text-sm font-bold text-slate-700 mb-1">회의 일자</label><input type="date" name="date" class="input-field" value="${m.date || today}" required></div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">회의 구분</label>
-                                    <select name="type" class="input-field">
+                                    <select name="type" class="input-field" onchange="app.toggleMeetingDecisionVisibility(this.value)">
                                         <option value="수시" ${m.type === '수시' ? 'selected' : ''}>수시 사례회의</option>
                                         <option value="초기" ${m.type === '초기' ? 'selected' : ''}>초기 상담 회의</option>
                                         <option value="재사정" ${m.type === '재사정' ? 'selected' : ''}>재사정 회의</option>
@@ -2160,19 +2165,44 @@
                             </div>
                             <div><label class="block text-sm font-bold text-slate-700 mb-1">참석자</label><input name="attendees" class="input-field" placeholder="예: 센터장, 팀장, 담당자" value="${m.attendees || ''}" required></div>
                             
+                            <div><label class="block text-sm font-bold text-slate-700 mb-1">주요 안건</label><input name="topic" class="input-field" placeholder="회의 주제 또는 안건" value="${m.topic || ''}" required></div>
+
                             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                <label class="block text-sm font-bold text-slate-700 mb-2">대상자 정보 (선택)</label>
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="block text-sm font-bold text-slate-700">대상자 정보 (선택)</label>
+                                    ${!id ? `<button type="button" onclick="app.openMeetingHistorySelector()" class="text-xs bg-white text-blue-600 border border-blue-200 px-2 py-1 rounded hover:bg-blue-50 transition-colors flex items-center gap-1 font-bold shadow-sm" title="선택한 대상자의 이전 회의록 내용을 불러옵니다"><i data-lucide="history" size="12"></i> 이전 회의록 불러오기</button>` : ''}
+                                </div>
                                 <div class="flex gap-2">
-                                    <!-- [수정] 엔터 키 입력 시 폼 제출 방지 (onkeydown 추가) -->
-                                    <input id="mt-client-name" name="clientName" class="input-field w-32" placeholder="이름 검색" list="client-list" value="${m.clientName || ''}" oninput="app.fillMeetingClientInfo(this)" onkeydown="if(event.key === 'Enter') { event.preventDefault(); }">
+                                    <!-- [수정] 엔터 키 입력 시 폼 제출 방지 및 datalist 추가 (이름 자동 완성 및 정보 연동 복구) -->
+                                    <input id="mt-client-name" name="clientName" class="input-field w-32" placeholder="이름 검색" list="meeting-client-list" value="${m.clientName || ''}" oninput="app.fillMeetingClientInfo(this)" onkeydown="if(event.key === 'Enter') { event.preventDefault(); }">
+                                    <datalist id="meeting-client-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist>
+                                    
                                     <input id="mt-client-birth" name="clientBirth" class="input-field w-32 bg-slate-100 text-slate-500" placeholder="생년월일" value="${m.clientBirth || ''}" readonly tabindex="-1">
                                     <input id="mt-client-level" name="clientLevel" class="input-field w-24 bg-slate-100 text-slate-500" placeholder="등급" value="${m.clientLevel || ''}" readonly tabindex="-1">
+                                    <!-- [신규] 서비스 시작일 필드 추가 -->
+                                    <input id="mt-client-start-date" name="clientStartDate" class="input-field w-32 bg-slate-100 text-slate-500" placeholder="서비스 시작일" value="${m.clientStartDate || ''}" readonly tabindex="-1">
                                 </div>
                             </div>
 
-                            <div><label class="block text-sm font-bold text-slate-700 mb-1">주요 안건</label><input name="topic" class="input-field" placeholder="회의 주제 또는 안건" value="${m.topic || ''}" required></div>
-                            <div><label class="block text-sm font-bold text-slate-700 mb-1">회의 내용</label><textarea name="content" class="input-field h-40 leading-relaxed" placeholder="논의된 상세 내용을 입력하세요." required>${m.content || ''}</textarea></div>
-                            <div><label class="block text-sm font-bold text-slate-700 mb-1">결정 사항 및 향후 계획</label><textarea name="decision" class="input-field h-24 leading-relaxed" placeholder="결론 및 실행 계획">${m.decision || ''}</textarea></div>
+                            <div><label class="block text-sm font-bold text-slate-700 mb-1">회의 내용</label><textarea name="content" class="input-field h-64 leading-relaxed" placeholder="논의된 상세 내용을 입력하세요." required>${m.content || defaultContent}</textarea></div>
+                            
+                            <div id="meeting-decision-wrapper" class="${isDecisionHidden ? 'hidden' : ''} bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                <div class="flex items-center gap-4 mb-2">
+                                    <label class="block text-sm font-bold text-slate-700 whitespace-nowrap">결정 사항 및 향후 계획</label>
+                                    <div class="flex items-center gap-3">
+                                        <label class="flex items-center gap-1 cursor-pointer hover:bg-white px-2 py-0.5 rounded transition-colors border border-transparent hover:border-slate-200">
+                                            <input type="checkbox" name="serviceDecision" value="서비스 제공" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded border-slate-300 cursor-pointer" ${m.serviceDecision === '서비스 제공' ? 'checked' : ''} onclick="app.handleDecisionCheckbox(this)">
+                                            <span class="text-sm font-medium text-slate-700">서비스 제공</span>
+                                        </label>
+                                        <label class="flex items-center gap-1 cursor-pointer hover:bg-white px-2 py-0.5 rounded transition-colors border border-transparent hover:border-slate-200">
+                                            <input type="checkbox" name="serviceDecision" value="서비스 종결" class="w-4 h-4 text-red-600 focus:ring-red-500 rounded border-slate-300 cursor-pointer" ${m.serviceDecision === '서비스 종결' ? 'checked' : ''} onclick="app.handleDecisionCheckbox(this)">
+                                            <span class="text-sm font-medium text-slate-700">서비스 종결</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <textarea name="decision" class="input-field h-24 leading-relaxed bg-white" placeholder="결론 및 실행 계획">${m.decision || ''}</textarea>
+                            </div>
+                            
                             <div><label class="block text-sm font-bold text-slate-700 mb-1">작성자</label><input name="writer" class="input-field" placeholder="작성자 성명" value="${m.writer || ''}" required></div>
 
                             <!-- [수정] 하단 버튼 영역 제거 (상단으로 이동됨) -->
@@ -2183,6 +2213,29 @@
                 if(window.lucide) lucide.createIcons();
             },
             
+            // [신규] 회의록 결정사항 체크박스 제어 (상호 배타적 동작)
+            handleDecisionCheckbox: (el) => {
+                if (el.checked) {
+                    const checkboxes = document.querySelectorAll('input[name="serviceDecision"]');
+                    checkboxes.forEach(cb => {
+                        if (cb !== el) cb.checked = false;
+                    });
+                }
+            },
+            
+            // [신규] 회의록 결정사항 표시 토글 함수
+            toggleMeetingDecisionVisibility: (type) => {
+                const wrapper = document.getElementById('meeting-decision-wrapper');
+                if (!wrapper) return;
+                
+                // 수시, 기타일 경우 숨김 처리
+                if (['수시', '기타'].includes(type)) {
+                    wrapper.classList.add('hidden');
+                } else {
+                    wrapper.classList.remove('hidden');
+                }
+            },
+
             // [신규] 이전 회의록 불러오기 다이얼로그
             openMeetingHistorySelector: () => {
                 const clientNameInput = document.getElementById('mt-client-name');
@@ -2277,9 +2330,15 @@
                 if (c) {
                     document.getElementById('mt-client-birth').value = c.birthDate || '';
                     document.getElementById('mt-client-level').value = c.careLevel || '';
+                    // [추가] 서비스 시작일 자동 입력
+                    const startDateEl = document.getElementById('mt-client-start-date');
+                    if (startDateEl) startDateEl.value = c.serviceStartDate || '';
                 } else {
                     document.getElementById('mt-client-birth').value = '';
                     document.getElementById('mt-client-level').value = '';
+                    // [추가] 서비스 시작일 초기화
+                    const startDateEl = document.getElementById('mt-client-start-date');
+                    if (startDateEl) startDateEl.value = '';
                 }
             },
             // [신규] 회의록 저장 로직
@@ -2336,21 +2395,56 @@
                     .doc-wrapper { page-break-after: always; margin-bottom: 30px; }
                     .doc-wrapper:last-child { page-break-after: auto; }
                     h1 { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px; text-decoration: underline; }
+                    
                     .approval-table { border-collapse: collapse; display: inline-table; font-size: 12px; margin-bottom: 10px; float: right; }
                     .approval-table td { border: 1px solid #000; text-align: center; }
+                    
                     .bg-gray { background: #f0f0f0; }
-                    .info-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; }
-                    .info-table th, .info-table td { border: 1px solid #000; padding: 8px; }
-                    .info-table th { background: #f8f9fa; text-align: center; }
+                    
+                    /* 정보 테이블 그룹 스타일 (줄마다 칸 수가 달라서 3개 테이블로 분리하되 합쳐 보이게 처리) */
+                    .info-group { margin-bottom: 20px; }
+                    .info-group table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+                    /* 테이블 간 경계선 겹치기 */
+                    .info-group table + table { margin-top: -1px; }
+                    
+                    .info-group th, .info-group td { border: 1px solid #000; padding: 6px 4px; word-break: break-all; vertical-align: middle; }
+                    .info-group th { background: #f8f9fa; text-align: center; font-weight: bold; }
+                    .info-group td { text-align: center; } /* 기본 가운데 정렬 */
+                    .info-group td.align-left { text-align: left; padding-left: 8px; }
+                    
                     .content-table { width: 100%; border-collapse: collapse; font-size: 13px; }
                     .content-table th { border: 1px solid #000; padding: 10px; background: #f8f9fa; text-align: left; }
                     .content-table td { border: 1px solid #000; padding: 15px; vertical-align: top; }
+                    
                     .clearfix::after { content: ""; clear: both; display: table; }
+                    .decision-badge { display: inline-block; padding: 2px 8px; border: 1px solid #000; border-radius: 4px; font-weight: bold; font-size: 12px; background-color: #fff; margin-left: 8px; }
                 `;
 
                 let fullHtml = `<html><head><title>사례회의록 인쇄</title><style>${commonCss}</style></head><body onload="window.print();">`;
 
                 meetings.forEach(m => {
+                    // [신규] 결정사항 텍스트 및 배지 처리
+                    let decisionContent = (m.decision || '').replace(/\n/g, '<br>');
+                    let decisionBadgeHtml = '';
+                    if (m.serviceDecision) {
+                        decisionBadgeHtml = `<span class="decision-badge">${m.serviceDecision}</span>`;
+                    }
+
+                    // [추가] 정보가 누락된 경우 대상자 마스터 데이터에서 조회 (하위 호환성)
+                    let clientLevel = m.clientLevel;
+                    let clientStartDate = m.clientStartDate;
+                    if (!clientLevel || !clientStartDate) {
+                        const c = state.clients.find(cl => cl.id === m.clientId || cl.name === m.clientName);
+                        if (c) {
+                            if (!clientLevel) clientLevel = c.careLevel;
+                            if (!clientStartDate) clientStartDate = c.serviceStartDate;
+                        }
+                    }
+
+                    // [수정] 수시/기타 회의일 경우 결정사항 영역 숨김 처리 여부 확인
+                    const isDecisionHidden = ['수시', '기타'].includes(m.type || '수시');
+                    const contentHeight = isDecisionHidden ? '450px' : '300px'; // 결정사항 없을 시 본문 확장
+
                     fullHtml += `
                     <div class="doc-wrapper clearfix">
                         <h1>사 례 회 의 록</h1>
@@ -2369,36 +2463,67 @@
                             </table>
                         </div>
 
-                        <table class="info-table">
-                            <colgroup>
-                                <col style="width: 15%;">
-                                <col style="width: 35%;">
-                                <col style="width: 15%;">
-                                <col style="width: 35%;">
-                            </colgroup>
-                            <tr>
-                                <th>일 시</th>
-                                <td>${m.date}</td>
-                                <th>장 소</th>
-                                <td>상담실</td>
-                            </tr>
-                            <tr>
-                                <th>구 분</th>
-                                <td>${m.type}</td>
-                                <th>작성자</th>
-                                <td>${m.writer}</td>
-                            </tr>
-                            <tr>
-                                <th>참석자</th>
-                                <td colspan="3">${m.attendees}</td>
-                            </tr>
-                            <tr>
-                                <th>대상자</th>
-                                <td>${m.clientName || '-'}</td>
-                                <th>생년월일</th>
-                                <td>${m.clientBirth || '-'}</td>
-                            </tr>
-                        </table>
+                        <div class="info-group">
+                            <!-- 1열: 일시, 장소, 작성자 (3등분) -->
+                            <table>
+                                <colgroup>
+                                    <col style="width: 12%;">
+                                    <col style="width: 21%;">
+                                    <col style="width: 12%;">
+                                    <col style="width: 21%;">
+                                    <col style="width: 12%;">
+                                    <col style="width: 22%;">
+                                </colgroup>
+                                <tr>
+                                    <th>일 시</th>
+                                    <td>${m.date}</td>
+                                    <th>장 소</th>
+                                    <td>상담실</td>
+                                    <th>작성자</th>
+                                    <td>${m.writer}</td>
+                                </tr>
+                            </table>
+                            
+                            <!-- 2열: 회의구분, 참석자 (2등분) - 위치 이동됨 -->
+                            <table>
+                                <colgroup>
+                                    <col style="width: 12%;">
+                                    <col style="width: 21%;">
+                                    <col style="width: 12%;">
+                                    <col style="width: 55%;">
+                                </colgroup>
+                                <tr>
+                                    <th>회의구분</th>
+                                    <td>${m.type}</td>
+                                    <th>참석자</th>
+                                    <td class="align-left">${m.attendees}</td>
+                                </tr>
+                            </table>
+
+                            <!-- 3열: 대상자, 생년월일, 등급, 서비스시작일 (4등분) - 주요 안건 바로 위로 이동 -->
+                            <table>
+                                <colgroup>
+                                    <col style="width: 12%;">
+                                    <col style="width: 13%;">
+                                    <col style="width: 12%;">
+                                    <col style="width: 13%;">
+                                    <col style="width: 10%;">
+                                    <col style="width: 8%;">
+                                    <col style="width: 14%;">
+                                    <col style="width: 18%;">
+                                </colgroup>
+                                <tr>
+                                    <th>대상자</th>
+                                    <td>${m.clientName || '-'}</td>
+                                    <th>생년월일</th>
+                                    <td>${m.clientBirth || '-'}</td>
+                                    <th>등 급</th>
+                                    <td>${clientLevel || '-'}</td>
+                                    <th>서비스시작일</th>
+                                    <td style="font-size: 11px;">${clientStartDate || '-'}</td>
+                                </tr>
+                            </table>
+                        </div>
 
                         <table class="content-table">
                             <tr>
@@ -2411,14 +2536,16 @@
                                 <th style="border-top: none;">회의 내용</th>
                             </tr>
                             <tr>
-                                <td style="height: 300px;">${(m.content || '').replace(/\n/g, '<br>')}</td>
+                                <td style="height: ${contentHeight};">${(m.content || '').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                            ${!isDecisionHidden ? `
+                            <tr>
+                                <th style="border-top: none;">결정 사항 및 향후 계획 ${decisionBadgeHtml}</th>
                             </tr>
                             <tr>
-                                <th style="border-top: none;">결정 사항 및 향후 계획</th>
+                                <td style="height: 150px;">${decisionContent}</td>
                             </tr>
-                            <tr>
-                                <td style="height: 150px;">${(m.decision || '').replace(/\n/g, '<br>')}</td>
-                            </tr>
+                            ` : ''}
                         </table>
                     </div>
                     `;
@@ -4167,8 +4294,611 @@
                                         </div>
                                     </div>
 
+                                    <!-- [신규] 사정기록지 탭 (노인복지관 공통 양식 적용) -->
+                                    <div id="sub-tab-assessment" class="sub-tab-content ${state.ui.caseSubTab === 'assessment' ? 'active' : ''} space-y-4">
+                                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-wrap gap-4 items-center justify-between">
+                                            <div class="flex flex-wrap gap-4 items-center">
+                                                <div class="flex items-center gap-2">
+                                                    <label class="text-sm font-bold text-slate-700">사정일자</label>
+                                                    <input type="date" id="cm-assess-date" class="input-field py-1 px-2 text-sm w-36 bg-white" value="${getVal(cm, 'assessment.date')}">
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <label class="text-sm font-bold text-slate-700">작성자</label>
+                                                    <input type="text" id="cm-assess-writer" class="input-field py-1 px-2 text-sm w-32 bg-white" value="${getVal(cm, 'assessment.writer')}" placeholder="성명">
+                                                </div>
+                                            </div>
+                                            ${getSectionResetBtn('sub-tab-assessment')}
+                                        </div>
+
+                                        <!-- 1. 대상자 기본정보 및 상세 현황 (상세 테이블) -->
+                                        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                                            <div class="bg-slate-100 p-2.5 border-b border-slate-200 flex items-center gap-2">
+                                                <div class="w-1.5 h-4 bg-slate-600 rounded-full"></div>
+                                                <span class="font-bold text-slate-700 text-sm">1. 대상자 상세정보 (Basic Information)</span>
+                                            </div>
+                                            <div class="p-4 space-y-4">
+                                                <!-- 기본 인적사항 (요약) -->
+                                                <div class="flex flex-wrap gap-4 pb-4 border-b border-slate-100">
+                                                    <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">성명</span><span class="text-sm font-bold text-slate-800">${c.name}</span></div>
+                                                    <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">생년월일</span><span class="text-sm text-slate-700">${c.birthDate} (${calculateAge(c.birthDate)}세)</span></div>
+                                                    <div class="flex items-center gap-2 flex-1"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">주소</span><span class="text-sm text-slate-700 truncate">${c.address}</span></div>
+                                                </div>
+
+                                                <!-- ① 경제상황 -->
+                                                <div class="flex flex-col sm:flex-row gap-2 sm:items-start">
+                                                    <div class="w-20 flex-shrink-0 pt-1"><span class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-200 block text-center">경제상황</span></div>
+                                                    <div class="flex-1 space-y-2">
+                                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                                            ${(() => {
+                                                                // 사정기록지 전용 데이터 우선, 없으면 초기면접 데이터 fallback
+                                                                let eco = getVal(cm, 'assessment.data.economic');
+                                                                let cond = getVal(cm, 'assessment.data.economicDetail.conditional');
+                                                                let other = getVal(cm, 'assessment.data.economicDetail.other');
+                                                                
+                                                                if (!eco || (Array.isArray(eco) && eco.length === 0)) {
+                                                                    eco = getVal(cm, 'initial.living.economic') || [];
+                                                                    cond = getVal(cm, 'initial.living.economicDetail.conditional');
+                                                                    other = getVal(cm, 'initial.living.economicDetail.other');
+                                                                }
+                                                                if (!Array.isArray(eco)) eco = [eco].filter(Boolean);
+
+                                                                const mkCb = (val, label) => `
+                                                                    <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition-colors">
+                                                                        <input type="checkbox" name="cm-assess-eco" value="${val}" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${eco.includes(val) ? 'checked' : ''}>
+                                                                        <span class="text-xs text-slate-700">${label}</span>
+                                                                    </label>`;
+                                                                
+                                                                return `
+                                                                    ${mkCb('기초수급(의료/생계/주거)', '기초수급')}
+                                                                    <div class="flex items-center gap-1">
+                                                                        ${mkCb('조건부 수급', '조건부 수급')}
+                                                                        <input type="text" id="cm-assess-eco-cond" class="input-field py-0.5 px-2 text-xs w-24 border-slate-300" placeholder="내용" value="${cond || ''}">
+                                                                    </div>
+                                                                    ${mkCb('차상위', '차상위')}
+                                                                    ${mkCb('일반(저소득)', '일반(저소득)')}
+                                                                    <div class="flex items-center gap-1">
+                                                                        ${mkCb('기타', '기타')}
+                                                                        <input type="text" id="cm-assess-eco-other" class="input-field py-0.5 px-2 text-xs w-24 border-slate-300" placeholder="내용" value="${other || ''}">
+                                                                    </div>
+                                                                `;
+                                                            })()}
+                                                        </div>
+                                                        <!-- [수정] 월소득 및 소득원 통합 (한 줄 배치, 제목/이모지 제거) -->
+                                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 mt-1 border-t border-dashed border-slate-100">
+                                                            <div class="flex items-center gap-1 flex-shrink-0">
+                                                                <span class="text-xs font-bold text-slate-600">월소득:</span>
+                                                                <input type="text" id="cm-assess-eco-income" class="input-field py-0.5 px-2 text-xs w-16 text-right border-slate-300" placeholder="0" value="${getVal(cm, 'assessment.data.economicDetail.monthlyIncome') || getVal(cm, 'initial.living.economicDetail.monthlyIncome') || ''}">
+                                                                <span class="text-xs text-slate-500">만원</span>
+                                                            </div>
+                                                            
+                                                            <div class="w-px h-3 bg-slate-300 hidden sm:block"></div>
+
+                                                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                                ${(() => {
+                                                                    const inc = getVal(cm, 'assessment.data.economicDetail.incomeSources') || {};
+                                                                    const sources = [
+                                                                        { key: 'earned', label: '근로소득' },
+                                                                        { key: 'gov', label: '정부지원금' },
+                                                                        { key: 'sponsor', label: '후원금' },
+                                                                        { key: 'support', label: '부양자지원' }
+                                                                    ];
+                                                                    return sources.map(s => {
+                                                                        const isChk = inc[s.key]?.checked;
+                                                                        const val = inc[s.key]?.value || '';
+                                                                        return `
+                                                                        <div class="flex items-center gap-1">
+                                                                            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition-colors">
+                                                                                <input type="checkbox" id="cm-assess-inc-${s.key}" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" ${isChk ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-assess-inc-${s.key}-val')">
+                                                                                <span class="text-xs text-slate-700">${s.label}</span>
+                                                                            </label>
+                                                                            <input type="text" id="cm-assess-inc-${s.key}-val" class="input-field py-0.5 px-2 text-xs w-20 border-slate-300 h-[24px] ${isChk ? '' : 'hidden'}" placeholder="금액" value="${val}">
+                                                                        </div>`;
+                                                                    }).join('');
+                                                                })()}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- ② 세대/주거 -->
+                                                <div class="flex flex-col sm:flex-row gap-2 sm:items-start border-t border-slate-100 pt-3">
+                                                    <div class="w-20 flex-shrink-0 pt-1"><span class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-200 block text-center">세대/주거</span></div>
+                                                    <div class="flex-1 space-y-2">
+                                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                                            <span class="text-xs font-bold text-slate-500 w-11 text-center flex-shrink-0">[세대]</span>
+                                                            ${(() => {
+                                                                let house = getVal(cm, 'assessment.data.household');
+                                                                if (!house || (Array.isArray(house) && house.length === 0)) house = getVal(cm, 'initial.living.household') || [];
+                                                                if (!Array.isArray(house)) house = [house].filter(Boolean);
+
+                                                                return CONSTANTS.HOUSEHOLD_LIST.map(h => `
+                                                                    <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition-colors">
+                                                                        <input type="checkbox" name="cm-assess-house" value="${h}" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${house.includes(h) ? 'checked' : ''}>
+                                                                        <span class="text-xs text-slate-700">${h}</span>
+                                                                    </label>`).join('');
+                                                            })()}
+                                                        </div>
+                                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1 border-t border-dashed border-slate-100">
+                                                            <span class="text-xs font-bold text-slate-500 w-11 text-center flex-shrink-0">[점유]</span>
+                                                            ${(() => {
+                                                                let housing = getVal(cm, 'assessment.data.housing');
+                                                                if (!housing || (Array.isArray(housing) && housing.length === 0)) housing = getVal(cm, 'initial.living.housing') || [];
+                                                                if (!Array.isArray(housing)) housing = [housing].filter(Boolean);
+                                                                
+                                                                const jDep = getVal(cm, 'assessment.data.housingDetail.jeonseDeposit') || getVal(cm, 'initial.living.housingDetail.jeonseDeposit');
+                                                                const wDep = getVal(cm, 'assessment.data.housingDetail.wolseDeposit') || getVal(cm, 'initial.living.housingDetail.wolseDeposit');
+                                                                const wRent = getVal(cm, 'assessment.data.housingDetail.wolseRent') || getVal(cm, 'initial.living.housingDetail.wolseRent');
+
+                                                                return `
+                                                                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="cm-assess-housing" value="자가" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" ${housing.includes('자가')?'checked':''}><span class="text-xs text-slate-700">자가</span></label>
+                                                                    <div class="flex items-center gap-1">
+                                                                        <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="cm-assess-housing" value="전세" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" ${housing.includes('전세')?'checked':''}><span class="text-xs text-slate-700">전세</span></label>
+                                                                        <input type="text" id="cm-assess-house-j-dep" class="input-field py-0.5 px-1 text-xs w-14 text-right border-slate-300" placeholder="보증금" value="${jDep || ''}"><span class="text-[10px] text-slate-400">만</span>
+                                                                    </div>
+                                                                    <div class="flex items-center gap-1">
+                                                                        <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="cm-assess-housing" value="월세" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" ${housing.includes('월세')?'checked':''}><span class="text-xs text-slate-700">월세</span></label>
+                                                                        <input type="text" id="cm-assess-house-w-dep" class="input-field py-0.5 px-1 text-xs w-12 text-right border-slate-300" placeholder="보증금" value="${wDep || ''}"><span class="text-[10px] text-slate-400">/</span>
+                                                                        <input type="text" id="cm-assess-house-w-rent" class="input-field py-0.5 px-1 text-xs w-10 text-right border-slate-300" placeholder="월세" value="${wRent || ''}"><span class="text-[10px] text-slate-400">만</span>
+                                                                    </div>
+                                                                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="cm-assess-housing" value="영구임대" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" ${housing.includes('영구임대')?'checked':''}><span class="text-xs text-slate-700">영구임대</span></label>
+                                                                    <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" name="cm-assess-housing" value="무상거주" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" ${housing.includes('무상거주')?'checked':''}><span class="text-xs text-slate-700">무상거주</span></label>
+                                                                `;
+                                                            })()}
+                                                        </div>
+                                                        <!-- [신규] 주택형태 항목 추가 -->
+                                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1 border-t border-dashed border-slate-100">
+                                                            <span class="text-xs font-bold text-slate-500 w-11 text-center flex-shrink-0">[유형]</span>
+                                                            ${(() => {
+                                                                let dwelling = getVal(cm, 'assessment.data.dwellingType');
+                                                                let dwellingOther = getVal(cm, 'assessment.data.dwellingDetail.other');
+                                                                
+                                                                // 사정기록지 데이터가 없으면 초기면접지 데이터 fallback
+                                                                if (!dwelling || (Array.isArray(dwelling) && dwelling.length === 0)) {
+                                                                    dwelling = getVal(cm, 'initial.living.dwellingType') || [];
+                                                                }
+                                                                if (!Array.isArray(dwelling)) dwelling = [dwelling].filter(Boolean);
+
+                                                                const types = ['단독주택', '아파트', '연립주택', '다세대주택'];
+                                                                
+                                                                let html = types.map(t => `
+                                                                    <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition-colors">
+                                                                        <input type="checkbox" name="cm-assess-dwelling" value="${t}" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${dwelling.includes(t) ? 'checked' : ''}>
+                                                                        <span class="text-xs text-slate-700">${t}</span>
+                                                                    </label>
+                                                                `).join('');
+
+                                                                html += `
+                                                                    <div class="flex items-center gap-1">
+                                                                        <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition-colors">
+                                                                            <input type="checkbox" name="cm-assess-dwelling" value="기타" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${dwelling.includes('기타') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-assess-dwelling-other')">
+                                                                            <span class="text-xs text-slate-700">기타</span>
+                                                                        </label>
+                                                                        <input type="text" id="cm-assess-dwelling-other" class="input-field py-0.5 px-2 text-xs w-28 border-slate-300 ${dwelling.includes('기타') ? '' : 'hidden'}" placeholder="내용 입력" value="${dwellingOther || ''}">
+                                                                    </div>
+                                                                `;
+                                                                return html;
+                                                            })()}
+                                                        </div>
+
+                                                        <!-- [수정] 주거환경 및 화장실 통합 (한 줄 배치, 간격 축소) -->
+                                                        <div class="flex flex-wrap items-center gap-x-2 gap-y-2 pt-1 border-t border-dashed border-slate-100">
+                                                            <span class="text-xs font-bold text-slate-500 w-11 text-center flex-shrink-0">[환경]</span>
+                                                            ${(() => {
+                                                                let env = getVal(cm, 'assessment.data.housingEnvironment') || [];
+                                                                let envElevator = getVal(cm, 'assessment.data.housingEnvironmentDetail.elevator') || '';
+                                                                let envOther = getVal(cm, 'assessment.data.housingEnvironmentDetail.other') || '';
+                                                                
+                                                                return `
+                                                                    <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-0.5 py-0.5 rounded transition-colors">
+                                                                        <input type="checkbox" name="cm-assess-env-type" value="지하" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${env.includes('지하')?'checked':''}>
+                                                                        <span class="text-xs text-slate-700">지하</span>
+                                                                    </label>
+                                                                    <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-0.5 py-0.5 rounded transition-colors">
+                                                                        <input type="checkbox" name="cm-assess-env-type" value="1층" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${env.includes('1층')?'checked':''}>
+                                                                        <span class="text-xs text-slate-700">1층</span>
+                                                                    </label>
+                                                                    <div class="flex items-center gap-1">
+                                                                        <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-0.5 py-0.5 rounded transition-colors">
+                                                                            <input type="checkbox" name="cm-assess-env-type" value="2층이상" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${env.includes('2층이상')?'checked':''} onchange="app.toggleDisplay(this, 'wrapper-elevator')">
+                                                                            <span class="text-xs text-slate-700">2층↑</span>
+                                                                        </label>
+                                                                        <div id="wrapper-elevator" class="flex items-center gap-1 ${env.includes('2층이상') ? '' : 'hidden'} bg-slate-50 rounded px-1 border border-slate-100">
+                                                                            <label class="flex items-center cursor-pointer"><input type="radio" name="cm-assess-env-elevator" value="승강기 유" class="w-3 h-3 text-blue-600" ${envElevator==='승강기 유'?'checked':''}><span class="text-[10px] ml-0.5">E/V유</span></label>
+                                                                            <label class="flex items-center cursor-pointer"><input type="radio" name="cm-assess-env-elevator" value="승강기 무" class="w-3 h-3 text-blue-600" ${envElevator==='승강기 무'?'checked':''}><span class="text-[10px] ml-0.5">무</span></label>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="flex items-center gap-1">
+                                                                        <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-0.5 py-0.5 rounded transition-colors">
+                                                                            <input type="checkbox" name="cm-assess-env-type" value="기타" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${env.includes('기타') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-assess-env-other')">
+                                                                            <span class="text-xs text-slate-700">기타</span>
+                                                                        </label>
+                                                                        <input type="text" id="cm-assess-env-other" class="input-field py-0.5 px-1 text-xs w-20 border-slate-300 ${env.includes('기타') ? '' : 'hidden'}" placeholder="입력" value="${envOther}">
+                                                                    </div>
+                                                                `;
+                                                            })()}
+
+                                                            <div class="w-px h-3 bg-slate-300 mx-1"></div>
+
+                                                            <span class="text-xs font-bold text-slate-500 w-11 text-center flex-shrink-0">[화장실]</span>
+                                                            ${(() => {
+                                                                let tShare = getVal(cm, 'assessment.data.toiletType.share');
+                                                                if (!Array.isArray(tShare)) tShare = [tShare].filter(Boolean);
+
+                                                                let tStyle = getVal(cm, 'assessment.data.toiletType.style');
+                                                                if (!Array.isArray(tStyle)) tStyle = [tStyle].filter(Boolean);
+
+                                                                return `
+                                                                    <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-0.5 py-0.5 rounded transition-colors"><input type="checkbox" name="cm-assess-toilet-share" value="공동" class="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500" ${tShare.includes('공동')?'checked':''}><span class="text-xs text-slate-700">공동</span></label>
+                                                                    <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-0.5 py-0.5 rounded transition-colors"><input type="checkbox" name="cm-assess-toilet-share" value="단독" class="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500" ${tShare.includes('단독')?'checked':''}><span class="text-xs text-slate-700">단독</span></label>
+                                                                    <span class="text-slate-300 mx-0.5">/</span>
+                                                                    <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-0.5 py-0.5 rounded transition-colors"><input type="checkbox" name="cm-assess-toilet-style" value="서양식" class="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500" ${tStyle.includes('서양식')?'checked':''}><span class="text-xs text-slate-700">서양식</span></label>
+                                                                    <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-50 px-0.5 py-0.5 rounded transition-colors"><input type="checkbox" name="cm-assess-toilet-style" value="재래식" class="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500" ${tStyle.includes('재래식')?'checked':''}><span class="text-xs text-slate-700">재래식</span></label>
+                                                                `;
+                                                            })()}
+                                                        </div>
+
+                                                        <!-- [신규] 난방형태 항목 추가 -->
+                                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1 border-t border-dashed border-slate-100">
+                                                            <span class="text-xs font-bold text-slate-500 w-11 text-center flex-shrink-0">[난방]</span>
+                                                            ${(() => {
+                                                                let heating = getVal(cm, 'assessment.data.heatingType') || [];
+                                                                let heatingOther = getVal(cm, 'assessment.data.heatingTypeDetail.other') || '';
+                                                                const types = ['가스보일러', '연탄보일러', '기름보일러', '아궁이', '난방없음'];
+                                                                
+                                                                let html = types.map(t => `
+                                                                    <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition-colors">
+                                                                        <input type="checkbox" name="cm-assess-heating" value="${t}" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${heating.includes(t) ? 'checked' : ''}>
+                                                                        <span class="text-xs text-slate-700">${t}</span>
+                                                                    </label>
+                                                                `).join('');
+
+                                                                html += `
+                                                                    <div class="flex items-center gap-1">
+                                                                        <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition-colors">
+                                                                            <input type="checkbox" name="cm-assess-heating" value="기타" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${heating.includes('기타') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-assess-heating-other')">
+                                                                            <span class="text-xs text-slate-700">기타</span>
+                                                                        </label>
+                                                                        <input type="text" id="cm-assess-heating-other" class="input-field py-0.5 px-2 text-xs w-28 border-slate-300 ${heating.includes('기타') ? '' : 'hidden'}" placeholder="내용 입력" value="${heatingOther}">
+                                                                    </div>
+                                                                `;
+                                                                return html;
+                                                            })()}
+                                                        </div>
+
+                                                        <!-- [신규] 주택 및 위생 상태 추가 -->
+                                                        <div class="flex flex-col sm:flex-row gap-2 sm:items-center pt-1 border-t border-dashed border-slate-100">
+                                                            <div class="flex items-center gap-2 flex-1">
+                                                                <span class="text-xs font-bold text-slate-500 w-11 text-center flex-shrink-0">[주택]</span>
+                                                                ${(() => {
+                                                                    const hCond = getVal(cm, 'assessment.data.housingCondition.status') || '';
+                                                                    const hDetail = getVal(cm, 'assessment.data.housingCondition.detail');
+                                                                    return `
+                                                                        <label class="flex items-center cursor-pointer gap-1"><input type="checkbox" name="cm-assess-h-cond" value="양호" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${hCond.includes('양호')?'checked':''}><span class="text-xs text-slate-700">양호</span></label>
+                                                                        <label class="flex items-center cursor-pointer gap-1"><input type="checkbox" name="cm-assess-h-cond" value="불량" class="w-3.5 h-3.5 text-red-600 rounded border-slate-300 focus:ring-red-500" ${hCond.includes('불량')?'checked':''}><span class="text-xs text-slate-700">불량</span></label>
+                                                                        <input type="text" id="cm-assess-h-cond-detail" class="input-field py-0.5 px-2 text-xs w-24 border-slate-300" placeholder="상태 입력" value="${hDetail || ''}">
+                                                                    `;
+                                                                })()}
+                                                            </div>
+                                                            <div class="hidden sm:block w-px h-3 bg-slate-300"></div>
+                                                            <div class="flex items-center gap-2 flex-1">
+                                                                <span class="text-xs font-bold text-slate-500 w-11 text-center flex-shrink-0">[위생]</span>
+                                                                ${(() => {
+                                                                    const hyCond = getVal(cm, 'assessment.data.hygieneCondition.status') || '';
+                                                                    const hyDetail = getVal(cm, 'assessment.data.hygieneCondition.detail');
+                                                                    return `
+                                                                        <label class="flex items-center cursor-pointer gap-1"><input type="checkbox" name="cm-assess-hy-cond" value="양호" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${hyCond.includes('양호')?'checked':''}><span class="text-xs text-slate-700">양호</span></label>
+                                                                        <label class="flex items-center cursor-pointer gap-1"><input type="checkbox" name="cm-assess-hy-cond" value="불량" class="w-3.5 h-3.5 text-red-600 rounded border-slate-300 focus:ring-red-500" ${hyCond.includes('불량')?'checked':''}><span class="text-xs text-slate-700">불량</span></label>
+                                                                        <input type="text" id="cm-assess-hy-cond-detail" class="input-field py-0.5 px-2 text-xs w-24 border-slate-300" placeholder="상태 입력" value="${hyDetail || ''}">
+                                                                    `;
+                                                                })()}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- ③ 신체상태 -->
+                                                <div class="flex flex-col sm:flex-row gap-2 sm:items-start border-t border-slate-100 pt-3">
+                                                    <div class="w-20 flex-shrink-0 pt-1"><span class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-200 block text-center">신체상태</span></div>
+                                                    <div class="flex-1 space-y-2">
+                                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                                            ${(() => {
+                                                                let health = getVal(cm, 'assessment.data.physical.health');
+                                                                if (!health || (Array.isArray(health) && health.length === 0)) health = getVal(cm, 'initial.physical.health') || [];
+                                                                if (!Array.isArray(health)) health = [health].filter(Boolean);
+                                                                
+                                                                const opts = ['건강하다', '질환은 있지만 건강한 편', '노환으로 허약', '질환으로 나쁨'];
+                                                                return opts.map(h => `
+                                                                    <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition-colors">
+                                                                        <input type="checkbox" name="cm-assess-health" value="${h}" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${health.includes(h) ? 'checked' : ''}>
+                                                                        <span class="text-xs text-slate-700">${h}</span>
+                                                                    </label>`).join('');
+                                                            })()}
+                                                        </div>
+                                                        <div class="flex items-center gap-2 pt-1 border-t border-dashed border-slate-100">
+                                                            <span class="text-xs font-bold text-slate-600">질환명:</span>
+                                                            <input type="text" id="cm-assess-chronic" class="input-field py-0.5 px-2 text-xs flex-1 border-slate-300" placeholder="만성질환 입력" value="${getVal(cm, 'assessment.data.physical.chronic') || getVal(cm, 'initial.physical.chronic') || ''}">
+                                                        </div>
+                                                        <div class="flex flex-wrap items-center gap-4 pt-1 border-t border-dashed border-slate-100">
+                                                            <div class="flex items-center gap-2">
+                                                                <span class="text-xs font-bold text-slate-600">장애:</span>
+                                                                ${(() => {
+                                                                    const disStatus = getVal(cm, 'assessment.data.physical.disabilityStatus') || (getVal(cm, 'initial.physical.disabilityStatus') || (getVal(cm, 'initial.physical.disability')?.includes('유') ? '유' : '무'));
+                                                                    const disType = getVal(cm, 'assessment.data.physical.disabilityType') || getVal(cm, 'initial.physical.disabilityType') || '';
+                                                                    return `
+                                                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="cm-assess-dis-status" value="무" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${disStatus.includes('무')?'checked':''}><span class="text-xs">무</span></label>
+                                                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="cm-assess-dis-status" value="유" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${disStatus.includes('유')?'checked':''} onchange="app.toggleDisplay(this, 'cm-assess-dis-type')"><span class="text-xs">유</span></label>
+                                                                        <input type="text" id="cm-assess-dis-type" class="input-field py-0.5 px-2 text-xs w-28 border-slate-300 ${disStatus.includes('유')?'':'hidden'}" placeholder="유형 입력" value="${disType}">
+                                                                    `;
+                                                                })()}
+                                                            </div>
+                                                            <div class="w-px h-3 bg-slate-300"></div>
+                                                            <div class="flex items-center gap-2">
+                                                                <span class="text-xs font-bold text-slate-600">등급:</span>
+                                                                ${(() => {
+                                                                    let grade = getVal(cm, 'assessment.data.physical.grade');
+                                                                    if (!grade || (Array.isArray(grade) && grade.length === 0)) grade = getVal(cm, 'initial.physical.grade') || [];
+                                                                    if (!Array.isArray(grade)) grade = [grade].filter(Boolean);
+                                                                    
+                                                                    return ['없음', '1~5등급', '인지지원', '등급외'].map(g => `
+                                                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="cm-assess-grade" value="${g}" class="w-3.5 h-3.5 text-blue-600 rounded" ${grade.includes(g)?'checked':''}><span class="text-xs">${g}</span></label>
+                                                                    `).join('');
+                                                                })()}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 2. 영역별 사정 (Narrative) -->
+                                        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                                            <div class="bg-slate-100 p-2.5 border-b border-slate-200 flex items-center gap-2">
+                                                <div class="w-1.5 h-4 bg-slate-500 rounded-full"></div>
+                                                <span class="font-bold text-slate-700 text-sm">2. 영역별 사정 (Assessment Narrative)</span>
+                                            </div>
+                                            <table class="w-full text-sm text-left border-collapse">
+                                                <tbody class="divide-y divide-slate-100">
+                                                    <tr>
+                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[18%] align-top pt-4">신체/건강<br><span class="text-[10px] font-normal text-slate-400">Physical</span></th>
+                                                        <td class="p-0">
+                                                            <textarea id="cm-assess-phy" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="현재 건강상태, 만성질환, 장애유무, ADL/IADL 수행 능력, 복약 관리 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.physical')}</textarea>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-4">심리/정서<br><span class="text-[10px] font-normal text-slate-400">Mental</span></th>
+                                                        <td class="p-0">
+                                                            <textarea id="cm-assess-men" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="우울감, 고독감, 인지기능(치매), 정서적 안정 상태, 자살 위험성 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.mental')}</textarea>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-4">가족/사회<br><span class="text-[10px] font-normal text-slate-400">Social</span></th>
+                                                        <td class="p-0">
+                                                            <textarea id="cm-assess-soc" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="가족 관계, 동거 실태, 부양 의무자 유무, 이웃 관계, 외부 지지체계 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.social')}</textarea>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-4">경제/주거<br><span class="text-[10px] font-normal text-slate-400">Economic</span></th>
+                                                        <td class="p-0">
+                                                            <textarea id="cm-assess-eco" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="수입/지출 현황, 주거 형태(자가/전월세), 주거 환경 안전성, 위생 상태 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.economic')}</textarea>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-4">일상생활<br>및 기타<br><span class="text-[10px] font-normal text-slate-400">Life/Etc</span></th>
+                                                        <td class="p-0">
+                                                            <textarea id="cm-assess-env" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="식사 해결, 가사 활동 수행 능력, 기타 특이사항" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.environment')}</textarea>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <!-- 3. 종합 사정 -->
+                                        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                                            <div class="bg-slate-100 p-2.5 border-b border-slate-200 flex items-center gap-2">
+                                                <div class="w-1.5 h-4 bg-blue-500 rounded-full"></div>
+                                                <span class="font-bold text-slate-700 text-sm">3. 종합 소견 (General Opinion)</span>
+                                            </div>
+                                            <div class="p-0">
+                                                <textarea id="cm-assess-general" class="input-field w-full h-32 border-0 focus:ring-0 rounded-none p-3 resize-none leading-relaxed" placeholder="위기 요인(Problem), 강점(Strength), 자원 등을 종합하여 클라이언트의 주요 욕구 및 문제 정의">${getVal(cm, 'assessment.general')}</textarea>
+                                            </div>
+                                        </div>
+
+                                        <!-- 4. 개입 계획 -->
+                                        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                                            <div class="bg-slate-100 p-2.5 border-b border-slate-200 flex items-center gap-2">
+                                                <div class="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
+                                                <span class="font-bold text-slate-700 text-sm">4. 개입 계획 (Service Plan)</span>
+                                            </div>
+                                            <div class="divide-y divide-slate-100">
+                                                <div class="flex">
+                                                    <div class="w-[18%] bg-slate-50 p-3 font-bold text-slate-700 border-r border-slate-200 text-sm flex items-center justify-center">개입 목표</div>
+                                                    <div class="flex-1 p-0">
+                                                        <textarea id="cm-assess-goal" class="input-field w-full h-20 border-0 focus:ring-0 rounded-none p-3 resize-none leading-relaxed" placeholder="장기 목표 및 단기 목표 설정">${getVal(cm, 'assessment.goal')}</textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="flex">
+                                                    <div class="w-[18%] bg-slate-50 p-3 font-bold text-slate-700 border-r border-slate-200 text-sm flex items-center justify-center">세부 계획</div>
+                                                    <div class="flex-1 p-0">
+                                                        <textarea id="cm-assess-plan" class="input-field w-full h-32 border-0 focus:ring-0 rounded-none p-3 resize-none leading-relaxed" placeholder="제공할 서비스 내용, 연계 자원, 개입 방법 및 빈도 등 구체적 계획 수립">${getVal(cm, 'assessment.plan')}</textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div id="sub-tab-reassess" class="sub-tab-content ${state.ui.caseSubTab === 'reassess' ? 'active' : ''} space-y-4">
-                                        <div class="grid grid-cols-2 gap-3"><div><label class="text-sm block mb-1 font-bold">재사정일자</label><input type="date" id="cm-re-date" class="input-field" value="${getVal(cm, 'reAssessment.date')}"></div><div><label class="text-sm block mb-1 font-bold">진행기간</label><input type="text" id="cm-re-period" class="input-field" placeholder="예: 6개월" value="${getVal(cm, 'reAssessment.period')}"></div></div><div><label class="text-sm block mb-1 font-bold">목표 달성 정도</label><textarea id="cm-re-goal" class="input-field h-20" placeholder="기존 목표 달성 여부 및 변화">${getVal(cm, 'reAssessment.goal')}</textarea></div><div><label class="text-sm block mb-1 font-bold">주요 변화 사항</label><textarea id="cm-re-change" class="input-field h-20" placeholder="대상자의 신체, 정서, 환경적 변화">${getVal(cm, 'reAssessment.change')}</textarea></div><div><label class="text-sm block mb-1 font-bold">향후 계획 (유지/종결/변경)</label><select id="cm-re-plan-type" class="input-field mb-2"><option value="유지" ${getVal(cm, 'reAssessment.planType')==='유지'?'selected':''}>현 서비스 유지</option><option value="변경" ${getVal(cm, 'reAssessment.planType')==='변경'?'selected':''}>서비스 변경/추가</option><option value="종결" ${getVal(cm, 'reAssessment.planType')==='종결'?'selected':''}>서비스 종결</option></select><textarea id="cm-re-plan-detail" class="input-field h-16" placeholder="향후 계획 상세">${getVal(cm, 'reAssessment.planDetail')}</textarea></div>
+                                        <!-- [수정] 재사정 탭 구성 변경: 일자, 분류(2줄 상세), 주소+전화번호, 가족사항, 유형+요인 -->
+                                        <div>
+                                            <label class="text-sm block mb-1 font-bold">재사정일자</label>
+                                            <input type="date" id="cm-re-date" class="input-field w-40" value="${getVal(cm, 'reAssessment.date')}">
+                                        </div>
+
+                                        <!-- [신규] 대상자 기본정보 섹션 (일자 바로 아래 배치) - 한 줄 배치로 수정 -->
+                                        <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+                                            <!-- [수정] 아이콘 제거 -->
+                                            <div class="text-sm font-bold text-slate-700 mb-2">대상자 기본정보</div>
+                                            <div class="flex flex-wrap items-end gap-2">
+                                                <div class="w-20">
+                                                    <label class="text-[10px] text-slate-500 block mb-0.5">이름</label>
+                                                    <input class="input-field py-1 px-2 text-xs bg-slate-50 text-slate-700 text-center" value="${c.name}" readonly tabindex="-1">
+                                                </div>
+                                                <div class="w-16">
+                                                    <label class="text-[10px] text-slate-500 block mb-0.5">등급</label>
+                                                    <input class="input-field py-1 px-2 text-xs bg-slate-50 text-slate-700 text-center" value="${c.careLevel}" readonly tabindex="-1">
+                                                </div>
+                                                <div class="w-24">
+                                                    <label class="text-[10px] text-slate-500 block mb-0.5">생년월일</label>
+                                                    <input class="input-field py-1 px-2 text-xs bg-slate-50 text-slate-700 text-center" value="${c.birthDate}" readonly tabindex="-1">
+                                                </div>
+                                                <div class="flex-1 min-w-[200px]">
+                                                    <label class="text-[10px] text-slate-500 block mb-0.5">주소 (현행화)</label>
+                                                    <input type="text" id="cm-re-address" class="input-field py-1 px-2 text-xs" placeholder="주소 입력" value="${getVal(cm, 'reAssessment.address') || c.address}">
+                                                </div>
+                                                <div class="w-32">
+                                                    <label class="text-[10px] text-slate-500 block mb-0.5">전화번호 (현행화)</label>
+                                                    <input type="text" id="cm-re-phone" class="input-field py-1 px-2 text-xs" placeholder="연락처" value="${getVal(cm, 'reAssessment.phone') || c.phone || ''}">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="bg-slate-50 p-3 rounded border border-slate-200">
+                                            <label class="text-sm block mb-2 font-bold text-slate-700">대상자분류</label>
+                                            <div class="space-y-3">
+                                                <!-- 1줄: 경제상황 -->
+                                                <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                                    <span class="text-xs font-bold text-slate-500 mr-1">[경제]</span>
+                                                    ${(() => {
+                                                        // [수정] 재사정 데이터가 없으면 초기면접지 데이터 불러오기 (자동 체크)
+                                                        let eco = getVal(cm, 'reAssessment.economic');
+                                                        let condDetail = getVal(cm, 'reAssessment.economicDetail.conditional');
+                                                        let otherDetail = getVal(cm, 'reAssessment.economicDetail.other');
+                                                        
+                                                        // 재사정 경제 정보가 비어있으면(배열길이 0 또는 falsy) 초기면접지 정보 사용
+                                                        const isEcoEmpty = !eco || (Array.isArray(eco) && eco.length === 0);
+                                                        if (isEcoEmpty) {
+                                                            eco = getVal(cm, 'initial.living.economic') || [];
+                                                            // 상세 내용도 같이 가져옴
+                                                            if (!condDetail) condDetail = getVal(cm, 'initial.living.economicDetail.conditional');
+                                                            if (!otherDetail) otherDetail = getVal(cm, 'initial.living.economicDetail.other');
+                                                        }
+                                                        
+                                                        // 배열 보장
+                                                        if (!Array.isArray(eco)) eco = [eco].filter(Boolean);
+                                                        
+                                                        return `
+                                                            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-white px-1 py-0.5 rounded transition-colors">
+                                                                <input type="checkbox" name="cm-re-eco" value="기초수급자" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${eco.includes('기초수급자') || eco.includes('기초수급(의료/생계/주거)') ? 'checked' : ''}>
+                                                                <span class="text-sm text-slate-700">기초수급자(의료/생계/주거)</span>
+                                                            </label>
+                                                            <div class="flex items-center gap-1">
+                                                                <label class="flex items-center gap-1.5 cursor-pointer hover:bg-white px-1 py-0.5 rounded transition-colors">
+                                                                    <input type="checkbox" name="cm-re-eco" value="조건부수급자" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${eco.includes('조건부수급자') || eco.includes('조건부 수급') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-re-eco-cond')">
+                                                                    <span class="text-sm text-slate-700">조건부수급자</span>
+                                                                </label>
+                                                                <input type="text" id="cm-re-eco-cond" class="input-field py-0.5 px-2 text-xs w-24 border-slate-300 ${eco.includes('조건부수급자') || eco.includes('조건부 수급') ? '' : 'hidden'}" placeholder="내용" value="${condDetail}">
+                                                            </div>
+                                                            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-white px-1 py-0.5 rounded transition-colors">
+                                                                <input type="checkbox" name="cm-re-eco" value="차상위" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${eco.includes('차상위') ? 'checked' : ''}>
+                                                                <span class="text-sm text-slate-700">차상위</span>
+                                                            </label>
+                                                            <label class="flex items-center gap-1.5 cursor-pointer hover:bg-white px-1 py-0.5 rounded transition-colors">
+                                                                <input type="checkbox" name="cm-re-eco" value="일반(저소득)" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${eco.includes('일반(저소득)') ? 'checked' : ''}>
+                                                                <span class="text-sm text-slate-700">일반(저소득)</span>
+                                                            </label>
+                                                            <div class="flex items-center gap-1">
+                                                                <label class="flex items-center gap-1.5 cursor-pointer hover:bg-white px-1 py-0.5 rounded transition-colors">
+                                                                    <input type="checkbox" name="cm-re-eco" value="기타" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${eco.includes('기타') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-re-eco-other')">
+                                                                    <span class="text-sm text-slate-700">기타</span>
+                                                                </label>
+                                                                <input type="text" id="cm-re-eco-other" class="input-field py-0.5 px-2 text-xs w-24 border-slate-300 ${eco.includes('기타') ? '' : 'hidden'}" placeholder="내용" value="${otherDetail}">
+                                                            </div>
+                                                        `;
+                                                    })()}
+                                                </div>
+                                                
+                                                <!-- 2줄: 세대유형 -->
+                                                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-dashed border-slate-200 pt-2">
+                                                    <span class="text-xs font-bold text-slate-500 mr-1">[세대]</span>
+                                                    ${['독거', '부부세대', '동거', '자녀동거세대', '조손동거세대'].map(h => {
+                                                        // [수정] 재사정 데이터가 없으면 초기면접지 데이터 불러오기 (자동 체크)
+                                                        let household = getVal(cm, 'reAssessment.household');
+                                                        
+                                                        const isHouseEmpty = !household || (Array.isArray(household) && household.length === 0);
+                                                        if (isHouseEmpty) {
+                                                            household = getVal(cm, 'initial.living.household') || [];
+                                                        }
+                                                        
+                                                        if (!Array.isArray(household)) household = [household].filter(Boolean);
+                                                        
+                                                        // 초기면접지의 '독거세대'와 재사정의 '독거' 호환 처리
+                                                        const isChecked = household.includes(h) || (h === '독거' && household.includes('독거세대'));
+
+                                                        return `
+                                                        <label class="flex items-center gap-1.5 cursor-pointer hover:bg-white px-1 py-0.5 rounded transition-colors">
+                                                            <input type="checkbox" name="cm-re-house" value="${h}" class="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500" ${isChecked ? 'checked' : ''}>
+                                                            <span class="text-sm text-slate-700">${h}</span>
+                                                        </label>`;
+                                                    }).join('')}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- [수정] 재사정유형과 재사정 요인 나란히 배치 (주소, 전화번호는 위로 이동됨) -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div>
+                                                <label class="text-sm block mb-1 font-bold text-slate-700">재사정유형</label>
+                                                ${(() => {
+                                                    const rType = getVal(cm, 'reAssessment.type');
+                                                    const rOpts = ["새로운 욕구가 발생", "긴급한 상황이 발생"];
+                                                    let rSel = "";
+                                                    let rInp = "";
+                                                    let rHidden = "hidden";
+                                                    
+                                                    if (rType) {
+                                                        if (rOpts.includes(rType)) {
+                                                            rSel = rType;
+                                                        } else {
+                                                            rSel = "기타";
+                                                            rInp = rType;
+                                                            rHidden = "";
+                                                        }
+                                                    }
+                                                    
+                                                    return `
+                                                    <select id="cm-re-type-select" class="input-field h-[42px] mb-1" onchange="const inp=document.getElementById('cm-re-type-detail'); if(this.value==='기타'){inp.classList.remove('hidden');inp.focus();}else{inp.classList.add('hidden');inp.value='';}">
+                                                        <option value="">선택</option>
+                                                        <option value="새로운 욕구가 발생" ${rSel==='새로운 욕구가 발생'?'selected':''}>새로운 욕구가 발생</option>
+                                                        <option value="긴급한 상황이 발생" ${rSel==='긴급한 상황이 발생'?'selected':''}>긴급한 상황이 발생</option>
+                                                        <option value="기타" ${rSel==='기타'?'selected':''}>기타(입력)</option>
+                                                    </select>
+                                                    <input type="text" id="cm-re-type-detail" class="input-field ${rHidden}" placeholder="기타 사유 입력" value="${rInp}">
+                                                    `;
+                                                })()}
+                                            </div>
+                                            <div>
+                                                <label class="text-sm block mb-1 font-bold text-slate-700">재사정 요인</label>
+                                                <select id="cm-re-factor" class="input-field h-[42px]">
+                                                    <option value="">선택</option>
+                                                    ${['대상자에 의한 요인', '기관과 사회복지사에 의한 요인', '자원과 환경에 의한 요인'].map(opt => `<option value="${opt}" ${getVal(cm, 'reAssessment.factor') === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div><label class="text-sm block mb-1 font-bold">CT변화욕구</label><textarea id="cm-re-ct-needs" class="input-field h-20" placeholder="내용 입력">${getVal(cm, 'reAssessment.ctNeeds')}</textarea></div>
+                                        
+                                        <div><label class="text-sm block mb-1 font-bold">서비스제공 및 문제</label><textarea id="cm-re-service-issue" class="input-field h-20" placeholder="내용 입력">${getVal(cm, 'reAssessment.serviceIssue')}</textarea></div>
+                                        
+                                        <div><label class="text-sm block mb-1 font-bold">Worker's 의견</label><textarea id="cm-re-worker-opinion" class="input-field h-20" placeholder="내용 입력">${getVal(cm, 'reAssessment.workerOpinion')}</textarea></div>
+                                        
+                                        <div>
+                                            <label class="text-sm block mb-1 font-bold">재사정 결과</label>
+                                            <select id="cm-re-result" class="input-field">
+                                                <option value="">선택</option>
+                                                ${['종결', '서비스 재계획', '의뢰', '현상태 유지'].map(opt => `<option value="${opt}" ${getVal(cm, 'reAssessment.result') === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                                            </select>
+                                        </div>
+                                        
+                                        <div><label class="text-sm block mb-1 font-bold">향후계획</label><textarea id="cm-re-plan" class="input-field h-20" placeholder="내용 입력">${getVal(cm, 'reAssessment.plan')}</textarea></div>
                                     </div>
                                     
                                     <!-- [수정] 만족도조사 탭: 항목별 초기화 버튼 배치 -->
@@ -4782,21 +5512,105 @@
                 const assessment = {
                     date: getEl('cm-assess-date'),
                     writer: getEl('cm-assess-writer'),
-                    scoreHealth: getEl('cm-assess-score-health'),
-                    scoreMental: getEl('cm-assess-score-mental'),
-                    scoreEco: getEl('cm-assess-score-eco'),
-                    scoreSocial: getEl('cm-assess-score-social'),
-                    content: getEl('cm-assess-content'),
-                    plan: getEl('cm-assess-plan')
+                    // [신규] 상세 기본정보 데이터 저장
+                    data: {
+                        economic: getCheckedValues('cm-assess-eco'),
+                        economicDetail: {
+                            conditional: getEl('cm-assess-eco-cond'),
+                            other: getEl('cm-assess-eco-other'),
+                            monthlyIncome: getEl('cm-assess-eco-income'),
+                            // [수정] 소득원 상세 데이터 저장 구조 변경
+                            incomeSources: {
+                                earned: { checked: getCheck('cm-assess-inc-earned'), value: getEl('cm-assess-inc-earned-val') },
+                                gov: { checked: getCheck('cm-assess-inc-gov'), value: getEl('cm-assess-inc-gov-val') },
+                                sponsor: { checked: getCheck('cm-assess-inc-sponsor'), value: getEl('cm-assess-inc-sponsor-val') },
+                                support: { checked: getCheck('cm-assess-inc-support'), value: getEl('cm-assess-inc-support-val') }
+                            }
+                        },
+                        household: getCheckedValues('cm-assess-house'),
+                        housing: getCheckedValues('cm-assess-housing'),
+                        housingDetail: {
+                            jeonseDeposit: getEl('cm-assess-house-j-dep'),
+                            wolseDeposit: getEl('cm-assess-house-w-dep'),
+                            wolseRent: getEl('cm-assess-house-w-rent')
+                        },
+                        // [신규] 주택형태 저장
+                        dwellingType: getCheckedValues('cm-assess-dwelling'),
+                        dwellingDetail: {
+                            other: getEl('cm-assess-dwelling-other')
+                        },
+                        // [신규] 주거환경 저장
+                        housingEnvironment: getCheckedValues('cm-assess-env-type'),
+                        housingEnvironmentDetail: {
+                            elevator: document.querySelector('input[name="cm-assess-env-elevator"]:checked')?.value || '',
+                            other: getEl('cm-assess-env-other')
+                        },
+                        // [신규] 화장실 형태 저장
+                        toiletType: {
+                            share: getCheckedValues('cm-assess-toilet-share'),
+                            style: getCheckedValues('cm-assess-toilet-style')
+                        },
+                        // [신규] 난방형태 저장
+                        heatingType: getCheckedValues('cm-assess-heating'),
+                        heatingTypeDetail: {
+                            other: getEl('cm-assess-heating-other')
+                        },
+                        // [신규] 주택/위생 상태 저장
+                        housingCondition: {
+                            status: getCheckedValues('cm-assess-h-cond').join(', '),
+                            detail: getEl('cm-assess-h-cond-detail')
+                        },
+                        hygieneCondition: {
+                            status: getCheckedValues('cm-assess-hy-cond').join(', '),
+                            detail: getEl('cm-assess-hy-cond-detail')
+                        },
+                        physical: {
+                            health: getCheckedValues('cm-assess-health'),
+                            chronic: getEl('cm-assess-chronic'),
+                            disabilityStatus: getCheckedValues('cm-assess-dis-status').join(', '),
+                            disabilityType: getEl('cm-assess-dis-type'),
+                            grade: getCheckedValues('cm-assess-grade')
+                        }
+                    },
+                    // [수정] 상세 사정 내용 매핑 (Narrative)
+                    physical: getEl('cm-assess-phy'),
+                    mental: getEl('cm-assess-men'),
+                    social: getEl('cm-assess-soc'),
+                    economic: getEl('cm-assess-eco'),
+                    environment: getEl('cm-assess-env'),
+                    // 종합 및 계획
+                    general: getEl('cm-assess-general'),
+                    goal: getEl('cm-assess-goal'),
+                    plan: getEl('cm-assess-plan'),
+                    // 하위 호환을 위해 유지 (필요시)
+                    content: getEl('cm-assess-general') 
                 };
 
+                // [수정] 재사정 데이터 매핑 변경 (전화번호 추가)
                 const reAssessment = {
                     date: getEl('cm-re-date'),
-                    period: getEl('cm-re-period'),
-                    goal: getEl('cm-re-goal'),
-                    change: getEl('cm-re-change'),
-                    planType: getEl('cm-re-plan-type'),
-                    planDetail: getEl('cm-re-plan-detail')
+                    // 분류 데이터 (경제 + 세대)
+                    economic: getCheckedValues('cm-re-eco'),
+                    economicDetail: {
+                        conditional: getEl('cm-re-eco-cond'),
+                        other: getEl('cm-re-eco-other')
+                    },
+                    household: getCheckedValues('cm-re-house'),
+                    // 기타 정보
+                    address: getEl('cm-re-address'),
+                    phone: getEl('cm-re-phone'), // [추가] 전화번호
+                    family: getEl('cm-re-family'),
+                    // [복구] 재사정유형 저장 로직 (Select + Input 조합)
+                    type: (() => {
+                        const sel = document.getElementById('cm-re-type-select');
+                        return (sel && sel.value === '기타') ? document.getElementById('cm-re-type-detail').value : (sel ? sel.value : '');
+                    })(),
+                    factor: getEl('cm-re-factor'),
+                    ctNeeds: getEl('cm-re-ct-needs'),
+                    serviceIssue: getEl('cm-re-service-issue'),
+                    workerOpinion: getEl('cm-re-worker-opinion'),
+                    result: getEl('cm-re-result'),
+                    plan: getEl('cm-re-plan')
                 };
 
                 const satisfaction = {
@@ -4931,21 +5745,69 @@
                     return (val === undefined || val === null) ? '' : val;
                 };
 
+                // [수정] 서비스 일지와 동일한 결재란 HTML 구조 정의
+                const signBoxHtml = `
+                    <table class="sign-box">
+                        <colgroup>
+                            <col style="width: 30px;">
+                            <col style="width: 75px;">
+                            <col style="width: 75px;">
+                        </colgroup>
+                        <tr>
+                            <td rowspan="2" class="bg-gray">결<br>재</td>
+                            <td class="bg-gray" style="height: 25px;">담 당</td>
+                            <td class="bg-gray">센터장</td>
+                        </tr>
+                        <tr>
+                            <td style="height: 60px;"></td>
+                            <td></td>
+                        </tr>
+                    </table>
+                `;
+
+                // [수정] 공통 CSS 업데이트 (서비스 일지 스타일 적용)
                 const commonCss = `
                     <style>
-                        body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; font-size: 12px; line-height: 1.4; color: #000; }
-                        h1 { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px; text-decoration: underline; }
-                        h2 { font-size: 16px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; border-left: 4px solid #333; padding-left: 8px; background: #eee; padding: 5px; }
+                        @page { margin: 0; size: A4 portrait; }
+                        body { 
+                            font-family: 'Malgun Gothic', 'Dotum', sans-serif; 
+                            padding: 20px 0.5cm 20px 2cm; 
+                            color: #000; 
+                            font-size: 11px;
+                            -webkit-print-color-adjust: exact; 
+                            print-color-adjust: exact; 
+                        }
+                        h1 { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px; text-decoration: underline; letter-spacing: 2px; }
+                        h2 { font-size: 14px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; border-left: 4px solid #333; padding-left: 8px; background: #eee; padding: 5px; }
+                        
+                        /* 테이블 스타일 */
                         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
                         th, td { border: 1px solid #000; padding: 5px; word-break: break-all; vertical-align: middle; }
                         th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
+                        
+                        /* 결재란 스타일 (서비스 일지와 동일하게 조정) */
+                        .sign-box { 
+                            border-collapse: collapse; 
+                            display: inline-table; 
+                            font-size: 11px; 
+                            width: 180px; 
+                            float: right; 
+                            margin-bottom: 20px; 
+                            table-layout: fixed; 
+                        }
+                        .sign-box td { 
+                            border: 1px solid #000; 
+                            text-align: center; 
+                            vertical-align: middle; 
+                            padding: 0; 
+                        }
+                        
+                        /* 유틸리티 */
                         .text-center { text-align: center; }
                         .text-bold { font-weight: bold; }
                         .chk { display: inline-block; width: 12px; height: 12px; border: 1px solid #000; margin-right: 3px; vertical-align: middle; text-align: center; line-height: 10px; font-size: 10px; }
                         .chk.checked { background: #000; color: #fff; }
-                        .row-flex { display: flex; gap: 10px; align-items: center; }
-                        .sign-box { float: right; margin-bottom: 20px; border-collapse: collapse; }
-                        .sign-box td { border: 1px solid #000; text-align: center; padding: 5px; }
+                        .bg-gray { background-color: #e5e7eb !important; font-weight: bold; } /* 색상 진하게 조정 */
                         .clearfix::after { content: ""; clear: both; display: table; }
                     </style>
                 `;
@@ -4973,10 +5835,7 @@
 
                     htmlContent = `
                         <h1>초 기 면 접 지</h1>
-                        <table class="sign-box" style="width: 200px;">
-                            <tr><td rowspan="2" class="bg-gray">결<br>재</td><td>담 당</td><td>센터장</td></tr>
-                            <tr><td style="height: 50px;"></td><td></td></tr>
-                        </table>
+                        ${signBoxHtml}
                         <div class="clearfix"></div>
 
                         <table>
@@ -5024,56 +5883,263 @@
                     `;
                 } else if (docType === 'assessment') {
                     docTitle = '사정기록지';
+                    
+                    // [신규] 인쇄용 데이터 추출
+                    const aData = getVal(cm, 'assessment.data') || {};
+                    const eco = aData.economic || [];
+                    const house = aData.household || [];
+                    const housing = aData.housing || [];
+                    const health = aData.physical?.health || [];
+                    const chronic = aData.physical?.chronic || '';
+                    const disStatus = aData.physical?.disabilityStatus || '';
+                    const disType = aData.physical?.disabilityType || '';
+                    const grade = aData.physical?.grade || [];
+
+                    // [수정] 소득원 텍스트 생성
+                    const incSrc = aData.economicDetail?.incomeSources || {};
+                    const incSrcText = [];
+                    if (incSrc.earned?.checked) incSrcText.push(`근로소득${incSrc.earned.value ? `(${incSrc.earned.value})` : ''}`);
+                    if (incSrc.gov?.checked) incSrcText.push(`정부지원금${incSrc.gov.value ? `(${incSrc.gov.value})` : ''}`);
+                    if (incSrc.sponsor?.checked) incSrcText.push(`후원금${incSrc.sponsor.value ? `(${incSrc.sponsor.value})` : ''}`);
+                    if (incSrc.support?.checked) incSrcText.push(`부양자지원${incSrc.support.value ? `(${incSrc.support.value})` : ''}`);
+
+                    // [신규] 주택형태 텍스트 생성
+                    const dwelling = aData.dwellingType || [];
+                    const dwellingOther = aData.dwellingDetail?.other || '';
+                    const dwellingText = dwelling.map(d => (d === '기타' && dwellingOther) ? `기타(${dwellingOther})` : d).join(', ');
+
+                    // [신규] 주거환경 텍스트 생성
+                    const envTypes = aData.housingEnvironment || [];
+                    const envElevator = aData.housingEnvironmentDetail?.elevator || '';
+                    const envOther = aData.housingEnvironmentDetail?.other || '';
+                    const envText = envTypes.map(t => {
+                        if (t === '2층이상') return `2층이상${envElevator ? `(${envElevator})` : ''}`;
+                        if (t === '기타') return `기타(${envOther})`;
+                        return t;
+                    }).join(', ');
+
+                    // [신규] 화장실 형태 텍스트 생성
+                    let tShare = aData.toiletType?.share || [];
+                    if (!Array.isArray(tShare)) tShare = [tShare].filter(Boolean);
+                    
+                    let tStyle = aData.toiletType?.style || [];
+                    if (!Array.isArray(tStyle)) tStyle = [tStyle].filter(Boolean);
+                    
+                    const toiletText = [tShare.join(','), tStyle.join(',')].filter(Boolean).join('/');
+
+                    // [신규] 난방형태 텍스트 생성
+                    const heating = aData.heatingType || [];
+                    const heatingOther = aData.heatingTypeDetail?.other || '';
+                    const heatingText = heating.map(h => (h === '기타' && heatingOther) ? `기타(${heatingOther})` : h).join(', ');
+
+                    // [신규] 주택/위생 상태 텍스트 생성
+                    const hCond = aData.housingCondition?.status || '';
+                    const hDetail = aData.housingCondition?.detail || '';
+                    const hText = hCond ? `${hCond}${hDetail ? `(${hDetail})` : ''}` : '-';
+
+                    const hyCond = aData.hygieneCondition?.status || '';
+                    const hyDetail = aData.hygieneCondition?.detail || '';
+                    const hyText = hyCond ? `${hyCond}${hyDetail ? `(${hyDetail})` : ''}` : '-';
+
                     htmlContent = `
-                        <h1>위기도 사정 기록지</h1>
-                        <table class="sign-box" style="width: 200px;">
-                            <tr><td rowspan="2" class="bg-gray">결<br>재</td><td>담 당</td><td>센터장</td></tr>
-                            <tr><td style="height: 50px;"></td><td></td></tr>
-                        </table>
+                        <h1>사 정 기 록 지</h1>
+                        ${signBoxHtml}
                         <div class="clearfix"></div>
 
                         <table>
-                            <tr><th>대상자명</th><td>${client.name}</td><th>작성일자</th><td>${getVal(cm, 'assessment.date')}</td></tr>
-                            <tr><th>작성자</th><td>${getVal(cm, 'assessment.writer')}</td><th>판정점수</th><td>${Number(getVal(cm, 'assessment.scoreHealth')||0) + Number(getVal(cm, 'assessment.scoreMental')||0) + Number(getVal(cm, 'assessment.scoreEco')||0) + Number(getVal(cm, 'assessment.scoreSocial')||0)}점</td></tr>
+                            <col width="15%"><col width="35%"><col width="15%"><col width="35%">
+                            <tr>
+                                <th>대상자명</th><td>${client.name}</td>
+                                <th>생년월일</th><td>${client.birthDate} (${calculateAge(client.birthDate)}세)</td>
+                            </tr>
+                            <tr>
+                                <th>사정일자</th><td>${getVal(cm, 'assessment.date')}</td>
+                                <th>작성자</th><td>${getVal(cm, 'assessment.writer')}</td>
+                            </tr>
                         </table>
 
-                        <h2>1. 사정 영역별 점수</h2>
+                        <h2>1. 대상자 기본정보 및 상세현황</h2>
                         <table>
-                            <tr><th>신체적 영역</th><td>${getVal(cm, 'assessment.scoreHealth')}점</td><th>정서적 영역</th><td>${getVal(cm, 'assessment.scoreMental')}점</td></tr>
-                            <tr><th>경제적 영역</th><td>${getVal(cm, 'assessment.scoreEco')}점</td><th>사회적 영역</th><td>${getVal(cm, 'assessment.scoreSocial')}점</td></tr>
+                            <col width="15%"><col width="85%">
+                            <tr>
+                                <th>경제상황</th>
+                                <td>
+                                    <strong>[수급]</strong> ${eco.join(', ') || '-'} 
+                                    ${aData.economicDetail?.conditional ? `(${aData.economicDetail.conditional})` : ''}<br>
+                                    <strong>[소득]</strong> ${aData.economicDetail?.monthlyIncome ? `월 ${aData.economicDetail.monthlyIncome}만원` : '-'}
+                                    ${incSrcText.length > 0 ? ` / <strong>[소득원]</strong> ${incSrcText.join(', ')}` : ''}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>세대/주거</th>
+                                <td>
+                                    ${house.join(', ') || '-'} / ${housing.join(', ') || '-'}
+                                    ${aData.housingDetail?.jeonseDeposit ? `(전세:${aData.housingDetail.jeonseDeposit}만)` : ''}
+                                    ${aData.housingDetail?.wolseDeposit ? `(보:${aData.housingDetail.wolseDeposit}만/월:${aData.housingDetail.wolseRent}만)` : ''}
+                                    <br>
+                                    <strong>[유형]</strong> ${dwellingText || '-'} <br>
+                                    <strong>[환경]</strong> ${envText || '-'} ${toiletText ? ` / <strong>[화장실]</strong> ${toiletText}` : ''} <br>
+                                    <strong>[난방]</strong> ${heatingText || '-'} <br>
+                                    <strong>[주택]</strong> ${hText} / <strong>[위생]</strong> ${hyText}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>신체상태</th>
+                                <td>
+                                    [건강] ${health.join(', ') || '-'} <br>
+                                    [질환] ${chronic || '-'} <br>
+                                    [장애] ${disStatus}${disStatus.includes('유')?`(${disType})`:''} / [등급] ${grade.join(', ') || '-'}
+                                </td>
+                            </tr>
                         </table>
 
-                        <h2>2. 사정 내용 및 개입 계획</h2>
+                        <h2>2. 영역별 사정 (Narrative)</h2>
                         <table>
-                            <tr><th width="20%" height="200">사정 내용</th><td style="vertical-align: top;">${(getVal(cm, 'assessment.content')||'').replace(/\n/g, '<br>')}</td></tr>
-                            <tr><th width="20%" height="200">개입 계획</th><td style="vertical-align: top;">${(getVal(cm, 'assessment.plan')||'').replace(/\n/g, '<br>')}</td></tr>
+                            <col width="15%"><col width="85%">
+                            <tr>
+                                <th>신체/건강</th>
+                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.physical')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                            <tr>
+                                <th>심리/정서</th>
+                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.mental')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                            <tr>
+                                <th>가족/사회</th>
+                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.social')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                            <tr>
+                                <th>경제/주거</th>
+                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.economic')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                            <tr>
+                                <th>일상/기타</th>
+                                <td style="text-align: left; vertical-align: top; height: 60px;">${(getVal(cm, 'assessment.environment')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                        </table>
+
+                        <h2>3. 종합 소견 (욕구 및 문제)</h2>
+                        <table>
+                            <tr>
+                                <td style="text-align: left; vertical-align: top; height: 150px; padding: 10px;">${(getVal(cm, 'assessment.general')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                        </table>
+
+                        <h2>4. 개입 계획</h2>
+                        <table>
+                            <col width="15%"><col width="85%">
+                            <tr>
+                                <th>개입 목표</th>
+                                <td style="text-align: left; vertical-align: top; height: 60px;">${(getVal(cm, 'assessment.goal')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                            <tr>
+                                <th>세부 계획</th>
+                                <td style="text-align: left; vertical-align: top; height: 120px;">${(getVal(cm, 'assessment.plan')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
                         </table>
                     `;
                 } else if (docType === 'reassess') {
                     docTitle = `재사정기록지(${year}년)`;
+                    
+                    // 1. 경제상황 텍스트 생성
+                    const eco = getVal(cm, 'reAssessment.economic') || [];
+                    const ecoCond = getVal(cm, 'reAssessment.economicDetail.conditional');
+                    const ecoOther = getVal(cm, 'reAssessment.economicDetail.other');
+                    
+                    const ecoText = eco.map(e => {
+                        if ((e === '조건부수급자' || e === '조건부 수급') && ecoCond) return `조건부수급자(${ecoCond})`;
+                        if (e === '기타' && ecoOther) return `기타(${ecoOther})`;
+                        return e;
+                    }).join(', ');
+
+                    // 2. 세대유형 텍스트 생성
+                    const household = (getVal(cm, 'reAssessment.household') || []).join(', ');
+
                     htmlContent = `
                         <h1>재 사 정 기 록 지 (${year}년)</h1>
-                        <table class="sign-box" style="width: 200px;">
-                            <tr><td rowspan="2" class="bg-gray">결<br>재</td><td>담 당</td><td>센터장</td></tr>
-                            <tr><td style="height: 50px;"></td><td></td></tr>
-                        </table>
+                        ${signBoxHtml}
                         <div class="clearfix"></div>
 
+                        <!-- 1. 상단: 재사정일자 -->
+                        <div style="text-align: right; margin-bottom: 5px; font-weight: bold;">
+                            재사정일자 : ${getVal(cm, 'reAssessment.date')}
+                        </div>
+
+                        <!-- 2. 대상자 기본정보 -->
+                        <h2>1. 대상자 기본정보</h2>
                         <table>
-                            <tr><th>대상자명</th><td>${client.name}</td><th>재사정일자</th><td>${getVal(cm, 'reAssessment.date')}</td></tr>
-                            <tr><th>진행기간</th><td colspan="3">${getVal(cm, 'reAssessment.period')}</td></tr>
+                            <colgroup>
+                                <col width="15%">
+                                <col width="35%">
+                                <col width="15%">
+                                <col width="35%">
+                            </colgroup>
+                            <tr>
+                                <th>대상자명</th>
+                                <td>${client.name}</td>
+                                <th>생년월일</th>
+                                <td>${client.birthDate}</td>
+                            </tr>
+                            <tr>
+                                <th>등급</th>
+                                <td>${client.careLevel}</td>
+                                <th>전화번호(현행)</th>
+                                <td>${getVal(cm, 'reAssessment.phone')}</td>
+                            </tr>
+                            <tr>
+                                <th>주소(현행)</th>
+                                <td colspan="3">${getVal(cm, 'reAssessment.address')}</td>
+                            </tr>
                         </table>
 
-                        <h2>1. 재사정 내용</h2>
+                        <!-- 3. 대상자 분류 -->
+                        <h2>2. 대상자 분류</h2>
                         <table>
-                            <tr><th width="20%" height="150">목표달성 정도</th><td style="vertical-align: top;">${(getVal(cm, 'reAssessment.goal')||'').replace(/\n/g, '<br>')}</td></tr>
-                            <tr><th width="20%" height="150">주요 변화</th><td style="vertical-align: top;">${(getVal(cm, 'reAssessment.change')||'').replace(/\n/g, '<br>')}</td></tr>
+                            <tr>
+                                <th width="15%">경제상황</th>
+                                <td>${ecoText || '-'}</td>
+                            </tr>
+                            <tr>
+                                <th>세대유형</th>
+                                <td>${household || '-'}</td>
+                            </tr>
                         </table>
 
-                        <h2>2. 향후 계획</h2>
+                        <!-- 4. 재사정 내용 -->
+                        <h2>3. 재사정 내용</h2>
                         <table>
-                            <tr><th width="20%">계획 구분</th><td>${renderRadio(getVal(cm, 'reAssessment.planType'), '유지')} &nbsp; ${renderRadio(getVal(cm, 'reAssessment.planType'), '변경')} &nbsp; ${renderRadio(getVal(cm, 'reAssessment.planType'), '종결')}</td></tr>
-                            <tr><th width="20%" height="100">상세 계획</th><td style="vertical-align: top;">${(getVal(cm, 'reAssessment.planDetail')||'').replace(/\n/g, '<br>')}</td></tr>
+                            <colgroup>
+                                <col width="15%">
+                                <col width="35%">
+                                <col width="15%">
+                                <col width="35%">
+                            </colgroup>
+                            <tr>
+                                <th>재사정 유형</th>
+                                <td>${getVal(cm, 'reAssessment.type')}</td>
+                                <th>재사정 요인</th>
+                                <td>${getVal(cm, 'reAssessment.factor')}</td>
+                            </tr>
+                            <tr>
+                                <th>CT 변화욕구</th>
+                                <td colspan="3" style="height: 80px; vertical-align: top;">${(getVal(cm, 'reAssessment.ctNeeds')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                            <tr>
+                                <th>서비스 제공<br>및 문제점</th>
+                                <td colspan="3" style="height: 80px; vertical-align: top;">${(getVal(cm, 'reAssessment.serviceIssue')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                            <tr>
+                                <th>Worker's 의견</th>
+                                <td colspan="3" style="height: 80px; vertical-align: top;">${(getVal(cm, 'reAssessment.workerOpinion')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                            <tr>
+                                <th>재사정 결과</th>
+                                <td colspan="3">${getVal(cm, 'reAssessment.result')}</td>
+                            </tr>
+                            <tr>
+                                <th>향후계획</th>
+                                <td colspan="3" style="height: 80px; vertical-align: top;">${(getVal(cm, 'reAssessment.plan')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
                         </table>
                     `;
                 } else if (docType === 'satisfaction') {
@@ -5083,10 +6149,7 @@
 
                     htmlContent = `
                         <h1>서비스 만족도 및 욕구조사 (${year}년)</h1>
-                        <table class="sign-box" style="width: 200px;">
-                            <tr><td rowspan="2" class="bg-gray">결<br>재</td><td>담 당</td><td>센터장</td></tr>
-                            <tr><td style="height: 50px;"></td><td></td></tr>
-                        </table>
+                        ${signBoxHtml}
                         <div class="clearfix"></div>
 
                         <table>
@@ -5126,10 +6189,7 @@
                     docTitle = `사례평가서(${year}년)`;
                     htmlContent = `
                         <h1>사 례 평 가 서 (${year}년)</h1>
-                        <table class="sign-box" style="width: 200px;">
-                            <tr><td rowspan="2" class="bg-gray">결<br>재</td><td>담 당</td><td>센터장</td></tr>
-                            <tr><td style="height: 50px;"></td><td></td></tr>
-                        </table>
+                        ${signBoxHtml}
                         <div class="clearfix"></div>
 
                         <table>
@@ -5259,8 +6319,8 @@
             handleSubModalOverlayClick: () => { if (state.ui.allowOverlayClose) closeModal(); },
 
             // [복구 및 수정] 서비스 일지 관련 기능 및 공통 함수
-            openLogModal: (id = null) => {
-                const l = id ? state.logs.find(x => x.id === id) : {};
+            openLogModal: (id = null, prefillData = null) => {
+                const l = id ? state.logs.find(x => x.id === id) : (prefillData || {});
                 const today = new Date().toISOString().split('T')[0];
                 const isEdit = !!id;
                 
@@ -5274,7 +6334,7 @@
                     <div class="bg-white w-full max-w-3xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto flex flex-col">
                         <div class="flex justify-between items-center mb-6 flex-shrink-0">
                             <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
-                                <i data-lucide="file-text" class="text-emerald-600"></i> ${isEdit ? '일지 수정' : '일지 작성'}
+                                <i data-lucide="file-text" class="text-emerald-600"></i> ${isEdit ? '일지 수정' : (prefillData ? '일지 복사 작성' : '일지 작성')}
                             </h3>
                             <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
@@ -5495,24 +6555,32 @@
                 }
             },
 
-            duplicateLog: async (id) => {
+            duplicateLog: (id) => {
                 const l = state.logs.find(x => x.id === id);
                 if (!l) return;
-                // eslint-disable-next-line no-unused-vars
-                const { id: _, ...data } = l;
-                data.date = new Date().toISOString().split('T')[0]; // 오늘 날짜로 복사
-                data.createdAt = new Date().toISOString();
-                try {
-                    await addDoc(collection(db, "logs"), data);
-                    alert("일지가 복사되었습니다 (오늘 날짜).");
-                    if(state.viewMode==='single') updateTabContent('logs'); else render();
-                } catch (err) { alert("복사 실패: " + err.message); }
+                
+                // 데이터를 복사하여 작성 팝업으로 전달 (ID 및 생성일시 제외)
+                const data = { ...l };
+                delete data.id;
+                delete data.createdAt;
+                data.date = new Date().toISOString().split('T')[0]; // 오늘 날짜로 기본 설정
+                
+                // 작성 팝업 열기
+                app.openLogModal(null, data);
             },
 
-            deleteData: async (collectionName, id) => {
-                if (!confirm("정말 삭제하시겠습니까?")) return;
+            deleteData: (collectionName, id) => {
+                const names = { 'logs': '일지', 'clients': '대상자', 'services': '서비스', 'meetings': '회의록' };
+                const name = names[collectionName] || '데이터';
+                const html = `<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">${name} 삭제</h3><p class="text-sm text-slate-500 mb-6">정말 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDeleteData('${collectionName}', '${id}')" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">취소</button></div></div></div>`;
+                showDialog(html);
+                if(window.lucide) lucide.createIcons();
+            },
+
+            executeDeleteData: async (collectionName, id) => {
                 try {
                     await deleteDoc(doc(db, collectionName, id));
+                    app.closeDialog();
                     if(state.viewMode==='single') {
                         if(collectionName === 'logs') updateTabContent('logs');
                         else if(collectionName === 'clients') updateTabContent('clients');
@@ -5521,7 +6589,11 @@
                     } else {
                         render();
                     }
-                } catch (err) { alert("삭제 실패: " + err.message); }
+                } catch (err) { 
+                    console.error("Delete failed", err);
+                    // 에러 발생 시 사용자 알림은 기존 패턴 유지
+                    alert("삭제 실패: " + err.message); 
+                }
             },
             
             // [신규] 초기화 기능 구현 (체크박스/라디오만 초기화, 텍스트 유지)
@@ -5551,7 +6623,150 @@
             },
             
             // 엑셀/인쇄 관련 유틸리티
-            printLogs: () => { window.print(); },
+            // [수정] 인쇄 기능 개선 (기간 표시 및 레이아웃 디자인 정돈)
+            printLogs: () => {
+                const logs = getFilteredLogs();
+                if (logs.length === 0) return alert("인쇄할 데이터가 없습니다.");
+
+                // 기간 계산 로직 추가
+                const dates = logs.map(l => l.date).sort();
+                const startDate = dates[0];
+                const endDate = dates[dates.length - 1];
+                const periodText = (startDate && endDate) ? `${startDate} ~ ${endDate}` : "-";
+
+                const commonCss = `
+                    @page { margin: 0; size: A4 portrait; } /* 브라우저 기본 여백 제거 */
+                    body { 
+                        font-family: 'Malgun Gothic', 'Dotum', sans-serif; 
+                        padding: 20px 0.5cm 20px 2cm; 
+                        color: #000; 
+                        font-size: 11px;
+                        -webkit-print-color-adjust: exact; /* 크롬 등에서 배경색 인쇄 강제 */
+                        print-color-adjust: exact; 
+                    }
+                    .header-wrap { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; border-bottom: 3px double #333; padding-bottom: 15px; }
+                    h1 { text-align: center; font-size: 26px; font-weight: bold; margin: 0; flex: 1; letter-spacing: 5px; transform: translateX(10px); }
+                    .sign-box { border-collapse: collapse; display: inline-table; font-size: 11px; width: 180px; margin-left: 20px; table-layout: fixed; } /* table-layout: fixed 추가 */
+                    .sign-box td { border: 1px solid #000; text-align: center; vertical-align: middle; padding: 0; }
+                    .bg-gray { background-color: #e5e7eb !important; font-weight: bold; } /* 색상을 조금 더 진하게 조정 */
+                    
+                    .info-bar { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px; margin-top: 5px; font-size: 12px; font-weight: bold; }
+                    
+                    table.log-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 1px solid #000; }
+                    table.log-table th, table.log-table td { border: 1px solid #888; padding: 6px 4px; word-break: break-all; vertical-align: middle; font-size: 11px; }
+                    table.log-table th { background-color: #f3f4f6 !important; text-align: center; font-weight: bold; height: 35px; border-bottom: 2px solid #666; color: #111; }
+                    
+                    .text-center { text-align: center; }
+                    .text-left { text-align: left; }
+                    
+                    /* [수정] 서비스분류, 서비스명 글자 크기 대폭 축소 및 자간 좁힘 (한 줄 표시용) */
+                    .text-condensed { font-size: 9px; letter-spacing: -1px; white-space: nowrap; }
+
+                    /* 컬럼 비율 최적화 */
+                    .col-date { width: 75px; }
+                    .col-client { width: 45px; }
+                    .col-method { width: 30px; } 
+                    .col-cat { width: 100px; }
+                    .col-svc { width: 145px; } 
+                    .col-content { width: auto; }
+                    .col-prov { width: 45px; }
+                `;
+
+                let html = `<html><head><title>서비스 일지</title><style>${commonCss}</style></head><body>`;
+                
+                // 헤더: 제목 + 결재란 (우측)
+                html += `
+                <div class="header-wrap">
+                    <div style="width: 180px;"></div> <!-- 좌측 여백 균형용 -->
+                    <h1>서 비 스  일 지</h1>
+                    <table class="sign-box">
+                        <colgroup>
+                            <col style="width: 30px;">
+                            <col style="width: 75px;">
+                            <col style="width: 75px;">
+                        </colgroup>
+                        <tr>
+                            <td rowspan="2" class="bg-gray">결<br>재</td>
+                            <td class="bg-gray" style="height: 25px;">담 당</td>
+                            <td class="bg-gray">센터장</td>
+                        </tr>
+                        <tr>
+                            <td style="height: 60px;"></td>
+                            <td></td>
+                        </tr>
+                    </table>
+                </div>
+                `;
+
+                // [수정] 출력일 대신 기간 표시로 변경
+                html += `
+                <div class="info-bar">
+                    <span></span>
+                    <span>기간: ${periodText} (총 ${logs.length}건)</span>
+                </div>
+                `;
+
+                html += `<table class="log-table">
+                    <thead>
+                        <tr>
+                            <th class="col-date">날짜</th>
+                            <th class="col-client">대상자</th>
+                            <th class="col-method">방법</th>
+                            <th class="col-cat">서비스분류</th>
+                            <th class="col-svc">서비스명</th>
+                            <th class="col-content">진행내용</th>
+                            <th class="col-prov">제공자</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+                logs.forEach(l => {
+                    const items = l.serviceItems && l.serviceItems.length > 0 ? l.serviceItems : [{ category: l.serviceCategory || '-', serviceName: l.serviceName || '-', detailNote: '' }];
+                    const rowSpan = items.length > 1 ? ` rowspan="${items.length}"` : '';
+
+                    items.forEach((item, idx) => {
+                        html += '<tr>';
+                        
+                        // [수정] 같은 대상자 내 서비스 구분선 연하게 처리 (내부 경계선 스타일)
+                        let borderStyle = "";
+                        if (items.length > 1) {
+                            // 마지막 항목이 아니면 아래쪽을 연하게
+                            if (idx < items.length - 1) borderStyle += "border-bottom: 1px solid #ccc;";
+                            // 첫 번째 항목이 아니면 위쪽을 연하게 (윗 행의 border-bottom과 충돌 방지 및 일치)
+                            if (idx > 0) borderStyle += "border-top: 1px solid #ccc;";
+                        }
+
+                        if (idx === 0) {
+                            html += `<td${rowSpan} class="text-center">${l.date}</td>`;
+                            html += `<td${rowSpan} class="text-center" style="font-weight:bold;">${l.clientName}</td>`;
+                            html += `<td${rowSpan} class="text-center">${l.provideMethod || ''}</td>`;
+                        }
+                        
+                        /* [수정] borderStyle 적용 */
+                        html += `<td class="text-center text-condensed" style="${borderStyle}">${item.category || ''}</td>`;
+                        html += `<td class="text-center text-condensed" style="font-weight:bold; color:#444; ${borderStyle}">${item.serviceName || ''}${item.detailNote ? `<br><span style="font-weight:normal; font-size:9px; color:#666;">(${item.detailNote})</span>` : ''}</td>`;
+                        
+                        if (idx === 0) {
+                            let content = (l.content || '').replace(/\n/g, '<br>');
+                            html += `<td${rowSpan} class="text-left" style="vertical-align:top; padding: 8px; line-height: 1.5;">${content}</td>`;
+                            html += `<td${rowSpan} class="text-center">${l.provider || ''}</td>`;
+                        }
+                        html += '</tr>';
+                    });
+                });
+
+                html += `</tbody></table></body></html>`;
+
+                const win = window.open('', '_blank', 'width=1100,height=800');
+                if (win) {
+                    win.document.write(html);
+                    win.document.close();
+                    win.focus();
+                    setTimeout(() => win.print(), 500);
+                } else {
+                    alert("팝업 차단을 해제해주세요.");
+                }
+            },
             downloadLogsExcel: () => {
                 const data = getFilteredLogs().map(l => ({
                     날짜: l.date,
