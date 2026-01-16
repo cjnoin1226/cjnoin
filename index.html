@@ -2062,6 +2062,8 @@
                 if (section === 'client') {
                     state.filters.client = { status: '이용', level: '', economicStatus: '', duplicateService: '', ictStatus: '', region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' };
                     state.ui.regionDropdownOpen = false;
+                    // [수정] 초기화 시 선택된 항목 해제
+                    state.ui.selectedClientIds.clear();
                     if(state.viewMode==='single') updateTabContent('clients');
                 } else if (section === 'performance') {
                     // [수정] performance 초기화 시 months 기본값(전체) 설정
@@ -2073,6 +2075,8 @@
                     state.ui.logRegionDropdownOpen = false;
                     // [신규] 일지 필터 초기화 시 페이지 1로 설정
                     state.ui.logPage = 1;
+                    // [수정] 초기화 시 선택된 항목 해제 (일괄수정/삭제 버튼 사라짐)
+                    state.ui.selectedLogIds.clear();
                     if(state.viewMode==='single') updateTabContent('logs');
                 } else if (section === 'meeting') {
                     // [수정] 회의록 필터 초기화 로직 (신규 필드 포함)
@@ -2085,6 +2089,8 @@
                         clientName: '',
                         writer: ''
                     };
+                    // [수정] 초기화 시 선택된 항목 해제
+                    state.ui.selectedMeetingIds.clear();
                     if(state.viewMode==='single') updateTabContent('meeting');
                 } else if (section === 'stats') {
                     const d = new Date(); const s = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; const l = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); const e = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${l}`;
@@ -7424,7 +7430,6 @@
                 const reader = new FileReader();
                 reader.onload = async (e) => {
                     const data = new Uint8Array(e.target.result);
-                    // [수정] cellDates: true 옵션 추가 (엑셀 날짜 형식을 JS Date 객체로 자동 변환)
                     const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                     
@@ -7432,33 +7437,46 @@
                         let success = 0;
                         const groupedLogs = {}; // 날짜_대상자이름을 키로 사용하여 데이터 그룹화
 
-                        // [신규] 날짜 포맷팅 헬퍼 함수 (날짜 객체, 숫자, 문자열 모두 처리)
+                        // [수정] 날짜 포맷팅 헬퍼 함수 개선 (시간대 왜곡 방지)
                         const formatExcelDate = (val) => {
                             if (!val) return new Date().toISOString().split('T')[0];
-                            let dateObj;
                             
-                            if (val instanceof Date) {
-                                dateObj = val;
-                            } else if (typeof val === 'number') {
-                                // 엑셀 날짜 코드(Serial Number)인 경우 (혹시 cellDates 옵션이 안 먹힐 때 대비)
-                                dateObj = new Date(Math.round((val - 25569) * 86400 * 1000));
-                            } else {
-                                // 문자열인 경우 (2026.09.01, 2026/09/01 등)
-                                const str = String(val).trim().replace(/[\.\/]/g, '-');
-                                dateObj = new Date(str);
+                            // 1. 문자열이 이미 "YYYY-MM-DD" 형식이면 그대로 반환
+                            if (typeof val === 'string') {
+                                const trimmed = val.trim().replace(/[\.\/]/g, '-');
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
                             }
 
-                            if (isNaN(dateObj.getTime())) return new Date().toISOString().split('T')[0];
-
-                            // 한국 시간대(KST) 보정 또는 단순 날짜 추출 (시간대 왜곡 방지)
-                            const offset = dateObj.getTimezoneOffset() * 60000;
-                            const localDate = new Date(dateObj.getTime() - offset);
-                            return localDate.toISOString().split('T')[0];
+                            let dateObj;
+                            // 2. 숫자인 경우 (엑셀 시리얼 넘버) -> UTC 기준으로 날짜 추출
+                            if (typeof val === 'number') {
+                                dateObj = new Date(Math.round((val - 25569) * 86400 * 1000));
+                                const y = dateObj.getUTCFullYear();
+                                const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+                                const d = String(dateObj.getUTCDate()).padStart(2, '0');
+                                return `${y}-${m}-${d}`;
+                            } 
+                            // 3. Date 객체인 경우 (xlsx가 변환해준 경우) -> 로컬 기준으로 날짜 추출
+                            else if (val instanceof Date) {
+                                dateObj = val;
+                                const y = dateObj.getFullYear();
+                                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                                const d = String(dateObj.getDate()).padStart(2, '0');
+                                return `${y}-${m}-${d}`;
+                            } 
+                            // 4. 그 외 문자열 -> Date 변환 후 로컬 기준 추출
+                            else {
+                                dateObj = new Date(String(val).trim().replace(/[\.\/]/g, '-'));
+                                if (isNaN(dateObj.getTime())) return new Date().toISOString().split('T')[0];
+                                const y = dateObj.getFullYear();
+                                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                                const d = String(dateObj.getDate()).padStart(2, '0');
+                                return `${y}-${m}-${d}`;
+                            }
                         };
 
                         // 1. 데이터 그룹화 (병합 로직)
                         for (const row of json) {
-                            // [수정] 개선된 날짜 포맷팅 함수 적용
                             let date = formatExcelDate(row['날짜']);
                             
                             // [수정] 대상자 이름 컬럼 호환성 추가 ('대상자' 또는 '이름')
