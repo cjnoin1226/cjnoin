@@ -940,8 +940,8 @@
                                 <input type="date" id="log-start-date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('log','start',this.value, false)" max="9999-12-31">
                                 <span class="text-slate-400">~</span>
                                 <input type="date" id="log-end-date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
-                                <!-- [수정] 조회 버튼: fetchLogs 대신 render 호출 (클라이언트 필터링) -->
-                                <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
+                                <!-- [수정] 조회 버튼: 날짜 필터가 있을 땐 fetchLogs 호출 -->
+                                <button onclick="app.fetchLogs()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
                             </div>
                             
                             <!-- [수정] 이름 검색 개선 (모바일 엔터키 호환성 및 검색 버튼 추가) -->
@@ -976,6 +976,13 @@
                             </div>
                             <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                         </div>
+
+                        <!-- [추가] 데이터 로딩 제한 안내 문구 -->
+                        ${!start && !end && state.logs.length >= 1000 ? `
+                        <div class="bg-orange-50 text-orange-700 px-4 py-2 rounded-lg text-xs flex items-center gap-2 border border-orange-100 animate-fade-in">
+                            <i data-lucide="info" size="14"></i>
+                            <span><b>속도 향상</b>을 위해 최근 <b>1,000건</b>의 일지만 표시 중입니다. 과거 데이터를 보시려면 <b>날짜 필터</b>를 설정하고 [조회]를 눌러주세요.</span>
+                        </div>` : ''}
 
                         <div class="flex items-center justify-between px-1 h-8">
                             <div class="flex items-center gap-3">
@@ -1682,9 +1689,16 @@
                     state.ui.logListenerUnsubscribe = null;
                 }
 
-                // [수정] 날짜 필터와 상관없이 항상 전체 데이터를 최신순으로 구독
-                // 필터링은 getFilteredLogs() 함수에서 클라이언트 사이드로 처리하여 속도 개선
-                const q = query(collection(db, "logs"), orderBy("date", "desc"));
+                const { start, end } = state.filters.log;
+                let q;
+
+                // [수정] 날짜 필터가 있는 경우: 해당 기간 데이터 조회 (limit 없음)
+                if (start && end) {
+                    q = query(collection(db, "logs"), where("date", ">=", start), where("date", "<=", end));
+                } else {
+                    // [수정] 초기 로딩 속도 개선을 위해 최근 1000건으로 제한 (limit 복구)
+                    q = query(collection(db, "logs"), orderBy("date", "desc"), limit(1000));
+                }
 
                 state.ui.logListenerUnsubscribe = onSnapshot(q, (snap) => {
                     state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -7422,54 +7436,91 @@
                 reader.onload = async (e) => {
                     try {
                         const data = new Uint8Array(e.target.result);
+                        // [수정] 한글 깨짐 방지를 위해 인코딩 추론 로직 보강 또는 array 모드 사용
                         const workbook = XLSX.read(data, { type: 'array' });
-                        const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { raw: false });
                         
-                        if (json.length === 0) {
-                            alert("엑셀 파일에 데이터가 없습니다.");
+                        // [수정] JSON 객체(키-값) 방식 대신 배열(행-열) 방식으로 읽어서 헤더 의존성 제거
+                        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, raw: false });
+                        
+                        if (rows.length === 0) {
+                            alert("파일에 데이터가 없습니다.");
                             input.value = '';
                             return;
                         }
 
-                        // [수정] 날짜 정규화 함수 강화 (2025. 1. 6. / 25.1.6 / 1.13 / 1/13 등 다양한 케이스 대응)
+                        // 날짜 정규화 함수
                         const normalizeDate = (d) => {
                             if (!d) return '';
                             let str = String(d).trim();
-                            // 점(.)이나 슬래시(/)를 하이픈(-)으로 변경
-                            str = str.replace(/[\.\/]/g, '-');
-                            // 하이픈 기준으로 분리 후 공백 제거 및 빈 요소 필터링
+                            // 엑셀 날짜 코드(숫자)인 경우 변환
+                            if (!isNaN(str) && str.length < 8 && !str.includes('-') && !str.includes('.')) {
+                                // 엑셀 날짜 서식 처리 (간단 변환)
+                                const date = new Date((parseInt(str) - (25567 + 1)) * 86400 * 1000); 
+                                const y = date.getFullYear();
+                                const m = String(date.getMonth() + 1).padStart(2, '0');
+                                const dd = String(date.getDate()).padStart(2, '0');
+                                return `${y}-${m}-${dd}`;
+                            }
+
+                            str = str.replace(/[\.\/]/g, '-'); // . / 를 - 로 변경
                             const parts = str.split('-').map(p => p.trim()).filter(p => p !== '');
                             
                             if (parts.length === 3) {
                                 let y = parts[0];
-                                // 연도가 2자리인 경우 (예: 25 -> 2025)
-                                if (y.length === 2 && !isNaN(y)) y = '20' + y;
-
+                                if (y.length === 2) y = '20' + y;
                                 const m = parts[1].padStart(2, '0');
                                 const d = parts[2].padStart(2, '0');
                                 return `${y}-${m}-${d}`;
-                            } else if (parts.length === 2) {
-                                // [신규] 월, 일만 있는 경우 (예: 1/13 -> 2025-01-13)
+                            } else if (parts.length === 2) { // 1-13 같은 경우
                                 const currentYear = new Date().getFullYear();
                                 const m = parts[0].padStart(2, '0');
                                 const d = parts[1].padStart(2, '0');
                                 return `${currentYear}-${m}-${d}`;
                             }
-                            return str; // 변환 실패 시 원본 반환 (유효성 검사에서 걸러짐)
+                            return str;
                         };
 
                         const groupedMap = new Map();
                         let validCount = 0;
+                        
+                        // [수정] 헤더 인덱스 매핑 (기본값 설정)
+                        let colIdx = { date: 0, name: 1, method: 2, cat: 3, svc: 4, memo: 5, content: 6, provider: 7 };
+                        
+                        // 첫 번째 행이 헤더인지 확인하고 인덱스 재매핑 시도 (UTF-8이라서 한글이 잘 읽히는 경우를 대비)
+                        if (rows.length > 0) {
+                            const header = rows[0].map(h => String(h).trim());
+                            // '날짜'나 'Date'가 포함된 열 찾기
+                            const foundDate = header.findIndex(h => h.includes('날짜') || h.toLowerCase().includes('date'));
+                            if (foundDate !== -1) {
+                                // 헤더를 찾았다면 해당 인덱스 사용
+                                colIdx.date = foundDate;
+                                colIdx.name = header.findIndex(h => h.includes('대상자') || h.includes('이름'));
+                                colIdx.method = header.findIndex(h => h.includes('방법'));
+                                colIdx.cat = header.findIndex(h => h.includes('분류'));
+                                colIdx.svc = header.findIndex(h => h.includes('서비스명'));
+                                colIdx.memo = header.findIndex(h => h.includes('메모'));
+                                colIdx.content = header.findIndex(h => h.includes('내용'));
+                                colIdx.provider = header.findIndex(h => h.includes('제공자'));
+                            }
+                            // 헤더가 깨져서 못 찾으면 기본값(0,1,2...) 사용 (CSV 순서대로)
+                        }
 
-                        json.forEach(rawRow => {
-                            const row = {};
-                            Object.keys(rawRow).forEach(key => { row[key.trim()] = rawRow[key]; });
+                        // 데이터 처리 (1번째 줄부터 시작)
+                        for (let i = 1; i < rows.length; i++) {
+                            const row = rows[i];
+                            if (!row || row.length === 0) continue;
 
-                            let date = normalizeDate(row['날짜']);
-                            const name = row['대상자'];
+                            // 인덱스로 데이터 추출
+                            let dateStr = row[colIdx.date];
+                            let name = row[colIdx.name];
                             
-                            // 날짜 형식이 YYYY-MM-DD가 아니면 건너뜀 (간단한 정규식 체크)
-                            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !name) return;
+                            // 필수값 체크
+                            if (!dateStr && !name) continue;
+
+                            let date = normalizeDate(dateStr);
+                            // 날짜 형식이 유효하지 않으면 패스
+                            if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+                            if (!name) continue;
 
                             validCount++;
                             const key = `${date}_${name}`;
@@ -7478,44 +7529,47 @@
                                 groupedMap.set(key, {
                                     date: date,
                                     clientName: String(name).trim(),
-                                    provideMethod: row['제공방법'] || '방문',
-                                    provider: row['제공자'] || '',
-                                    content: row['내용'] || '',
+                                    provideMethod: (colIdx.method > -1 ? row[colIdx.method] : '방문') || '방문',
+                                    provider: (colIdx.provider > -1 ? row[colIdx.provider] : '') || '',
+                                    content: (colIdx.content > -1 ? row[colIdx.content] : '') || '',
                                     serviceItems: []
                                 });
                             }
                             
                             const entry = groupedMap.get(key);
+                            const catVal = colIdx.cat > -1 ? row[colIdx.cat] : '';
+                            const svcVal = colIdx.svc > -1 ? row[colIdx.svc] : '';
                             
-                            if (row['서비스분류'] || row['서비스명']) {
+                            if (catVal || svcVal) {
                                 entry.serviceItems.push({
                                     id: Date.now() + Math.random(), 
-                                    category: row['서비스분류'] || '',
-                                    serviceName: row['서비스명'] || '',
-                                    detailNote: row['메모'] || ''
+                                    category: catVal || '',
+                                    serviceName: svcVal || '',
+                                    detailNote: (colIdx.memo > -1 ? row[colIdx.memo] : '') || ''
                                 });
                             }
                             
-                            const newContent = row['내용'];
+                            // 내용 병합
+                            const newContent = colIdx.content > -1 ? row[colIdx.content] : '';
                             if (newContent && entry.content !== newContent && !entry.content.includes(newContent)) {
                                  entry.content += (entry.content ? '\n' : '') + newContent;
                             }
-                            const newProvider = row['제공자'];
+                            // 제공자 병합
+                            const newProvider = colIdx.provider > -1 ? row[colIdx.provider] : '';
                             if (newProvider && entry.provider !== newProvider && !entry.provider.includes(newProvider)) {
                                  entry.provider += (entry.provider ? ', ' : '') + newProvider;
                             }
-                        });
+                        }
 
                         const mergedList = Array.from(groupedMap.values());
 
                         if (mergedList.length === 0) {
-                            alert("유효한 데이터가 없습니다. '날짜' 형식을 확인해주세요. (예: 2025-01-01)");
+                            alert("유효한 데이터가 없습니다.\nCSV 파일의 경우 인코딩 문제일 수 있습니다.\n\n[해결방법]\n1. 엑셀에서 '다른 이름으로 저장' > 'Excel 통합 문서(.xlsx)' 형식으로 저장 후 업로드\n2. 또는 파일의 열 순서가 [날짜, 대상자, 제공방법...] 순서인지 확인");
                             input.value = '';
                             return;
                         }
 
                         if (confirm(`총 ${validCount}개 행을 병합하여 ${mergedList.length}건의 일지로 업로드합니다.\n(첫 번째 데이터 날짜: ${mergedList[0].date})`)) {
-                            // 로딩 UI 호출 제거
                             
                             let success = 0;
                             const total = mergedList.length;
@@ -7523,7 +7577,6 @@
                             for (let i = 0; i < total; i++) {
                                 const item = mergedList[i];
                                 try {
-                                    // [유지] 서비스 항목이 없는 경우 기본 서비스 자동 추가
                                     if (item.serviceItems.length === 0) {
                                         item.serviceItems.push({
                                             id: Date.now() + Math.random(),
@@ -7548,25 +7601,21 @@
                             
                             alert(`${success}건 업로드 완료`);
                             
-                            // [수정] 업로드 직후 해당 월 자동 조회 (UI 업데이트 포함)
                             if (mergedList.length > 0) {
                                 const firstDate = mergedList[0].date;
                                 const y = firstDate.split('-')[0];
                                 const m = firstDate.split('-')[1];
                                 const lastDay = new Date(y, m, 0).getDate();
                                 
-                                // 상태 업데이트
                                 state.filters.log.start = `${y}-${m}-01`;
                                 state.filters.log.end = `${y}-${m}-${lastDay}`;
-                                state.filters.log.search = ''; // 검색어 초기화
+                                state.filters.log.search = '';
                                 
-                                // UI Input 강제 업데이트 (ID 사용)
                                 const startEl = document.getElementById('log-start-date');
                                 const endEl = document.getElementById('log-end-date');
                                 if(startEl) startEl.value = state.filters.log.start;
                                 if(endEl) endEl.value = state.filters.log.end;
                                 
-                                // DB 조회 호출
                                 app.fetchLogs();
                             } else {
                                 app.resetFilters('log');
