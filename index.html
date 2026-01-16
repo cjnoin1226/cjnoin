@@ -7541,6 +7541,12 @@
                         // 2. 그룹화된 일지 데이터 저장
                         const logsToSave = Object.values(groupedLogs);
                         for (const logData of logsToSave) {
+                            // [수정] 엑셀 업로드 시 대상자 이름으로 기존 등록된 대상자 정보(ID) 매칭
+                            const matchedClient = state.clients.find(c => c.name === logData.clientName);
+                            if (matchedClient) {
+                                logData.clientId = matchedClient.id;
+                            }
+
                             try {
                                 await addDoc(collection(db, "logs"), {
                                     ...logData,
