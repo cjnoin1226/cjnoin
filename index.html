@@ -7438,7 +7438,8 @@
                             if (!date) date = new Date().toISOString().split('T')[0];
                             else if (typeof date === 'string') date = date.replace(/\./g, '-');
                             
-                            const clientName = row['대상자'];
+                            // [수정] 대상자 이름 컬럼 호환성 추가 ('대상자' 또는 '이름')
+                            const clientName = row['대상자'] || row['이름'];
                             
                             if (!clientName) continue; // 대상자 이름이 없으면 스킵
 
@@ -7446,18 +7447,19 @@
 
                             // 해당 날짜/대상자의 일지가 없으면 새로 생성
                             if (!groupedLogs[key]) {
+                                // [수정] 컬럼명 호환성 추가
                                 groupedLogs[key] = {
                                     date: date,
                                     clientName: clientName,
                                     provideMethod: row['제공방법'],
                                     provider: row['제공자'],
-                                    content: row['내용'] || '',
+                                    content: (row['내용'] || row['진행내용']) || '', // '내용' 또는 '진행내용'
                                     serviceItems: []
                                 };
 
                                 // 기본 서비스(안부확인) 자동 추가 (일지 생성 시 최초 1회만)
                                 const defaultSvcName = '정서지원서비스(안전안부확인)';
-                                const excelServiceName = row['서비스명'] || '';
+                                const excelServiceName = row['서비스명'] || row['서비스 상세내용'] || '';
                                 
                                 if (excelServiceName !== defaultSvcName) {
                                     groupedLogs[key].serviceItems.push({ 
@@ -7469,20 +7471,22 @@
                                 }
                             } else {
                                 // 이미 존재하는 일지라면, 내용(content)이 다른 경우 이어 붙임
-                                if (row['내용'] && !groupedLogs[key].content.includes(row['내용'])) {
-                                    groupedLogs[key].content += (groupedLogs[key].content ? '\n' : '') + row['내용'];
+                                const rowContent = row['내용'] || row['진행내용'] || '';
+                                if (rowContent && !groupedLogs[key].content.includes(rowContent)) {
+                                    groupedLogs[key].content += (groupedLogs[key].content ? '\n' : '') + rowContent;
                                 }
                             }
 
                             // 엑셀 행의 서비스 항목 추가
-                            const excelServiceName = row['서비스명'];
+                            // [수정] 컬럼명 호환성 추가
+                            const excelServiceName = row['서비스명'] || row['서비스 상세내용'];
                             if (excelServiceName) {
                                 // 중복 서비스 체크 (선택사항, 여기서는 중복도 허용하되 ID는 다르게)
                                 groupedLogs[key].serviceItems.push({ 
                                     id: Date.now() + Math.random(),
-                                    category: row['서비스분류'], 
+                                    category: row['서비스분류'] || row['서비스'], // '서비스분류' 또는 '서비스'
                                     serviceName: excelServiceName, 
-                                    detailNote: row['메모'] || '' 
+                                    detailNote: (row['메모'] || row['서비스 메모']) || '' // '메모' 또는 '서비스 메모'
                                 });
                             }
                         }
