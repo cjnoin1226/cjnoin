@@ -940,7 +940,8 @@
                                 <input type="date" id="log-start-date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('log','start',this.value, false)" max="9999-12-31">
                                 <span class="text-slate-400">~</span>
                                 <input type="date" id="log-end-date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
-                                <button onclick="app.fetchLogs()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
+                                <!-- [수정] 조회 버튼: fetchLogs 대신 render 호출 (클라이언트 필터링) -->
+                                <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
                             </div>
                             
                             <!-- [수정] 이름 검색 개선 (모바일 엔터키 호환성 및 검색 버튼 추가) -->
@@ -1681,18 +1682,10 @@
                     state.ui.logListenerUnsubscribe = null;
                 }
 
-                const { start, end } = state.filters.log;
-                let q;
+                // [수정] 날짜 필터와 상관없이 항상 전체 데이터를 최신순으로 구독
+                // 필터링은 getFilteredLogs() 함수에서 클라이언트 사이드로 처리하여 속도 개선
+                const q = query(collection(db, "logs"), orderBy("date", "desc"));
 
-                // [수정] 날짜 필터가 있는 경우: orderBy 제거하고 where만 사용하여 인덱스 오류 방지
-                if (start && end) {
-                    q = query(collection(db, "logs"), where("date", ">=", start), where("date", "<=", end));
-                } else {
-                    q = query(collection(db, "logs"), orderBy("date", "desc"), limit(500));
-                }
-
-                // 로딩 UI 호출 제거
-                
                 state.ui.logListenerUnsubscribe = onSnapshot(q, (snap) => {
                     state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     
@@ -1703,11 +1696,6 @@
                     });
                     
                     app.render(); 
-                    
-                    // 조회 결과가 없을 때 안내 (날짜 필터가 있을 때만)
-                    if (start && end && state.logs.length === 0) {
-                        // alert("해당 기간에 조회된 데이터가 0건입니다."); // 필요시 주석 해제
-                    }
                 }, (err) => {
                     console.error("Data load failed:", err);
                     if(err.code === 'failed-precondition') {
@@ -1717,6 +1705,8 @@
                     }
                 });
             },
+
+            // [삭제] 불필요한 로딩 관련 함수(showLoading, updateLoadingProgress, hideLoading) 제거
 
             setTab: (t, updateHistory = true) => { 
                 if (!state.openedTabs.includes(t)) { state.openedTabs.push(t); }
