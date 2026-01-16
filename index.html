@@ -7430,48 +7430,54 @@
                 const reader = new FileReader();
                 reader.onload = async (e) => {
                     const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    // [수정] cellDates: false로 설정하여 날짜를 숫자(Serial)나 문자열 그대로 읽음 (자동 변환 끔)
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: false });
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                     
                     if (confirm(`총 ${json.length}건의 데이터를 읽었습니다.\n\n[업로드 규칙]\n- 날짜와 대상자명이 모두 동일한 경우: 하나의 일지로 자동 병합\n- 그 외의 경우: 개별 일지로 등록\n\n업로드하시겠습니까?`)) {
                         let success = 0;
                         const groupedLogs = {}; // 날짜_대상자이름을 키로 사용하여 데이터 그룹화
 
-                        // [수정] 날짜 포맷팅 헬퍼 함수 개선 (시간대 왜곡 방지)
+                        // [수정] 날짜 포맷팅 헬퍼 함수 (엑셀 숫자 코드 -> YYYY-MM-DD 변환)
                         const formatExcelDate = (val) => {
                             if (!val) return new Date().toISOString().split('T')[0];
                             
-                            // 1. 문자열이 이미 "YYYY-MM-DD" 형식이면 그대로 반환
-                            if (typeof val === 'string') {
-                                const trimmed = val.trim().replace(/[\.\/]/g, '-');
-                                if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-                            }
-
-                            let dateObj;
-                            // 2. 숫자인 경우 (엑셀 시리얼 넘버) -> UTC 기준으로 날짜 추출
+                            // 1. 숫자인 경우 (엑셀 날짜 코드) -> 수학적 계산으로 날짜 추출 (가장 정확함)
                             if (typeof val === 'number') {
-                                dateObj = new Date(Math.round((val - 25569) * 86400 * 1000));
+                                // 엑셀 기준일(1899-12-30)과 JS 기준일(1970-01-01) 차이: 25569일
+                                // 하루는 86400초 * 1000밀리초
+                                const dateObj = new Date(Math.round((val - 25569) * 86400 * 1000));
                                 const y = dateObj.getUTCFullYear();
                                 const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
                                 const d = String(dateObj.getUTCDate()).padStart(2, '0');
                                 return `${y}-${m}-${d}`;
                             } 
-                            // 3. Date 객체인 경우 (xlsx가 변환해준 경우) -> 로컬 기준으로 날짜 추출
-                            else if (val instanceof Date) {
-                                dateObj = val;
-                                const y = dateObj.getFullYear();
-                                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-                                const d = String(dateObj.getDate()).padStart(2, '0');
-                                return `${y}-${m}-${d}`;
-                            } 
-                            // 4. 그 외 문자열 -> Date 변환 후 로컬 기준 추출
-                            else {
-                                dateObj = new Date(String(val).trim().replace(/[\.\/]/g, '-'));
-                                if (isNaN(dateObj.getTime())) return new Date().toISOString().split('T')[0];
-                                const y = dateObj.getFullYear();
-                                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-                                const d = String(dateObj.getDate()).padStart(2, '0');
-                                return `${y}-${m}-${d}`;
+                            
+                            // 2. 문자열인 경우 (2026.09.01, 2026/9/1, 2026-09-01 등)
+                            if (typeof val === 'string') {
+                                const str = val.trim();
+                                // 다양한 구분자(., /, -)와 공백 처리
+                                // 정규식으로 숫자만 추출해서 YYYY-MM-DD로 재조립
+                                const match = str.match(/^(\d{4})[\.\-/년\s]+(\d{1,2})[\.\-/월\s]+(\d{1,2})/);
+                                if (match) {
+                                    const y = match[1];
+                                    const m = String(match[2]).padStart(2, '0');
+                                    const d = String(match[3]).padStart(2, '0');
+                                    return `${y}-${m}-${d}`;
+                                }
+                                // 정규식 매칭 안되면 기본 변환 시도
+                                const trimmed = str.replace(/[\.\/]/g, '-');
+                                if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+                            }
+
+                            // 3. 그 외 (Date 객체 등) - 안전장치
+                            try {
+                                const d = new Date(val);
+                                const offset = d.getTimezoneOffset() * 60000;
+                                const localDate = new Date(d.getTime() - offset);
+                                return localDate.toISOString().split('T')[0];
+                            } catch (e) {
+                                return new Date().toISOString().split('T')[0];
                             }
                         };
 
