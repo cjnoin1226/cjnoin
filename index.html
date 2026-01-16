@@ -958,8 +958,29 @@
                                 <input type="date" id="log-end-date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
                                 <button onclick="app.fetchLogs()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
                             </div>
-                            <input id="log-search-name" class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
-                            <input id="log-search-provider" class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
+                            
+                            <!-- [수정] 이름 검색 개선 (모바일 엔터키 호환성 및 검색 버튼 추가) -->
+                            <div class="relative w-full sm:w-32">
+                                <input type="search" id="log-search-name" class="input-field py-1.5 pl-2 pr-8 text-sm w-full" placeholder="이름" value="${search}" 
+                                    enterkeyhint="search"
+                                    onkeydown="if(event.key === 'Enter' || event.keyCode === 13) { app.setFilter('log','search',this.value); this.blur(); }"
+                                    onsearch="app.setFilter('log','search',this.value)">
+                                <button onclick="app.setFilter('log','search',document.getElementById('log-search-name').value)" class="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-blue-600">
+                                    <i data-lucide="search" size="14"></i>
+                                </button>
+                            </div>
+
+                            <!-- [수정] 제공자 검색 개선 (모바일 엔터키 호환성 및 검색 버튼 추가) -->
+                            <div class="relative w-full sm:w-32">
+                                <input type="search" id="log-search-provider" class="input-field py-1.5 pl-2 pr-8 text-sm w-full" placeholder="제공자" value="${provider || ''}" 
+                                    enterkeyhint="search"
+                                    onkeydown="if(event.key === 'Enter' || event.keyCode === 13) { app.setFilter('log','provider',this.value); this.blur(); }"
+                                    onsearch="app.setFilter('log','provider',this.value)">
+                                <button onclick="app.setFilter('log','provider',document.getElementById('log-search-provider').value)" class="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-blue-600">
+                                    <i data-lucide="search" size="14"></i>
+                                </button>
+                            </div>
+
                             <div class="relative z-30 w-full sm:w-auto">
                                 <button onclick="app.toggleLogRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left h-[34px] w-full sm:w-32"><span class="truncate max-w-[90px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
                                 ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
