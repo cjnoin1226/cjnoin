@@ -7488,6 +7488,16 @@
                             // 비동기 루프 처리
                             for (const item of mergedList) {
                                 try {
+                                    // [수정] 서비스 항목이 없는 경우 기본 서비스(정서지원) 자동 추가 로직 보장
+                                    if (item.serviceItems.length === 0) {
+                                        item.serviceItems.push({
+                                            id: Date.now() + Math.random(),
+                                            category: '노인상담 및 정보제공',
+                                            serviceName: '정서지원서비스(안전안부확인)',
+                                            detailNote: ''
+                                        });
+                                    }
+
                                     // 대표 카테고리 및 서비스명 설정
                                     item.serviceCategory = item.serviceItems.length > 0 ? item.serviceItems[0].category : '';
                                     item.serviceName = item.serviceItems.map(i => i.serviceName).join(', ');
