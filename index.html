@@ -925,7 +925,8 @@
                                 <button onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="file-spreadsheet" size="16"></i> 양식</button>
                                 <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors">
                                     <i data-lucide="upload" size="16"></i> 업로드
-                                    <input type="file" class="hidden" onchange="app.uploadLogExcel(this)" accept=".xlsx, .xls">
+                                    <!-- [수정] .csv 확장자 허용 추가 -->
+                                    <input type="file" class="hidden" onchange="app.uploadLogExcel(this)" accept=".xlsx, .xls, .csv">
                                 </label>
                                 <button onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
                                 <button onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
@@ -7436,8 +7437,36 @@
                 reader.onload = async (e) => {
                     try {
                         const data = new Uint8Array(e.target.result);
-                        // [수정] 한글 깨짐 방지를 위해 인코딩 추론 로직 보강 또는 array 모드 사용
-                        const workbook = XLSX.read(data, { type: 'array' });
+                        let workbook;
+                        
+                        // [수정] 파일 파싱 로직 강화 (확장자와 내용 불일치 대응)
+                        try {
+                            // 1. 기본 바이너리 읽기 시도
+                            workbook = XLSX.read(data, { type: 'array' });
+                        } catch (e1) {
+                            console.warn("바이너리 파싱 실패, 텍스트 모드 시도", e1);
+                            try {
+                                // 2. UTF-8 텍스트(CSV)로 읽기 시도
+                                const textDecoder = new TextDecoder('utf-8');
+                                const text = textDecoder.decode(data);
+                                workbook = XLSX.read(text, { type: 'string' });
+                            } catch (e2) {
+                                try {
+                                    // 3. EUC-KR 텍스트로 읽기 시도 (한글 윈도우 레거시)
+                                    const textDecoder = new TextDecoder('euc-kr');
+                                    const text = textDecoder.decode(data);
+                                    workbook = XLSX.read(text, { type: 'string' });
+                                } catch (e3) {
+                                    throw new Error("파일 형식을 인식할 수 없습니다.");
+                                }
+                            }
+                        }
+                        
+                        if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+                            alert("파일에 데이터가 없습니다.");
+                            input.value = '';
+                            return;
+                        }
                         
                         // [수정] JSON 객체(키-값) 방식 대신 배열(행-열) 방식으로 읽어서 헤더 의존성 제거
                         const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, raw: false });
