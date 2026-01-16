@@ -539,7 +539,8 @@
                 render();
             }, handleErr);
             
-            onSnapshot(query(collection(db, "logs"), orderBy("date", "desc"), limit(500)), (snap) => {
+            // [수정] limit(500) 제거하여 전체 일지 데이터 로드
+            onSnapshot(query(collection(db, "logs"), orderBy("date", "desc")), (snap) => {
                 state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 render();
             }, handleErr);
