@@ -7427,24 +7427,76 @@
                     const workbook = XLSX.read(data, { type: 'array' });
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                     
-                    if (confirm(`${json.length}건의 데이터를 업로드하시겠습니까?`)) {
+                    if (confirm(`${json.length}건의 행을 읽었습니다. 병합하여 업로드하시겠습니까?`)) {
                         let success = 0;
+                        const groupedLogs = {}; // 날짜_대상자이름을 키로 사용하여 데이터 그룹화
+
+                        // 1. 데이터 그룹화 (병합 로직)
                         for (const row of json) {
+                            const date = row['날짜'] || new Date().toISOString().split('T')[0];
+                            const clientName = row['대상자'];
+                            
+                            if (!clientName) continue; // 대상자 이름이 없으면 스킵
+
+                            const key = `${date}_${clientName}`;
+
+                            // 해당 날짜/대상자의 일지가 없으면 새로 생성
+                            if (!groupedLogs[key]) {
+                                groupedLogs[key] = {
+                                    date: date,
+                                    clientName: clientName,
+                                    provideMethod: row['제공방법'],
+                                    provider: row['제공자'],
+                                    content: row['내용'] || '',
+                                    serviceItems: []
+                                };
+
+                                // 기본 서비스(안부확인) 자동 추가 (일지 생성 시 최초 1회만)
+                                const defaultSvcName = '정서지원서비스(안전안부확인)';
+                                const excelServiceName = row['서비스명'] || '';
+                                
+                                if (excelServiceName !== defaultSvcName) {
+                                    groupedLogs[key].serviceItems.push({ 
+                                        id: Date.now() + Math.random(),
+                                        category: '노인상담 및 정보제공', 
+                                        serviceName: defaultSvcName, 
+                                        detailNote: '' 
+                                    });
+                                }
+                            } else {
+                                // 이미 존재하는 일지라면, 내용(content)이 다른 경우 이어 붙임
+                                if (row['내용'] && !groupedLogs[key].content.includes(row['내용'])) {
+                                    groupedLogs[key].content += (groupedLogs[key].content ? '\n' : '') + row['내용'];
+                                }
+                            }
+
+                            // 엑셀 행의 서비스 항목 추가
+                            const excelServiceName = row['서비스명'];
+                            if (excelServiceName) {
+                                // 중복 서비스 체크 (선택사항, 여기서는 중복도 허용하되 ID는 다르게)
+                                groupedLogs[key].serviceItems.push({ 
+                                    id: Date.now() + Math.random(),
+                                    category: row['서비스분류'], 
+                                    serviceName: excelServiceName, 
+                                    detailNote: row['메모'] || '' 
+                                });
+                            }
+                        }
+
+                        // 2. 그룹화된 일지 데이터 저장
+                        const logsToSave = Object.values(groupedLogs);
+                        for (const logData of logsToSave) {
                             try {
                                 await addDoc(collection(db, "logs"), {
-                                    date: row['날짜'] || new Date().toISOString().split('T')[0],
-                                    clientName: row['대상자'],
-                                    provideMethod: row['제공방법'],
-                                    serviceItems: [{ category: row['서비스분류'], serviceName: row['서비스명'], detailNote: row['메모'] || '' }],
-                                    serviceName: row['서비스명'],
-                                    content: row['내용'],
-                                    provider: row['제공자'],
+                                    ...logData,
+                                    serviceName: logData.serviceItems.map(i => i.serviceName).join(', '), // 검색용 문자열
                                     createdAt: new Date().toISOString()
                                 });
                                 success++;
                             } catch(e) { console.error(e); }
                         }
-                        alert(`${success}건 업로드 완료`);
+
+                        alert(`총 ${logsToSave.length}건의 일지로 병합하여 업로드 완료했습니다.`);
                         render();
                     }
                     input.value = '';
