@@ -7357,31 +7357,108 @@
             uploadLogExcel: (input) => {
                 const file = input.files[0];
                 if (!file) return;
+                
                 const reader = new FileReader();
                 reader.onload = async (e) => {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-                    
-                    if (confirm(`${json.length}건의 데이터를 업로드하시겠습니까?`)) {
-                        let success = 0;
-                        for (const row of json) {
-                            try {
-                                await addDoc(collection(db, "logs"), {
-                                    date: row['날짜'] || new Date().toISOString().split('T')[0],
-                                    clientName: row['대상자'],
-                                    provideMethod: row['제공방법'],
-                                    serviceItems: [{ category: row['서비스분류'], serviceName: row['서비스명'], detailNote: row['메모'] || '' }],
-                                    serviceName: row['서비스명'],
-                                    content: row['내용'],
-                                    provider: row['제공자'],
-                                    createdAt: new Date().toISOString()
-                                });
-                                success++;
-                            } catch(e) { console.error(e); }
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        // [수정] raw: false 옵션을 사용하여 엑셀에 보이는 텍스트 그대로(날짜 등) 읽어오도록 변경
+                        const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { raw: false });
+                        
+                        if (json.length === 0) {
+                            alert("엑셀 파일에 데이터가 없습니다.");
+                            input.value = '';
+                            return;
                         }
-                        alert(`${success}건 업로드 완료`);
-                        render();
+
+                        // [수정] 데이터 전처리: 날짜+대상자 기준으로 병합 (Grouping)
+                        const groupedMap = new Map();
+                        let validCount = 0;
+
+                        json.forEach(rawRow => {
+                            // 키 공백 제거 (헤더 트림) - ' 날짜 ' 처럼 공백이 들어간 경우 방지
+                            const row = {};
+                            Object.keys(rawRow).forEach(key => {
+                                row[key.trim()] = rawRow[key];
+                            });
+
+                            // 날짜와 대상자는 필수값 (없으면 스킵)
+                            const date = row['날짜'];
+                            const name = row['대상자'];
+                            
+                            if (!date || !name) return;
+
+                            validCount++;
+                            const key = `${date}_${name}`; // 고유 키 생성
+
+                            if (!groupedMap.has(key)) {
+                                groupedMap.set(key, {
+                                    date: String(date).trim(),
+                                    clientName: String(name).trim(),
+                                    provideMethod: row['제공방법'] || '방문',
+                                    provider: row['제공자'] || '',
+                                    content: row['내용'] || '',
+                                    serviceItems: []
+                                });
+                            }
+                            
+                            const entry = groupedMap.get(key);
+                            
+                            // 서비스 항목 추가
+                            if (row['서비스분류'] || row['서비스명']) {
+                                entry.serviceItems.push({
+                                    id: Date.now() + Math.random(), 
+                                    category: row['서비스분류'] || '',
+                                    serviceName: row['서비스명'] || '',
+                                    detailNote: row['메모'] || ''
+                                });
+                            }
+                            
+                            // 내용(진행내용) 병합: 기존 내용에 없는 새로운 내용이면 줄바꿈 후 추가
+                            const newContent = row['내용'];
+                            if (newContent && entry.content !== newContent && !entry.content.includes(newContent)) {
+                                 entry.content += (entry.content ? '\n' : '') + newContent;
+                            }
+
+                             // 제공자 병합: 다른 제공자가 있으면 콤마로 추가
+                            const newProvider = row['제공자'];
+                            if (newProvider && entry.provider !== newProvider && !entry.provider.includes(newProvider)) {
+                                 entry.provider += (entry.provider ? ', ' : '') + newProvider;
+                            }
+                        });
+
+                        const mergedList = Array.from(groupedMap.values());
+
+                        if (mergedList.length === 0) {
+                            alert("유효한 데이터가 없습니다. 엑셀의 '날짜'와 '대상자' 열 제목을 확인해주세요.");
+                            input.value = '';
+                            return;
+                        }
+
+                        if (confirm(`엑셀에서 유효한 ${validCount}개 행을 읽어, 총 ${mergedList.length}건의 일지로 병합하여 업로드하시겠습니까?`)) {
+                            let success = 0;
+                            for (const item of mergedList) {
+                                try {
+                                    // 대표 카테고리 및 서비스명 설정
+                                    item.serviceCategory = item.serviceItems.length > 0 ? item.serviceItems[0].category : '';
+                                    item.serviceName = item.serviceItems.map(i => i.serviceName).join(', ');
+                                    item.createdAt = new Date().toISOString();
+
+                                    // 대상자 ID 매핑 (이름으로 찾기)
+                                    const client = state.clients.find(c => c.name === item.clientName);
+                                    if (client) item.clientId = client.id;
+
+                                    await addDoc(collection(db, "logs"), item);
+                                    success++;
+                                } catch(e) { console.error(e); }
+                            }
+                            alert(`${success}건 업로드 완료`);
+                            render();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert("파일 처리 중 오류가 발생했습니다: " + err.message);
                     }
                     input.value = '';
                 };
