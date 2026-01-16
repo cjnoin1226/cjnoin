@@ -503,7 +503,8 @@
             onSnapshot(collection(db, "services"), (snap) => {
                 let loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const sortOrder = ['위기관리체계구축', '욕구기반 위기관리', '위기상황관리 및 긴급지원', '기타'];
-                const caseManagementOrder = ['사례발굴', '초기상담', '사정 및 계획', '개입', '점검 및 모니터링', '종결 및 사후관리'];
+                // [수정] '월사례회의'를 '종결 및 사후관리' 뒤에 추가
+                const caseManagementOrder = ['사례발굴', '초기상담', '사정 및 계획', '개입', '점검 및 모니터링', '종결 및 사후관리', '월사례회의'];
                 const counselingOrder = ['정서지원서비스(안전안부확인)', '노인일상생활관련 상담', '노인일상생활관련상담', '복지서비스 종합안내'];
 
                 loaded.sort((a, b) => {
@@ -2123,6 +2124,42 @@
                 if(window.lucide) lucide.createIcons();
             },
             removeBatchSvcRow: (id) => { const el = document.getElementById(`batch-row-${id}`); if (el) el.remove(); },
+            
+            // [신규] 서비스 추가/수정 관련 함수 (누락된 기능 추가)
+            addService: async (e) => {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                const data = {
+                    majorCategory: fd.get('majorCategory'),
+                    category: fd.get('category'),
+                    name: fd.get('name'),
+                    example: fd.get('example')
+                };
+
+                try {
+                    if (state.editingServiceId) {
+                        await updateDoc(doc(db, "services", state.editingServiceId), data);
+                        state.editingServiceId = null;
+                        alert("서비스가 수정되었습니다.");
+                    } else {
+                        await addDoc(collection(db, "services"), data);
+                        alert("서비스가 추가되었습니다.");
+                    }
+                    if (state.viewMode === 'single') updateTabContent('services'); else render();
+                } catch (err) {
+                    console.error(err);
+                    alert("작업 중 오류가 발생했습니다: " + err.message);
+                }
+            },
+            editService: (id) => {
+                state.editingServiceId = id;
+                if (state.viewMode === 'single') updateTabContent('services'); else render();
+            },
+            cancelEditService: () => {
+                state.editingServiceId = null;
+                if (state.viewMode === 'single') updateTabContent('services'); else render();
+            },
+
             // [신규] 사례회의 조회 대상 월 변경 함수
             setMeetingTargetMonth: (val) => {
                 state.ui.meetingTargetMonth = parseInt(val);
