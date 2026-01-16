@@ -7424,19 +7424,42 @@
                 const reader = new FileReader();
                 reader.onload = async (e) => {
                     const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
+                    // [수정] cellDates: true 옵션 추가 (엑셀 날짜 형식을 JS Date 객체로 자동 변환)
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                     
                     if (confirm(`총 ${json.length}건의 데이터를 읽었습니다.\n\n[업로드 규칙]\n- 날짜와 대상자명이 모두 동일한 경우: 하나의 일지로 자동 병합\n- 그 외의 경우: 개별 일지로 등록\n\n업로드하시겠습니까?`)) {
                         let success = 0;
                         const groupedLogs = {}; // 날짜_대상자이름을 키로 사용하여 데이터 그룹화
 
+                        // [신규] 날짜 포맷팅 헬퍼 함수 (날짜 객체, 숫자, 문자열 모두 처리)
+                        const formatExcelDate = (val) => {
+                            if (!val) return new Date().toISOString().split('T')[0];
+                            let dateObj;
+                            
+                            if (val instanceof Date) {
+                                dateObj = val;
+                            } else if (typeof val === 'number') {
+                                // 엑셀 날짜 코드(Serial Number)인 경우 (혹시 cellDates 옵션이 안 먹힐 때 대비)
+                                dateObj = new Date(Math.round((val - 25569) * 86400 * 1000));
+                            } else {
+                                // 문자열인 경우 (2026.09.01, 2026/09/01 등)
+                                const str = String(val).trim().replace(/[\.\/]/g, '-');
+                                dateObj = new Date(str);
+                            }
+
+                            if (isNaN(dateObj.getTime())) return new Date().toISOString().split('T')[0];
+
+                            // 한국 시간대(KST) 보정 또는 단순 날짜 추출 (시간대 왜곡 방지)
+                            const offset = dateObj.getTimezoneOffset() * 60000;
+                            const localDate = new Date(dateObj.getTime() - offset);
+                            return localDate.toISOString().split('T')[0];
+                        };
+
                         // 1. 데이터 그룹화 (병합 로직)
                         for (const row of json) {
-                            let date = row['날짜'];
-                            // 날짜 정규화 (YYYY.MM.DD -> YYYY-MM-DD 등)
-                            if (!date) date = new Date().toISOString().split('T')[0];
-                            else if (typeof date === 'string') date = date.replace(/\./g, '-');
+                            // [수정] 개선된 날짜 포맷팅 함수 적용
+                            let date = formatExcelDate(row['날짜']);
                             
                             // [수정] 대상자 이름 컬럼 호환성 추가 ('대상자' 또는 '이름')
                             const clientName = row['대상자'] || row['이름'];
