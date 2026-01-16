@@ -403,7 +403,9 @@
                 caseSubTab: 'initial',
                 allowOverlayClose: false,
                 cmYear: new Date().getFullYear(), 
-                visibleLogLimit: 50,
+                // [수정] 페이지네이션 상태 추가 및 기존 visibleLogLimit 제거 대체
+                logPage: 1,
+                logsPerPage: 50,
                 meetingTargetMonth: new Date().getMonth() + 1,
                 meetingCandidateType: 'regular' // [신규] 회의 대상자 조회 타입 (regular, new, end)
             },
@@ -909,17 +911,62 @@
 
         function renderLogManager() {
             const filteredFull = getFilteredLogs(); 
-            const visibleLogs = filteredFull.slice(0, state.ui.visibleLogLimit);
-            const hasMore = filteredFull.length > state.ui.visibleLogLimit;
+            const totalLogs = filteredFull.length;
+            const totalPages = Math.ceil(totalLogs / state.ui.logsPerPage) || 1;
+
+            // 현재 페이지 유효성 검사
+            if (state.ui.logPage > totalPages) state.ui.logPage = totalPages;
+            if (state.ui.logPage < 1) state.ui.logPage = 1;
+
+            const startIndex = (state.ui.logPage - 1) * state.ui.logsPerPage;
+            const endIndex = startIndex + state.ui.logsPerPage;
+            const visibleLogs = filteredFull.slice(startIndex, endIndex);
 
             const categories = [...new Set(state.services.map(s => s.category))];
             const { category, service, start, end, search, provider, region } = state.filters.log; 
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
-            const allSelected = filteredFull.length > 0 && filteredFull.every(l => state.ui.selectedLogIds.has(l.id));
+            const allSelected = visibleLogs.length > 0 && visibleLogs.every(l => state.ui.selectedLogIds.has(l.id));
+
+            // 페이지네이션 UI 생성
+            let paginationHTML = '';
+            if (totalPages > 1) {
+                paginationHTML = `<div class="flex justify-center items-center gap-1 mt-4 pt-2 select-none">`;
+                
+                // 이전 버튼
+                paginationHTML += `<button onclick="app.setLogPage(${state.ui.logPage - 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" size="16"></i></button>`;
+                
+                // 페이지 번호 표시 범위 계산 (현재 페이지 중심으로 최대 5개)
+                let startPage = Math.max(1, state.ui.logPage - 2);
+                let endPage = Math.min(totalPages, startPage + 4);
+                if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+                // 첫 페이지 바로가기
+                if (startPage > 1) {
+                    paginationHTML += `<button onclick="app.setLogPage(1)" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">1</button>`;
+                    if (startPage > 2) paginationHTML += `<span class="text-slate-300 text-xs px-1">...</span>`;
+                }
+
+                // 번호 버튼
+                for (let i = startPage; i <= endPage; i++) {
+                    const activeClass = i === state.ui.logPage ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'hover:bg-slate-100 text-slate-600';
+                    paginationHTML += `<button onclick="app.setLogPage(${i})" class="w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${activeClass}">${i}</button>`;
+                }
+
+                // 마지막 페이지 바로가기
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) paginationHTML += `<span class="text-slate-300 text-xs px-1">...</span>`;
+                    paginationHTML += `<button onclick="app.setLogPage(${totalPages})" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">${totalPages}</button>`;
+                }
+
+                // 다음 버튼
+                paginationHTML += `<button onclick="app.setLogPage(${state.ui.logPage + 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" size="16"></i></button>`;
+                
+                paginationHTML += `</div>`;
+            }
 
             return `
-                <div class="flex flex-col animate-fade-in">
-                    <div class="space-y-4 pb-2 pr-1 transition-all">
+                <div class="flex flex-col animate-fade-in h-full">
+                    <div class="space-y-4 pb-2 pr-1 transition-all flex-shrink-0">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
                             <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
                             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -957,10 +1004,13 @@
 
                         <div class="flex items-center justify-between px-1 h-8">
                             <div class="flex items-center gap-3">
-                                <div class="text-sm text-slate-500">총 <span class="font-bold text-slate-800">${filteredFull.length}</span>건</div>
+                                <div class="text-sm text-slate-500">
+                                    총 <span class="font-bold text-slate-800">${totalLogs}</span>건
+                                    <span class="text-xs text-slate-400 font-normal ml-1">(${state.ui.logPage} / ${totalPages} 페이지)</span>
+                                </div>
                                 <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
-                                    <input type="checkbox" id="log-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${filteredFull.length === 0 ? 'disabled' : ''}>
-                                    <span class="text-sm font-medium text-slate-600">전체선택</span>
+                                    <input type="checkbox" id="log-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${visibleLogs.length === 0 ? 'disabled' : ''}>
+                                    <span class="text-sm font-medium text-slate-600">전체선택 (현재 페이지)</span>
                                 </label>
                             </div>
                             <div class="flex items-center gap-2" id="log-batch-actions">
@@ -972,7 +1022,7 @@
                         </div>
                     </div>
 
-                    <div id="log-list-container" class="overflow-y-auto max-h-[70vh] custom-scrollbar space-y-4 pr-1 pb-4">
+                    <div id="log-list-container" class="overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-4 flex-1">
                         ${visibleLogs.length === 0 ? '<div class="text-center py-12 text-slate-400">검색 결과가 없습니다.</div>' : visibleLogs.map(l => {
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
@@ -1012,8 +1062,8 @@
                                 </div>
                             </div>`
                         }).join('')}
-                        ${hasMore ? `<button onclick="app.loadMoreLogs()" class="w-full py-3 bg-white border border-slate-200 rounded-xl text-slate-500 font-bold hover:bg-slate-50 transition-colors shadow-sm mt-2 flex items-center justify-center gap-2"><i data-lucide="chevron-down" size="16"></i> 더 보기 (${filteredFull.length - state.ui.visibleLogLimit}건 남음)</button>` : ''}
                     </div>
+                    ${paginationHTML}
                 </div>`;
         }
 
@@ -1944,9 +1994,14 @@
             },
             setFilter: (s, k, v, doRender = true) => { 
                 state.filters[s][k] = v; 
-                // [신규] 일지 필터 변경 시 표시 제한 초기화
-                if (s === 'log') state.ui.visibleLogLimit = 50;
+                // [신규] 일지 필터 변경 시 페이지 초기화
+                if (s === 'log') state.ui.logPage = 1;
                 if(doRender) { if (state.viewMode === 'single') updateTabContent(state.activeTab); else render(); }
+            },
+            // [신규] 일지 페이지 변경 함수
+            setLogPage: (page) => {
+                state.ui.logPage = page;
+                if(state.viewMode==='single') updateTabContent('logs'); else render();
             },
             render: () => render(), 
             toggleRegionDropdown: () => { 
@@ -2016,8 +2071,8 @@
                 } else if (section === 'log') {
                     state.filters.log = { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] };
                     state.ui.logRegionDropdownOpen = false;
-                    // [신규] 일지 필터 초기화 시 표시 제한도 초기화
-                    state.ui.visibleLogLimit = 50;
+                    // [신규] 일지 필터 초기화 시 페이지 1로 설정
+                    state.ui.logPage = 1;
                     if(state.viewMode==='single') updateTabContent('logs');
                 } else if (section === 'meeting') {
                     // [수정] 회의록 필터 초기화 로직 (신규 필드 포함)
@@ -2053,15 +2108,23 @@
                 if (selectAllCheckbox) { const filtered = getFilteredLogs(); const allSelected = filtered.length > 0 && filtered.every(l => state.ui.selectedLogIds.has(l.id)); selectAllCheckbox.checked = allSelected; }
             },
             toggleAllLogs: (checked) => {
-                const filtered = getFilteredLogs();
-                if (checked) { filtered.forEach(l => state.ui.selectedLogIds.add(l.id)); } else { filtered.forEach(l => state.ui.selectedLogIds.delete(l.id)); }
+                // [수정] 현재 페이지의 일지들만 선택하도록 변경
+                const filteredFull = getFilteredLogs();
+                const startIndex = (state.ui.logPage - 1) * state.ui.logsPerPage;
+                const endIndex = startIndex + state.ui.logsPerPage;
+                const visibleLogs = filteredFull.slice(startIndex, endIndex);
+
+                if (checked) { 
+                    visibleLogs.forEach(l => state.ui.selectedLogIds.add(l.id)); 
+                } else { 
+                    visibleLogs.forEach(l => state.ui.selectedLogIds.delete(l.id)); 
+                }
                 const checkboxes = document.querySelectorAll('.log-checkbox'); checkboxes.forEach(cb => { cb.checked = checked; });
                 app.updateLogBatchActionsUI();
             },
-            // [신규] 일지 더 보기 기능
+            // [신규] 일지 더 보기 기능 (페이지네이션으로 대체되어 삭제됨 - 기존 함수명 유지하되 내용 없음)
             loadMoreLogs: () => {
-                state.ui.visibleLogLimit += 50;
-                if(state.viewMode==='single') updateTabContent('logs'); else render();
+                // Deprecated
             },
             deleteSelectedLogs: () => {
                 const count = state.ui.selectedLogIds.size;
