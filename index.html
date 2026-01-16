@@ -325,6 +325,15 @@
     <div id="sub-modal-container" class="fixed inset-0 z-[65] hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto" onclick="if(event.target === this) app.handleSubModalOverlayClick()"></div>
     <div id="dialog-container" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/50 p-4"></div>
 
+    <!-- [신규] 글로벌 로딩 오버레이 -->
+    <div id="global-loading-overlay" class="fixed inset-0 z-[100] hidden flex flex-col items-center justify-center bg-black/50 text-white backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center animate-fade-in text-slate-800 min-w-[200px]">
+            <div class="animate-spin text-emerald-600 mb-4"><i data-lucide="loader-2" size="40"></i></div>
+            <div id="global-loading-message" class="text-lg font-bold text-center">처리 중...</div>
+            <div class="text-xs text-slate-400 mt-2">잠시만 기다려주세요</div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -1652,6 +1661,20 @@
         }
 
         window.app = {
+            // [신규] 로딩 화면 제어 함수
+            showLoading: (msg = '처리 중...') => {
+                const overlay = document.getElementById('global-loading-overlay');
+                const msgEl = document.getElementById('global-loading-message');
+                if (overlay && msgEl) {
+                    msgEl.textContent = msg;
+                    overlay.classList.remove('hidden');
+                }
+            },
+            hideLoading: () => {
+                const overlay = document.getElementById('global-loading-overlay');
+                if (overlay) overlay.classList.add('hidden');
+            },
+
             setTab: (t, updateHistory = true) => { 
                 if (!state.openedTabs.includes(t)) { state.openedTabs.push(t); }
                 if (state.viewMode === 'single') {
@@ -6940,6 +6963,9 @@
                 commonData.serviceCategory = items[0].category;
                 commonData.serviceName = items.map(i => i.serviceName).join(', ');
 
+                // [수정] 로딩 표시 시작
+                app.showLoading('일지를 저장하고 있습니다...');
+
                 try {
                     if (id) {
                         // 수정 모드 (단일 건)
@@ -6969,6 +6995,9 @@
                 } catch (err) { 
                     console.error(err);
                     alert("저장 실패: " + err.message); 
+                } finally {
+                    // [수정] 로딩 종료
+                    app.hideLoading();
                 }
             },
 
@@ -7452,7 +7481,11 @@
                         }
 
                         if (confirm(`총 ${validCount}개 행을 병합하여 ${mergedList.length}건의 일지로 업로드합니다.\n(첫 번째 데이터 날짜: ${mergedList[0].date})`)) {
+                            // [수정] 로딩 표시 시작
+                            app.showLoading(`${mergedList.length}건의 데이터를 업로드 중입니다...`);
+                            
                             let success = 0;
+                            // 비동기 루프 처리
                             for (const item of mergedList) {
                                 try {
                                     // 대표 카테고리 및 서비스명 설정
@@ -7468,12 +7501,17 @@
                                     success++;
                                 } catch(e) { console.error(e); }
                             }
+                            
+                            // [수정] 로딩 종료
+                            app.hideLoading();
+                            
                             alert(`${success}건 업로드 완료`);
                             // 필터 초기화 후 렌더링하여 새 데이터가 바로 보이게 함
                             app.resetFilters('log');
                         }
                     } catch (err) {
                         console.error(err);
+                        app.hideLoading(); // 에러 시에도 로딩 끄기
                         alert("파일 처리 중 오류가 발생했습니다: " + err.message);
                     }
                     input.value = '';
