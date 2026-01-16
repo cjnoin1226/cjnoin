@@ -325,22 +325,6 @@
     <div id="sub-modal-container" class="fixed inset-0 z-[65] hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto" onclick="if(event.target === this) app.handleSubModalOverlayClick()"></div>
     <div id="dialog-container" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/50 p-4"></div>
 
-    <!-- [신규] 글로벌 로딩 오버레이 -->
-    <div id="global-loading-overlay" class="fixed inset-0 z-[100] hidden flex flex-col items-center justify-center bg-black/50 text-white backdrop-blur-sm transition-opacity duration-300">
-        <div class="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center animate-fade-in text-slate-800 min-w-[240px]">
-            <div class="animate-spin text-emerald-600 mb-4"><i data-lucide="loader-2" size="40"></i></div>
-            <div id="global-loading-message" class="text-lg font-bold text-center">처리 중...</div>
-            
-            <!-- [추가] 진행률 표시 영역 -->
-            <div id="loading-progress-container" class="w-full bg-slate-100 rounded-full h-2.5 mt-4 overflow-hidden hidden">
-                <div id="loading-progress-bar" class="bg-emerald-600 h-2.5 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
-            </div>
-            <div id="loading-progress-text" class="text-sm font-bold text-emerald-600 mt-2 hidden">0%</div>
-            
-            <div class="text-xs text-slate-400 mt-2">잠시만 기다려주세요</div>
-        </div>
-    </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -1707,7 +1691,7 @@
                     q = query(collection(db, "logs"), orderBy("date", "desc"), limit(500));
                 }
 
-                app.showLoading('데이터를 불러오는 중입니다...');
+                // 로딩 UI 호출 제거
                 
                 state.ui.logListenerUnsubscribe = onSnapshot(q, (snap) => {
                     state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1718,7 +1702,6 @@
                         return (a.clientName || '').localeCompare(b.clientName || '');
                     });
                     
-                    app.hideLoading();
                     app.render(); 
                     
                     // 조회 결과가 없을 때 안내 (날짜 필터가 있을 때만)
@@ -1727,54 +1710,12 @@
                     }
                 }, (err) => {
                     console.error("Data load failed:", err);
-                    app.hideLoading();
                     if(err.code === 'failed-precondition') {
                         alert("데이터 조회 중 오류가 발생했습니다. (인덱스 생성 필요 가능성)");
                     } else {
                         alert("데이터 조회 실패: " + err.message);
                     }
                 });
-            },
-
-            // [신규] 로딩 화면 제어 함수 (진행률 표시 기능 추가)
-            showLoading: (msg = '처리 중...', showProgress = false) => {
-                const overlay = document.getElementById('global-loading-overlay');
-                const msgEl = document.getElementById('global-loading-message');
-                const progContainer = document.getElementById('loading-progress-container');
-                const progBar = document.getElementById('loading-progress-bar');
-                const progText = document.getElementById('loading-progress-text');
-                
-                if (overlay && msgEl) {
-                    msgEl.textContent = msg;
-                    overlay.classList.remove('hidden');
-                    
-                    if (showProgress) {
-                        progContainer.classList.remove('hidden');
-                        progText.classList.remove('hidden');
-                        progBar.style.width = '0%';
-                        progText.textContent = '0%';
-                    } else {
-                        progContainer.classList.add('hidden');
-                        progText.classList.add('hidden');
-                    }
-                }
-            },
-            updateLoadingProgress: (percent, text = null) => {
-                const progBar = document.getElementById('loading-progress-bar');
-                const progText = document.getElementById('loading-progress-text');
-                const msgEl = document.getElementById('global-loading-message');
-                
-                if (progBar && progText) {
-                    progBar.style.width = `${percent}%`;
-                    progText.textContent = `${percent}%`;
-                }
-                if (text && msgEl) {
-                    msgEl.textContent = text;
-                }
-            },
-            hideLoading: () => {
-                const overlay = document.getElementById('global-loading-overlay');
-                if (overlay) overlay.classList.add('hidden');
             },
 
             setTab: (t, updateHistory = true) => { 
@@ -7068,7 +7009,6 @@
                 try {
                     if (id) {
                         // 수정 모드 (단일 건)
-                        app.showLoading('일지를 수정하고 있습니다...'); // 단일 건은 프로그레스바 없음
                         const clientName = window.currentLogClients[0]; // 수정 시에는 1명만 있음
                         const client = state.clients.find(c => c.name === clientName);
                         if (client) commonData.clientId = client.id;
@@ -7079,10 +7019,8 @@
                     } else {
                         // 작성 모드 (다중 건 생성 가능)
                         const total = window.currentLogClients.length;
-                        // [수정] 다중 저장 시 진행률 표시 활성화
-                        app.showLoading(`${total}건의 일지를 저장 중입니다...`, true);
                         
-                        // [수정] 순차 처리로 변경하여 진행률 업데이트 (병렬 처리 시 UI 갱신이 너무 빠르거나 부정확할 수 있음)
+                        // [수정] 로딩 UI 제거하고 순차 저장
                         for (let i = 0; i < total; i++) {
                             const clientName = window.currentLogClients[i];
                             const data = { ...commonData, clientName };
@@ -7091,10 +7029,6 @@
                             data.createdAt = new Date().toISOString();
                             
                             await addDoc(collection(db, "logs"), data);
-                            
-                            // 진행률 업데이트
-                            const percent = Math.round(((i + 1) / total) * 100);
-                            app.updateLoadingProgress(percent, `${i + 1} / ${total} 저장 완료`);
                         }
                         
                         alert(`${total}건의 일지가 저장되었습니다.`);
@@ -7105,9 +7039,6 @@
                 } catch (err) { 
                     console.error(err);
                     alert("저장 실패: " + err.message); 
-                } finally {
-                    // [수정] 로딩 종료
-                    app.hideLoading();
                 }
             },
 
@@ -7510,7 +7441,7 @@
                             return;
                         }
 
-                        // [수정] 날짜 정규화 함수 강화 (2025. 1. 6. 등 다양한 케이스 대응)
+                        // [수정] 날짜 정규화 함수 강화 (2025. 1. 6. / 25.1.6 / 1.13 / 1/13 등 다양한 케이스 대응)
                         const normalizeDate = (d) => {
                             if (!d) return '';
                             let str = String(d).trim();
@@ -7520,10 +7451,19 @@
                             const parts = str.split('-').map(p => p.trim()).filter(p => p !== '');
                             
                             if (parts.length === 3) {
-                                const y = parts[0];
+                                let y = parts[0];
+                                // 연도가 2자리인 경우 (예: 25 -> 2025)
+                                if (y.length === 2 && !isNaN(y)) y = '20' + y;
+
                                 const m = parts[1].padStart(2, '0');
                                 const d = parts[2].padStart(2, '0');
                                 return `${y}-${m}-${d}`;
+                            } else if (parts.length === 2) {
+                                // [신규] 월, 일만 있는 경우 (예: 1/13 -> 2025-01-13)
+                                const currentYear = new Date().getFullYear();
+                                const m = parts[0].padStart(2, '0');
+                                const d = parts[1].padStart(2, '0');
+                                return `${currentYear}-${m}-${d}`;
                             }
                             return str; // 변환 실패 시 원본 반환 (유효성 검사에서 걸러짐)
                         };
@@ -7585,7 +7525,7 @@
                         }
 
                         if (confirm(`총 ${validCount}개 행을 병합하여 ${mergedList.length}건의 일지로 업로드합니다.\n(첫 번째 데이터 날짜: ${mergedList[0].date})`)) {
-                            app.showLoading(`총 ${mergedList.length}건 업로드 준비 중...`, true);
+                            // 로딩 UI 호출 제거
                             
                             let success = 0;
                             const total = mergedList.length;
@@ -7613,13 +7553,8 @@
                                     await addDoc(collection(db, "logs"), item);
                                     success++;
                                     
-                                    const percent = Math.round(((i + 1) / total) * 100);
-                                    app.updateLoadingProgress(percent, `${i + 1} / ${total} 처리 중...`);
-
                                 } catch(e) { console.error(e); }
                             }
-                            
-                            app.hideLoading();
                             
                             alert(`${success}건 업로드 완료`);
                             
@@ -7649,7 +7584,6 @@
                         }
                     } catch (err) {
                         console.error(err);
-                        app.hideLoading();
                         alert("파일 처리 중 오류가 발생했습니다: " + err.message);
                     }
                     input.value = '';
