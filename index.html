@@ -7303,7 +7303,16 @@
                 XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
             },
             downloadLogTemplate: () => {
-                const ws = XLSX.utils.json_to_sheet([{날짜: '2024-01-01', 대상자: '홍길동', 제공방법: '방문', 서비스분류: '사례관리', 서비스명: '안부확인', 내용: '잘 지내심', 제공자: '김복지'}]);
+                const ws = XLSX.utils.json_to_sheet([{
+                    날짜: '2024-01-01', 
+                    대상자: '홍길동', 
+                    제공방법: '방문', 
+                    서비스분류: '사례관리', 
+                    서비스명: '안부확인', 
+                    메모: '특이사항 없음', 
+                    내용: '잘 지내심', 
+                    제공자: '김복지'
+                }]);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Template");
                 XLSX.writeFile(wb, "일지_업로드_양식.xlsx");
@@ -7325,7 +7334,7 @@
                                     date: row['날짜'] || new Date().toISOString().split('T')[0],
                                     clientName: row['대상자'],
                                     provideMethod: row['제공방법'],
-                                    serviceItems: [{ category: row['서비스분류'], serviceName: row['서비스명'], detailNote: '' }],
+                                    serviceItems: [{ category: row['서비스분류'], serviceName: row['서비스명'], detailNote: row['메모'] || '' }],
                                     serviceName: row['서비스명'],
                                     content: row['내용'],
                                     provider: row['제공자'],
