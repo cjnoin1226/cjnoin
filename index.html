@@ -985,6 +985,16 @@
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
             const allSelected = visibleLogs.length > 0 && visibleLogs.every(l => state.ui.selectedLogIds.has(l.id));
 
+            // [신규] 연도 선택 옵션 생성 (2020년 ~ 내년)
+            const currentYear = new Date().getFullYear();
+            const logYearOptions = [`<option value="">연도선택</option>`];
+            for (let y = 2020; y <= currentYear + 1; y++) {
+                // start와 end가 해당 연도의 1월 1일 ~ 12월 31일과 일치하면 선택된 것으로 표시
+                const isSelected = start === `${y}-01-01` && end === `${y}-12-31`;
+                logYearOptions.push(`<option value="${y}" ${isSelected ? 'selected' : ''}>${y}년</option>`);
+            }
+            logYearOptions.reverse(); // 최신 연도가 위로 오게
+
             // 페이지네이션 UI 생성
             let paginationHTML = '';
             if (totalPages > 1) {
@@ -1040,24 +1050,30 @@
                         </div>
 
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
-                            <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0"><i data-lucide="filter" size="14"></i> 필터</div>
-                            <div class="flex items-center gap-2 w-full sm:w-auto p-1 bg-slate-50 rounded-lg border border-slate-200">
-                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('log','start',this.value, false)" max="9999-12-31">
+                            <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0 h-9"><i data-lucide="filter" size="14"></i> 필터</div>
+                            
+                            <!-- [수정] 모든 필터 요소에 h-9 (36px) 클래스 적용하여 높이 통일 -->
+                            <select class="input-field h-9 py-1 px-2 text-sm w-24 font-medium border-slate-200 bg-slate-50 mr-1 focus:ring-0 focus:border-emerald-500" onchange="app.setLogYear(this.value)">
+                                ${logYearOptions.join('')}
+                            </select>
+
+                            <div class="flex items-center gap-2 w-full sm:w-auto px-2 bg-slate-50 rounded-lg border border-slate-200 h-9">
+                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${start}" onchange="app.setFilter('log','start',this.value, false)" max="9999-12-31">
                                 <span class="text-slate-400">~</span>
-                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
-                                <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
+                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
+                                <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
                             </div>
-                            <input id="log-search-name" class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
-                            <input id="log-search-provider" class="input-field py-1.5 w-full sm:w-32 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
+                            <input id="log-search-name" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
+                            <input id="log-search-provider" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
                             <div class="relative z-30 w-full sm:w-auto">
-                                <button onclick="app.toggleLogRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left h-[34px] w-full sm:w-32"><span class="truncate max-w-[90px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
+                                <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-32"><span class="truncate max-w-[90px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
                                 ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
                             </div>
                             <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
-                                <select class="input-field py-1.5 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
-                                <select class="input-field py-1.5 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
+                                <select class="input-field h-9 py-1 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
+                                <select class="input-field h-9 py-1 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
                             </div>
-                            <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                            <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 h-9 px-2 hover:bg-slate-50 rounded transition-colors" title="초기화"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                         </div>
 
                         <div class="flex items-center justify-between px-1 h-8">
@@ -2062,6 +2078,19 @@
                 // [신규] 일지 필터 변경 시 페이지 초기화
                 if (s === 'log') state.ui.logPage = 1;
                 if(doRender) { if (state.viewMode === 'single') updateTabContent(state.activeTab); else render(); }
+            },
+            // [신규] 일지 연도 필터 간편 설정 함수
+            setLogYear: (year) => {
+                if (year) {
+                    state.filters.log.start = `${year}-01-01`;
+                    state.filters.log.end = `${year}-12-31`;
+                } else {
+                    // 연도 선택 해제 시 날짜 필터 초기화 (전체 보기)
+                    state.filters.log.start = '';
+                    state.filters.log.end = '';
+                }
+                state.ui.logPage = 1; // 페이지 초기화
+                if (state.viewMode === 'single') updateTabContent('logs'); else render();
             },
             // [신규] 일지 페이지 변경 함수
             setLogPage: (page) => {
