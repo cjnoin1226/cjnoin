@@ -443,7 +443,8 @@
                     status: '이용', level: '', economicStatus: '', duplicateService: '', ictStatus: '', 
                     region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' 
                 },
-                log: { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] },
+                // [수정] log 필터에 contentSearch(내용 검색) 추가
+                log: { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', region: [] },
                 // [수정] 회의록 필터 확장 (구분, 대상자, 작성자 추가)
                 meeting: {
                     start: (() => { const d = new Date(); return `${d.getFullYear()}-01-01`; })(),
@@ -473,11 +474,12 @@
         }
 
         function getFilteredLogs() {
-            const { start, end, search, provider, category, service, region } = state.filters.log;
+            // [수정] contentSearch 구조 분해 할당 추가
+            const { start, end, search, contentSearch, provider, category, service, region } = state.filters.log;
             
-            // [수정] 사용자가 설정한 필터가 하나라도 있는지 확인
-            // start, end, search, provider, category, service는 문자열, region은 배열
-            const hasActiveFilter = start || end || search || provider || category || service || region.length > 0;
+            // [수정] 사용자가 설정한 필터가 하나라도 있는지 확인 (contentSearch 포함)
+            // start, end, search, contentSearch, provider, category, service는 문자열, region은 배열
+            const hasActiveFilter = start || end || search || contentSearch || provider || category || service || region.length > 0;
             const currentYearStr = String(new Date().getFullYear());
 
             const filtered = state.logs.filter(l => {
@@ -489,9 +491,11 @@
                     if (!l.date.startsWith(currentYearStr)) return false;
                 }
 
+                // [수정] contentSearch 필터링 조건 추가 (일지 내용에 검색어 포함 여부 확인)
                 return (!start || l.date >= start) && 
                        (!end || l.date <= end) && 
                        (!search || l.clientName.includes(search)) && 
+                       (!contentSearch || (l.content && l.content.includes(contentSearch))) &&
                        (!provider || (l.provider && l.provider.includes(provider))) && 
                        (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
                        (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service))) &&
@@ -985,19 +989,23 @@
             const visibleLogs = filteredFull.slice(startIndex, endIndex);
 
             const categories = [...new Set(state.services.map(s => s.category))];
-            const { category, service, start, end, search, provider, region } = state.filters.log; 
+            // [수정] contentSearch 변수 추가
+            const { category, service, start, end, search, contentSearch, provider, region } = state.filters.log; 
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
             const allSelected = visibleLogs.length > 0 && visibleLogs.every(l => state.ui.selectedLogIds.has(l.id));
 
-            // [신규] 연도 선택 옵션 생성 (2020년 ~ 내년)
+            // [수정] 연도 선택 옵션 생성 로직 개선
+            // 기존: 배열 생성 시 '연도선택' 포함 -> reverse() -> '연도선택'이 맨 뒤로 감 -> 첫 번째인 최신 연도가 보임
+            // 변경: 연도만 생성 -> reverse() -> unshift()로 '연도'를 맨 앞에 추가
             const currentYear = new Date().getFullYear();
-            const logYearOptions = [`<option value="">연도선택</option>`];
+            const logYearOptions = [];
             for (let y = 2020; y <= currentYear + 1; y++) {
                 // start와 end가 해당 연도의 1월 1일 ~ 12월 31일과 일치하면 선택된 것으로 표시
                 const isSelected = start === `${y}-01-01` && end === `${y}-12-31`;
                 logYearOptions.push(`<option value="${y}" ${isSelected ? 'selected' : ''}>${y}년</option>`);
             }
-            logYearOptions.reverse(); // 최신 연도가 위로 오게
+            logYearOptions.reverse(); // 최신 연도가 위로 오게 정렬
+            logYearOptions.unshift(`<option value="">연도</option>`); // 맨 앞에 "연도" 옵션 추가
 
             // 페이지네이션 UI 생성
             let paginationHTML = '';
@@ -1054,7 +1062,7 @@
                         </div>
 
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
-                            <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0 h-9"><i data-lucide="filter" size="14"></i> 필터</div>
+                            <!-- [수정] 필터 아이콘 및 텍스트 제거됨 -->
                             
                             <!-- [수정] 모든 필터 요소에 h-9 (36px) 클래스 적용하여 높이 통일 -->
                             <select class="input-field h-9 py-1 px-2 text-sm w-24 font-medium border-slate-200 bg-slate-50 mr-1 focus:ring-0 focus:border-emerald-500" onchange="app.setLogYear(this.value)">
@@ -1067,17 +1075,22 @@
                                 <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
                                 <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
                             </div>
-                            <input id="log-search-name" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
-                            <input id="log-search-provider" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
+                            <input id="log-search-name" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
+                            
+                            <!-- [신규] 내용 검색 필터 추가 -->
+                            <input id="log-search-content" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="내용 검색 (Enter)" value="${contentSearch}" onkeydown="if(event.key === 'Enter') app.setFilter('log','contentSearch',this.value)" oninput="if(this.value === '') app.setFilter('log','contentSearch','')">
+
+                            <input id="log-search-provider" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
                             <div class="relative z-30 w-full sm:w-auto">
-                                <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-32"><span class="truncate max-w-[90px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
+                                <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-28"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
                                 ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
                             </div>
                             <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
-                                <select class="input-field h-9 py-1 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
+                                <select class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
                                 <select class="input-field h-9 py-1 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
                             </div>
-                            <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 h-9 px-2 hover:bg-slate-50 rounded transition-colors" title="초기화"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                            <!-- [수정] 초기화 버튼 텍스트 제거 (아이콘만 남김) -->
+                            <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 h-9 px-2 hover:bg-slate-50 rounded transition-colors" title="초기화"><i data-lucide="refresh-cw" size="14"></i></button>
                         </div>
 
                         <div class="flex items-center justify-between px-1 h-8">
@@ -2250,7 +2263,8 @@
                     state.ui.perfMonthDropdownOpen = false;
                     if(state.viewMode==='single') updateTabContent('performance');
                 } else if (section === 'log') {
-                    state.filters.log = { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] };
+                    // [수정] contentSearch 초기화 추가
+                    state.filters.log = { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', region: [] };
                     state.ui.logRegionDropdownOpen = false;
                     // [신규] 일지 필터 초기화 시 페이지 1로 설정
                     state.ui.logPage = 1;
@@ -2290,7 +2304,19 @@
                     container.innerHTML = `<button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-blue-100 transition-colors animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${count})</button><button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제</button>`;
                     if(window.lucide) lucide.createIcons();
                 } else { container.innerHTML = ''; }
-                if (selectAllCheckbox) { const filtered = getFilteredLogs(); const allSelected = filtered.length > 0 && filtered.every(l => state.ui.selectedLogIds.has(l.id)); selectAllCheckbox.checked = allSelected; }
+                
+                // [수정] 전체 선택 체크박스 상태 동기화 로직 개선 (현재 페이지 기준)
+                if (selectAllCheckbox) { 
+                    const filteredFull = getFilteredLogs();
+                    // 현재 페이지 범위 계산
+                    const startIndex = (state.ui.logPage - 1) * state.ui.logsPerPage;
+                    const endIndex = startIndex + state.ui.logsPerPage;
+                    const visibleLogs = filteredFull.slice(startIndex, endIndex);
+                    
+                    // 현재 페이지의 모든 항목이 선택되었는지 확인
+                    const allSelected = visibleLogs.length > 0 && visibleLogs.every(l => state.ui.selectedLogIds.has(l.id)); 
+                    selectAllCheckbox.checked = allSelected; 
+                }
             },
             toggleAllLogs: (checked) => {
                 // [수정] 현재 페이지의 일지들만 선택하도록 변경
