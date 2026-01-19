@@ -523,8 +523,8 @@
             onSnapshot(collection(db, "services"), (snap) => {
                 let loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const sortOrder = ['위기관리체계구축', '욕구기반 위기관리', '위기상황관리 및 긴급지원', '기타'];
-                // [수정] '월사례회의'를 '종결 및 사후관리' 뒤에 추가
-                const caseManagementOrder = ['사례발굴', '초기상담', '사정 및 계획', '개입', '점검 및 모니터링', '종결 및 사후관리', '월사례회의'];
+                // [수정] 요청하신 순서대로 배열 재정의 (월 사례회의 포함)
+                const caseManagementOrder = ['사례발굴', '초기상담', '사정 및 계획', '개입', '점검 및 모니터링', '종결 및 사후관리', '월 사례회의', '월사례회의'];
                 const counselingOrder = ['정서지원서비스(안전안부확인)', '노인일상생활관련 상담', '노인일상생활관련상담', '복지서비스 종합안내'];
 
                 loaded.sort((a, b) => {
