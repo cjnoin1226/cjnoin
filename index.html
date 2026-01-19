@@ -408,6 +408,8 @@
             logs: [],
             meetings: [], // [신규] 회의록 데이터 배열 초기화
             editingServiceId: null,
+            // [신규] 일괄 작업 중 화면 갱신 방지 플래그
+            isBatching: false,
             ui: {
                 regionDropdownOpen: false,
                 logRegionDropdownOpen: false,
@@ -511,13 +513,13 @@
 
             onSnapshot(query(collection(db, "clients"), orderBy("createdAt", "desc")), (snap) => {
                 state.clients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                render();
+                if (!state.isBatching) render();
             }, handleErr);
             
             // [신규] 회의록 데이터 실시간 동기화 추가
             onSnapshot(query(collection(db, "meetings"), orderBy("date", "desc")), (snap) => {
                 state.meetings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                render();
+                if (!state.isBatching) render();
             }, handleErr);
 
             onSnapshot(collection(db, "services"), (snap) => {
@@ -556,13 +558,13 @@
                     return (a.name || '').localeCompare(b.name || '');
                 });
                 state.services = loaded;
-                render();
+                if (!state.isBatching) render();
             }, handleErr);
             
             // [수정] limit(500) 제거하여 전체 일지 데이터 로드
             onSnapshot(query(collection(db, "logs"), orderBy("date", "desc")), (snap) => {
                 state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                render();
+                if (!state.isBatching) render();
             }, handleErr);
         }
 
@@ -2173,14 +2175,20 @@
                 if (document.getElementById('chk-duplicateService').checked) updateData.duplicateService = document.getElementById('val-duplicateService').value;
                 if (document.getElementById('chk-ictStatus').checked) updateData.ictStatus = document.getElementById('val-ictStatus').value;
                 if (Object.keys(updateData).length === 0) { alert("변경할 항목을 하나 이상 선택해주세요."); return; }
+                
+                state.isBatching = true; // [일괄작업] 렌더링 일시 중지
                 try {
                     const promises = Array.from(state.ui.selectedClientIds).map(id => updateDoc(doc(db, "clients", id), updateData));
                     await Promise.all(promises);
                     alert(`${state.ui.selectedClientIds.size}명의 대상자 정보가 수정되었습니다.`);
                     state.ui.selectedClientIds.clear();
                     closeModal();
+                } catch (err) { 
+                    alert("수정 중 오류가 발생했습니다: " + err.message); 
+                } finally {
+                    state.isBatching = false; // [일괄작업] 렌더링 재개
                     render(); 
-                } catch (err) { alert("수정 중 오류가 발생했습니다: " + err.message); }
+                }
             },
             openBatchEditLogModal: () => {
                 const count = state.ui.selectedLogIds.size;
@@ -2717,16 +2725,35 @@
                 }
                 if (Object.keys(updateData).length === 0) { alert("변경할 항목을 하나 이상 선택해주세요."); return; }
                 if (document.getElementById('chk-date').checked && updateData.date === "") { alert("날짜를 선택해주세요."); return; }
+                
+                state.isBatching = true; // [일괄작업]
                 try {
                     const promises = Array.from(state.ui.selectedLogIds).map(id => updateDoc(doc(db, "logs", id), updateData));
                     await Promise.all(promises);
                     alert(`${state.ui.selectedLogIds.size}건의 일지가 수정되었습니다.`);
                     state.ui.selectedLogIds.clear();
                     closeModal();
+                } catch (err) { 
+                    alert("수정 중 오류가 발생했습니다: " + err.message); 
+                } finally {
+                    state.isBatching = false; // [일괄작업]
                     render(); 
-                } catch (err) { alert("수정 중 오류가 발생했습니다: " + err.message); }
+                }
             },
-            executeDeleteSelectedLogs: async () => { try { const promises = Array.from(state.ui.selectedLogIds).map(id => deleteDoc(doc(db, "logs", id))); await Promise.all(promises); state.ui.selectedLogIds.clear(); closeDialog(); } catch (err) { alert("삭제 중 오류가 발생했습니다: " + err.message); } },
+            executeDeleteSelectedLogs: async () => { 
+                state.isBatching = true; // [일괄작업]
+                try { 
+                    const promises = Array.from(state.ui.selectedLogIds).map(id => deleteDoc(doc(db, "logs", id))); 
+                    await Promise.all(promises); 
+                    state.ui.selectedLogIds.clear(); 
+                    closeDialog(); 
+                } catch (err) { 
+                    alert("삭제 중 오류가 발생했습니다: " + err.message); 
+                } finally {
+                    state.isBatching = false; // [일괄작업]
+                    render();
+                }
+            },
             toggleClientSelection: (id) => { 
                 if (state.ui.selectedClientIds.has(id)) { state.ui.selectedClientIds.delete(id); } else { state.ui.selectedClientIds.add(id); }
                 app.updateClientBatchActionsUI(); 
@@ -2746,7 +2773,20 @@
                 showDialog(`<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">대상자 일괄 삭제</h3><p class="text-sm text-slate-500 mb-6">선택한 <span class="font-bold text-red-600">${count}명</span>의 대상자를 삭제하시겠습니까?<br>삭제 시 해당 대상자의 정보가 영구적으로 사라집니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDeleteSelectedClients()" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">예, 삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">아니오</button></div></div></div>`);
                 if(window.lucide) lucide.createIcons();
             },
-            executeDeleteSelectedClients: async () => { try { const promises = Array.from(state.ui.selectedClientIds).map(id => deleteDoc(doc(db, "clients", id))); await Promise.all(promises); state.ui.selectedClientIds.clear(); closeDialog(); } catch (err) { alert("삭제 중 오류가 발생했습니다: " + err.message); } },
+            executeDeleteSelectedClients: async () => { 
+                state.isBatching = true; // [일괄작업]
+                try { 
+                    const promises = Array.from(state.ui.selectedClientIds).map(id => deleteDoc(doc(db, "clients", id))); 
+                    await Promise.all(promises); 
+                    state.ui.selectedClientIds.clear(); 
+                    closeDialog(); 
+                } catch (err) { 
+                    alert("삭제 중 오류가 발생했습니다: " + err.message); 
+                } finally {
+                    state.isBatching = false; // [일괄작업]
+                    render();
+                }
+            },
             
             // [신규] 회의록 체크박스 관련 기능 (부분 업데이트 적용)
             toggleMeetingSelection: (id) => {
@@ -2799,14 +2839,17 @@
                 if(window.lucide) lucide.createIcons();
             },
             executeDeleteSelectedMeetings: async () => {
+                state.isBatching = true; // [일괄작업]
                 try {
                     const promises = Array.from(state.ui.selectedMeetingIds).map(id => deleteDoc(doc(db, "meetings", id)));
                     await Promise.all(promises);
                     state.ui.selectedMeetingIds.clear();
                     closeDialog();
-                    // 자동 갱신됨 (onSnapshot)
                 } catch (err) {
                     alert("삭제 중 오류가 발생했습니다: " + err.message);
+                } finally {
+                    state.isBatching = false; // [일괄작업]
+                    render();
                 }
             },
 
@@ -7071,6 +7114,10 @@
                 commonData.serviceCategory = items[0].category;
                 commonData.serviceName = items.map(i => i.serviceName).join(', ');
 
+                // 다중 생성(Batch)일 경우에만 플래그 설정
+                const isBatchCreate = !id && window.currentLogClients.length > 1;
+                if (isBatchCreate) state.isBatching = true;
+
                 try {
                     if (id) {
                         // 수정 모드 (단일 건)
@@ -7096,10 +7143,12 @@
                     }
                     
                     app.closeModal();
-                    if(state.viewMode==='single') updateTabContent('logs'); else render();
                 } catch (err) { 
                     console.error(err);
                     alert("저장 실패: " + err.message); 
+                } finally {
+                    if (isBatchCreate) state.isBatching = false;
+                    if(state.viewMode==='single') updateTabContent('logs'); else render();
                 }
             },
 
@@ -7496,8 +7545,8 @@
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                     
                     if (confirm(`총 ${json.length}건의 데이터를 읽었습니다.\n\n[업로드 규칙]\n- 날짜와 대상자명이 모두 동일한 경우: 하나의 일지로 자동 병합\n- 그 외의 경우: 개별 일지로 등록\n\n업로드하시겠습니까?`)) {
-                        let success = 0;
-                        const groupedLogs = {}; // 날짜_대상자이름을 키로 사용하여 데이터 그룹화
+                        state.isBatching = true; // [일괄작업] 렌더링 중지
+                        let logsToSave = []; // 저장할 데이터 미리 준비
 
                         // [수정] 날짜 포맷팅 헬퍼 함수 (엑셀 숫자 코드 -> YYYY-MM-DD 변환)
                         const formatExcelDate = (val) => {
@@ -7542,30 +7591,26 @@
                             }
                         };
 
+                        const groupedLogs = {}; // 날짜_대상자이름을 키로 사용하여 데이터 그룹화
+
                         // 1. 데이터 그룹화 (병합 로직)
                         for (const row of json) {
                             let date = formatExcelDate(row['날짜']);
-                            
-                            // [수정] 대상자 이름 컬럼 호환성 추가 ('대상자' 또는 '이름')
                             const clientName = row['대상자'] || row['이름'];
-                            
-                            if (!clientName) continue; // 대상자 이름이 없으면 스킵
+                            if (!clientName) continue; 
 
                             const key = `${date}_${clientName}`;
 
-                            // 해당 날짜/대상자의 일지가 없으면 새로 생성
                             if (!groupedLogs[key]) {
-                                // [수정] 컬럼명 호환성 추가
                                 groupedLogs[key] = {
                                     date: date,
                                     clientName: clientName,
                                     provideMethod: row['제공방법'],
                                     provider: row['제공자'],
-                                    content: (row['내용'] || row['진행내용']) || '', // '내용' 또는 '진행내용'
+                                    content: (row['내용'] || row['진행내용']) || '', 
                                     serviceItems: []
                                 };
 
-                                // 기본 서비스(안부확인) 자동 추가 (일지 생성 시 최초 1회만)
                                 const defaultSvcName = '정서지원서비스(안전안부확인)';
                                 const excelServiceName = row['서비스명'] || row['서비스 상세내용'] || '';
                                 
@@ -7578,63 +7623,60 @@
                                     });
                                 }
                             } else {
-                                // 이미 존재하는 일지라면, 내용(content)이 다른 경우 이어 붙임
                                 const rowContent = row['내용'] || row['진행내용'] || '';
                                 if (rowContent && !groupedLogs[key].content.includes(rowContent)) {
                                     groupedLogs[key].content += (groupedLogs[key].content ? '\n' : '') + rowContent;
                                 }
                             }
 
-                            // 엑셀 행의 서비스 항목 추가
-                            // [수정] 컬럼명 호환성 추가
                             const excelServiceName = row['서비스명'] || row['서비스 상세내용'];
                             if (excelServiceName) {
-                                // 중복 서비스 체크 (선택사항, 여기서는 중복도 허용하되 ID는 다르게)
                                 groupedLogs[key].serviceItems.push({ 
                                     id: Date.now() + Math.random(),
-                                    category: row['서비스분류'] || row['서비스'], // '서비스분류' 또는 '서비스'
+                                    category: row['서비스분류'] || row['서비스'], 
                                     serviceName: excelServiceName, 
-                                    detailNote: (row['메모'] || row['서비스 메모']) || '' // '메모' 또는 '서비스 메모'
+                                    detailNote: (row['메모'] || row['서비스 메모']) || '' 
                                 });
                             }
                         }
 
-                        // 2. 그룹화된 일지 데이터 저장
-                        const logsToSave = Object.values(groupedLogs);
+                        logsToSave = Object.values(groupedLogs);
                         
-                        // [수정] 진행상태 모달 표시
                         app.showProgress('일지 데이터 업로드 중...', logsToSave.length);
                         
                         let processedCount = 0;
-                        for (const logData of logsToSave) {
-                            // [수정] 엑셀 업로드 시 대상자 이름으로 기존 등록된 대상자 정보(ID) 매칭
-                            const matchedClient = state.clients.find(c => c.name === logData.clientName);
-                            if (matchedClient) {
-                                logData.clientId = matchedClient.id;
-                            }
+                        let success = 0;
 
+                        // 비동기 루프로 저장 실행
+                        (async () => {
                             try {
-                                await addDoc(collection(db, "logs"), {
-                                    ...logData,
-                                    serviceName: logData.serviceItems.map(i => i.serviceName).join(', '), // 검색용 문자열
-                                    createdAt: new Date().toISOString()
-                                });
-                                success++;
-                            } catch(e) { console.error(e); }
-                            
-                            // [수정] 진행률 업데이트
-                            processedCount++;
-                            app.updateProgress(processedCount);
-                        }
+                                for (const logData of logsToSave) {
+                                    const matchedClient = state.clients.find(c => c.name === logData.clientName);
+                                    if (matchedClient) {
+                                        logData.clientId = matchedClient.id;
+                                    }
 
-                        // [수정] 완료 후 모달 숨김
-                        app.hideProgress();
-                        
-                        // 지연 후 알림 (모달이 사라지는 애니메이션 고려)
-                        setTimeout(() => {
-                            alert(`총 ${logsToSave.length}건의 일지로 정리되어 업로드 완료했습니다.`);
-                            render();
-                        }, 500);
+                                    try {
+                                        await addDoc(collection(db, "logs"), {
+                                            ...logData,
+                                            serviceName: logData.serviceItems.map(i => i.serviceName).join(', '), 
+                                            createdAt: new Date().toISOString()
+                                        });
+                                        success++;
+                                    } catch(e) { console.error(e); }
+                                    
+                                    processedCount++;
+                                    app.updateProgress(processedCount);
+                                }
+                            } finally {
+                                state.isBatching = false; // [일괄작업 완료] 렌더링 재개
+                                app.hideProgress();
+                                setTimeout(() => {
+                                    alert(`총 ${success}건의 일지로 정리되어 업로드 완료했습니다.`);
+                                    render(); // 최종 1회 렌더링
+                                }, 500);
+                            }
+                        })();
                     }
                     input.value = '';
                 };
@@ -7652,42 +7694,44 @@
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                     
                     if (confirm(`총 ${json.length}명의 대상자 데이터를 업로드하시겠습니까?`)) {
+                        state.isBatching = true; // [일괄작업] 렌더링 중지
                         app.showProgress("대상자 업로드 중...", json.length);
                         let success = 0;
                         
-                        for (let i = 0; i < json.length; i++) {
-                            const row = json[i];
-                            
-                            // [수정] 엑셀 날짜 처리 헬퍼 함수 활용 (uploadLogExcel과 동일 로직 사용 권장하나 여기선 간소화)
-                            // 실제 구현 시 날짜 포맷이 다양할 수 있으므로 주의 필요
-                            
-                            const clientData = {
-                                name: row['이름'] || row['성명'] || '',
-                                birthDate: row['생년월일'] || '',
-                                gender: row['성별'] || '남성',
-                                phone: row['연락처'] || row['전화번호'] || '',
-                                address: row['주소'] || '',
-                                region: row['행정동'] || row['동'] || '대연동',
-                                careLevel: row['등급'] || '일반',
-                                economicStatus: row['경제상황'] || '일반(저소득)',
-                                status: '이용', // 기본값
-                                createdAt: new Date().toISOString()
-                            };
-                            
-                            if(clientData.name) {
-                                try {
-                                    await addDoc(collection(db, "clients"), clientData);
-                                    success++;
-                                } catch(e) { console.error(e); }
+                        (async () => {
+                            try {
+                                for (let i = 0; i < json.length; i++) {
+                                    const row = json[i];
+                                    const clientData = {
+                                        name: row['이름'] || row['성명'] || '',
+                                        birthDate: row['생년월일'] || '',
+                                        gender: row['성별'] || '남성',
+                                        phone: row['연락처'] || row['전화번호'] || '',
+                                        address: row['주소'] || '',
+                                        region: row['행정동'] || row['동'] || '대연동',
+                                        careLevel: row['등급'] || '일반',
+                                        economicStatus: row['경제상황'] || '일반(저소득)',
+                                        status: '이용', 
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    
+                                    if(clientData.name) {
+                                        try {
+                                            await addDoc(collection(db, "clients"), clientData);
+                                            success++;
+                                        } catch(e) { console.error(e); }
+                                    }
+                                    app.updateProgress(i + 1);
+                                }
+                            } finally {
+                                state.isBatching = false; // [일괄작업 완료] 렌더링 재개
+                                app.hideProgress();
+                                setTimeout(() => {
+                                    alert(`총 ${success}명 업로드 완료`);
+                                    if(state.viewMode==='single') updateTabContent('clients'); else render(); // 최종 1회 렌더링
+                                }, 500);
                             }
-                            app.updateProgress(i + 1);
-                        }
-                        
-                        app.hideProgress();
-                        setTimeout(() => {
-                            alert(`총 ${success}명 업로드 완료`);
-                            if(state.viewMode==='single') updateTabContent('clients'); else render();
-                        }, 500);
+                        })();
                     }
                     input.value = '';
                 };
