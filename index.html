@@ -1100,7 +1100,8 @@
                         </div>
                     </div>
 
-                    <div id="log-list-container" class="overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-4 flex-1">
+                    <!-- [수정] max-h-[70vh] 추가하여 목록 내 독립 스크롤 생성 -->
+                    <div id="log-list-container" class="overflow-y-auto max-h-[70vh] custom-scrollbar space-y-4 pr-1 pb-4">
                         ${visibleLogs.length === 0 ? '<div class="text-center py-12 text-slate-400">검색 결과가 없습니다.</div>' : visibleLogs.map(l => {
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
