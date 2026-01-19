@@ -259,6 +259,7 @@
         .nav-link.active { color: #ffffff; background-color: #059669; font-weight: 700; }
     </style>
 </head>
+<!-- [복구] 전체 화면 스크롤을 위해 h-screen, overflow-hidden 제거 -->
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
     <!-- Top Navigation Bar -->
@@ -311,6 +312,7 @@
     </div>
 
     <!-- Main Content Container -->
+    <!-- [복구] overflow-hidden 제거 -->
     <main class="flex-1 flex flex-col relative bg-slate-50" id="main-content">
         <div id="top-tab-bar" class="tab-bar-container sticky top-14 z-40 bg-slate-50"></div>
         <div class="flex-1 w-full relative" id="main-view-container">
@@ -412,6 +414,8 @@
             isBatching: false,
             // [신규] 전체 로그 로딩 완료 여부
             isFullLogLoaded: false,
+            // [신규] 탭별 스크롤 위치 저장소
+            tabScrolls: {}, 
             ui: {
                 regionDropdownOpen: false,
                 logRegionDropdownOpen: false,
@@ -1785,6 +1789,31 @@
 
         window.app = {
             setTab: (t, updateHistory = true) => { 
+                // [신규] 탭 전환 전, 현재 탭의 스크롤 위치 저장
+                if (state.viewMode === 'single') {
+                    const currentTab = state.activeTab;
+                    // 1. 윈도우 스크롤 저장
+                    const winScroll = window.scrollY;
+                    
+                    // 2. 내부 컨테이너 스크롤 저장 (각 탭별 주요 스크롤 영역)
+                    let containerScroll = 0;
+                    const scrollMap = {
+                        'clients': 'client-list-container',
+                        'logs': 'log-list-container',
+                        'meeting': 'meeting-list-container',
+                        'statistics': 'stats-list-container',
+                        'performance': 'perf-table-container'
+                    };
+                    const containerId = scrollMap[currentTab];
+                    if (containerId) {
+                        const el = document.getElementById(containerId);
+                        if (el) containerScroll = el.scrollTop;
+                    }
+
+                    // 상태에 저장
+                    state.tabScrolls[currentTab] = { window: winScroll, container: containerScroll };
+                }
+
                 if (!state.openedTabs.includes(t)) { state.openedTabs.push(t); }
                 if (state.viewMode === 'single') {
                     state.activeTab = t; 
@@ -1794,6 +1823,31 @@
                 }
                 app.closeMobileMenu();
                 app.updateTabVisibility(); 
+                
+                // [신규] 탭 전환 후, 새 탭의 스크롤 위치 복구
+                if (state.viewMode === 'single') {
+                    const saved = state.tabScrolls[t] || { window: 0, container: 0 };
+                    
+                    // 약간의 지연을 주어 DOM 렌더링 후 스크롤 적용
+                    setTimeout(() => {
+                        // 1. 윈도우 스크롤 복구
+                        window.scrollTo(0, saved.window);
+
+                        // 2. 내부 컨테이너 스크롤 복구
+                        const scrollMap = {
+                            'clients': 'client-list-container',
+                            'logs': 'log-list-container',
+                            'meeting': 'meeting-list-container',
+                            'statistics': 'stats-list-container',
+                            'performance': 'perf-table-container'
+                        };
+                        const containerId = scrollMap[t];
+                        if (containerId) {
+                            const el = document.getElementById(containerId);
+                            if (el) el.scrollTop = saved.container;
+                        }
+                    }, 0);
+                }
             },
             
             updateTabVisibility: () => {
@@ -1888,6 +1942,36 @@
 
             closeTab: (t, e) => {
                 if (e) e.stopPropagation();
+                
+                // [신규] 탭을 닫을 때 해당 탭의 상태(스크롤, 필터 등)를 초기화하여 "첫 화면" 상태로 만듦
+                if (state.tabScrolls && state.tabScrolls[t]) {
+                    delete state.tabScrolls[t];
+                }
+
+                // 탭별 필터 및 UI 상태 초기화 (렌더링 없이 값만 리셋)
+                if (t === 'clients') {
+                    state.filters.client = { status: '이용', level: '', economicStatus: '', duplicateService: '', ictStatus: '', region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' };
+                    state.ui.selectedClientIds.clear();
+                } else if (t === 'logs') {
+                    state.filters.log = { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] };
+                    state.ui.logPage = 1;
+                    state.ui.selectedLogIds.clear();
+                } else if (t === 'meeting') {
+                    const d = new Date();
+                    state.filters.meeting = { start: `${d.getFullYear()}-01-01`, end: `${d.getFullYear()}-12-31`, search: '', type: '', clientName: '', writer: '' };
+                    state.ui.meetingTargetMonth = new Date().getMonth() + 1;
+                    state.ui.meetingCandidateType = 'regular';
+                    state.ui.selectedMeetingIds.clear();
+                } else if (t === 'performance') {
+                    state.filters.performance = { year: new Date().getFullYear(), months: Array.from({length: 12}, (_, i) => i + 1), viewMode: 'monthRows' };
+                } else if (t === 'statistics') {
+                    const d = new Date(); 
+                    const s = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; 
+                    const l = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); 
+                    const end = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${l}`;
+                    state.filters.stats = { start: s, end: end, type: 'detail', region: [], name: '' };
+                }
+
                 state.openedTabs = state.openedTabs.filter(tab => tab !== t);
                 
                 const view = document.getElementById(`tab-view-${t}`);
