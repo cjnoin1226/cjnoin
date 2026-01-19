@@ -406,10 +406,12 @@
             clients: [],
             services: [],
             logs: [],
-            meetings: [], // [신규] 회의록 데이터 배열 초기화
+            meetings: [], 
             editingServiceId: null,
-            // [신규] 일괄 작업 중 화면 갱신 방지 플래그
+            // [신규] 일괄 작업 중 화면 갱신 방지 플래그 (true면 render() 스킵)
             isBatching: false,
+            // [신규] 전체 로그 로딩 완료 여부
+            isFullLogLoaded: false,
             ui: {
                 regionDropdownOpen: false,
                 logRegionDropdownOpen: false,
@@ -511,12 +513,13 @@
             if (!db) return;
             const handleErr = (e) => { if(e.code === 'permission-denied') console.warn("권한 부족: 규칙을 확인하세요."); };
 
+            // [수정] 모든 리스너에 (!state.isBatching) 조건 추가하여 일괄 작업 중 렌더링 방지
+
             onSnapshot(query(collection(db, "clients"), orderBy("createdAt", "desc")), (snap) => {
                 state.clients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (!state.isBatching) render();
             }, handleErr);
             
-            // [신규] 회의록 데이터 실시간 동기화 추가
             onSnapshot(query(collection(db, "meetings"), orderBy("date", "desc")), (snap) => {
                 state.meetings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (!state.isBatching) render();
@@ -525,7 +528,6 @@
             onSnapshot(collection(db, "services"), (snap) => {
                 let loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const sortOrder = ['위기관리체계구축', '욕구기반 위기관리', '위기상황관리 및 긴급지원', '기타'];
-                // [수정] 요청하신 순서대로 배열 재정의 (월 사례회의 포함)
                 const caseManagementOrder = ['사례발굴', '초기상담', '사정 및 계획', '개입', '점검 및 모니터링', '종결 및 사후관리', '월 사례회의', '월사례회의'];
                 const counselingOrder = ['정서지원서비스(안전안부확인)', '노인일상생활관련 상담', '노인일상생활관련상담', '복지서비스 종합안내'];
 
@@ -561,11 +563,35 @@
                 if (!state.isBatching) render();
             }, handleErr);
             
-            // [수정] limit(500) 제거하여 전체 일지 데이터 로드
-            onSnapshot(query(collection(db, "logs"), orderBy("date", "desc")), (snap) => {
+            // [수정] 2단계 데이터 로딩 전략 적용 (1단계: 최신 100건 -> 2단계: 전체)
+            let initialLogUnsub = null;
+
+            // 1단계: 최신 100건 우선 로딩 (빠른 화면 표시)
+            const qInitial = query(collection(db, "logs"), orderBy("date", "desc"), limit(100));
+            initialLogUnsub = onSnapshot(qInitial, (snap) => {
+                // 이미 전체 데이터가 로드된 상태라면 이 리스너의 데이터는 무시 (덮어쓰기 방지)
+                if (state.isFullLogLoaded) return;
+
                 state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (!state.isBatching) render();
             }, handleErr);
+
+            // 2단계: 전체 데이터 백그라운드 로딩 (1.5초 지연 후 시작하여 초기 렌더링 방해 최소화)
+            setTimeout(() => {
+                const qFull = query(collection(db, "logs"), orderBy("date", "desc"));
+                onSnapshot(qFull, (snap) => {
+                    state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    state.isFullLogLoaded = true; // 전체 로드 완료 플래그 설정
+
+                    // 전체 데이터를 받았으므로 1단계 리스너는 해제하여 리소스 절약
+                    if (initialLogUnsub) {
+                        initialLogUnsub();
+                        initialLogUnsub = null;
+                    }
+
+                    if (!state.isBatching) render();
+                }, handleErr);
+            }, 1500);
         }
 
         function getTabHTML(tabName) {
@@ -1227,10 +1253,12 @@
                                 <i data-lucide="filter" size="14"></i> 필터
                             </div>
                             
+                            <!-- [수정] 날짜 필터 자동 갱신 방지(false) 및 조회 버튼 추가 -->
                             <div class="flex items-center gap-2 p-1 bg-slate-50 rounded-lg border border-slate-200">
-                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('meeting','start',this.value)" max="9999-12-31">
+                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('meeting','start',this.value, false)" max="9999-12-31">
                                 <span class="text-slate-400">~</span>
-                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('meeting','end',this.value)" max="9999-12-31">
+                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('meeting','end',this.value, false)" max="9999-12-31">
+                                <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
                             </div>
 
                             <select class="input-field py-1.5 px-2 text-sm w-32 font-medium" onchange="app.setFilter('meeting','type',this.value)">
@@ -1624,10 +1652,15 @@
                                 <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
                                 <button onclick="app.setFilter('stats','type','detail')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='detail'?'bg-white shadow':''}">상세별</button>
                             </div>
-                            <div class="flex w-full sm:w-auto gap-2">
-                                <input id="stats-start" type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${start}" onchange="app.setStatsStart(this.value)" max="9999-12-31">
-                                <input id="stats-end" type="date" class="input-field w-full sm:w-32 py-1 text-sm" value="${end}" onchange="app.setFilter('stats','end',this.value)" max="9999-12-31">
+                            
+                            <!-- [수정] 날짜 필터 자동 갱신 방지(false) 및 조회 버튼 추가 -->
+                            <div class="flex items-center gap-2 p-1 bg-slate-50 rounded-lg border border-slate-200 w-full sm:w-auto">
+                                <input id="stats-start" type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('stats','start',this.value, false)" max="9999-12-31">
+                                <span class="text-slate-400">~</span>
+                                <input id="stats-end" type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('stats','end',this.value, false)" max="9999-12-31">
+                                <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
                             </div>
+
                             <div class="flex w-full sm:w-auto gap-2 flex-1">
                                 <input id="stats-search-name" class="input-field w-full sm:w-24 py-1 text-sm" placeholder="이름 (Enter)" value="${name}" onkeydown="if(event.key === 'Enter') app.setFilter('stats','name',this.value)" oninput="if(this.value === '') app.setFilter('stats','name','')">
                                 <div class="relative z-30 w-full sm:w-auto">
@@ -2176,7 +2209,7 @@
                 if (document.getElementById('chk-ictStatus').checked) updateData.ictStatus = document.getElementById('val-ictStatus').value;
                 if (Object.keys(updateData).length === 0) { alert("변경할 항목을 하나 이상 선택해주세요."); return; }
                 
-                state.isBatching = true; // [일괄작업] 렌더링 일시 중지
+                state.isBatching = true; // [일괄작업] 렌더링 중지
                 try {
                     const promises = Array.from(state.ui.selectedClientIds).map(id => updateDoc(doc(db, "clients", id), updateData));
                     await Promise.all(promises);
@@ -7147,8 +7180,10 @@
                     console.error(err);
                     alert("저장 실패: " + err.message); 
                 } finally {
-                    if (isBatchCreate) state.isBatching = false;
-                    if(state.viewMode==='single') updateTabContent('logs'); else render();
+                    if (isBatchCreate) {
+                        state.isBatching = false;
+                        if(state.viewMode==='single') updateTabContent('logs'); else render();
+                    }
                 }
             },
 
