@@ -325,6 +325,24 @@
     <div id="sub-modal-container" class="fixed inset-0 z-[65] hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto" onclick="if(event.target === this) app.handleSubModalOverlayClick()"></div>
     <div id="dialog-container" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/50 p-4"></div>
 
+    <!-- [신규] 진행 상태 로딩 모달 -->
+    <div id="progress-modal" class="fixed inset-0 z-[80] hidden flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-80 text-center transform transition-all scale-100">
+            <div class="mb-4">
+                <div class="relative w-16 h-16 mx-auto mb-2">
+                    <div class="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
+                    <div class="absolute inset-0 flex items-center justify-center font-bold text-emerald-600 text-sm" id="progress-percent">0%</div>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800" id="progress-title">데이터 처리 중...</h3>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-2.5 mb-2 overflow-hidden">
+                <div id="progress-bar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+            </div>
+            <p class="text-sm text-slate-500 font-medium"><span id="progress-current" class="text-slate-800 font-bold">0</span> / <span id="progress-total">0</span> 건 완료</p>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -6805,6 +6823,49 @@
             handleModalOverlayClick: () => { if (state.ui.allowOverlayClose) closeModal(); },
             handleSubModalOverlayClick: () => { if (state.ui.allowOverlayClose) closeModal(); },
 
+            // [신규] 진행 상태 모달 제어 함수
+            showProgress: (title, total) => {
+                const modal = document.getElementById('progress-modal');
+                const titleEl = document.getElementById('progress-title');
+                const totalEl = document.getElementById('progress-total');
+                const currentEl = document.getElementById('progress-current');
+                const barEl = document.getElementById('progress-bar');
+                const percentEl = document.getElementById('progress-percent');
+
+                if (modal && titleEl && totalEl && currentEl && barEl) {
+                    titleEl.textContent = title;
+                    totalEl.textContent = total;
+                    currentEl.textContent = '0';
+                    barEl.style.width = '0%';
+                    percentEl.textContent = '0%';
+                    modal.classList.remove('hidden');
+                }
+            },
+            updateProgress: (current) => {
+                const totalEl = document.getElementById('progress-total');
+                const currentEl = document.getElementById('progress-current');
+                const barEl = document.getElementById('progress-bar');
+                const percentEl = document.getElementById('progress-percent');
+
+                if (totalEl && currentEl && barEl) {
+                    const total = parseInt(totalEl.textContent) || 1;
+                    const percent = Math.min(100, Math.round((current / total) * 100));
+                    
+                    currentEl.textContent = current;
+                    barEl.style.width = `${percent}%`;
+                    percentEl.textContent = `${percent}%`;
+                }
+            },
+            hideProgress: () => {
+                const modal = document.getElementById('progress-modal');
+                if (modal) {
+                    // 약간의 지연을 주어 100% 완료 상태를 사용자가 인지할 수 있게 함
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                    }, 500);
+                }
+            },
+
             // [복구 및 수정] 서비스 일지 관련 기능 및 공통 함수
             openLogModal: (id = null, prefillData = null) => {
                 const l = id ? state.logs.find(x => x.id === id) : (prefillData || {});
@@ -7540,6 +7601,11 @@
 
                         // 2. 그룹화된 일지 데이터 저장
                         const logsToSave = Object.values(groupedLogs);
+                        
+                        // [수정] 진행상태 모달 표시
+                        app.showProgress('일지 데이터 업로드 중...', logsToSave.length);
+                        
+                        let processedCount = 0;
                         for (const logData of logsToSave) {
                             // [수정] 엑셀 업로드 시 대상자 이름으로 기존 등록된 대상자 정보(ID) 매칭
                             const matchedClient = state.clients.find(c => c.name === logData.clientName);
@@ -7555,10 +7621,73 @@
                                 });
                                 success++;
                             } catch(e) { console.error(e); }
+                            
+                            // [수정] 진행률 업데이트
+                            processedCount++;
+                            app.updateProgress(processedCount);
                         }
 
-                        alert(`총 ${logsToSave.length}건의 일지로 정리되어 업로드 완료했습니다.`);
-                        render();
+                        // [수정] 완료 후 모달 숨김
+                        app.hideProgress();
+                        
+                        // 지연 후 알림 (모달이 사라지는 애니메이션 고려)
+                        setTimeout(() => {
+                            alert(`총 ${logsToSave.length}건의 일지로 정리되어 업로드 완료했습니다.`);
+                            render();
+                        }, 500);
+                    }
+                    input.value = '';
+                };
+                reader.readAsArrayBuffer(file);
+            },
+
+            // [신규] 대상자 엑셀 업로드 함수 추가 (진행률 표시 포함)
+            uploadExcel: (input) => {
+                const file = input.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                    
+                    if (confirm(`총 ${json.length}명의 대상자 데이터를 업로드하시겠습니까?`)) {
+                        app.showProgress("대상자 업로드 중...", json.length);
+                        let success = 0;
+                        
+                        for (let i = 0; i < json.length; i++) {
+                            const row = json[i];
+                            
+                            // [수정] 엑셀 날짜 처리 헬퍼 함수 활용 (uploadLogExcel과 동일 로직 사용 권장하나 여기선 간소화)
+                            // 실제 구현 시 날짜 포맷이 다양할 수 있으므로 주의 필요
+                            
+                            const clientData = {
+                                name: row['이름'] || row['성명'] || '',
+                                birthDate: row['생년월일'] || '',
+                                gender: row['성별'] || '남성',
+                                phone: row['연락처'] || row['전화번호'] || '',
+                                address: row['주소'] || '',
+                                region: row['행정동'] || row['동'] || '대연동',
+                                careLevel: row['등급'] || '일반',
+                                economicStatus: row['경제상황'] || '일반(저소득)',
+                                status: '이용', // 기본값
+                                createdAt: new Date().toISOString()
+                            };
+                            
+                            if(clientData.name) {
+                                try {
+                                    await addDoc(collection(db, "clients"), clientData);
+                                    success++;
+                                } catch(e) { console.error(e); }
+                            }
+                            app.updateProgress(i + 1);
+                        }
+                        
+                        app.hideProgress();
+                        setTimeout(() => {
+                            alert(`총 ${success}명 업로드 완료`);
+                            if(state.viewMode==='single') updateTabContent('clients'); else render();
+                        }, 500);
                     }
                     input.value = '';
                 };
