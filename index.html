@@ -470,9 +470,21 @@
 
         function getFilteredLogs() {
             const { start, end, search, provider, category, service, region } = state.filters.log;
+            
+            // [수정] 사용자가 설정한 필터가 하나라도 있는지 확인
+            // start, end, search, provider, category, service는 문자열, region은 배열
+            const hasActiveFilter = start || end || search || provider || category || service || region.length > 0;
+            const currentYearStr = String(new Date().getFullYear());
+
             const filtered = state.logs.filter(l => {
                 const client = state.clients.find(c => c.id === l.clientId);
                 const clientRegion = client ? client.region : '미지정';
+
+                // [수정] 아무런 필터도 걸지 않았다면(기본 상태), 현재 연도의 데이터만 보여줌
+                if (!hasActiveFilter) {
+                    if (!l.date.startsWith(currentYearStr)) return false;
+                }
+
                 return (!start || l.date >= start) && 
                        (!end || l.date <= end) && 
                        (!search || l.clientName.includes(search)) && 
