@@ -995,32 +995,29 @@
             const allSelected = visibleLogs.length > 0 && visibleLogs.every(l => state.ui.selectedLogIds.has(l.id));
 
             // [수정] 연도 선택 옵션 생성 로직 개선
-            // 기존: 배열 생성 시 '연도선택' 포함 -> reverse() -> '연도선택'이 맨 뒤로 감 -> 첫 번째인 최신 연도가 보임
-            // 변경: 연도만 생성 -> reverse() -> unshift()로 '연도'를 맨 앞에 추가
             const currentYear = new Date().getFullYear();
             const logYearOptions = [];
             for (let y = 2020; y <= currentYear + 1; y++) {
-                // start와 end가 해당 연도의 1월 1일 ~ 12월 31일과 일치하면 선택된 것으로 표시
                 const isSelected = start === `${y}-01-01` && end === `${y}-12-31`;
                 logYearOptions.push(`<option value="${y}" ${isSelected ? 'selected' : ''}>${y}년</option>`);
             }
-            logYearOptions.reverse(); // 최신 연도가 위로 오게 정렬
-            logYearOptions.unshift(`<option value="">연도</option>`); // 맨 앞에 "연도" 옵션 추가
+            logYearOptions.reverse(); 
+            logYearOptions.unshift(`<option value="">연도</option>`); 
 
-            // 페이지네이션 UI 생성
+            // 페이지네이션 UI 생성 (마진 제거 후 아래 레이아웃 div에서 처리)
             let paginationHTML = '';
             if (totalPages > 1) {
-                paginationHTML = `<div class="flex justify-center items-center gap-1 mt-4 pt-2 select-none">`;
+                paginationHTML = `<div class="flex justify-center items-center gap-1 select-none">`;
                 
                 // 이전 버튼
                 paginationHTML += `<button onclick="app.setLogPage(${state.ui.logPage - 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" size="16"></i></button>`;
                 
-                // 페이지 번호 표시 범위 계산 (현재 페이지 중심으로 최대 5개)
+                // 페이지 번호 표시 범위 계산
                 let startPage = Math.max(1, state.ui.logPage - 2);
                 let endPage = Math.min(totalPages, startPage + 4);
                 if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
 
-                // 첫 페이지 바로가기
+                // 첫 페이지
                 if (startPage > 1) {
                     paginationHTML += `<button onclick="app.setLogPage(1)" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">1</button>`;
                     if (startPage > 2) paginationHTML += `<span class="text-slate-300 text-xs px-1">...</span>`;
@@ -1032,7 +1029,7 @@
                     paginationHTML += `<button onclick="app.setLogPage(${i})" class="w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${activeClass}">${i}</button>`;
                 }
 
-                // 마지막 페이지 바로가기
+                // 마지막 페이지
                 if (endPage < totalPages) {
                     if (endPage < totalPages - 1) paginationHTML += `<span class="text-slate-300 text-xs px-1">...</span>`;
                     paginationHTML += `<button onclick="app.setLogPage(${totalPages})" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">${totalPages}</button>`;
@@ -1045,7 +1042,8 @@
             }
 
             return `
-                <div class="flex flex-col animate-fade-in h-full">
+                <!-- [수정] 높이를 화면 높이(100vh)에서 헤더/탭바 높이 등을 뺀 만큼 고정하여 내부 스크롤 유도 -->
+                <div class="flex flex-col animate-fade-in h-[calc(100vh-9rem)]">
                     <div class="space-y-4 pb-2 pr-1 transition-all flex-shrink-0">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
                             <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
@@ -1113,8 +1111,8 @@
                         </div>
                     </div>
 
-                    <!-- [수정] max-h-[70vh] 추가하여 목록 내 독립 스크롤 생성 -->
-                    <div id="log-list-container" class="overflow-y-auto max-h-[70vh] custom-scrollbar space-y-4 pr-1 pb-4">
+                    <!-- [수정] max-h-[70vh] 제거하고 flex-1 적용하여 남은 공간을 모두 차지하도록 변경. 페이지네이션은 하단 고정 효과 -->
+                    <div id="log-list-container" class="flex-1 overflow-y-auto min-h-0 custom-scrollbar space-y-4 pr-1 pb-4">
                         ${visibleLogs.length === 0 ? '<div class="text-center py-12 text-slate-400">검색 결과가 없습니다.</div>' : visibleLogs.map(l => {
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
@@ -1155,7 +1153,11 @@
                             </div>`
                         }).join('')}
                     </div>
-                    ${paginationHTML}
+
+                    <!-- [수정] 페이지네이션을 하단에 고정하는 별도 레이아웃 div 추가 -->
+                    <div class="flex-shrink-0 py-2 border-t border-slate-200 bg-slate-50 mt-auto">
+                        ${paginationHTML}
+                    </div>
                 </div>`;
         }
 
