@@ -1473,7 +1473,8 @@
             const selectedMonths = (months && months.length > 0) ? months.sort((a, b) => a - b) : [];
             
             // [수정] region 필터링 제거 (행정동 필터 삭제 요청 반영)
-            const targetLogs = state.logs.filter(l => l.date.startsWith(year));
+            // [수정] targetLogs 필터링 시 year가 문자열/숫자 혼용될 수 있으므로 문자열 변환 비교
+            const targetLogs = state.logs.filter(l => l.date.startsWith(String(year)));
             
             const stats = {};
             state.services.forEach(s => {
@@ -1525,7 +1526,8 @@
 
             const yearOptions = [];
             const currentYear = new Date().getFullYear();
-            for (let y = 2020; y <= currentYear + 1; y++) {
+            // [수정] 연도 범위 확장 (2015년 ~ 내년)
+            for (let y = 2015; y <= currentYear + 1; y++) {
                 yearOptions.push(`<option value="${y}" ${parseInt(year) === y ? 'selected' : ''}>${y}년</option>`);
             }
             yearOptions.reverse();
@@ -1634,7 +1636,8 @@
                              </div>
                              <div class="flex items-center gap-2">
                                 <label class="text-sm font-bold text-slate-700">연도</label>
-                                <select class="input-field py-1 px-3 w-32 font-bold" onchange="app.setFilter('performance', 'year', this.value)">
+                                <!-- [수정] onchange 핸들러 변경: setFilter -> setPerformanceYear (데이터 로딩 지원) -->
+                                <select class="input-field py-1 px-3 w-32 font-bold" onchange="app.setPerformanceYear(this.value)">
                                     ${yearOptions.join('')}
                                 </select>
                              </div>
@@ -2453,20 +2456,24 @@
                     const eYear = endVal ? parseInt(endVal.split('-')[0]) : null;
 
                     if (sYear && eYear) {
-                        for (let y = Math.min(sYear, eY); y <= Math.max(sYear, eY); y++) yearsToLoad.push(y);
+                        // [수정] 변수명 오타 수정 (eY -> eYear) 및 중복 제거 로직 강화
+                        for (let y = Math.min(sYear, eYear); y <= Math.max(sYear, eYear); y++) yearsToLoad.push(y);
                     } else if (sYear) {
                         yearsToLoad.push(sYear);
                     } else if (eYear) {
                         yearsToLoad.push(eYear);
                     }
+                    
+                    // 중복 제거
+                    const uniqueYears = [...new Set(yearsToLoad)];
 
-                    if (yearsToLoad.length > 0) {
-                        app.showProgress('통계 데이터 갱신 중...', yearsToLoad.length);
+                    if (uniqueYears.length > 0) {
+                        app.showProgress('통계 데이터 갱신 중...', uniqueYears.length);
                         try {
-                            for (let i = 0; i < yearsToLoad.length; i++) {
+                            for (let i = 0; i < uniqueYears.length; i++) {
                                 if (state.loadingCancelled) break;
                                 // force=true 옵션을 사용하여 이미 로드된 연도라도 다시 서버에서 가져옴
-                                await app.loadLogsByYear(yearsToLoad[i], false, true);
+                                await app.loadLogsByYear(uniqueYears[i], false, true);
                                 app.updateProgress(i + 1);
                             }
                         } catch(e) { 
@@ -2478,6 +2485,19 @@
                 }
                 
                 if (state.viewMode === 'single') updateTabContent('statistics'); else render();
+            },
+
+            // [신규] 실적 관리 연도 변경 함수 (데이터 로딩 지원)
+            setPerformanceYear: async (year) => {
+                const targetYear = parseInt(year);
+                state.filters.performance.year = targetYear;
+                
+                // 선택된 연도의 데이터가 로드되지 않았다면 서버에서 가져옴
+                if (targetYear && !state.loadedYears.has(targetYear)) {
+                    await app.loadLogsByYear(targetYear);
+                }
+                
+                if (state.viewMode === 'single') updateTabContent('performance'); else render();
             },
 
             // [신규] 통계 연도 필터 간편 설정 함수
