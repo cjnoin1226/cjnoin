@@ -1789,7 +1789,7 @@
                                 <input id="stats-start" type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('stats','start',this.value, false)" max="9999-12-31">
                                 <span class="text-slate-400">~</span>
                                 <input id="stats-end" type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('stats','end',this.value, false)" max="9999-12-31">
-                                <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
+                                <button onclick="app.searchStatsByDateRange()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
                             </div>
 
                             <div class="flex w-full sm:w-auto gap-2 flex-1">
@@ -2437,6 +2437,49 @@
                 if(state.viewMode==='single') updateTabContent('logs'); else render();
             },
             
+            // [신규] 통계 날짜 범위 조회 및 강제 데이터 로딩 함수
+            searchStatsByDateRange: async () => {
+                const startVal = document.getElementById('stats-start').value;
+                const endVal = document.getElementById('stats-end').value;
+                
+                // 필터 상태 업데이트
+                state.filters.stats.start = startVal;
+                state.filters.stats.end = endVal;
+
+                // 날짜가 설정되어 있다면 해당 연도 데이터 강제 로딩 시도
+                if (startVal || endVal) {
+                    const yearsToLoad = [];
+                    const sYear = startVal ? parseInt(startVal.split('-')[0]) : null;
+                    const eYear = endVal ? parseInt(endVal.split('-')[0]) : null;
+
+                    if (sYear && eYear) {
+                        for (let y = Math.min(sYear, eY); y <= Math.max(sYear, eY); y++) yearsToLoad.push(y);
+                    } else if (sYear) {
+                        yearsToLoad.push(sYear);
+                    } else if (eYear) {
+                        yearsToLoad.push(eYear);
+                    }
+
+                    if (yearsToLoad.length > 0) {
+                        app.showProgress('통계 데이터 갱신 중...', yearsToLoad.length);
+                        try {
+                            for (let i = 0; i < yearsToLoad.length; i++) {
+                                if (state.loadingCancelled) break;
+                                // force=true 옵션을 사용하여 이미 로드된 연도라도 다시 서버에서 가져옴
+                                await app.loadLogsByYear(yearsToLoad[i], false, true);
+                                app.updateProgress(i + 1);
+                            }
+                        } catch(e) { 
+                            console.error(e); 
+                        } finally { 
+                            app.hideProgress(); 
+                        }
+                    }
+                }
+                
+                if (state.viewMode === 'single') updateTabContent('statistics'); else render();
+            },
+
             // [신규] 통계 연도 필터 간편 설정 함수
             setStatsYear: (year) => {
                 if (year) {
