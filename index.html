@@ -7892,28 +7892,24 @@
 
             executeDeleteData: async (collectionName, id) => {
                 try {
-                    // [신규] 삭제 전 연도 정보 백업 (로그인 경우)
-                    let targetYear = null;
-                    if (collectionName === 'logs') {
-                        const target = state.logs.find(l => l.id === id);
-                        if (target && target.date) targetYear = parseInt(target.date.split('-')[0]);
-                    }
-
+                    // [최적화] 삭제 시 연도 추적 및 강제 재로딩 로직 제거 (속도 개선)
                     await deleteDoc(doc(db, collectionName, id));
                     
-                    // [신규] 로컬 상태 수동 삭제 (과거 데이터 삭제 시 화면 갱신 보장)
+                    // [수정] 로컬 상태 즉시 반영 (서버 응답 기다리지 않고 화면 갱신)
                     if (collectionName === 'logs') {
                         state.logs = state.logs.filter(l => l.id !== id);
                     } else if (collectionName === 'meetings') {
                         state.meetings = state.meetings.filter(m => m.id !== id);
+                    } else if (collectionName === 'clients') {
+                        state.clients = state.clients.filter(c => c.id !== id);
+                        state.ui.selectedClientIds.delete(id);
+                    } else if (collectionName === 'services') {
+                        state.services = state.services.filter(s => s.id !== id);
                     }
                     
                     app.closeDialog();
 
-                    // [신규] 해당 연도 데이터 갱신
-                    if (targetYear) {
-                        await app.refreshYears([targetYear]);
-                    }
+                    // [최적화] refreshYears 호출 제거
 
                     if(state.viewMode==='single') {
                         if(collectionName === 'logs') updateTabContent('logs');
@@ -7989,29 +7985,19 @@
                     const promises = Array.from(state.ui.selectedLogIds).map(id => deleteDoc(doc(db, "logs", id))); 
                     await Promise.all(promises); 
                     
-                    // [신규] 연도 갱신을 위한 집합
-                    const affectedYears = new Set();
-
-                    // [신규] 로컬 상태 일괄 삭제 및 연도 수집
-                    state.logs = state.logs.filter(l => {
-                        if (state.ui.selectedLogIds.has(l.id)) {
-                            if (l.date) affectedYears.add(parseInt(l.date.split('-')[0]));
-                            return false;
-                        }
-                        return true;
-                    });
+                    // [최적화] 로컬 상태 즉시 삭제 (연도 추적 및 재로딩 제거)
+                    state.logs = state.logs.filter(l => !state.ui.selectedLogIds.has(l.id));
                     
                     state.ui.selectedLogIds.clear(); 
                     closeDialog(); 
 
-                    // [신규] 데이터 재로딩
-                    await app.refreshYears(Array.from(affectedYears));
+                    // [최적화] refreshYears 호출 제거
 
                 } catch (err) { 
                     alert("삭제 중 오류가 발생했습니다: " + err.message); 
                 } finally {
                     state.isBatching = false; 
-                    render();
+                    if(state.viewMode==='single') updateTabContent('logs'); else render();
                 }
             },
 
