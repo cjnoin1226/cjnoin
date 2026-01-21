@@ -3533,32 +3533,36 @@
                 providedLogs.forEach(l => {
                     if (l.serviceItems) {
                         l.serviceItems.forEach(item => {
-                            if (item.category) providedCategoriesSet.add(item.category);
+                            // [수정] 공백 제거하여 중복 방지 (예: "노인상담" vs "노인상담 ")
+                            if (item.category) providedCategoriesSet.add(item.category.trim());
                         });
                     }
                 });
                 const providedCategories = [...providedCategoriesSet].sort();
 
-                // [신규] 동적 행 생성 로직 (getVal 사용)
-                const savedGoalsLen = (getVal(cm, 'satisfaction.serviceGoals') || []).length;
-                let rowCount = Math.max(providedCategories.length, savedGoalsLen, 2); 
+                // [수정] 저장된 데이터와 자동 데이터를 병합하여 유니크 목표 목록 생성 (중복 행 방지)
+                // 기존: 인덱스 기반 병합 -> 수정: 텍스트(Goal) 기반 병합
+                const savedGoalsData = getVal(cm, 'satisfaction.serviceGoals') || [];
+                const allGoalsSet = new Set([...providedCategories]);
+                savedGoalsData.forEach(g => { if(g.goal) allGoalsSet.add(g.goal.trim()); });
+                const allGoals = [...allGoalsSet].sort();
+
+                // 최소 2줄 보장
+                while (allGoals.length < 2) allGoals.push('');
 
                 let serviceGoalRowsHTML = '';
-                for (let i = 0; i < rowCount; i++) {
-                    const autoGoal = providedCategories[i] || '';
-                    const savedGoal = getVal(cm, `satisfaction.serviceGoals.${i}.goal`);
-                    const savedAction = getVal(cm, `satisfaction.serviceGoals.${i}.action`);
-                    const savedUserSat = getVal(cm, `satisfaction.serviceGoals.${i}.userSat`);
-                    const savedWorkerEval = getVal(cm, `satisfaction.serviceGoals.${i}.workerEval`);
-                    const displayGoal = savedGoal !== '' ? savedGoal : autoGoal;
-
+                allGoals.forEach((displayGoal, i) => {
+                    // 저장된 데이터 매칭 (목표 이름 기준)
+                    const savedItem = displayGoal ? (savedGoalsData.find(g => g.goal === displayGoal) || {}) : {}; 
+                    
+                    // 해당 목표(displayGoal)에 해당하는 모든 일지 내용을 모아서 자동 완성 텍스트 생성
                     let autoAction = '';
                     if (displayGoal) {
                         const actionMap = new Map();
                         providedLogs.forEach(log => {
                             if (log.serviceItems) {
                                 log.serviceItems.forEach(item => {
-                                    if (item.category === displayGoal) {
+                                    if (item.category && item.category.trim() === displayGoal) {
                                         if (!actionMap.has(item.serviceName)) actionMap.set(item.serviceName, new Set());
                                         if (item.detailNote && item.detailNote.trim() !== '') actionMap.get(item.serviceName).add(item.detailNote.trim());
                                     }
@@ -3576,7 +3580,11 @@
                         });
                         autoAction = actions.join('\n\n');
                     }
-                    const displayAction = savedAction !== '' ? savedAction : autoAction;
+                    
+                    // [수정] 저장된 내용이 있으면 그것을, 없으면 자동 병합된 내용을 표시
+                    const displayAction = savedItem.action ? savedItem.action : autoAction;
+                    const savedUserSat = savedItem.userSat || '';
+                    const savedWorkerEval = savedItem.workerEval || '';
 
                     const renderSatisfactionOptions = (rowIndex, selectedValue) => {
                         const group1 = ["매우 만족", "만족", "보통"];
@@ -3587,7 +3595,7 @@
                     };
 
                     serviceGoalRowsHTML += `<tr><td class="p-0 border-r border-slate-200"><textarea id="sat-goal-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 font-bold text-slate-700 overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${displayGoal}</textarea></td><td class="p-0 border-r border-slate-200"><textarea id="sat-action-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 whitespace-pre overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${displayAction}</textarea></td><td class="p-0 border-r border-slate-200 align-top bg-white">${renderSatisfactionOptions(i, savedUserSat)}</td><td class="p-0"><textarea id="sat-worker-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 overflow-hidden" placeholder="평가 내용" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${savedWorkerEval}</textarea></td></tr>`;
-                }
+                });
 
                 // [유지] 초기 데이터(현재 연도) 생성
                 let historyRows = '';
@@ -7112,7 +7120,15 @@
                 } else if (docType === 'satisfaction') {
                     docTitle = `만족도조사(${year}년)`;
                     const goals = getVal(cm, 'satisfaction.serviceGoals') || [];
-                    const goalRows = goals.map(g => `<tr><td>${g.goal}</td><td>${(g.action||'').replace(/\n/g, '<br>')}</td><td class="text-center">${g.userSat}</td><td>${g.workerEval}</td></tr>`).join('') || '<tr><td colspan="4" class="text-center">내용 없음</td></tr>';
+                    // [수정] 테이블 행 생성 시 스타일 보강 (줄바꿈, 정렬, 너비 대응)
+                    const goalRows = goals.map(g => `
+                        <tr>
+                            <td class="text-center" style="vertical-align: middle;">${g.goal}</td>
+                            <td style="text-align: left; vertical-align: top; padding: 5px;">${(g.action||'').replace(/\n/g, '<br>')}</td>
+                            <td class="text-center" style="vertical-align: middle;">${g.userSat}</td>
+                            <td style="text-align: left; vertical-align: top; padding: 5px;">${(g.workerEval||'').replace(/\n/g, '<br>')}</td>
+                        </tr>
+                    `).join('') || '<tr><td colspan="4" class="text-center">내용 없음</td></tr>';
 
                     htmlContent = `
                         <h1>서비스 만족도 및 욕구조사 (${year}년)</h1>
@@ -7120,12 +7136,20 @@
                         <div class="clearfix"></div>
 
                         <table>
+                            <col width="15%"><col width="35%"><col width="15%"><col width="35%">
                             <tr><th>대상자명</th><td>${client.name}</td><th>조사일자</th><td>${getVal(cm, 'satisfaction.date')}</td></tr>
                             <tr><th>조사자</th><td>${getVal(cm, 'satisfaction.surveyor')}</td><th>방법</th><td>${getVal(cm, 'satisfaction.method')}</td></tr>
                         </table>
 
                         <h2>1. 서비스 만족도</h2>
                         <table>
+                            <!-- [수정] 컬럼 너비 명시적 지정 (실행내용 공간 확보) -->
+                            <colgroup>
+                                <col style="width: 15%;">
+                                <col style="width: 40%;">
+                                <col style="width: 20%;">
+                                <col style="width: 25%;">
+                            </colgroup>
                             <tr class="bg-gray"><th>목표</th><th>실행내용</th><th>이용자 만족도</th><th>담당자 평가</th></tr>
                             ${goalRows}
                         </table>
