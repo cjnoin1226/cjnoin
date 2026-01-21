@@ -1809,20 +1809,28 @@
                             <tbody class="divide-y divide-slate-100">
                                 ${rows.map((r, index) => {
                                     const careLevelClass = r.careLevel === '중점' ? 'text-pink-600 font-bold' : (r.careLevel === '일반' ? 'text-blue-600 font-bold' : 'text-slate-500');
-                                    const isTerminatedInPeriod = r.endDate <= fullYearEnd; 
+                                    // [수정] 종결 여부 확인 기준 변경: 연말(fullYearEnd) -> 조회 종료일(end)
+                                    // 조회 기간 종료 시점보다 종결일이 같거나 빠르면 종결로 처리
+                                    const isTerminatedInPeriod = r.endDate !== '9999-12-31' && r.endDate <= end;
+                                    
+                                    // [신규] 종결 대상자 행 스타일 설정 (연한 회색 배경)
+                                    const rowClass = isTerminatedInPeriod ? 'bg-slate-100 hover:bg-slate-200' : 'hover:bg-slate-50';
+                                    const cellBg = isTerminatedInPeriod ? 'bg-slate-100' : 'bg-white'; // sticky 컬럼용 배경
+                                    const totalBg = isTerminatedInPeriod ? 'bg-slate-200 text-emerald-800' : 'bg-emerald-50 text-emerald-600'; // 합계 컬럼 배경
+
                                     let isDeficient = false;
                                     if (!isTerminatedInPeriod) {
                                         if (r.careLevel === '중점' && r.emotionalCount < 4) isDeficient = true;
                                         else if (r.careLevel === '일반' && r.emotionalCount < 1) isDeficient = true;
                                     }
                                     return `
-                                    <tr class="hover:bg-slate-50 group">
-                                        <td class="py-1.5 px-1 border-r text-center text-slate-400 text-xs bg-white" style="${stickColStyle(L_No, 30)}">${index + 1}</td>
-                                        <td class="py-1.5 px-1 border-r group-hover:bg-slate-50 text-center font-medium text-slate-800 bg-white cursor-pointer hover:text-blue-600" style="${stickColStyle(L1, 30)}" onclick="app.showClientStatsDetail('${r.id}', '${r.name}')" title="상세 내역 보기">${r.name}</td>
-                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs bg-white" style="${stickColStyle(L2, 30)}">${r.birthDate}</td>
-                                        <td class="py-1.5 px-1 text-center border-r text-xs bg-white ${careLevelClass}" style="${stickColStyle(L3, 30)}">${r.careLevel}</td>
-                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs bg-white" style="${stickColStyle(L4, 30)}">${r.region}</td>
-                                        <td class="p-1.5 text-center font-bold border-r text-emerald-600 bg-emerald-50" style="${stickColStyle(L5, 30)}">${r.total}</td>
+                                    <tr class="${rowClass} group transition-colors">
+                                        <td class="py-1.5 px-1 border-r text-center text-slate-400 text-xs ${cellBg}" style="${stickColStyle(L_No, 30)}">${index + 1}</td>
+                                        <td class="py-1.5 px-1 border-r group-hover:bg-opacity-50 text-center font-medium text-slate-800 ${cellBg} cursor-pointer hover:text-blue-600" style="${stickColStyle(L1, 30)}" onclick="app.showClientStatsDetail('${r.id}', '${r.name}')" title="상세 내역 보기">${r.name}</td>
+                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs ${cellBg}" style="${stickColStyle(L2, 30)}">${r.birthDate}</td>
+                                        <td class="py-1.5 px-1 text-center border-r text-xs ${cellBg} ${careLevelClass}" style="${stickColStyle(L3, 30)}">${r.careLevel}</td>
+                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs ${cellBg}" style="${stickColStyle(L4, 30)}">${r.region}</td>
+                                        <td class="p-1.5 text-center font-bold border-r ${totalBg}" style="${stickColStyle(L5, 30)}">${r.total}</td>
                                         ${serviceHeaders.map(k => {
                                             const count = r.counts[k] || 0;
                                             const isTargetCell = isDeficient && k.includes('정서지원');
@@ -1841,7 +1849,8 @@
                                                 if (count > 0) { 
                                                     cellClass += " bg-blue-50 font-medium text-blue-600 hover:bg-blue-100"; 
                                                 } else { 
-                                                    cellClass += " text-slate-300"; 
+                                                    // [수정] 데이터 없는 셀도 종결자면 약간 어둡게, 아니면 연하게
+                                                    cellClass += isTerminatedInPeriod ? " text-slate-400" : " text-slate-300"; 
                                                 } 
                                             }
                                             return `<td class="${cellClass}" ${clickAttr} title="${count > 0 ? `'${k}' 상세 내역 보기` : ''}">${count || '-'}</td>`;
