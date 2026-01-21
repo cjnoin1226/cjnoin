@@ -2390,10 +2390,9 @@
             },
 
             // [신규] 특정 연도 로그 데이터 로딩 함수 (On-Demand)
-            // [수정] showUI 파라미터 추가하여 일괄 로딩 시 개별 알림 제어
-            loadLogsByYear: async (year, showUI = true) => {
+            // [수정] showUI 파라미터 추가하여 일괄 로딩 시 개별 알림 제어, force 파라미터 추가
+            loadLogsByYear: async (year, showUI = true, force = false) => {
                 // [수정] 순서 변경: 단건 로딩 시 showProgress가 먼저 호출되어야 loadingCancelled가 false로 리셋됨.
-                // 기존에는 플래그 확인이 먼저라 한 번 취소되면 재시도 시에도 바로 리턴되는 문제가 있었음.
                 if (showUI) app.showProgress(`${year}년 데이터 불러오는 중...`, 100); 
 
                 // [신규] 취소 상태면 즉시 리턴
@@ -2402,7 +2401,8 @@
                     return;
                 }
                 
-                if (state.loadedYears.has(year)) {
+                // [수정] force가 true면 이미 로드된 연도라도 다시 불러옴
+                if (!force && state.loadedYears.has(year)) {
                     if (showUI) app.hideProgress();
                     return;
                 }
@@ -2420,8 +2420,6 @@
                     // [수정] mergeLogs 사용 (안전한 병합)
                     if (newLogs.length > 0) {
                         mergeLogs(newLogs);
-                    } else if (showUI) {
-                        // 데이터가 없는 경우 (알림은 선택사항, 여기서는 생략)
                     }
                     
                     state.loadedYears.add(year);
@@ -7434,8 +7432,15 @@
                     return `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">해당 연도에 서비스 이력이 없습니다.</td></tr>`;
                 }
             },
-            updateClientHistory: (clientId, year) => {
+            updateClientHistory: async (clientId, year) => {
                 if (!clientId) return;
+
+                // [신규] 선택한 연도의 데이터가 로드되지 않았다면 서버에서 가져옴
+                const targetYear = parseInt(year);
+                if (!state.loadedYears.has(targetYear)) {
+                    await app.loadLogsByYear(targetYear);
+                }
+
                 const clientLogs = state.logs.filter(l => l.clientId === clientId && l.date.startsWith(year)).sort((a,b) => b.date.localeCompare(a.date));
                 const rows = app.generateHistoryRows(clientLogs);
                 const container = document.getElementById('client-history-list');
@@ -7737,6 +7742,13 @@
                         commonData.clientName = clientName;
 
                         await updateDoc(doc(db, "logs", id), commonData);
+                        
+                        // [신규] 로컬 상태 수동 업데이트 (과거 연도 수정 시 화면 갱신 보장)
+                        const existingIndex = state.logs.findIndex(l => l.id === id);
+                        if (existingIndex !== -1) {
+                            state.logs[existingIndex] = { ...state.logs[existingIndex], ...commonData };
+                        }
+
                         alert("일지가 수정되었습니다.");
                     } else {
                         // 작성 모드 (다중 건 생성 가능)
@@ -7745,10 +7757,20 @@
                             const client = state.clients.find(c => c.name === clientName);
                             if (client) data.clientId = client.id;
                             data.createdAt = new Date().toISOString();
-                            return addDoc(collection(db, "logs"), data);
+                            
+                            const docRef = await addDoc(collection(db, "logs"), data);
+                            
+                            // [신규] 로컬 상태 수동 추가 (과거 연도 작성 시 화면 갱신 보장)
+                            state.logs.push({ id: docRef.id, ...data });
+                            
+                            return docRef;
                         });
                         
                         await Promise.all(batchPromises);
+                        
+                        // [신규] 추가 후 정렬 (최신순)
+                        state.logs.sort((a, b) => b.date.localeCompare(a.date));
+                        
                         alert(`${window.currentLogClients.length}건의 일지가 저장되었습니다.`);
                     }
                     
@@ -7759,7 +7781,14 @@
                 } finally {
                     if (isBatchCreate) {
                         state.isBatching = false;
-                        if(state.viewMode==='single') updateTabContent('logs'); else render();
+                    }
+                    // [수정] 뷰 모드에 따라 적절한 갱신 수행
+                    if(state.viewMode==='single') {
+                        // 현재 보고 있는 탭이 로그나 클라이언트 상세라면 갱신
+                        if(state.activeTab === 'logs') updateTabContent('logs');
+                        else if(state.activeTab === 'clients') updateTabContent('clients'); // 상세 모달 내부 갱신용
+                    } else {
+                        render();
                     }
                 }
             },
@@ -7789,6 +7818,15 @@
             executeDeleteData: async (collectionName, id) => {
                 try {
                     await deleteDoc(doc(db, collectionName, id));
+                    
+                    // [신규] 로컬 상태 수동 삭제 (과거 데이터 삭제 시 화면 갱신 보장)
+                    if (collectionName === 'logs') {
+                        state.logs = state.logs.filter(l => l.id !== id);
+                    } else if (collectionName === 'meetings') {
+                        state.meetings = state.meetings.filter(m => m.id !== id);
+                    }
+                    // clients와 services는 실시간 리스너가 전체를 커버하므로 수동 삭제 불필요하나 안전장치로 둠
+                    
                     app.closeDialog();
                     if(state.viewMode==='single') {
                         if(collectionName === 'logs') updateTabContent('logs');
@@ -7800,26 +7838,71 @@
                     }
                 } catch (err) { 
                     console.error("Delete failed", err);
-                    // 에러 발생 시 사용자 알림은 기존 패턴 유지
                     alert("삭제 실패: " + err.message); 
                 }
             },
             
             // [신규] 초기화 기능 구현 (체크박스/라디오만 초기화, 텍스트 유지)
-            resetInputs: (id) => {
-                const container = document.getElementById(id);
-                if (!container) return;
-                // 체크박스와 라디오 버튼만 선택 해제 (text, textarea 등은 건드리지 않음)
-                const inputs = container.querySelectorAll('input[type="checkbox"], input[type="radio"]');
-                inputs.forEach(input => input.checked = false);
-            },
+            executeBatchEditLogs: async (e) => {
+                e.preventDefault();
+                const updateData = {};
+                // ... (데이터 수집 로직 유지) ...
+                if (document.getElementById('chk-date').checked) updateData.date = document.getElementById('val-date').value;
+                if (document.getElementById('chk-method').checked) updateData.provideMethod = document.getElementById('val-method').value;
+                if (document.getElementById('chk-provider').checked) updateData.provider = document.getElementById('val-provider').value;
+                if (document.getElementById('chk-content').checked) updateData.content = document.getElementById('val-content').value;
+                if (document.getElementById('chk-service').checked) {
+                    const rows = document.querySelectorAll('.batch-svc-row');
+                    const newItems = [];
+                    rows.forEach(row => { const cat = row.querySelector('.batch-cat-sel').value; const svc = row.querySelector('.batch-svc-sel').value; const note = row.querySelector('.batch-det-inp').value; if (svc) { newItems.push({ id: Date.now() + Math.random(), category: cat, serviceName: svc, detailNote: note }); } });
+                    if (newItems.length === 0) { alert("서비스 변경을 선택하셨다면, 최소 1개의 서비스를 입력해주세요."); return; }
+                    updateData.serviceItems = newItems;
+                    updateData.serviceName = newItems.map(i => i.serviceName).join(', ');
+                }
+                
+                if (Object.keys(updateData).length === 0) { alert("변경할 항목을 하나 이상 선택해주세요."); return; }
+                if (document.getElementById('chk-date').checked && updateData.date === "") { alert("날짜를 선택해주세요."); return; }
+                
+                state.isBatching = true; 
+                try {
+                    const promises = Array.from(state.ui.selectedLogIds).map(id => updateDoc(doc(db, "logs", id), updateData));
+                    await Promise.all(promises);
+                    
+                    // [신규] 로컬 상태 일괄 업데이트
+                    state.ui.selectedLogIds.forEach(id => {
+                        const idx = state.logs.findIndex(l => l.id === id);
+                        if (idx !== -1) {
+                            state.logs[idx] = { ...state.logs[idx], ...updateData };
+                        }
+                    });
+                    state.logs.sort((a, b) => b.date.localeCompare(a.date)); // 날짜 변경 가능성 있으므로 재정렬
 
-            // [신규] 토글 디스플레이 함수 추가 (선정기준표 등에서 사용)
-            toggleDisplay: (checkbox, targetId) => {
-                const target = document.getElementById(targetId);
-                if (target) {
-                    if (checkbox.checked) target.classList.remove('hidden');
-                    else target.classList.add('hidden');
+                    alert(`${state.ui.selectedLogIds.size}건의 일지가 수정되었습니다.`);
+                    state.ui.selectedLogIds.clear();
+                    closeModal();
+                } catch (err) { 
+                    alert("수정 중 오류가 발생했습니다: " + err.message); 
+                } finally {
+                    state.isBatching = false; 
+                    render(); 
+                }
+            },
+            executeDeleteSelectedLogs: async () => { 
+                state.isBatching = true; 
+                try { 
+                    const promises = Array.from(state.ui.selectedLogIds).map(id => deleteDoc(doc(db, "logs", id))); 
+                    await Promise.all(promises); 
+                    
+                    // [신규] 로컬 상태 일괄 삭제
+                    state.logs = state.logs.filter(l => !state.ui.selectedLogIds.has(l.id));
+                    
+                    state.ui.selectedLogIds.clear(); 
+                    closeDialog(); 
+                } catch (err) { 
+                    alert("삭제 중 오류가 발생했습니다: " + err.message); 
+                } finally {
+                    state.isBatching = false; 
+                    render();
                 }
             },
 
