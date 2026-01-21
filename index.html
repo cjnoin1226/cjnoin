@@ -348,7 +348,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // [수정] getDocs 추가 (과거 데이터 1회성 로딩용)
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, limit, writeBatch, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAx1EJ_7kawHTzsNS97ts5FjCaTJRqJTdM",
@@ -412,8 +413,10 @@
             editingServiceId: null,
             // [신규] 일괄 작업 중 화면 갱신 방지 플래그 (true면 render() 스킵)
             isBatching: false,
-            // [신규] 전체 로그 로딩 완료 여부
+            // [신규] 전체 로그 로딩 완료 여부 (현재 연도 기준)
             isFullLogLoaded: false,
+            // [신규] 로드된 연도 추적용 Set
+            loadedYears: new Set(),
             // [신규] 탭별 스크롤 위치 저장소
             tabScrolls: {}, 
             ui: {
@@ -471,6 +474,14 @@
             const m = today.getMonth() - birth.getMonth();
             if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
             return age;
+        }
+
+        // [수정] 로딩 표시 태그 생성 헬퍼 함수
+        // Tailwind CDN이 동적 문자열 내의 새로운 클래스(amber)를 인식하지 못하는 문제를 해결하기 위해
+        // 이미 문서 내에서 사용 중인 색상(blue)으로 변경하여 표시를 보장합니다.
+        function getLoadingTag() {
+            if (state.isFullLogLoaded) return '';
+            return `<span class="ml-2 text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100 flex items-center gap-1 shadow-sm transition-all"><span class="animate-spin"><i data-lucide="loader-2" size="12"></i></span><span>데이터 로딩 중...</span></span>`;
         }
 
         function getFilteredLogs() {
@@ -540,11 +551,13 @@
                 if (!state.isBatching) render();
             }, handleErr);
             
+            // [복구] 회의록 데이터 리스너 (누락된 부분 복원)
             onSnapshot(query(collection(db, "meetings"), orderBy("date", "desc")), (snap) => {
                 state.meetings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (!state.isBatching) render();
             }, handleErr);
 
+            // [복구] 서비스 목록 데이터 리스너 및 정렬 로직 (누락된 부분 복원)
             onSnapshot(collection(db, "services"), (snap) => {
                 let loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const sortOrder = ['위기관리체계구축', '욕구기반 위기관리', '위기상황관리 및 긴급지원', '기타'];
@@ -583,27 +596,56 @@
                 if (!state.isBatching) render();
             }, handleErr);
             
-            // [수정] 2단계 데이터 로딩 전략 적용 (1단계: 최신 100건 -> 2단계: 전체)
+            // [수정] 2단계 데이터 로딩 전략 적용 (현재 연도 데이터만 대상으로 변경)
             let initialLogUnsub = null;
+            const currentYear = new Date().getFullYear();
+            const startOfYear = `${currentYear}-01-01`;
+            const endOfYear = `${currentYear}-12-31`;
 
-            // 1단계: 최신 100건 우선 로딩 (빠른 화면 표시)
-            const qInitial = query(collection(db, "logs"), orderBy("date", "desc"), limit(100));
+            // 1단계: 현재 연도 최신 100건 우선 로딩 (빠른 화면 표시)
+            // [수정] where 조건 추가하여 현재 연도 데이터만 가져옴
+            const qInitial = query(
+                collection(db, "logs"), 
+                where("date", ">=", startOfYear), 
+                where("date", "<=", endOfYear),
+                orderBy("date", "desc"), 
+                limit(100)
+            );
+            
             initialLogUnsub = onSnapshot(qInitial, (snap) => {
-                // 이미 전체 데이터가 로드된 상태라면 이 리스너의 데이터는 무시 (덮어쓰기 방지)
+                // 이미 전체(현재 연도 전체) 데이터가 로드된 상태라면 이 리스너의 데이터는 무시
                 if (state.isFullLogLoaded) return;
 
-                state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const newLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                // 기존 데이터(혹시 있다면)와 병합
+                state.logs = newLogs; 
+                state.loadedYears.add(currentYear); // 현재 연도 로드됨 표시
+
                 if (!state.isBatching) render();
             }, handleErr);
 
-            // 2단계: 전체 데이터 백그라운드 로딩 (1.5초 지연 후 시작하여 초기 렌더링 방해 최소화)
+            // 2단계: 현재 연도 전체 데이터 백그라운드 로딩
             setTimeout(() => {
-                const qFull = query(collection(db, "logs"), orderBy("date", "desc"));
+                // [수정] where 조건 추가하여 현재 연도 전체 데이터만 가져옴 (과거 데이터 제외)
+                const qFull = query(
+                    collection(db, "logs"), 
+                    where("date", ">=", startOfYear), 
+                    where("date", "<=", endOfYear),
+                    orderBy("date", "desc")
+                );
+                
                 onSnapshot(qFull, (snap) => {
-                    state.logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    state.isFullLogLoaded = true; // 전체 로드 완료 플래그 설정
+                    // 현재 연도 데이터를 받아옴
+                    const currentYearLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    
+                    // [중요] 이미 로드된 다른 연도(과거)의 데이터가 있다면 유지하고 병합해야 함
+                    const otherYearsLogs = state.logs.filter(l => !l.date.startsWith(String(currentYear)));
+                    state.logs = [...currentYearLogs, ...otherYearsLogs];
+                    
+                    state.isFullLogLoaded = true; // 현재 연도 전체 로드 완료 플래그
+                    state.loadedYears.add(currentYear);
 
-                    // 전체 데이터를 받았으므로 1단계 리스너는 해제하여 리소스 절약
+                    // 1단계 리스너 해제
                     if (initialLogUnsub) {
                         initialLogUnsub();
                         initialLogUnsub = null;
@@ -692,7 +734,8 @@
             const activeClients = state.clients.filter(c => {
                 const isTerminated = c.status === '종결' || (c.endDate && c.endDate < today);
                 const isNotStarted = c.serviceStartDate && c.serviceStartDate > today;
-                return (c.status === '이용' || c.status === '장기부재') && !isTerminated && !isNotStarted;
+                // [수정] 이름이 '-'인 경우 통계에서 제외 (기타 사업 관리용)
+                return (c.status === '이용' || c.status === '장기부재') && !isTerminated && !isNotStarted && c.name !== '-';
             });
             const totalActive = activeClients.length;
             const highFocus = activeClients.filter(c => c.careLevel === '중점').length;
@@ -700,7 +743,8 @@
 
             // [신규] 이번 달 사례회의 대상자 (정기/재사정 기준) 계산
             const meetingCandidates = state.clients.filter(c => {
-                if (c.status === '종결' || !c.serviceStartDate) return false;
+                // [수정] 이름이 '-'인 경우 회의 대상 제외
+                if (c.status === '종결' || !c.serviceStartDate || c.name === '-') return false;
                 const startMonth = parseInt(c.serviceStartDate.split('-')[1]);
                 return startMonth === currentMonth;
             }).length;
@@ -708,7 +752,8 @@
             return `
                 <div class="space-y-6 animate-fade-in p-1">
                     <div class="flex justify-between items-center">
-                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">홈</h2>
+                        <!-- [수정] 제목 옆에 로딩 태그 추가 -->
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">홈 ${getLoadingTag()}</h2>
                         <div class="text-xs md:text-sm text-emerald-600 flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>공유 중</div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
@@ -787,6 +832,10 @@
                 if (status && status !== '종결') { if (eDate < filterStart) return false; }
                 return true;
             }).sort((a, b) => {
+                // [수정] 이름이 '-'인 데이터(기타 사업)는 항상 맨 뒤로 정렬
+                if (a.name === '-' && b.name !== '-') return 1;
+                if (a.name !== '-' && b.name === '-') return -1;
+
                 if (targetYear) {
                     const eDateA = a.endDate || '9999-12-31';
                     const activeA = eDateA >= filterStart;
@@ -804,6 +853,9 @@
             const today = new Date().toISOString().split('T')[0];
 
             state.clients.forEach(c => {
+                // [수정] 이름이 '-'인 데이터는 통계 집계에서 제외 (기타 사업 관리용)
+                if (c.name === '-') return;
+
                 const isTerminatedToday = c.status === '종결' || (c.endDate && c.endDate < today);
                 const isNotStartedYet = c.serviceStartDate && c.serviceStartDate > today;
                 if ((c.status === '이용' || c.status === '장기부재') && !isTerminatedToday && !isNotStartedYet) {
@@ -833,7 +885,8 @@
                 <div class="flex flex-col animate-fade-in">
                     <div class="space-y-6 pb-2 pr-1 transition-all">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
-                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">대상자 관리</h2>
+                            <!-- [수정] 제목 옆에 로딩 태그 추가 -->
+                            <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">대상자 관리 ${getLoadingTag()}</h2>
                             <div class="flex flex-wrap gap-2 w-full sm:w-auto">
                                 <div id="client-batch-actions" class="flex gap-2">
                                     ${state.ui.selectedClientIds.size > 0 ? `
@@ -929,6 +982,9 @@
                     <div id="client-list-container" class="overflow-y-auto max-h-[70vh] custom-scrollbar space-y-2 pr-1 pb-4">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
                         filtered.map(c => {
+                            // [수정] 기타 사업용 더미 데이터('-') 여부 확인
+                            const isEtcClient = c.name === '-';
+
                             const isLogicallyTerminated = c.status === '종결' || (c.endDate && c.endDate <= filterEnd);
                             const displayStatus = isLogicallyTerminated ? '종결' : c.status;
                             const statusColor = displayStatus === '종결' ? 'bg-slate-100 text-slate-500' : (displayStatus === '이용' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500');
@@ -945,26 +1001,33 @@
                             const genderShort = c.gender === '남성' ? '남' : (c.gender === '여성' ? '여' : c.gender);
                             const genderColorClass = c.gender === '남성' ? 'text-blue-600' : 'text-red-600';
 
+                            // [수정] '-' 데이터인 경우 상세 정보(행정동, 경제, 등급, 상태) 숨김 처리
+                            const regionBadge = isEtcClient ? '' : `<span class="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium whitespace-nowrap border border-slate-200">${c.region}</span>`;
+                            const ecoBadge = isEtcClient ? '' : `<span class="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100 font-medium whitespace-nowrap">${getEconomicDisplay(c.economicStatus)}</span>`;
+                            const levelBadge = isEtcClient ? '' : `<span class="text-xs px-1.5 py-0.5 rounded ${c.careLevel==='중점'?'bg-pink-50 text-pink-700 border border-pink-100':'bg-blue-50 text-blue-700 border border-blue-100'} font-medium whitespace-nowrap">${c.careLevel}</span>`;
+                            const statusBadge = isEtcClient ? '' : `<span class="text-xs px-1.5 py-0.5 rounded ${statusColor} font-medium whitespace-nowrap border border-slate-200">${displayStatus}</span>`;
+                            // 이름 옆 정보도 '-' 데이터면 숨김 (요청: "아무 정보가 없어도 돼")
+                            const nameDetail = isEtcClient ? '' : `<span class="text-sm font-bold text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">(${birthShort}/<span class="${genderColorClass}">${genderShort}</span>)</span>`;
+                            const activeDot = (!isEtcClient && targetYear && wasActiveInPeriod) ? `<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 ml-0.5 shadow-sm" title="해당 기간 이용 이력 있음"></div>` : '';
+
                             return `
                             <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[150px_160px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
                                 <div class="flex items-center gap-2 w-full overflow-hidden">
                                     <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer flex-shrink-0" onchange="app.toggleClientSelection('${c.id}')" ${state.ui.selectedClientIds.has(c.id) ? 'checked' : ''}>
                                     <div class="flex items-center gap-1 overflow-hidden">
                                         <span class="font-bold text-xl text-slate-800 cursor-pointer hover:text-blue-600 truncate flex-shrink-0" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
-                                        <span class="text-sm font-bold text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">
-                                            (${birthShort}/<span class="${genderColorClass}">${genderShort}</span>)
-                                        </span>
+                                        ${nameDetail}
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-1 w-full flex-wrap content-start">
-                                    <span class="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium whitespace-nowrap border border-slate-200">${c.region}</span>
-                                    <span class="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100 font-medium whitespace-nowrap">${getEconomicDisplay(c.economicStatus)}</span>
-                                    <span class="text-xs px-1.5 py-0.5 rounded ${c.careLevel==='중점'?'bg-pink-50 text-pink-700 border border-pink-100':'bg-blue-50 text-blue-700 border border-blue-100'} font-medium whitespace-nowrap">${c.careLevel}</span>
-                                    <span class="text-xs px-1.5 py-0.5 rounded ${statusColor} font-medium whitespace-nowrap border border-slate-200">${displayStatus}</span>
-                                    ${targetYear && wasActiveInPeriod ? `<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 ml-0.5 shadow-sm" title="해당 기간 이용 이력 있음"></div>` : ''}
+                                    ${regionBadge}
+                                    ${ecoBadge}
+                                    ${levelBadge}
+                                    ${statusBadge}
+                                    ${activeDot}
                                 </div>
-                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.phone||''}${c.phone2 ? ' / ' + c.phone2 : ''}"><span class="truncate text-lg text-slate-900">${c.phone||'-'}${c.phone2 ? ' / ' + c.phone2 : ''}</span></div>
-                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.address||''}"><span class="truncate text-lg text-slate-900">${c.address||'-'}</span></div>
+                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.phone||''}${c.phone2 ? ' / ' + c.phone2 : ''}"><span class="truncate text-lg text-slate-900">${isEtcClient ? '' : (c.phone||'-')}${!isEtcClient && c.phone2 ? ' / ' + c.phone2 : ''}</span></div>
+                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.address||''}"><span class="truncate text-lg text-slate-900">${isEtcClient ? '' : (c.address||'-')}</span></div>
                                 <div class="flex items-center justify-end gap-1 w-full">
                                     <button onclick="app.openClientModal('${c.id}')" class="text-slate-400 hover:text-blue-500 p-1 rounded" title="수정"><i data-lucide="edit" size="12"></i></button>
                                     <button onclick="app.deleteData('clients','${c.id}')" class="text-slate-400 hover:text-red-500 p-1 rounded" title="삭제"><i data-lucide="trash-2" size="12"></i></button>
@@ -994,7 +1057,7 @@
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
             const allSelected = visibleLogs.length > 0 && visibleLogs.every(l => state.ui.selectedLogIds.has(l.id));
 
-            // [수정] 연도 선택 옵션 생성 로직 개선
+            // [수정] 연도 선택 옵션 생성 로직 개선 (전체 연도 추가)
             const currentYear = new Date().getFullYear();
             const logYearOptions = [];
             for (let y = 2020; y <= currentYear + 1; y++) {
@@ -1002,7 +1065,11 @@
                 logYearOptions.push(`<option value="${y}" ${isSelected ? 'selected' : ''}>${y}년</option>`);
             }
             logYearOptions.reverse(); 
-            logYearOptions.unshift(`<option value="">연도</option>`); 
+            
+            // [신규] 전체 연도 옵션 추가
+            const isAllSelected = start === '2000-01-01' && end === '9999-12-31';
+            logYearOptions.unshift(`<option value="all" ${isAllSelected ? 'selected' : ''}>전체 연도</option>`);
+            logYearOptions.unshift(`<option value="">연도 (기본)</option>`); 
 
             // 페이지네이션 UI 생성 (마진 제거 후 아래 레이아웃 div에서 처리)
             let paginationHTML = '';
@@ -1046,7 +1113,8 @@
                 <div class="flex flex-col animate-fade-in h-[calc(100vh-9rem)]">
                     <div class="space-y-4 pb-2 pr-1 transition-all flex-shrink-0">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
-                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">서비스 일지</h2>
+                            <!-- [수정] 제목 옆에 로딩 태그 추가 -->
+                            <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">서비스 일지 ${getLoadingTag()}</h2>
                             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                                 <button onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="file-spreadsheet" size="16"></i> 양식</button>
                                 <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors">
@@ -1068,10 +1136,11 @@
                             </select>
 
                             <div class="flex items-center gap-2 w-full sm:w-auto px-2 bg-slate-50 rounded-lg border border-slate-200 h-9">
-                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${start}" onchange="app.setFilter('log','start',this.value, false)" max="9999-12-31">
+                                <input type="date" id="log-filter-start" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${start}" max="9999-12-31">
                                 <span class="text-slate-400">~</span>
-                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
-                                <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
+                                <input type="date" id="log-filter-end" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${end}" max="9999-12-31">
+                                <!-- [수정] 조회 버튼에 새로운 검색 함수 연결 -->
+                                <button onclick="app.searchLogsByDateRange()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
                             </div>
                             <input id="log-search-name" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
                             
@@ -1161,31 +1230,28 @@
                 </div>`;
         }
 
-        // [신규] 사례회의 관리 렌더링 함수 추가
+        // [복구] 사례회의 관리 렌더링 함수 (누락된 코드 복원)
         function renderMeetingManager() {
             const { start, end, search, type, clientName, writer } = state.filters.meeting;
             
-            // [추가] 조회 대상 월 설정 (기본값: 현재 월)
+            // 조회 대상 월 설정 (기본값: 현재 월)
             const today = new Date();
             const currentRealMonth = today.getMonth() + 1;
             const currentYear = today.getFullYear();
             const targetMonth = state.ui.meetingTargetMonth || currentRealMonth;
             const candidateType = state.ui.meetingCandidateType || 'regular';
             
-            // 이번 달 도래 대상자 필터링 (선택된 기준에 따름)
+            // 이번 달 도래 대상자 필터링
             const targetClients = state.clients.filter(c => {
                 if (candidateType === 'regular') {
-                    // 정기(재사정): 이용 중이며, 서비스 시작 월이 해당 월인 경우 (연도 무관)
                     if (c.status === '종결' || !c.serviceStartDate) return false;
                     const startMonth = parseInt(c.serviceStartDate.split('-')[1]);
                     return startMonth === targetMonth;
                 } else if (candidateType === 'new') {
-                    // 신규(초기): 금년도 해당 월에 시작한 대상자
                     if (!c.serviceStartDate) return false;
                     const [y, m, d] = c.serviceStartDate.split('-').map(Number);
                     return y === currentYear && m === targetMonth;
                 } else if (candidateType === 'end') {
-                    // 종결(심사): 금년도 해당 월에 종결한 대상자
                     if (!c.endDate) return false;
                     const [y, m, d] = c.endDate.split('-').map(Number);
                     return y === currentYear && m === targetMonth;
@@ -1196,29 +1262,24 @@
                 return (a.serviceStartDate || '').localeCompare(b.serviceStartDate || '');
             });
 
-            // [수정] 분리된 필터링 함수 사용
             const filtered = getFilteredMeetings();
             const allSelected = filtered.length > 0 && filtered.every(m => state.ui.selectedMeetingIds.has(m.id));
 
-            // 기준별 라벨 매핑
             const typeLabels = { regular: '재사정', new: '초기상담', end: '종결심사' };
             const defaultMeetingTypeMap = { regular: '재사정', new: '초기', end: '종결' };
 
             return `
-                <div class="flex flex-col animate-fade-in h-full">
+                <div class="flex flex-col animate-fade-in h-[calc(100vh-9rem)]">
                     <div class="space-y-4 pb-2 pr-1 transition-all flex-shrink-0">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
-                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">사례회의록</h2>
+                            <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">사례회의록 ${getLoadingTag()}</h2>
                             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                                <!-- [삭제됨] 양식 및 불러오기 버튼 제거 -->
-                                
-                                <!-- [수정] 버튼 텍스트 변경: 선택 인쇄 -> 인쇄 -->
                                 <button onclick="app.printSelectedMeetings()" class="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm"><i data-lucide="printer" size="16"></i> 인쇄</button>
                                 <button onclick="app.openMeetingModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 회의록 작성</button>
                             </div>
                         </div>
 
-                        <!-- 이번 달 도래 대상자 섹션 (슬림 버전) + 월 선택 기능 -->
+                        <!-- 이번 달 도래 대상자 섹션 -->
                         <div class="bg-blue-50/50 border border-blue-100 rounded-xl p-3">
                             <div class="flex items-center gap-2 mb-2">
                                 <div class="bg-blue-100 text-blue-600 p-1 rounded"><i data-lucide="calendar-clock" size="14"></i></div>
@@ -1229,15 +1290,13 @@
                                         <option value="end" ${candidateType==='end'?'selected':''}>종결(심사) 대상자</option>
                                     </select>
                                     
-                                    <!-- [수정] 월 선택 드롭다운 (버튼 분리됨) -->
                                     <div class="flex items-center bg-white border border-blue-200 rounded px-2 py-0.5 shadow-sm ml-1">
                                         <select class="text-blue-600 text-xs font-bold focus:outline-none cursor-pointer bg-transparent" onchange="app.setMeetingTargetMonth(this.value)">
                                             ${Array.from({length: 12}, (_, i) => i + 1).map(m => `<option value="${m}" ${m === targetMonth ? 'selected' : ''}>${m}월</option>`).join('')}
                                         </select>
                                     </div>
                                     
-                                    <!-- [수정] 분리된 초기화 버튼 -->
-                                    <button onclick="app.resetMeetingTargetMonth()" class="bg-white border border-blue-200 text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-1 rounded shadow-sm transition-colors flex items-center justify-center" title="초기화 (이번 달 & 기본 조회)">
+                                    <button onclick="app.resetMeetingTargetMonth()" class="bg-white border border-blue-200 text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-1 rounded shadow-sm transition-colors flex items-center justify-center" title="초기화">
                                         <i data-lucide="rotate-ccw" size="12"></i>
                                     </button>
 
@@ -1248,27 +1307,18 @@
                                 `<div class="text-center text-slate-400 text-xs py-1">${targetMonth}월에 해당하는 ${typeLabels[candidateType]} 대상자가 없습니다.</div>` : 
                                 `<div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar snap-x">
                                     ${targetClients.map(c => {
-                                        // [신규] 해당 월에 회의 진행 여부 확인 (조회 기준에 따른 타입 체크 적용)
                                         const isCompleted = state.meetings.some(m => {
                                             const mDate = new Date(m.date);
-                                            // 대상자 일치 확인 (ID 우선, 없으면 이름)
                                             const isSameClient = (m.clientId && m.clientId === c.id) || (!m.clientId && m.clientName === c.name);
-                                            // 날짜(년/월) 일치 확인
                                             const isSameMonth = mDate.getFullYear() === currentYear && (mDate.getMonth() + 1) === targetMonth;
                                             
                                             if (!isSameClient || !isSameMonth) return false;
-
-                                            // 조회 기준에 따른 회의록 구분 체크
                                             if (candidateType === 'new') return m.type === '초기';
                                             if (candidateType === 'end') return m.type === '종결';
-                                            
-                                            // [수정] 월 사례회의(정기)인 경우 '수시' 또는 '재사정' 회의록만 인정
                                             if (candidateType === 'regular') return m.type === '수시' || m.type === '재사정';
-                                            
                                             return true;
                                         });
 
-                                        // [수정] 완료 시 배경색을 더 진한 회색(bg-slate-200)으로 변경
                                         const bgClass = isCompleted ? 'bg-slate-200' : 'bg-white';
                                         const textColorClass = isCompleted ? 'text-slate-500' : 'text-slate-800';
                                         const hoverClass = isCompleted ? '' : 'hover:border-blue-400 hover:shadow-md';
@@ -1295,13 +1345,7 @@
                             }
                         </div>
 
-                        <!-- [수정] 필터 UI: 한 줄 배치로 변경 -->
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
-                            <div class="flex items-center gap-1 text-slate-600 font-bold text-sm mr-2 flex-shrink-0">
-                                <i data-lucide="filter" size="14"></i> 필터
-                            </div>
-                            
-                            <!-- [수정] 날짜 필터 자동 갱신 방지(false) 및 조회 버튼 추가 -->
                             <div class="flex items-center gap-2 p-1 bg-slate-50 rounded-lg border border-slate-200">
                                 <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('meeting','start',this.value, false)" max="9999-12-31">
                                 <span class="text-slate-400">~</span>
@@ -1309,7 +1353,7 @@
                                 <button onclick="app.render()" class="bg-slate-800 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1">조회</button>
                             </div>
 
-                            <select class="input-field py-1.5 px-2 text-sm w-32 font-medium" onchange="app.setFilter('meeting','type',this.value)">
+                            <select class="input-field h-9 py-1 px-2 text-sm w-32 font-medium" onchange="app.setFilter('meeting','type',this.value)">
                                 <option value="">구분(전체)</option>
                                 <option value="수시" ${type==='수시'?'selected':''}>수시 사례회의</option>
                                 <option value="초기" ${type==='초기'?'selected':''}>초기 상담 회의</option>
@@ -1318,14 +1362,13 @@
                                 <option value="기타" ${type==='기타'?'selected':''}>기타</option>
                             </select>
 
-                            <input class="input-field py-1.5 w-32 text-sm" placeholder="대상자 (Enter)" value="${clientName}" onkeydown="if(event.key === 'Enter') app.setFilter('meeting','clientName',this.value)" oninput="if(this.value === '') app.setFilter('meeting','clientName','')">
+                            <input class="input-field h-9 py-1 w-32 text-sm" placeholder="대상자 (Enter)" value="${clientName}" onkeydown="if(event.key === 'Enter') app.setFilter('meeting','clientName',this.value)" oninput="if(this.value === '') app.setFilter('meeting','clientName','')">
                             
-                            <input class="input-field py-1.5 w-28 text-sm" placeholder="작성자 (Enter)" value="${writer}" onkeydown="if(event.key === 'Enter') app.setFilter('meeting','writer',this.value)" oninput="if(this.value === '') app.setFilter('meeting','writer','')">
+                            <input class="input-field h-9 py-1 w-28 text-sm" placeholder="작성자 (Enter)" value="${writer}" onkeydown="if(event.key === 'Enter') app.setFilter('meeting','writer',this.value)" oninput="if(this.value === '') app.setFilter('meeting','writer','')">
 
-                            <button onclick="app.resetFilters('meeting')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 px-2 py-1 rounded hover:bg-slate-100 transition-colors"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                            <button onclick="app.resetFilters('meeting')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 h-9 px-2 hover:bg-slate-50 rounded transition-colors"><i data-lucide="refresh-cw" size="14"></i></button>
                         </div>
 
-                        <!-- [수정] 일괄 작업 영역에 ID 부여 (부분 업데이트용) -->
                         <div class="flex items-center justify-between px-1 h-8">
                             <div class="flex items-center gap-2" id="meeting-batch-actions">
                                 <span class="text-sm text-slate-500">총 <span class="font-bold text-slate-800">${filtered.length}</span>건</span>
@@ -1340,7 +1383,6 @@
                     </div>
 
                     <div id="meeting-list-container" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-[400px]">
-                        <!-- 테이블 헤더: 전체선택 체크박스에 ID 부여 -->
                         <div class="flex items-center bg-slate-50 border-b border-slate-200 font-bold text-xs text-slate-500 sticky top-0 z-10">
                             <div class="w-10 text-center py-3 flex-shrink-0 border-r border-slate-100">
                                 <input type="checkbox" id="meeting-select-all" class="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" 
@@ -1350,23 +1392,17 @@
                             </div>
                             <div class="w-24 text-center py-3 flex-shrink-0">날짜</div>
                             <div class="w-16 text-center py-3 flex-shrink-0">대상자</div>
-                            <!-- [신규] 생년/등급 컬럼 추가 -->
                             <div class="w-24 text-center py-3 flex-shrink-0">생년/등급</div>
                             <div class="w-16 text-center py-3 flex-shrink-0">구분</div>
-                            
-                            <!-- [수정] 안건 너비 축소 (w-[400px] -> w-[300px]) -->
                             <div class="w-[300px] text-center py-3 px-2 flex-shrink-0">안건</div>
-                            
                             <div class="w-24 text-center py-3 flex-shrink-0">작성자</div>
                             <div class="w-24 text-center py-3 flex-shrink-0">관리</div>
                         </div>
                         
-                        <!-- 리스트 영역 -->
                         <div class="overflow-y-auto flex-1 custom-scrollbar">
                             ${filtered.length === 0 ? 
                                 '<div class="text-center py-12 text-slate-400">작성된 회의록이 없습니다.</div>' : 
                                 '<div class="divide-y divide-slate-100">' + filtered.map(m => {
-                                    // [신규] 대상자 정보 매핑 (생년월일/등급)
                                     let clientInfo = '-';
                                     const c = state.clients.find(cl => cl.id === m.clientId || cl.name === m.clientName);
                                     if (c) {
@@ -1385,15 +1421,9 @@
                                     </div>
                                     <div class="w-24 text-center text-xs font-bold text-slate-700 flex-shrink-0 whitespace-nowrap">${m.date}</div>
                                     <div class="w-16 text-center text-sm font-bold text-emerald-600 truncate px-1 flex-shrink-0" title="${m.clientName || '미지정'}">${m.clientName || '-'}</div>
-                                    
-                                    <!-- [신규] 생년/등급 데이터 표시 -->
                                     <div class="w-24 text-center text-xs text-slate-600 flex-shrink-0 leading-tight">${clientInfo}</div>
-                                    
                                     <div class="w-16 text-center flex-shrink-0"><span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 whitespace-nowrap">${m.type || '수시'}</span></div>
-                                    
-                                    <!-- [수정] 안건 너비 축소 (w-[400px] -> w-[300px]) -->
                                     <div class="w-[300px] text-sm text-slate-800 font-medium truncate px-3 cursor-pointer hover:text-blue-600 flex-shrink-0 text-left" onclick="app.openMeetingModal('${m.id}')" title="${m.topic || ''}">${m.topic || '제목 없음'}</div>
-                                    
                                     <div class="w-24 text-center text-sm text-slate-500 truncate px-1 flex-shrink-0" title="${m.writer}">${m.writer || '-'}</div>
                                     <div class="w-24 flex justify-center gap-1 flex-shrink-0">
                                         <button onclick="app.printMeeting('${m.id}')" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors" title="인쇄/PDF"><i data-lucide="printer" size="14"></i></button>
@@ -1566,7 +1596,8 @@
 
             return `
                 <div class="space-y-6 animate-fade-in p-1">
-                    <h2 class="text-2xl font-bold text-slate-800">월별 서비스 실적</h2>
+                    <!-- [수정] 제목 옆에 로딩 태그 추가 -->
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center">월별 서비스 실적 ${getLoadingTag()}</h2>
                     <div class="sticky top-0 z-50 bg-slate-50 pt-2 pb-2 shadow-sm -mx-1 px-1">
                         <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                              <div class="flex items-center bg-slate-100 rounded-lg p-1 mr-4">
@@ -1675,6 +1706,10 @@
                 }
             });
             const rows = Object.values(dataMap).filter(r => r.total >= 0).sort((a, b) => {
+                // [수정] 이름이 '-'인 데이터(기타 사업)는 항상 맨 뒤로 정렬
+                if (a.name === '-' && b.name !== '-') return 1;
+                if (a.name !== '-' && b.name === '-') return -1;
+
                 const levelPriority = { '중점': 1, '일반': 2 };
                 const pA = levelPriority[a.careLevel] || 3;
                 const pB = levelPriority[b.careLevel] || 3;
@@ -1707,7 +1742,8 @@
 
             return `
                 <div class="space-y-6 animate-fade-in p-1">
-                    <h2 class="text-2xl font-bold text-slate-800">서비스 제공 통계</h2>
+                    <!-- [수정] 제목 옆에 로딩 태그 추가 -->
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center">서비스 제공 통계 ${getLoadingTag()}</h2>
                     <div class="sticky top-0 z-50 bg-slate-50 pt-2 pb-2 shadow-sm -mx-1 px-1">
                         <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                             <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
@@ -1760,10 +1796,27 @@
                                         <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs bg-white" style="${stickColStyle(L4, 30)}">${r.region}</td>
                                         <td class="p-1.5 text-center font-bold border-r text-emerald-600 bg-emerald-50" style="${stickColStyle(L5, 30)}">${r.total}</td>
                                         ${serviceHeaders.map(k => {
+                                            const count = r.counts[k] || 0;
                                             const isTargetCell = isDeficient && k.includes('정서지원');
-                                            let cellClass = "p-1.5 px-2 text-center border-r";
-                                            if (isTargetCell) { cellClass += " text-red-600 font-bold bg-red-50"; } else { if (r.counts[k] > 0) { cellClass += " bg-blue-50 font-medium text-blue-600"; } else { cellClass += " text-slate-300"; } }
-                                            return `<td class="${cellClass}">${r.counts[k]||'-'}</td>`;
+                                            let cellClass = "p-1.5 px-2 text-center border-r transition-colors";
+                                            let clickAttr = "";
+                                            
+                                            // [수정] 숫자가 있는 경우 클릭 이벤트 추가 및 스타일 변경
+                                            if (count > 0) {
+                                                cellClass += " cursor-pointer hover:underline decoration-2 underline-offset-2";
+                                                clickAttr = `onclick="app.showClientStatsDetail('${r.id}', '${r.name}', '${k}')"`;
+                                            }
+
+                                            if (isTargetCell) { 
+                                                cellClass += " text-red-600 font-bold bg-red-50 hover:bg-red-100"; 
+                                            } else { 
+                                                if (count > 0) { 
+                                                    cellClass += " bg-blue-50 font-medium text-blue-600 hover:bg-blue-100"; 
+                                                } else { 
+                                                    cellClass += " text-slate-300"; 
+                                                } 
+                                            }
+                                            return `<td class="${cellClass}" ${clickAttr} title="${count > 0 ? `'${k}' 상세 내역 보기` : ''}">${count || '-'}</td>`;
                                         }).join('')}
                                     </tr>
                                 `;}).join('')}
@@ -2198,19 +2251,83 @@
                 if (s === 'log') state.ui.logPage = 1;
                 if(doRender) { if (state.viewMode === 'single') updateTabContent(state.activeTab); else render(); }
             },
-            // [신규] 일지 연도 필터 간편 설정 함수
-            setLogYear: (year) => {
-                if (year) {
+            // [수정] 일지 연도 필터 간편 설정 함수 (데이터 로딩 로직 추가 및 전체 연도 지원)
+            setLogYear: async (year) => {
+                if (year === 'all') {
+                    // [신규] 전체 연도 선택 시: 범위를 넓게 잡아 모든 데이터가 보이도록 설정 (hasActiveFilter=true 유도)
+                    state.filters.log.start = '2000-01-01';
+                    state.filters.log.end = '9999-12-31';
+                } else if (year) {
+                    // 선택된 연도 데이터가 로드되었는지 확인하고 없으면 로딩
+                    if (!state.loadedYears.has(parseInt(year))) {
+                        await app.loadLogsByYear(parseInt(year));
+                    }
                     state.filters.log.start = `${year}-01-01`;
                     state.filters.log.end = `${year}-12-31`;
                 } else {
-                    // 연도 선택 해제 시 날짜 필터 초기화 (전체 보기)
+                    // 기본값(빈 문자열) 선택 시: 필터 해제 -> getFilteredLogs에서 '현재 연도'만 기본 표시됨
                     state.filters.log.start = '';
                     state.filters.log.end = '';
                 }
-                state.ui.logPage = 1; // 페이지 초기화
+                state.ui.logPage = 1; 
                 if (state.viewMode === 'single') updateTabContent('logs'); else render();
             },
+            
+            // [신규] 날짜 범위 조회 함수 (데이터 로딩 포함)
+            searchLogsByDateRange: async () => {
+                const startVal = document.getElementById('log-filter-start').value;
+                const endVal = document.getElementById('log-filter-end').value;
+                
+                // 날짜가 입력되었다면 해당 연도의 데이터가 있는지 확인
+                if (startVal) {
+                    const y = parseInt(startVal.split('-')[0]);
+                    if (!state.loadedYears.has(y)) await app.loadLogsByYear(y);
+                }
+                if (endVal) {
+                    const y = parseInt(endVal.split('-')[0]);
+                    if (!state.loadedYears.has(y)) await app.loadLogsByYear(y);
+                }
+
+                state.filters.log.start = startVal;
+                state.filters.log.end = endVal;
+                state.ui.logPage = 1;
+                if (state.viewMode === 'single') updateTabContent('logs'); else render();
+            },
+
+            // [신규] 특정 연도 로그 데이터 로딩 함수 (On-Demand)
+            loadLogsByYear: async (year) => {
+                if (state.loadedYears.has(year)) return;
+                
+                app.showProgress(`${year}년 데이터 불러오는 중...`, 100); // 100은 더미 전체값
+                try {
+                    const q = query(
+                        collection(db, "logs"), 
+                        where("date", ">=", `${year}-01-01`), 
+                        where("date", "<=", `${year}-12-31`),
+                        orderBy("date", "desc")
+                    );
+                    const snap = await getDocs(q);
+                    const newLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    
+                    if (newLogs.length > 0) {
+                        // 기존 로그에 병합 (중복 방지)
+                        const existingIds = new Set(state.logs.map(l => l.id));
+                        const uniqueNewLogs = newLogs.filter(l => !existingIds.has(l.id));
+                        state.logs = [...state.logs, ...uniqueNewLogs];
+                        // 날짜순 재정렬
+                        state.logs.sort((a, b) => b.date.localeCompare(a.date));
+                    }
+                    
+                    state.loadedYears.add(year);
+                    // alert(`${year}년 데이터 ${newLogs.length}건을 불러왔습니다.`);
+                } catch (e) {
+                    console.error("과거 데이터 로딩 실패:", e);
+                    alert("데이터를 불러오는 중 오류가 발생했습니다.");
+                } finally {
+                    app.hideProgress();
+                }
+            },
+
             // [신규] 일지 페이지 변경 함수
             setLogPage: (page) => {
                 state.ui.logPage = page;
@@ -2226,7 +2343,14 @@
                     state.filters.stats.start = '';
                     state.filters.stats.end = '';
                 }
-                if (state.viewMode === 'single') updateTabContent('statistics'); else render();
+                // [추가] 통계에서도 연도 선택 시 데이터 로딩 체크
+                if (year && !state.loadedYears.has(parseInt(year))) {
+                    app.loadLogsByYear(parseInt(year)).then(() => {
+                        if (state.viewMode === 'single') updateTabContent('statistics'); else render();
+                    });
+                } else {
+                    if (state.viewMode === 'single') updateTabContent('statistics'); else render();
+                }
             },
 
             render: () => render(), 
@@ -3221,9 +3345,14 @@
                 }
             },
             // [신규] 사례관리 연도 변경 핸들러
-            setCmYear: (year) => {
+            setCmYear: async (year) => { // Changed to async
                 state.ui.cmYear = parseInt(year);
                 
+                // [신규] 선택된 연도의 로그 데이터가 없으면 로드 (만족도 조사의 서비스 내역 자동완성용)
+                if (!state.loadedYears.has(parseInt(year))) {
+                    await app.loadLogsByYear(parseInt(year));
+                }
+
                 // [수정] 스크롤 위치 저장 및 모달 갱신
                 const formEl = document.getElementById('client-form');
                 let savedScrollTop = 0;
@@ -3327,8 +3456,8 @@
                     </button>
                 `;
 
-                // [수정] 해당 대상자가 금년도(currentYear)에 이용한 서비스 카테고리 자동 추출
-                const providedLogs = state.logs.filter(l => l.clientId === c.id && l.date.startsWith(String(currentYear)));
+                // [수정] 해당 대상자가 선택된 연도(targetYear)에 이용한 서비스 카테고리 자동 추출
+                const providedLogs = state.logs.filter(l => l.clientId === c.id && l.date.startsWith(String(targetYear)));
                 const providedCategoriesSet = new Set();
                 providedLogs.forEach(l => {
                     if (l.serviceItems) {
@@ -8070,22 +8199,34 @@
             },
 
             // [신규] 통계 상세 내역 보기 함수 추가 (누락된 기능 복구)
-            showClientStatsDetail: (clientId, clientName) => {
-                const { start, end } = state.filters.stats;
+            // [수정] filterItem 인자 추가 (특정 서비스 항목 필터링용)
+            showClientStatsDetail: (clientId, clientName, filterItem = null) => {
+                const { start, end, type } = state.filters.stats;
                 
                 // 해당 기간 내 해당 대상자의 로그 필터링
-                const targetLogs = state.logs.filter(l => 
-                    l.clientId === clientId && 
-                    (!start || l.date >= start) && 
-                    (!end || l.date <= end)
-                ).sort((a, b) => b.date.localeCompare(a.date));
+                const targetLogs = state.logs.filter(l => {
+                    const dateMatch = l.clientId === clientId && (!start || l.date >= start) && (!end || l.date <= end);
+                    if (!dateMatch) return false;
+
+                    // [수정] 특정 서비스 항목(filterItem)이 지정된 경우 해당 항목 포함 여부 확인
+                    if (filterItem) {
+                        return l.serviceItems && l.serviceItems.some(item => {
+                            if (type === 'category') return item.category === filterItem;
+                            return item.serviceName === filterItem;
+                        });
+                    }
+                    return true;
+                }).sort((a, b) => b.date.localeCompare(a.date));
+
+                // [수정] 모달 제목 구성
+                const titleSuffix = filterItem ? `<span class="text-slate-500 text-sm font-normal ml-2">(${filterItem})</span>` : '';
 
                 const html = `
                     <div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
                         <div class="flex justify-between items-center mb-4 flex-shrink-0">
                             <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
                                 <div class="p-2 bg-blue-100 text-blue-600 rounded-full"><i data-lucide="list" size="20"></i></div>
-                                ${clientName}님 서비스 상세 내역
+                                ${clientName}님 서비스 상세 내역 ${titleSuffix}
                             </h3>
                             <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
@@ -8095,7 +8236,7 @@
                                 조회 기간: <span class="text-emerald-600">${start || '전체'} ~ ${end || '전체'}</span>
                             </div>
                             <div class="text-sm text-slate-500">
-                                총 <span class="font-bold text-slate-800">${targetLogs.length}</span>건
+                                총 <span class="font-bold text-slate-800">${targetLogs.length}</span>건 (일지 기준)
                             </div>
                         </div>
 
@@ -8114,9 +8255,18 @@
                                     ${targetLogs.length === 0 ? 
                                         '<tr><td colspan="5" class="p-12 text-center text-slate-400">해당 기간에 제공된 서비스 내역이 없습니다.</td></tr>' : 
                                         targetLogs.flatMap(l => {
-                                            // 서비스 항목이 없으면 기본 정보로 1줄 생성
-                                            const items = l.serviceItems && l.serviceItems.length > 0 ? l.serviceItems : [{ category: l.serviceCategory, serviceName: l.serviceName, detailNote: '' }];
+                                            // 서비스 항목 필터링 (숫자 클릭 시 해당 항목만 표시)
+                                            let items = l.serviceItems && l.serviceItems.length > 0 ? l.serviceItems : [{ category: l.serviceCategory, serviceName: l.serviceName, detailNote: '' }];
                                             
+                                            if (filterItem) {
+                                                items = items.filter(item => {
+                                                    if (type === 'category') return item.category === filterItem;
+                                                    return item.serviceName === filterItem;
+                                                });
+                                            }
+
+                                            if (items.length === 0) return []; // 필터링 결과 없으면 생략
+
                                             return items.map((item, idx) => `
                                                 <tr class="hover:bg-slate-50 transition-colors group">
                                                     ${idx === 0 ? `<td class="p-3 text-center text-slate-600 font-medium border-r border-slate-100" rowspan="${items.length}">${l.date}</td>` : ''}
