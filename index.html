@@ -341,7 +341,12 @@
             <div class="w-full bg-slate-100 rounded-full h-2.5 mb-2 overflow-hidden">
                 <div id="progress-bar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
             </div>
-            <p class="text-sm text-slate-500 font-medium"><span id="progress-current" class="text-slate-800 font-bold">0</span> / <span id="progress-total">0</span> 건 완료</p>
+            <p class="text-sm text-slate-500 font-medium mb-4"><span id="progress-current" class="text-slate-800 font-bold">0</span> / <span id="progress-total">0</span> 건 완료</p>
+            
+            <!-- [신규] 취소 버튼 추가 -->
+            <button onclick="app.cancelLoading()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors w-full border border-slate-200">
+                취소하고 멈추기
+            </button>
         </div>
     </div>
 
@@ -417,6 +422,8 @@
             isFullLogLoaded: false,
             // [신규] 로드된 연도 추적용 Set
             loadedYears: new Set(),
+            // [신규] 로딩 취소 플래그
+            loadingCancelled: false,
             // [신규] 탭별 스크롤 위치 저장소
             tabScrolls: {}, 
             ui: {
@@ -1057,10 +1064,11 @@
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
             const allSelected = visibleLogs.length > 0 && visibleLogs.every(l => state.ui.selectedLogIds.has(l.id));
 
-            // [수정] 연도 선택 옵션 생성 로직 개선 (전체 연도 추가)
+            // [수정] 연도 선택 옵션 생성 로직 개선 (범위 2015년으로 확장)
             const currentYear = new Date().getFullYear();
             const logYearOptions = [];
-            for (let y = 2020; y <= currentYear + 1; y++) {
+            // 과거 데이터 조회를 위해 시작 연도를 2015년으로 확장
+            for (let y = 2015; y <= currentYear + 1; y++) {
                 const isSelected = start === `${y}-01-01` && end === `${y}-12-31`;
                 logYearOptions.push(`<option value="${y}" ${isSelected ? 'selected' : ''}>${y}년</option>`);
             }
@@ -2254,6 +2262,36 @@
             // [수정] 일지 연도 필터 간편 설정 함수 (데이터 로딩 로직 추가 및 전체 연도 지원)
             setLogYear: async (year) => {
                 if (year === 'all') {
+                    // [신규] 전체 연도 선택 시: 아직 로드되지 않은 모든 연도의 데이터 로딩 시도
+                    const currentYear = new Date().getFullYear();
+                    const yearsToLoad = [];
+                    // 2015년부터 내년까지 확인 (범위 확장)
+                    for (let y = 2015; y <= currentYear + 1; y++) {
+                        if (!state.loadedYears.has(y)) {
+                            yearsToLoad.push(y);
+                        }
+                    }
+
+                    if (yearsToLoad.length > 0) {
+                        app.showProgress('전체 기간 데이터 불러오는 중...', yearsToLoad.length);
+                        try {
+                            // 순차적으로 로드 (UI 간섭 방지를 위해 내부 UI 끄고 호출)
+                            for (let i = 0; i < yearsToLoad.length; i++) {
+                                // [신규] 취소 플래그 확인
+                                if (state.loadingCancelled) {
+                                    console.log("로딩이 사용자에 의해 취소되었습니다.");
+                                    break;
+                                }
+                                await app.loadLogsByYear(yearsToLoad[i], false);
+                                app.updateProgress(i + 1);
+                            }
+                        } catch (e) {
+                            console.error("전체 로딩 중 오류:", e);
+                        } finally {
+                            app.hideProgress();
+                        }
+                    }
+
                     // [신규] 전체 연도 선택 시: 범위를 넓게 잡아 모든 데이터가 보이도록 설정 (hasActiveFilter=true 유도)
                     state.filters.log.start = '2000-01-01';
                     state.filters.log.end = '9999-12-31';
@@ -2278,14 +2316,44 @@
                 const startVal = document.getElementById('log-filter-start').value;
                 const endVal = document.getElementById('log-filter-end').value;
                 
-                // 날짜가 입력되었다면 해당 연도의 데이터가 있는지 확인
-                if (startVal) {
-                    const y = parseInt(startVal.split('-')[0]);
-                    if (!state.loadedYears.has(y)) await app.loadLogsByYear(y);
-                }
-                if (endVal) {
-                    const y = parseInt(endVal.split('-')[0]);
-                    if (!state.loadedYears.has(y)) await app.loadLogsByYear(y);
+                // [수정] 범위 내의 모든 연도 데이터 로딩
+                if (startVal && endVal) {
+                    const startY = parseInt(startVal.split('-')[0]);
+                    const endY = parseInt(endVal.split('-')[0]);
+                    
+                    const yearsToLoad = [];
+                    // 시작 연도부터 종료 연도까지 순회하며 로드되지 않은 연도 수집
+                    for (let y = Math.min(startY, endY); y <= Math.max(startY, endY); y++) {
+                        if (!state.loadedYears.has(y)) {
+                            yearsToLoad.push(y);
+                        }
+                    }
+
+                    if (yearsToLoad.length > 0) {
+                        app.showProgress('기간 내 데이터 불러오는 중...', yearsToLoad.length);
+                        try {
+                            for (let i = 0; i < yearsToLoad.length; i++) {
+                                // [신규] 취소 플래그 확인
+                                if (state.loadingCancelled) {
+                                    console.log("로딩이 사용자에 의해 취소되었습니다.");
+                                    break;
+                                }
+                                await app.loadLogsByYear(yearsToLoad[i], false);
+                                app.updateProgress(i + 1);
+                            }
+                        } catch(e) { console.error(e); }
+                        finally { app.hideProgress(); }
+                    }
+                } else {
+                    // 시작일 또는 종료일만 있는 경우 해당 연도만 로드
+                    if (startVal) {
+                        const y = parseInt(startVal.split('-')[0]);
+                        if (!state.loadedYears.has(y)) await app.loadLogsByYear(y);
+                    }
+                    if (endVal) {
+                        const y = parseInt(endVal.split('-')[0]);
+                        if (!state.loadedYears.has(y)) await app.loadLogsByYear(y);
+                    }
                 }
 
                 state.filters.log.start = startVal;
@@ -2295,10 +2363,14 @@
             },
 
             // [신규] 특정 연도 로그 데이터 로딩 함수 (On-Demand)
-            loadLogsByYear: async (year) => {
+            // [수정] showUI 파라미터 추가하여 일괄 로딩 시 개별 알림 제어
+            loadLogsByYear: async (year, showUI = true) => {
+                // [신규] 취소 상태면 즉시 리턴
+                if (state.loadingCancelled) return;
+                
                 if (state.loadedYears.has(year)) return;
                 
-                app.showProgress(`${year}년 데이터 불러오는 중...`, 100); // 100은 더미 전체값
+                if (showUI) app.showProgress(`${year}년 데이터 불러오는 중...`, 100); 
                 try {
                     const q = query(
                         collection(db, "logs"), 
@@ -2319,12 +2391,11 @@
                     }
                     
                     state.loadedYears.add(year);
-                    // alert(`${year}년 데이터 ${newLogs.length}건을 불러왔습니다.`);
                 } catch (e) {
                     console.error("과거 데이터 로딩 실패:", e);
-                    alert("데이터를 불러오는 중 오류가 발생했습니다.");
+                    if (showUI) alert("데이터를 불러오는 중 오류가 발생했습니다.");
                 } finally {
-                    app.hideProgress();
+                    if (showUI) app.hideProgress();
                 }
             },
 
@@ -7214,8 +7285,15 @@
             handleModalOverlayClick: () => { if (state.ui.allowOverlayClose) closeModal(); },
             handleSubModalOverlayClick: () => { if (state.ui.allowOverlayClose) closeModal(); },
 
+            // [신규] 로딩 취소 함수
+            cancelLoading: () => {
+                state.loadingCancelled = true;
+                app.hideProgress();
+            },
+
             // [신규] 진행 상태 모달 제어 함수
             showProgress: (title, total) => {
+                state.loadingCancelled = false; // [신규] 로딩 시작 시 플래그 초기화
                 const modal = document.getElementById('progress-modal');
                 const titleEl = document.getElementById('progress-title');
                 const totalEl = document.getElementById('progress-total');
