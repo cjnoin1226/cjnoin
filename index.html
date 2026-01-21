@@ -1198,12 +1198,12 @@
                                     <input type="checkbox" id="log-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${visibleLogs.length === 0 ? 'disabled' : ''}>
                                     <span class="text-sm font-medium text-slate-600">전체선택 (현재 페이지)</span>
                                 </label>
-                            </div>
-                            <div class="flex items-center gap-2" id="log-batch-actions">
-                                ${state.ui.selectedLogIds.size > 0 ? `
-                                    <button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-blue-100 transition-colors animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${state.ui.selectedLogIds.size})</button>
-                                    <button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제</button>
-                                ` : ''}
+                                <div class="flex items-center gap-2" id="log-batch-actions">
+                                    ${state.ui.selectedLogIds.size > 0 ? `
+                                        <button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors animate-fade-in">일괄수정(${state.ui.selectedLogIds.size})</button>
+                                        <button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors animate-fade-in">선택삭제</button>
+                                    ` : ''}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2562,8 +2562,7 @@
                 if (!container) return; 
                 const count = state.ui.selectedLogIds.size;
                 if (count > 0) {
-                    container.innerHTML = `<button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-blue-100 transition-colors animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${count})</button><button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 hover:bg-red-100 transition-colors animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제</button>`;
-                    if(window.lucide) lucide.createIcons();
+                    container.innerHTML = `<button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors animate-fade-in">일괄수정(${count})</button><button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors animate-fade-in">선택삭제</button>`;
                 } else { container.innerHTML = ''; }
                 
                 // [수정] 전체 선택 체크박스 상태 동기화 로직 개선 (현재 페이지 기준)
@@ -7480,6 +7479,26 @@
                 app.hideProgress();
             },
 
+            // [신규] 데이터 변경 시 해당 연도 데이터 재로딩 헬퍼 함수
+            refreshYears: async (years) => {
+                const uniqueYears = [...new Set(years)].filter(y => y);
+                const currentYear = new Date().getFullYear();
+                
+                // 변경된 데이터의 연도가 이미 로드된 상태(loadedYears에 존재)라면,
+                // 강제로 최신 데이터를 서버에서 가져와 덮어씌웁니다. (현재 연도는 onSnapshot이 처리하므로 제외)
+                const promises = uniqueYears.map(y => {
+                    const yearInt = parseInt(y);
+                    if (yearInt !== currentYear && state.loadedYears.has(yearInt)) {
+                        console.log(`Refreshing data for year: ${yearInt}`);
+                        // force=true 옵션을 사용하여 강제 로딩
+                        return app.loadLogsByYear(yearInt, false, true);
+                    }
+                    return Promise.resolve();
+                });
+                
+                await Promise.all(promises);
+            },
+
             // [신규] 진행 상태 모달 제어 함수
             showProgress: (title, total) => {
                 state.loadingCancelled = false; // [신규] 로딩 시작 시 플래그 초기화
@@ -7733,6 +7752,11 @@
                 const isBatchCreate = !id && window.currentLogClients.length > 1;
                 if (isBatchCreate) state.isBatching = true;
 
+                // [신규] 갱신 대상 연도 추적
+                const affectedYears = new Set();
+                const getYear = (dateStr) => dateStr ? parseInt(dateStr.split('-')[0]) : null;
+                if (commonData.date) affectedYears.add(getYear(commonData.date));
+
                 try {
                     if (id) {
                         // 수정 모드 (단일 건)
@@ -7741,9 +7765,13 @@
                         if (client) commonData.clientId = client.id;
                         commonData.clientName = clientName;
 
+                        // [신규] 수정 전 원래 연도도 갱신 대상에 포함 (날짜 변경 시 이동 처리 위해)
+                        const originalLog = state.logs.find(l => l.id === id);
+                        if (originalLog && originalLog.date) affectedYears.add(getYear(originalLog.date));
+
                         await updateDoc(doc(db, "logs", id), commonData);
                         
-                        // [신규] 로컬 상태 수동 업데이트 (과거 연도 수정 시 화면 갱신 보장)
+                        // [신규] 로컬 상태 수동 업데이트 (즉각 반응용)
                         const existingIndex = state.logs.findIndex(l => l.id === id);
                         if (existingIndex !== -1) {
                             state.logs[existingIndex] = { ...state.logs[existingIndex], ...commonData };
@@ -7760,7 +7788,7 @@
                             
                             const docRef = await addDoc(collection(db, "logs"), data);
                             
-                            // [신규] 로컬 상태 수동 추가 (과거 연도 작성 시 화면 갱신 보장)
+                            // [신규] 로컬 상태 수동 추가
                             state.logs.push({ id: docRef.id, ...data });
                             
                             return docRef;
@@ -7775,6 +7803,10 @@
                     }
                     
                     app.closeModal();
+
+                    // [신규] 영향 받은 연도 데이터 백그라운드 갱신
+                    await app.refreshYears(Array.from(affectedYears));
+
                 } catch (err) { 
                     console.error(err);
                     alert("저장 실패: " + err.message); 
@@ -7817,6 +7849,13 @@
 
             executeDeleteData: async (collectionName, id) => {
                 try {
+                    // [신규] 삭제 전 연도 정보 백업 (로그인 경우)
+                    let targetYear = null;
+                    if (collectionName === 'logs') {
+                        const target = state.logs.find(l => l.id === id);
+                        if (target && target.date) targetYear = parseInt(target.date.split('-')[0]);
+                    }
+
                     await deleteDoc(doc(db, collectionName, id));
                     
                     // [신규] 로컬 상태 수동 삭제 (과거 데이터 삭제 시 화면 갱신 보장)
@@ -7825,9 +7864,14 @@
                     } else if (collectionName === 'meetings') {
                         state.meetings = state.meetings.filter(m => m.id !== id);
                     }
-                    // clients와 services는 실시간 리스너가 전체를 커버하므로 수동 삭제 불필요하나 안전장치로 둠
                     
                     app.closeDialog();
+
+                    // [신규] 해당 연도 데이터 갱신
+                    if (targetYear) {
+                        await app.refreshYears([targetYear]);
+                    }
+
                     if(state.viewMode==='single') {
                         if(collectionName === 'logs') updateTabContent('logs');
                         else if(collectionName === 'clients') updateTabContent('clients');
@@ -7868,11 +7912,16 @@
                     const promises = Array.from(state.ui.selectedLogIds).map(id => updateDoc(doc(db, "logs", id), updateData));
                     await Promise.all(promises);
                     
-                    // [신규] 로컬 상태 일괄 업데이트
+                    // [신규] 연도 갱신을 위한 집합
+                    const affectedYears = new Set();
+
+                    // [신규] 로컬 상태 일괄 업데이트 및 연도 수집
                     state.ui.selectedLogIds.forEach(id => {
                         const idx = state.logs.findIndex(l => l.id === id);
                         if (idx !== -1) {
+                            if (state.logs[idx].date) affectedYears.add(parseInt(state.logs[idx].date.split('-')[0]));
                             state.logs[idx] = { ...state.logs[idx], ...updateData };
+                            if (state.logs[idx].date) affectedYears.add(parseInt(state.logs[idx].date.split('-')[0]));
                         }
                     });
                     state.logs.sort((a, b) => b.date.localeCompare(a.date)); // 날짜 변경 가능성 있으므로 재정렬
@@ -7880,6 +7929,10 @@
                     alert(`${state.ui.selectedLogIds.size}건의 일지가 수정되었습니다.`);
                     state.ui.selectedLogIds.clear();
                     closeModal();
+
+                    // [신규] 데이터 재로딩
+                    await app.refreshYears(Array.from(affectedYears));
+
                 } catch (err) { 
                     alert("수정 중 오류가 발생했습니다: " + err.message); 
                 } finally {
@@ -7893,11 +7946,24 @@
                     const promises = Array.from(state.ui.selectedLogIds).map(id => deleteDoc(doc(db, "logs", id))); 
                     await Promise.all(promises); 
                     
-                    // [신규] 로컬 상태 일괄 삭제
-                    state.logs = state.logs.filter(l => !state.ui.selectedLogIds.has(l.id));
+                    // [신규] 연도 갱신을 위한 집합
+                    const affectedYears = new Set();
+
+                    // [신규] 로컬 상태 일괄 삭제 및 연도 수집
+                    state.logs = state.logs.filter(l => {
+                        if (state.ui.selectedLogIds.has(l.id)) {
+                            if (l.date) affectedYears.add(parseInt(l.date.split('-')[0]));
+                            return false;
+                        }
+                        return true;
+                    });
                     
                     state.ui.selectedLogIds.clear(); 
                     closeDialog(); 
+
+                    // [신규] 데이터 재로딩
+                    await app.refreshYears(Array.from(affectedYears));
+
                 } catch (err) { 
                     alert("삭제 중 오류가 발생했습니다: " + err.message); 
                 } finally {
