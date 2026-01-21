@@ -547,6 +547,27 @@
             }).sort((a, b) => b.date.localeCompare(a.date));
         }
 
+        // [신규] 안전한 로그 데이터 병합 함수 (중복 제거 및 최신 데이터 반영)
+        function mergeLogs(newLogs) {
+            if (!Array.isArray(newLogs) || newLogs.length === 0) return;
+
+            const logMap = new Map();
+            // 1. 기존 데이터 맵핑
+            if (Array.isArray(state.logs)) {
+                state.logs.forEach(l => logMap.set(l.id, l));
+            }
+            // 2. 새 데이터로 덮어쓰기 (업데이트) 또는 추가
+            newLogs.forEach(l => logMap.set(l.id, l));
+            
+            // 3. 배열로 변환 및 정렬 (날짜 내림차순)
+            state.logs = Array.from(logMap.values()).sort((a, b) => {
+                if (a.date !== b.date) return b.date.localeCompare(a.date);
+                const providerA = a.provider || '', providerB = b.provider || '';
+                if (providerA !== providerB) return providerA.localeCompare(providerB);
+                return (a.clientName || '').localeCompare(b.clientName || '');
+            });
+        }
+
         function initDataSync() {
             if (!db) return;
             const handleErr = (e) => { if(e.code === 'permission-denied') console.warn("권한 부족: 규칙을 확인하세요."); };
@@ -624,16 +645,17 @@
                 if (state.isFullLogLoaded) return;
 
                 const newLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                // 기존 데이터(혹시 있다면)와 병합
-                state.logs = newLogs; 
-                state.loadedYears.add(currentYear); // 현재 연도 로드됨 표시
+                // [수정] mergeLogs 사용
+                mergeLogs(newLogs);
+                state.loadedYears.add(currentYear); 
 
                 if (!state.isBatching) render();
             }, handleErr);
 
             // 2단계: 현재 연도 전체 데이터 백그라운드 로딩
+            // [개선] 초기 로딩 시 최근 3년치(올해 포함) 데이터를 감시하도록 확장할 수도 있으나, 
+            // 실시간 리스너 부하를 고려해 현재 연도만 유지하되 병합 로직으로 안전장치 마련
             setTimeout(() => {
-                // [수정] where 조건 추가하여 현재 연도 전체 데이터만 가져옴 (과거 데이터 제외)
                 const qFull = query(
                     collection(db, "logs"), 
                     where("date", ">=", startOfYear), 
@@ -642,14 +664,12 @@
                 );
                 
                 onSnapshot(qFull, (snap) => {
-                    // 현재 연도 데이터를 받아옴
                     const currentYearLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     
-                    // [중요] 이미 로드된 다른 연도(과거)의 데이터가 있다면 유지하고 병합해야 함
-                    const otherYearsLogs = state.logs.filter(l => !l.date.startsWith(String(currentYear)));
-                    state.logs = [...currentYearLogs, ...otherYearsLogs];
+                    // [수정] mergeLogs를 사용하여 기존에 로드된 과거 데이터 보존하며 병합
+                    mergeLogs(currentYearLogs);
                     
-                    state.isFullLogLoaded = true; // 현재 연도 전체 로드 완료 플래그
+                    state.isFullLogLoaded = true; 
                     state.loadedYears.add(currentYear);
 
                     // 1단계 리스너 해제
@@ -2262,11 +2282,11 @@
             // [수정] 일지 연도 필터 간편 설정 함수 (데이터 로딩 로직 추가 및 전체 연도 지원)
             setLogYear: async (year) => {
                 if (year === 'all') {
-                    // [신규] 전체 연도 선택 시: 아직 로드되지 않은 모든 연도의 데이터 로딩 시도
+                    // [신규] 전체 연도 선택 시: 2010년부터 내년까지 데이터 로딩 시도
                     const currentYear = new Date().getFullYear();
                     const yearsToLoad = [];
-                    // 2015년부터 내년까지 확인 (범위 확장)
-                    for (let y = 2015; y <= currentYear + 1; y++) {
+                    // [수정] 과거 데이터 범위 2010년으로 확장
+                    for (let y = 2010; y <= currentYear + 1; y++) {
                         if (!state.loadedYears.has(y)) {
                             yearsToLoad.push(y);
                         }
@@ -2292,18 +2312,19 @@
                         }
                     }
 
-                    // [신규] 전체 연도 선택 시: 범위를 넓게 잡아 모든 데이터가 보이도록 설정 (hasActiveFilter=true 유도)
+                    // [신규] 전체 연도 선택 시: 범위를 넓게 잡아 모든 데이터가 보이도록 설정
                     state.filters.log.start = '2000-01-01';
                     state.filters.log.end = '9999-12-31';
                 } else if (year) {
+                    const targetYear = parseInt(year);
                     // 선택된 연도 데이터가 로드되었는지 확인하고 없으면 로딩
-                    if (!state.loadedYears.has(parseInt(year))) {
-                        await app.loadLogsByYear(parseInt(year));
+                    if (!state.loadedYears.has(targetYear)) {
+                        await app.loadLogsByYear(targetYear);
                     }
-                    state.filters.log.start = `${year}-01-01`;
-                    state.filters.log.end = `${year}-12-31`;
+                    state.filters.log.start = `${targetYear}-01-01`;
+                    state.filters.log.end = `${targetYear}-12-31`;
                 } else {
-                    // 기본값(빈 문자열) 선택 시: 필터 해제 -> getFilteredLogs에서 '현재 연도'만 기본 표시됨
+                    // 기본값 선택 시 필터 해제
                     state.filters.log.start = '';
                     state.filters.log.end = '';
                 }
@@ -2334,10 +2355,7 @@
                         try {
                             for (let i = 0; i < yearsToLoad.length; i++) {
                                 // [신규] 취소 플래그 확인
-                                if (state.loadingCancelled) {
-                                    console.log("로딩이 사용자에 의해 취소되었습니다.");
-                                    break;
-                                }
+                                if (state.loadingCancelled) break;
                                 await app.loadLogsByYear(yearsToLoad[i], false);
                                 app.updateProgress(i + 1);
                             }
@@ -2367,33 +2385,30 @@
             loadLogsByYear: async (year, showUI = true) => {
                 // [신규] 취소 상태면 즉시 리턴
                 if (state.loadingCancelled) return;
-                
                 if (state.loadedYears.has(year)) return;
                 
                 if (showUI) app.showProgress(`${year}년 데이터 불러오는 중...`, 100); 
                 try {
+                    // [수정] 인덱스 오류 방지를 위해 orderBy 제거 (클라이언트 측에서 정렬)
                     const q = query(
                         collection(db, "logs"), 
                         where("date", ">=", `${year}-01-01`), 
-                        where("date", "<=", `${year}-12-31`),
-                        orderBy("date", "desc")
+                        where("date", "<=", `${year}-12-31`)
                     );
                     const snap = await getDocs(q);
                     const newLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     
+                    // [수정] mergeLogs 사용 (안전한 병합)
                     if (newLogs.length > 0) {
-                        // 기존 로그에 병합 (중복 방지)
-                        const existingIds = new Set(state.logs.map(l => l.id));
-                        const uniqueNewLogs = newLogs.filter(l => !existingIds.has(l.id));
-                        state.logs = [...state.logs, ...uniqueNewLogs];
-                        // 날짜순 재정렬
-                        state.logs.sort((a, b) => b.date.localeCompare(a.date));
+                        mergeLogs(newLogs);
+                    } else if (showUI) {
+                        // 데이터가 없는 경우 (알림은 선택사항, 여기서는 생략)
                     }
                     
                     state.loadedYears.add(year);
                 } catch (e) {
                     console.error("과거 데이터 로딩 실패:", e);
-                    if (showUI) alert("데이터를 불러오는 중 오류가 발생했습니다.");
+                    if (showUI) alert(`${year}년 데이터를 불러오는 중 오류가 발생했습니다.`);
                 } finally {
                     if (showUI) app.hideProgress();
                 }
@@ -3527,33 +3542,71 @@
                     </button>
                 `;
 
+                // [신규] 문자열 정규화 헬퍼 (공백 제거하여 비교용 키 생성)
+                const normalize = (str) => (str || '').replace(/\s+/g, '');
+
                 // [수정] 해당 대상자가 선택된 연도(targetYear)에 이용한 서비스 카테고리 자동 추출
                 const providedLogs = state.logs.filter(l => l.clientId === c.id && l.date.startsWith(String(targetYear)));
-                const providedCategoriesSet = new Set();
+                
+                // [수정] 공백 무시하고 중복 제거하여 카테고리 수집
+                const providedCategoriesMap = new Map();
                 providedLogs.forEach(l => {
                     if (l.serviceItems) {
                         l.serviceItems.forEach(item => {
-                            // [수정] 공백 제거하여 중복 방지 (예: "노인상담" vs "노인상담 ")
-                            if (item.category) providedCategoriesSet.add(item.category.trim());
+                            if (item.category) {
+                                const key = normalize(item.category);
+                                if (!providedCategoriesMap.has(key)) {
+                                    providedCategoriesMap.set(key, item.category.trim());
+                                }
+                            }
                         });
                     }
                 });
-                const providedCategories = [...providedCategoriesSet].sort();
 
-                // [수정] 저장된 데이터와 자동 데이터를 병합하여 유니크 목표 목록 생성 (중복 행 방지)
-                // 기존: 인덱스 기반 병합 -> 수정: 텍스트(Goal) 기반 병합
+                // [수정] 저장된 데이터와 자동 데이터를 병합 (공백 무시 비교하여 유니크 목록 생성)
                 const savedGoalsData = getVal(cm, 'satisfaction.serviceGoals') || [];
-                const allGoalsSet = new Set([...providedCategories]);
-                savedGoalsData.forEach(g => { if(g.goal) allGoalsSet.add(g.goal.trim()); });
-                const allGoals = [...allGoalsSet].sort();
+                const uniqueGoalsMap = new Map();
+
+                // 1. 저장된 목표 먼저 추가 (사용자가 수정한 띄어쓰기 유지)
+                savedGoalsData.forEach(g => {
+                    if (g.goal) {
+                        const key = normalize(g.goal);
+                        uniqueGoalsMap.set(key, g.goal.trim());
+                    }
+                });
+
+                // 2. 자동 추출된 카테고리 중 없는 것 추가
+                providedCategoriesMap.forEach((val, key) => {
+                    if (!uniqueGoalsMap.has(key)) {
+                        uniqueGoalsMap.set(key, val);
+                    }
+                });
+
+                // [수정] 정렬 로직 개선: 서비스 설정 탭의 순서(state.services)를 따르도록 변경
+                const serviceOrderList = [...new Set(state.services.map(s => s.category))];
+                
+                const allGoals = Array.from(uniqueGoalsMap.values()).sort((a, b) => {
+                    // 서비스 목록 순서 우선 확인 (공백 무시 비교)
+                    const normA = normalize(a);
+                    const normB = normalize(b);
+                    const idxA = serviceOrderList.findIndex(cat => normalize(cat) === normA);
+                    const idxB = serviceOrderList.findIndex(cat => normalize(cat) === normB);
+
+                    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                    if (idxA !== -1) return -1;
+                    if (idxB !== -1) return 1;
+                    
+                    return a.localeCompare(b);
+                });
 
                 // 최소 2줄 보장
                 while (allGoals.length < 2) allGoals.push('');
 
                 let serviceGoalRowsHTML = '';
                 allGoals.forEach((displayGoal, i) => {
-                    // 저장된 데이터 매칭 (목표 이름 기준)
-                    const savedItem = displayGoal ? (savedGoalsData.find(g => g.goal === displayGoal) || {}) : {}; 
+                    // [수정] 저장된 데이터 매칭 (공백 무시 비교)
+                    const normalizedDisplayGoal = normalize(displayGoal);
+                    const savedItem = displayGoal ? (savedGoalsData.find(g => normalize(g.goal) === normalizedDisplayGoal) || {}) : {}; 
                     
                     // 해당 목표(displayGoal)에 해당하는 모든 일지 내용을 모아서 자동 완성 텍스트 생성
                     let autoAction = '';
@@ -3562,7 +3615,8 @@
                         providedLogs.forEach(log => {
                             if (log.serviceItems) {
                                 log.serviceItems.forEach(item => {
-                                    if (item.category && item.category.trim() === displayGoal) {
+                                    // [수정] 공백 무시 비교 적용 (띄어쓰기 달라도 매칭)
+                                    if (item.category && normalize(item.category) === normalizedDisplayGoal) {
                                         if (!actionMap.has(item.serviceName)) actionMap.set(item.serviceName, new Set());
                                         if (item.detailNote && item.detailNote.trim() !== '') actionMap.get(item.serviceName).add(item.detailNote.trim());
                                     }
@@ -7119,16 +7173,103 @@
                     `;
                 } else if (docType === 'satisfaction') {
                     docTitle = `만족도조사(${year}년)`;
-                    const goals = getVal(cm, 'satisfaction.serviceGoals') || [];
-                    // [수정] 테이블 행 생성 시 스타일 보강 (줄바꿈, 정렬, 너비 대응)
-                    const goalRows = goals.map(g => `
-                        <tr>
-                            <td class="text-center" style="vertical-align: middle;">${g.goal}</td>
-                            <td style="text-align: left; vertical-align: top; padding: 5px;">${(g.action||'').replace(/\n/g, '<br>')}</td>
-                            <td class="text-center" style="vertical-align: middle;">${g.userSat}</td>
-                            <td style="text-align: left; vertical-align: top; padding: 5px;">${(g.workerEval||'').replace(/\n/g, '<br>')}</td>
-                        </tr>
-                    `).join('') || '<tr><td colspan="4" class="text-center">내용 없음</td></tr>';
+                    
+                    // [수정] 인쇄 시에도 화면과 동일하게 일지 데이터 기반 자동완성 및 병합 로직 적용
+                    const normalize = (str) => (str || '').replace(/\s+/g, '');
+                    
+                    // 1. 해당 연도 로그에서 서비스 목표 추출
+                    const providedLogs = state.logs.filter(l => l.clientId === client.id && l.date.startsWith(String(year)));
+                    const providedCategoriesMap = new Map();
+                    providedLogs.forEach(l => {
+                        if (l.serviceItems) {
+                            l.serviceItems.forEach(item => {
+                                if (item.category) {
+                                    const key = normalize(item.category);
+                                    if (!providedCategoriesMap.has(key)) {
+                                        providedCategoriesMap.set(key, item.category.trim());
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                    // 2. 저장된 데이터 가져오기
+                    const savedGoalsData = getVal(cm, 'satisfaction.serviceGoals') || [];
+                    const uniqueGoalsMap = new Map();
+
+                    // 3. 저장된 목표 먼저 추가
+                    savedGoalsData.forEach(g => {
+                        if (g.goal) {
+                            const key = normalize(g.goal);
+                            uniqueGoalsMap.set(key, g.goal.trim());
+                        }
+                    });
+
+                    // 4. 자동 추출된 카테고리 중 없는 것 추가
+                    providedCategoriesMap.forEach((val, key) => {
+                        if (!uniqueGoalsMap.has(key)) {
+                            uniqueGoalsMap.set(key, val);
+                        }
+                    });
+
+                    // 5. 정렬 (서비스 설정 순서 -> 가나다)
+                    const serviceOrderList = [...new Set(state.services.map(s => s.category))];
+                    const allGoals = Array.from(uniqueGoalsMap.values()).sort((a, b) => {
+                        const normA = normalize(a);
+                        const normB = normalize(b);
+                        const idxA = serviceOrderList.findIndex(cat => normalize(cat) === normA);
+                        const idxB = serviceOrderList.findIndex(cat => normalize(cat) === normB);
+
+                        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                        if (idxA !== -1) return -1;
+                        if (idxB !== -1) return 1;
+                        return a.localeCompare(b);
+                    });
+
+                    // 6. 테이블 행 생성
+                    const goalRows = allGoals.length > 0 ? allGoals.map(displayGoal => {
+                        const normalizedDisplayGoal = normalize(displayGoal);
+                        const savedItem = displayGoal ? (savedGoalsData.find(g => normalize(g.goal) === normalizedDisplayGoal) || {}) : {};
+                        
+                        // 자동 완성 내용 생성 (저장된 내용 없을 시 사용)
+                        let autoAction = '';
+                        if (displayGoal) {
+                            const actionMap = new Map();
+                            providedLogs.forEach(log => {
+                                if (log.serviceItems) {
+                                    log.serviceItems.forEach(item => {
+                                        if (item.category && normalize(item.category) === normalizedDisplayGoal) {
+                                            if (!actionMap.has(item.serviceName)) actionMap.set(item.serviceName, new Set());
+                                            if (item.detailNote && item.detailNote.trim() !== '') actionMap.get(item.serviceName).add(item.detailNote.trim());
+                                        }
+                                    });
+                                }
+                            });
+                            const actions = [];
+                            actionMap.forEach((notesSet, serviceName) => {
+                                let itemText = serviceName;
+                                if (notesSet.size > 0) {
+                                    const notes = [...notesSet].map(note => ` • ${note}`).join('\n');
+                                    itemText += `\n${notes}`;
+                                }
+                                actions.push(itemText);
+                            });
+                            autoAction = actions.join('\n\n');
+                        }
+
+                        const displayAction = savedItem.action ? savedItem.action : autoAction;
+                        const savedUserSat = savedItem.userSat || '';
+                        const savedWorkerEval = savedItem.workerEval || '';
+
+                        return `
+                            <tr>
+                                <td class="text-center" style="vertical-align: middle;">${displayGoal}</td>
+                                <td style="text-align: left; vertical-align: top; padding: 5px;">${(displayAction||'').replace(/\n/g, '<br>')}</td>
+                                <td class="text-center" style="vertical-align: middle;">${savedUserSat}</td>
+                                <td style="text-align: left; vertical-align: top; padding: 5px;">${(savedWorkerEval||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                        `;
+                    }).join('') : '<tr><td colspan="4" class="text-center">내용 없음</td></tr>';
 
                     htmlContent = `
                         <h1>서비스 만족도 및 욕구조사 (${year}년)</h1>
