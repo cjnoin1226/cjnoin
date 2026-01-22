@@ -2078,7 +2078,28 @@
                         });
                     }
                 } else {
-                    render(); 
+                    // [수정] 스플릿 뷰일 때 전체 render() 대신 현재 포커스된 페인만 부분 업데이트
+                    // 이렇게 하면 반대쪽 창은 리렌더링되지 않아 새로고침 현상이 사라집니다.
+                    const paneId = state.focusedPane;
+                    const tabKey = state.paneTabs[paneId];
+                    const winEl = document.getElementById(`window-${paneId}`);
+                    
+                    if (winEl) {
+                        // 1. 윈도우 제목 업데이트
+                        const titleEl = winEl.querySelector('.window-title span');
+                        if (titleEl) titleEl.textContent = TAB_NAMES[tabKey] || tabKey;
+                        
+                        // 2. 윈도우 내용물(HTML)만 교체
+                        const contentEl = winEl.querySelector('.window-content');
+                        if (contentEl) {
+                            contentEl.innerHTML = getTabHTML(tabKey);
+                            // 아이콘 다시 렌더링
+                            if(window.lucide) lucide.createIcons();
+                        }
+                    } else {
+                        // 윈도우 DOM이 아예 없는 예외적인 경우에만 전체 렌더링
+                        render();
+                    }
                 }
             },
 
