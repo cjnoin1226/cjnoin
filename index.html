@@ -1104,7 +1104,7 @@
             if (totalPages > 1) {
                 paginationHTML = `<div class="flex justify-center items-center gap-1 select-none">`;
                 
-                // 이전 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
+                // 이전 버튼 [수정: 클릭 시 내부 스크롤 최상단 이동]
                 paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${state.ui.logPage - 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" size="16"></i></button>`;
                 
                 // 페이지 번호 표시 범위 계산
@@ -1118,7 +1118,7 @@
                     if (startPage > 2) paginationHTML += `<span class="text-slate-300 text-xs px-1">...</span>`;
                 }
 
-                // 번호 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
+                // 번호 버튼 [수정: 클릭 시 내부 스크롤 최상단 이동]
                 for (let i = startPage; i <= endPage; i++) {
                     const activeClass = i === state.ui.logPage ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'hover:bg-slate-100 text-slate-600';
                     paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${i})" class="w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${activeClass}">${i}</button>`;
@@ -1130,20 +1130,18 @@
                     paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${totalPages})" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">${totalPages}</button>`;
                 }
 
-                // 다음 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
+                // 다음 버튼 [수정: 클릭 시 내부 스크롤 최상단 이동]
                 paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${state.ui.logPage + 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" size="16"></i></button>`;
                 
                 paginationHTML += `</div>`;
             }
 
-            // [수정] 레이아웃 구조 변경:
-            // 1. 전체 컨테이너 높이를 뷰포트 기준으로 고정 (h-[calc(100vh-9rem)])
-            // 2. 상단 필터와 하단 페이지네이션은 고정 (flex-shrink-0)
-            // 3. 중간 목록 영역만 스크롤 (flex-1, overflow-y-auto)
+            // [구조 변경] 높이를 고정(h-[calc...])하고 Flex-col을 사용하여 상단/하단 고정, 중간 스크롤 구현
+            // 이렇게 하면 '전체 화면 스크롤'이 발생하지 않고, 오직 '목록 영역'만 스크롤됩니다.
             return `
-                <div class="flex flex-col h-[calc(100vh-11rem)] md:h-[calc(100vh-9rem)] animate-fade-in">
+                <div class="flex flex-col h-[calc(100vh-6rem)] md:h-[calc(100vh-7rem)] animate-fade-in -m-2 md:-m-4">
                     <!-- [상단] 필터 영역 (고정) -->
-                    <div class="flex-shrink-0 space-y-4 pb-2 pr-1 transition-all">
+                    <div class="flex-shrink-0 space-y-4 p-2 md:p-4 pb-2 bg-slate-50 z-10 border-b border-slate-200">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
                             <!-- [수정] 제목 옆에 로딩 태그 추가 -->
                             <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">서비스 일지 ${getLoadingTag()}</h2>
@@ -1210,8 +1208,9 @@
                         </div>
                     </div>
 
-                    <!-- [중단] 목록 영역 (남은 공간 차지 + 스크롤) -->
-                    <div id="log-list-container" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-4">
+                    <!-- [중단] 목록 영역 (남은 공간 차지 + 내부 스크롤) -->
+                    <!-- [수정] flex-1과 overflow-y-auto를 사용하여 이 영역만 스크롤되도록 설정 -->
+                    <div id="log-list-container" class="flex-1 overflow-y-auto custom-scrollbar space-y-4 p-2 md:p-4">
                         ${visibleLogs.length === 0 ? '<div class="text-center py-12 text-slate-400">검색 결과가 없습니다.</div>' : visibleLogs.map(l => {
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
@@ -1254,7 +1253,7 @@
                     </div>
 
                     <!-- [하단] 페이지네이션 (고정) -->
-                    <div class="flex-shrink-0 py-2 border-t border-slate-200 bg-slate-50">
+                    <div class="flex-shrink-0 py-2 border-t border-slate-200 bg-slate-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
                         ${paginationHTML}
                     </div>
                 </div>`;
