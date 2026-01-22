@@ -1714,11 +1714,25 @@
                 });
                 serviceHeaders = orderedCategories.flatMap(cat => headerGroups[cat]);
             }
+            
             const dataMap = {}; 
             targetClients.forEach(c => {
-                dataMap[c.id] = { id: c.id, name: c.name, birthDate: c.birthDate || '-', careLevel: c.careLevel || '-', region: (c.region || '-').replace(/동$/, ''), endDate: c.endDate || '9999-12-31', total: 0, emotionalCount: 0, counts: {} };
+                // [수정] 기타 사업 데이터('-')인 경우 통계 화면에서도 기본정보 필드를 모두 빈 값으로 처리
+                const isEtc = c.name === '-';
+                dataMap[c.id] = { 
+                    id: c.id, 
+                    name: c.name, 
+                    birthDate: isEtc ? '' : (c.birthDate || '-'), 
+                    careLevel: isEtc ? '' : (c.careLevel || '-'), 
+                    region: isEtc ? '' : (c.region || '-').replace(/동$/, ''), 
+                    endDate: c.endDate || '9999-12-31', 
+                    total: 0, 
+                    emotionalCount: 0, 
+                    counts: {} 
+                };
                 serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0);
             });
+
             state.logs.forEach(l => {
                 // [수정] start/end가 있을 때만 필터링 (없으면 전체 기간)
                 if (start && l.date < start) return;
@@ -2344,52 +2358,61 @@
                 if (state.viewMode === 'single') updateTabContent('logs'); else render();
             },
             
-            // [신규] 날짜 범위 조회 함수 (데이터 로딩 포함)
+            // [수정] 날짜 범위 조회 함수 (SWR 패턴 적용: 즉시 렌더링 후 백그라운드 갱신)
             searchLogsByDateRange: async () => {
                 const startVal = document.getElementById('log-filter-start').value;
                 const endVal = document.getElementById('log-filter-end').value;
                 
-                // [수정] 범위 내의 모든 연도 데이터 로딩
-                if (startVal && endVal) {
-                    const startY = parseInt(startVal.split('-')[0]);
-                    const endY = parseInt(endVal.split('-')[0]);
-                    
-                    const yearsToLoad = [];
-                    // 시작 연도부터 종료 연도까지 순회
-                    for (let y = Math.min(startY, endY); y <= Math.max(startY, endY); y++) {
-                        // [수정] 조회 버튼 클릭 시에는 이미 로드된 연도라도 최신 상태 확인을 위해 무조건 로드 목록에 추가
-                        yearsToLoad.push(y);
-                    }
-
-                    if (yearsToLoad.length > 0) {
-                        app.showProgress('데이터 조회 및 갱신 중...', yearsToLoad.length);
-                        try {
-                            for (let i = 0; i < yearsToLoad.length; i++) {
-                                // [신규] 취소 플래그 확인
-                                if (state.loadingCancelled) break;
-                                // [수정] force=true 옵션을 사용하여 강제 재로딩 (DB 최신화)
-                                await app.loadLogsByYear(yearsToLoad[i], false, true);
-                                app.updateProgress(i + 1);
-                            }
-                        } catch(e) { console.error(e); }
-                        finally { app.hideProgress(); }
-                    }
-                } else {
-                    // 시작일 또는 종료일만 있는 경우 해당 연도만 강제 로드
-                    if (startVal) {
-                        const y = parseInt(startVal.split('-')[0]);
-                        await app.loadLogsByYear(y, true, true);
-                    }
-                    if (endVal) {
-                        const y = parseInt(endVal.split('-')[0]);
-                        await app.loadLogsByYear(y, true, true);
-                    }
-                }
-
+                // 1. 필터 상태 즉시 업데이트 (UI 즉시 반영)
                 state.filters.log.start = startVal;
                 state.filters.log.end = endVal;
                 state.ui.logPage = 1;
+                state.loadingCancelled = false; // 플래그 초기화
+
+                // 2. 캐시된 데이터로 즉시 화면 렌더링 (Optimistic UI)
+                // 로딩 창 없이 가지고 있는 데이터 먼저 보여줌
                 if (state.viewMode === 'single') updateTabContent('logs'); else render();
+
+                // 3. 백그라운드 데이터 동기화 (SWR: Stale-While-Revalidate)
+                const yearsToLoad = [];
+                
+                if (startVal && endVal) {
+                    const startY = parseInt(startVal.split('-')[0]);
+                    const endY = parseInt(endVal.split('-')[0]);
+                    for (let y = Math.min(startY, endY); y <= Math.max(startY, endY); y++) {
+                        yearsToLoad.push(y);
+                    }
+                } else {
+                    // 시작일 또는 종료일만 있는 경우
+                    if (startVal) yearsToLoad.push(parseInt(startVal.split('-')[0]));
+                    if (endVal) yearsToLoad.push(parseInt(endVal.split('-')[0]));
+                }
+
+                // 중복 제거
+                const uniqueYears = [...new Set(yearsToLoad)];
+
+                if (uniqueYears.length > 0) {
+                    // 비동기 실행 (await 하지 않음으로써 UI 블로킹 방지)
+                    (async () => {
+                        for (const year of uniqueYears) {
+                            if (state.loadingCancelled) break;
+                            try {
+                                // showUI=false: 로딩 모달 없이 조용히 실행
+                                // force=true: 캐시가 있어도 서버에서 최신 데이터 가져옴
+                                await app.loadLogsByYear(year, false, true);
+                                
+                                // 데이터 갱신 성공 시 화면 리프레시 (사용자가 보고 있는 경우)
+                                if (state.viewMode === 'single') {
+                                    if (state.activeTab === 'logs') updateTabContent('logs');
+                                } else {
+                                    render();
+                                }
+                            } catch(e) { 
+                                console.error(`Background sync failed for ${year}:`, e); 
+                            }
+                        }
+                    })();
+                }
             },
 
             // [신규] 특정 연도 로그 데이터 로딩 함수 (On-Demand)
@@ -8597,11 +8620,13 @@
                 // 3. 데이터 집계
                 const dataMap = {};
                 targetClients.forEach(c => {
+                    // [수정] 기타 사업 데이터('-')인 경우 엑셀 다운로드 시에도 기본정보 필드를 모두 빈 값으로 처리
+                    const isEtc = c.name === '-';
                     dataMap[c.id] = { 
                         name: c.name, 
-                        birthDate: c.birthDate || '-', 
-                        careLevel: c.careLevel || '-', 
-                        region: (c.region || '-').replace(/동$/, ''), 
+                        birthDate: isEtc ? '' : (c.birthDate || '-'), 
+                        careLevel: isEtc ? '' : (c.careLevel || '-'), 
+                        region: isEtc ? '' : (c.region || '-').replace(/동$/, ''), 
                         total: 0, 
                         counts: {} 
                     };
@@ -8633,6 +8658,10 @@
 
                 // 4. 엑셀 데이터 변환
                 const rows = Object.values(dataMap).filter(r => r.total >= 0).sort((a, b) => {
+                    // [수정] 이름이 '-'인 데이터는 항상 맨 뒤로
+                    if (a.name === '-' && b.name !== '-') return 1;
+                    if (a.name !== '-' && b.name === '-') return -1;
+
                     const levelPriority = { '중점': 1, '일반': 2 };
                     const pA = levelPriority[a.careLevel] || 3;
                     const pB = levelPriority[b.careLevel] || 3;
@@ -8770,21 +8799,81 @@
 
             // [추가] 대상자 명부 엑셀 다운로드 (HTML에 버튼은 있으나 함수 부재)
             downloadClientListExcel: () => {
-                const data = state.clients.map(c => ({
-                    '이름': c.name,
-                    '생년월일': c.birthDate,
-                    '성별': c.gender,
-                    '연락처': c.phone,
-                    '주소': c.address,
-                    '등급': c.careLevel,
-                    '경제상황': c.economicStatus,
-                    '행정동': c.region,
-                    '상태': c.status,
-                    '시작일': c.serviceStartDate,
-                    '종결일': c.endDate
-                }));
+                const { search, searchPhone, status, level, economicStatus, duplicateService, ictStatus, region, gender, targetYear, targetMonth } = state.filters.client;
                 
-                if (data.length === 0) return alert("데이터가 없습니다.");
+                // 날짜 필터 범위 설정
+                let filterStart = '0000-01-01', filterEnd = '9999-12-31';
+                if (targetYear) {
+                    if (targetMonth) {
+                        const m = String(targetMonth).padStart(2, '0');
+                        filterStart = `${targetYear}-${m}-01`;
+                        const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+                        filterEnd = `${targetYear}-${m}-${lastDay}`;
+                    } else {
+                        filterStart = `${targetYear}-01-01`;
+                        filterEnd = `${targetYear}-12-31`;
+                    }
+                }
+
+                // 필터링 수행
+                const filtered = state.clients.filter(c => {
+                    const matchEconomic = !economicStatus || (c.economicStatus && (
+                        c.economicStatus === economicStatus || 
+                        (economicStatus === '조건부 기초수급' && c.economicStatus === '조건부 수급자') ||
+                        (economicStatus === '기초수급' && (c.economicStatus === '기초수급자' || c.economicStatus === '수급자'))
+                    ));
+
+                    const matchBasic = (!search || c.name.includes(search)) &&
+                                       (!searchPhone || (c.phone && c.phone.includes(searchPhone))) && 
+                                       (!status || c.status === status) &&
+                                       (!level || c.careLevel === level) &&
+                                       matchEconomic &&
+                                       (!duplicateService || c.duplicateService === duplicateService) &&
+                                       (!ictStatus || (c.ictStatus || '부') === ictStatus) &&
+                                       (region.length === 0 || region.includes(c.region)) &&
+                                       (!gender || c.gender === gender);
+                    if (!matchBasic) return false;
+                    
+                    const sDate = c.serviceStartDate || '0000-01-01'; 
+                    const eDate = c.endDate || '9999-12-31'; 
+                    
+                    if (sDate > filterEnd) return false;
+                    if (status && status !== '종결') { if (eDate < filterStart) return false; }
+                    
+                    return true;
+                }).sort((a, b) => {
+                    if (a.name === '-' && b.name !== '-') return 1;
+                    if (a.name !== '-' && b.name === '-') return -1;
+                    if (targetYear) {
+                        const eDateA = a.endDate || '9999-12-31';
+                        const activeA = eDateA >= filterStart;
+                        const eDateB = b.endDate || '9999-12-31';
+                        const activeB = eDateB >= filterStart;
+                        if (activeA && !activeB) return -1;
+                        if (!activeA && activeB) return 1;
+                    }
+                    return (a.serviceStartDate || '').localeCompare(b.serviceStartDate || '');
+                });
+
+                if (filtered.length === 0) return alert("다운로드할 데이터가 없습니다.");
+
+                const data = filtered.map(c => {
+                    // [수정] 기타 사업 데이터('-')인 경우 기본정보 필드를 모두 빈 값으로 처리
+                    const isEtc = c.name === '-';
+                    return {
+                        '이름': c.name,
+                        '생년월일': isEtc ? '' : c.birthDate,
+                        '성별': isEtc ? '' : c.gender,
+                        '연락처': isEtc ? '' : c.phone,
+                        '주소': isEtc ? '' : c.address,
+                        '등급': isEtc ? '' : c.careLevel,
+                        '경제상황': isEtc ? '' : c.economicStatus,
+                        '행정동': isEtc ? '' : c.region,
+                        '상태': isEtc ? '' : c.status, // 상태 정보도 제거
+                        '시작일': c.serviceStartDate,
+                        '종결일': c.endDate
+                    };
+                });
                 
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.json_to_sheet(data);
