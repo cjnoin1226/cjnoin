@@ -7831,7 +7831,7 @@
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">날짜</label>
-                                    <input type="date" name="date" class="input-field" value="${l.date || today}" required>
+                                    <input type="date" name="date" class="input-field" value="${l.date || today}" required max="9999-12-31">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">제공방법</label>
@@ -8882,6 +8882,21 @@
             showClientStatsDetail: (clientId, clientName, filterItem = null) => {
                 const { start, end, type } = state.filters.stats;
                 
+                // [신규] 대상자 서비스 기간 정보 조회 및 배지 생성
+                const client = state.clients.find(c => c.id === clientId);
+                let servicePeriodBadge = '';
+                if (client) {
+                    const today = new Date().toISOString().split('T')[0];
+                    // 종결 여부 확인 (상태가 '종결'이거나 종료일이 오늘 이전이면 종결로 간주)
+                    const isTerminated = client.status === '종결' || (client.endDate && client.endDate <= today);
+                    const sDate = client.serviceStartDate || '미지정';
+                    const eDate = isTerminated ? (client.endDate || '') : '현재';
+                    
+                    if (sDate) {
+                        servicePeriodBadge = `<span class="ml-2 text-sm font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 tracking-tight">(${sDate} ~ ${eDate})</span>`;
+                    }
+                }
+
                 // 해당 기간 내 해당 대상자의 로그 필터링
                 const targetLogs = state.logs.filter(l => {
                     const dateMatch = l.clientId === clientId && (!start || l.date >= start) && (!end || l.date <= end);
@@ -8905,7 +8920,7 @@
                         <div class="flex justify-between items-center mb-4 flex-shrink-0">
                             <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
                                 <div class="p-2 bg-blue-100 text-blue-600 rounded-full"><i data-lucide="list" size="20"></i></div>
-                                ${clientName}님 서비스 상세 내역 ${titleSuffix}
+                                ${clientName}님 서비스 상세 내역 ${titleSuffix} ${servicePeriodBadge}
                             </h3>
                             <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
