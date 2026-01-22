@@ -1800,15 +1800,31 @@
             const colTotals = {};
             serviceHeaders.forEach(k => colTotals[k] = rows.reduce((sum, r) => sum + (r.counts[k]||0), 0));
             const grandTotal = rows.reduce((sum, r) => sum + r.total, 0);
-            const W_No = 30, W_Name = 60, W_Birth = 75, W_Level = 35, W_Region = 35, W_Total = 40;
-            const L_No = 0, L1 = W_No, L2 = L1 + W_Name, L3 = L2 + W_Birth, L4 = L3 + W_Level, L5 = L4 + W_Region;
+            
+            // [수정] 컬럼 순서 변경: No -> 이름 -> 등급(Level) -> 생년월일(Birth) -> 행정동(Region)
+            // 너비 상수 정의
+            const W_No = 30, W_Name = 60, W_Level = 35, W_Birth = 75, W_Region = 35, W_Total = 40;
+            
+            // [수정] sticky 위치(left) 계산: "대상자 이름, 관리등급" 열 까지만 고정
+            const L_No = 0;
+            const L1 = W_No;                // 이름 시작 위치
+            const L2 = L1 + W_Name;         // 등급 시작 위치 (이름 너비 더함)
+            
             const stickColStyle = (left, z) => `position: sticky; left: ${left}px; z-index: ${z};`;
             let theadHTML = '';
-            const totalRowHTML = `<tr class="bg-slate-100 font-bold shadow-sm border-b border-slate-200"><td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L_No, 50)}"></td><td class="py-2 px-1 border-r text-center text-slate-700 bg-slate-100" style="${stickColStyle(L1, 50)}">총계</td><td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L2, 50)}"></td><td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L3, 50)}"></td><td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L4, 50)}"></td><td class="py-2 px-1 text-center border-r bg-emerald-100 text-emerald-700" style="${stickColStyle(L5, 50)}">${grandTotal}</td>${serviceHeaders.map(k => `<td class="py-2 px-2 text-center border-r text-slate-700">${colTotals[k]}</td>`).join('')}</tr>`;
+            
+            // [수정] 합계 행 순서 변경 (No -> 총계라벨 -> 빈칸(등급) -> 빈칸(생년) -> 빈칸(행정동) -> 합계)
+            // 고정되는 컬럼(No, 총계, 등급)에만 sticky 스타일 적용, 나머지는 해제
+            const totalRowHTML = `<tr class="bg-slate-100 font-bold shadow-sm border-b border-slate-200"><td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L_No, 50)}"></td><td class="py-2 px-1 border-r text-center text-slate-700 bg-slate-100" style="${stickColStyle(L1, 50)}">총계</td><td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L2, 50)}"></td><td class="py-2 px-1 border-r bg-slate-100"></td><td class="py-2 px-1 border-r bg-slate-100"></td><td class="py-2 px-1 text-center border-r bg-emerald-100 text-emerald-700">${grandTotal}</td>${serviceHeaders.map(k => `<td class="py-2 px-2 text-center border-r text-slate-700">${colTotals[k]}</td>`).join('')}</tr>`;
+            
             if (type === 'category') {
-                theadHTML = `<tr><th class="py-2 px-1 border-b border-r min-w-[${W_No}px] bg-slate-50 text-xs text-center font-bold text-slate-500" style="${stickColStyle(L_No, 50)}">No</th><th class="py-2 px-1 border-b border-r min-w-[${W_Name}px] bg-slate-50 text-xs text-center font-bold text-slate-700" style="${stickColStyle(L1, 50)}">대상자</th><th class="py-2 px-1 border-b border-r min-w-[${W_Birth}px] bg-slate-50 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L2, 50)}">생년월일</th><th class="py-2 px-1 border-b border-r min-w-[${W_Level}px] bg-slate-50 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L3, 50)}">등급</th><th class="py-2 px-1 border-b border-r min-w-[${W_Region}px] bg-slate-50 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L4, 50)}">행정동</th><th class="py-2 px-1 bg-emerald-50 text-emerald-700 border-b border-r min-w-[${W_Total}px] text-xs text-center font-bold" style="${stickColStyle(L5, 50)}">합계</th>${serviceHeaders.map(k => `<th class="py-2 px-2 border-b border-r text-xs text-center text-slate-600 bg-slate-50 whitespace-nowrap">${k}</th>`).join('')}</tr>${totalRowHTML}`;
+                // [수정] 헤더 순서 변경: 대상자 -> 등급 -> 생년월일
+                // No, 대상자, 등급 열에만 sticky 적용
+                theadHTML = `<tr><th class="py-2 px-1 border-b border-r min-w-[${W_No}px] bg-slate-50 text-xs text-center font-bold text-slate-500" style="${stickColStyle(L_No, 50)}">No</th><th class="py-2 px-1 border-b border-r min-w-[${W_Name}px] bg-slate-50 text-xs text-center font-bold text-slate-700" style="${stickColStyle(L1, 50)}">대상자</th><th class="py-2 px-1 border-b border-r min-w-[${W_Level}px] bg-slate-50 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L2, 50)}">등급</th><th class="py-2 px-1 border-b border-r min-w-[${W_Birth}px] bg-slate-50 text-xs text-center font-bold text-slate-600">생년월일</th><th class="py-2 px-1 border-b border-r min-w-[${W_Region}px] bg-slate-50 text-xs text-center font-bold text-slate-600">행정동</th><th class="py-2 px-1 bg-emerald-50 text-emerald-700 border-b border-r min-w-[${W_Total}px] text-xs text-center font-bold">합계</th>${serviceHeaders.map(k => `<th class="py-2 px-2 border-b border-r text-xs text-center text-slate-600 bg-slate-50 whitespace-nowrap">${k}</th>`).join('')}</tr>${totalRowHTML}`;
             } else {
-                theadHTML = `<tr><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_No}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-500" style="${stickColStyle(L_No, 50)}">No</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Name}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-700" style="${stickColStyle(L1, 50)}">대상자</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Birth}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L2, 50)}">생년월일</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Level}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L3, 50)}">등급</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Region}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L4, 50)}">행정동</th><th rowspan="2" class="py-2 px-1 bg-emerald-50 text-emerald-700 border-b border-r min-w-[${W_Total}px] z-30 text-xs text-center font-bold" style="${stickColStyle(L5, 50)}">합계</th>${orderedCategories.map(cat => `<th colspan="${headerGroups[cat].length}" class="py-1 border-b border-r bg-slate-100 text-center text-xs text-center font-semibold text-slate-600 whitespace-nowrap">${cat}</th>`).join('')}</tr><tr>${orderedCategories.map(cat => headerGroups[cat].map(svc => `<th class="py-1.5 px-2 border-b border-r font-normal text-xs text-center text-slate-500 bg-slate-50 whitespace-nowrap">${svc === '정서지원서비스(안전안부확인)' ? '안전안부확인' : svc}</th>`).join('')).join('')}</tr>${totalRowHTML}`;
+                // [수정] 헤더 순서 변경: 대상자 -> 등급 -> 생년월일
+                // No, 대상자, 등급 열에만 sticky 적용
+                theadHTML = `<tr><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_No}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-500" style="${stickColStyle(L_No, 50)}">No</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Name}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-700" style="${stickColStyle(L1, 50)}">대상자</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Level}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600" style="${stickColStyle(L2, 50)}">등급</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Birth}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600">생년월일</th><th rowspan="2" class="py-2 px-1 border-b border-r min-w-[${W_Region}px] bg-slate-50 z-30 text-xs text-center font-bold text-slate-600">행정동</th><th rowspan="2" class="py-2 px-1 bg-emerald-50 text-emerald-700 border-b border-r min-w-[${W_Total}px] z-30 text-xs text-center font-bold">합계</th>${orderedCategories.map(cat => `<th colspan="${headerGroups[cat].length}" class="py-1 border-b border-r bg-slate-100 text-center text-xs text-center font-semibold text-slate-600 whitespace-nowrap">${cat}</th>`).join('')}</tr><tr>${orderedCategories.map(cat => headerGroups[cat].map(svc => `<th class="py-1.5 px-2 border-b border-r font-normal text-xs text-center text-slate-500 bg-slate-50 whitespace-nowrap">${svc === '정서지원서비스(안전안부확인)' ? '안전안부확인' : svc}</th>`).join('')).join('')}</tr>${totalRowHTML}`;
             }
 
             // [신규] 연도 선택 옵션 생성 (2020년 ~ 내년)
@@ -1880,10 +1896,11 @@
                                     <tr class="${rowClass} group transition-colors">
                                         <td class="py-1.5 px-1 border-r text-center text-slate-400 text-xs ${cellBg}" style="${stickColStyle(L_No, 30)}">${index + 1}</td>
                                         <td class="py-1.5 px-1 border-r group-hover:bg-opacity-50 text-center font-medium text-slate-800 ${cellBg} cursor-pointer hover:text-blue-600" style="${stickColStyle(L1, 30)}" onclick="app.showClientStatsDetail('${r.id}', '${r.name}')" title="상세 내역 보기">${r.name}</td>
-                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs ${cellBg}" style="${stickColStyle(L2, 30)}">${r.birthDate}</td>
-                                        <td class="py-1.5 px-1 text-center border-r text-xs ${cellBg} ${careLevelClass}" style="${stickColStyle(L3, 30)}">${r.careLevel}</td>
-                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs ${cellBg}" style="${stickColStyle(L4, 30)}">${r.region}</td>
-                                        <td class="p-1.5 text-center font-bold border-r ${totalBg}" style="${stickColStyle(L5, 30)}">${r.total}</td>
+                                        <!-- [수정] 데이터 표시 순서 변경: 등급이 먼저 옴 -->
+                                        <td class="py-1.5 px-1 text-center border-r text-xs ${cellBg} ${careLevelClass}" style="${stickColStyle(L2, 30)}">${r.careLevel}</td>
+                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs">${r.birthDate}</td>
+                                        <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs">${r.region}</td>
+                                        <td class="p-1.5 text-center font-bold border-r ${totalBg}">${r.total}</td>
                                         ${serviceHeaders.map(k => {
                                             const count = r.counts[k] || 0;
                                             const isTargetCell = isDeficient && k.includes('정서지원');
