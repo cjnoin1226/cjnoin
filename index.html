@@ -903,10 +903,16 @@
             const monthOptions = [`<option value="" ${!targetMonth ? 'selected' : ''}>전체 월</option>`];
             for (let m = 1; m <= 12; m++) monthOptions.push(`<option value="${m}" ${parseInt(targetMonth) === m ? 'selected' : ''}>${m}월</option>`);
             
-            const filteredTotal = filtered.length;
-            const filteredHighFocus = filtered.filter(c => c.careLevel === '중점').length;
-            const filteredGeneral = filtered.filter(c => c.careLevel === '일반').length;
+            // [수정] 필터링 결과 집계 시 '-' 데이터 제외 (카운트에서만 제외)
+            const realFiltered = filtered.filter(c => c.name !== '-');
+            const filteredTotal = realFiltered.length;
+            const filteredHighFocus = realFiltered.filter(c => c.careLevel === '중점').length;
+            const filteredGeneral = realFiltered.filter(c => c.careLevel === '일반').length;
+            
             const isFilterActive = search !== '' || searchPhone !== '' || status !== '이용' || level !== '' || economicStatus !== '' || duplicateService !== '' || ictStatus !== '' || region.length > 0 || gender !== '' || targetYear !== '' || targetMonth !== '';
+
+            // [신규] 전체 선택 여부 확인
+            const allSelected = filtered.length > 0 && filtered.every(c => state.ui.selectedClientIds.has(c.id));
 
             return `
                 <div class="flex flex-col animate-fade-in">
@@ -915,12 +921,7 @@
                             <!-- [수정] 제목 옆에 로딩 태그 추가 -->
                             <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">대상자 관리 ${getLoadingTag()}</h2>
                             <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-                                <div id="client-batch-actions" class="flex gap-2">
-                                    ${state.ui.selectedClientIds.size > 0 ? `
-                                        <button onclick="app.openBatchEditClientModal()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${state.ui.selectedClientIds.size})</button>
-                                        <button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제(${state.ui.selectedClientIds.size})</button>
-                                    ` : ''}
-                                </div>
+                                <!-- [이동] 일괄 작업 버튼은 아래쪽 체크박스 옆으로 이동됨 -->
                                 
                                 <!-- [수정] 저장 버튼 통합 (드롭다운) -->
                                 <div class="relative z-30">
@@ -1002,6 +1003,23 @@
                                     <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[120px]" onchange="app.setFilter('client','duplicateService',this.value)"><option value="">중복서비스(전체)</option>${CONSTANTS.DUPLICATE_SERVICE_LIST.map(d=>`<option value="${d}" ${duplicateService===d?'selected':''}>${d}</option>`).join('')}</select>
                                     <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[100px]" onchange="app.setFilter('client','ictStatus',this.value)"><option value="">ICT(전체)</option>${CONSTANTS.ICT_STATUS_LIST.map(i=>`<option value="${i}" ${ictStatus===i?'selected':''}>${i}</option>`).join('')}</select>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- [신규] 전체 선택 체크박스 및 일괄 작업 버튼 배치 -->
+                    <div class="flex items-center justify-between px-1 mb-2 mt-2">
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
+                                <input type="checkbox" id="client-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllClients(this.checked)" ${allSelected ? 'checked' : ''} ${filtered.length === 0 ? 'disabled' : ''}>
+                                <span class="text-sm font-bold text-slate-600">전체선택 (${filtered.length}명)</span>
+                            </label>
+                            <!-- [이동] 일괄수정/선택삭제 버튼을 전체선택 오른쪽으로 이동 -->
+                            <div id="client-batch-actions" class="flex gap-2">
+                                ${state.ui.selectedClientIds.size > 0 ? `
+                                    <button onclick="app.openBatchEditClientModal()" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors animate-fade-in">일괄수정(${state.ui.selectedClientIds.size})</button>
+                                    <button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors animate-fade-in">선택삭제</button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -3307,13 +3325,61 @@
                 if (state.ui.selectedClientIds.has(id)) { state.ui.selectedClientIds.delete(id); } else { state.ui.selectedClientIds.add(id); }
                 app.updateClientBatchActionsUI(); 
             },
+            // [신규] 대상자 전체 선택/해제 기능
+            toggleAllClients: (checked) => {
+                // 현재 필터링된 대상자 목록 다시 계산 (선택 대상을 화면에 보이는 목록으로 한정)
+                const { search, searchPhone, status, level, economicStatus, duplicateService, ictStatus, region, gender, targetYear, targetMonth } = state.filters.client;
+                let filterStart = '0000-01-01', filterEnd = '9999-12-31';
+                if (targetYear) {
+                    if (targetMonth) {
+                        const m = String(targetMonth).padStart(2, '0');
+                        filterStart = `${targetYear}-${m}-01`;
+                        const lastDay = new Date(targetYear, targetMonth, 0).getDate();
+                        filterEnd = `${targetYear}-${m}-${lastDay}`;
+                    } else {
+                        filterStart = `${targetYear}-01-01`;
+                        filterEnd = `${targetYear}-12-31`;
+                    }
+                }
+                const filtered = state.clients.filter(c => {
+                    const matchEconomic = !economicStatus || (c.economicStatus && (
+                        c.economicStatus === economicStatus || 
+                        (economicStatus === '조건부 기초수급' && c.economicStatus === '조건부 수급자') ||
+                        (economicStatus === '기초수급' && (c.economicStatus === '기초수급자' || c.economicStatus === '수급자'))
+                    ));
+
+                    const matchBasic = (!search || c.name.includes(search)) &&
+                                       (!searchPhone || (c.phone && c.phone.includes(searchPhone))) && 
+                                       (!status || c.status === status) &&
+                                       (!level || c.careLevel === level) &&
+                                       matchEconomic &&
+                                       (!duplicateService || c.duplicateService === duplicateService) &&
+                                       (!ictStatus || (c.ictStatus || '부') === ictStatus) &&
+                                       (region.length === 0 || region.includes(c.region)) &&
+                                       (!gender || c.gender === gender);
+                    if (!matchBasic) return false;
+                    const sDate = c.serviceStartDate || '0000-01-01'; 
+                    const eDate = c.endDate || '9999-12-31'; 
+                    if (sDate > filterEnd) return false;
+                    if (status && status !== '종결') { if (eDate < filterStart) return false; }
+                    return true;
+                });
+
+                if (checked) {
+                    filtered.forEach(c => state.ui.selectedClientIds.add(c.id));
+                } else {
+                    filtered.forEach(c => state.ui.selectedClientIds.delete(c.id));
+                }
+                
+                app.updateClientBatchActionsUI();
+                if(state.viewMode === 'single') updateTabContent('clients'); else render();
+            },
             updateClientBatchActionsUI: () => {
                 const container = document.getElementById('client-batch-actions');
                 if (!container) return;
                 const count = state.ui.selectedClientIds.size;
                 if (count > 0) {
-                    container.innerHTML = `<button onclick="app.openBatchEditClientModal()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="edit-3" size="14"></i> 일괄수정(${count})</button><button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs md:text-sm flex items-center gap-1 flex-1 sm:flex-none justify-center animate-fade-in"><i data-lucide="trash-2" size="14"></i> 선택삭제(${count})</button>`;
-                    if(window.lucide) lucide.createIcons();
+                    container.innerHTML = `<button onclick="app.openBatchEditClientModal()" class="bg-blue-50 text-blue-600 px-3 py-2 rounded-lg text-xs md:text-sm font-bold hover:bg-blue-100 transition-colors animate-fade-in">일괄수정(${count})</button><button onclick="app.deleteSelectedClients()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs md:text-sm font-bold hover:bg-red-100 transition-colors animate-fade-in">선택삭제</button>`;
                 } else { container.innerHTML = ''; }
             },
             deleteSelectedClients: () => {
@@ -3522,11 +3588,65 @@
                 }
             },
 
-            showYearStatsModal: () => {
-                const currentYear = String(new Date().getFullYear());
+            showYearStatsModal: (targetYear = null) => {
+                const currentYear = targetYear ? String(targetYear) : String(new Date().getFullYear());
+                
+                // [신규] 연도 선택 옵션 생성 (2013년 ~ 내년)
+                let yearOptionsHTML = '';
+                const thisYear = new Date().getFullYear();
+                // [수정] 시작 연도를 2013년으로 변경 (기존 2020 -> 2013)
+                for (let y = 2013; y <= thisYear + 1; y++) {
+                    yearOptionsHTML = `<option value="${y}" ${String(y) === currentYear ? 'selected' : ''}>${y}년</option>` + yearOptionsHTML;
+                }
+
                 const newClients = state.clients.filter(c => c.serviceStartDate && c.serviceStartDate.startsWith(currentYear)).sort((a,b) => b.serviceStartDate.localeCompare(a.serviceStartDate));
                 const endClients = state.clients.filter(c => c.endDate && c.endDate.startsWith(currentYear)).sort((a,b) => b.endDate.localeCompare(a.endDate));
-                const html = `<div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col"><div class="flex justify-between items-center mb-6 flex-shrink-0"><h3 class="font-bold text-xl text-slate-800 flex items-center gap-2"><i data-lucide="calendar" class="text-slate-500"></i> ${currentYear}년 대상자 현황</h3><button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button></div><div class="flex flex-col md:flex-row gap-6 overflow-hidden min-h-0 flex-1"><div class="flex-1 flex flex-col min-h-0 bg-emerald-50/50 rounded-xl border border-emerald-100 overflow-hidden"><div class="p-4 bg-emerald-100/50 border-b border-emerald-200 flex justify-between items-center flex-shrink-0"><h4 class="font-bold text-emerald-800 flex items-center gap-2"><i data-lucide="user-plus" size="18"></i> 신규 등록 (${newClients.length}명)</h4></div><div class="overflow-y-auto p-2 flex-1"><table class="w-full text-sm text-left border-separate border-spacing-y-1"><thead class="text-xs text-emerald-700 font-bold sticky top-0 bg-emerald-50 z-10"><tr><th class="px-3 py-2">이름</th><th class="px-3 py-2">시작일</th><th class="px-3 py-2">등급/동</th></tr></thead><tbody>${newClients.length ? newClients.map(c => `<tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')"><td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td><td class="px-3 py-2 text-slate-600 bg-transparent">${c.serviceStartDate}</td><td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.careLevel} · ${c.region}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}</tbody></table></div></div><div class="flex-1 flex flex-col min-h-0 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden"><div class="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center flex-shrink-0"><h4 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="user-minus" size="18"></i> 종결 (${endClients.length}명)</h4></div><div class="overflow-y-auto p-2 flex-1"><table class="w-full text-sm text-left border-separate border-spacing-y-1"><thead class="text-xs text-slate-600 font-bold sticky top-0 bg-slate-100 z-10"><tr><th class="px-3 py-2">이름</th><th class="px-3 py-2">종결일</th><th class="px-3 py-2">사유/상태</th></tr></thead><tbody>${endClients.length ? endClients.map(c => `<tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')"><td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td><td class="px-3 py-2 text-slate-600 bg-transparent">${c.endDate}</td><td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.status}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}</tbody></table></div></div></div><div class="mt-4 text-right flex-shrink-0 pt-2 border-t border-slate-100"><button onclick="app.closeModal()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button></div></div>`;
+                
+                const html = `<div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+                    <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                        <div class="flex items-center gap-3">
+                            <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
+                                <i data-lucide="calendar" class="text-slate-500"></i> 
+                                대상자 현황
+                            </h3>
+                            <select onchange="app.showYearStatsModal(this.value)" class="input-field py-1 px-2 text-base font-bold text-emerald-600 bg-white border-emerald-200 focus:border-emerald-500 w-32 shadow-sm">
+                                ${yearOptionsHTML}
+                            </select>
+                        </div>
+                        <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                    </div>
+                    <div class="flex flex-col md:flex-row gap-6 overflow-hidden min-h-0 flex-1">
+                        <div class="flex-1 flex flex-col min-h-0 bg-emerald-50/50 rounded-xl border border-emerald-100 overflow-hidden">
+                            <div class="p-4 bg-emerald-100/50 border-b border-emerald-200 flex justify-between items-center flex-shrink-0">
+                                <h4 class="font-bold text-emerald-800 flex items-center gap-2"><i data-lucide="user-plus" size="18"></i> 신규 등록 (${newClients.length}명)</h4>
+                            </div>
+                            <div class="overflow-y-auto p-2 flex-1">
+                                <table class="w-full text-sm text-left border-separate border-spacing-y-1">
+                                    <thead class="text-xs text-emerald-700 font-bold sticky top-0 bg-emerald-50 z-10">
+                                        <tr><th class="px-3 py-2">이름</th><th class="px-3 py-2">시작일</th><th class="px-3 py-2">등급/동</th></tr>
+                                    </thead>
+                                    <tbody>${newClients.length ? newClients.map(c => `<tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')"><td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td><td class="px-3 py-2 text-slate-600 bg-transparent">${c.serviceStartDate}</td><td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.careLevel} · ${c.region}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="flex-1 flex flex-col min-h-0 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                            <div class="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
+                                <h4 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="user-minus" size="18"></i> 종결 (${endClients.length}명)</h4>
+                            </div>
+                            <div class="overflow-y-auto p-2 flex-1">
+                                <table class="w-full text-sm text-left border-separate border-spacing-y-1">
+                                    <thead class="text-xs text-slate-600 font-bold sticky top-0 bg-slate-100 z-10">
+                                        <tr><th class="px-3 py-2">이름</th><th class="px-3 py-2">종결일</th><th class="px-3 py-2">사유/상태</th></tr>
+                                    </thead>
+                                    <tbody>${endClients.length ? endClients.map(c => `<tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')"><td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td><td class="px-3 py-2 text-slate-600 bg-transparent">${c.endDate}</td><td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.status}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-right flex-shrink-0 pt-2 border-t border-slate-100">
+                        <button onclick="app.closeModal()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button>
+                    </div>
+                </div>`;
                 showModal(html);
                 if(window.lucide) lucide.createIcons();
             },
