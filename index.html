@@ -1104,7 +1104,7 @@
             if (totalPages > 1) {
                 paginationHTML = `<div class="flex justify-center items-center gap-1 select-none">`;
                 
-                // 이전 버튼 [수정: 클릭 시 내부 스크롤 최상단 이동]
+                // 이전 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
                 paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${state.ui.logPage - 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" size="16"></i></button>`;
                 
                 // 페이지 번호 표시 범위 계산
@@ -1118,7 +1118,7 @@
                     if (startPage > 2) paginationHTML += `<span class="text-slate-300 text-xs px-1">...</span>`;
                 }
 
-                // 번호 버튼 [수정: 클릭 시 내부 스크롤 최상단 이동]
+                // 번호 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
                 for (let i = startPage; i <= endPage; i++) {
                     const activeClass = i === state.ui.logPage ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'hover:bg-slate-100 text-slate-600';
                     paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${i})" class="w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${activeClass}">${i}</button>`;
@@ -1130,89 +1130,104 @@
                     paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${totalPages})" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">${totalPages}</button>`;
                 }
 
-                // 다음 버튼 [수정: 클릭 시 내부 스크롤 최상단 이동]
+                // 다음 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
                 paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${state.ui.logPage + 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" size="16"></i></button>`;
                 
                 paginationHTML += `</div>`;
             }
 
-            // [구조 변경] 
-            // 1. 전체 컨테이너는 화면 높이에 맞춰 고정 (h-[calc...])
-            // 2. 상단 필터: flex-shrink-0 (스크롤 없음, 항상 보임)
-            // 3. 목록 영역: flex-1, overflow-y-auto (여기만 스크롤됨)
-            // 4. 하단 페이지네이션: flex-shrink-0 (항상 보임)
+            // [변경] 뷰 모드에 따른 스타일 분기 처리
+            const isSingleView = state.viewMode === 'single';
+            
+            // 싱글 뷰일 때는 fixed로 하단 고정, 스플릿 뷰일 때는 sticky 유지
+            const footerClass = isSingleView 
+                ? "fixed bottom-0 left-0 right-0 z-[55] bg-slate-50 border-t border-slate-200 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"
+                : "sticky bottom-0 z-50 bg-slate-50 border-t border-slate-200 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]";
+                
+            const listClass = isSingleView 
+                ? "overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-20" // 하단 패딩 증가 (Fixed Footer 고려)
+                : "overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-4";
+
+            // [핵심 변경 사항] 목록 컨테이너에 max-height를 강제 적용하여 내부 스크롤 생성 (70vh)
+            // 브라우저 전체 높이가 70vh + 헤더 높이보다 작으면 브라우저 스크롤 발생
+            // 목록 내용이 70vh보다 길면 내부 스크롤 발생
+            const containerStyle = "max-height: 70vh;"; 
+
             return `
-                <div class="flex flex-col h-[calc(100vh-11rem)] md:h-[calc(100vh-9rem)] animate-fade-in">
-                    <!-- [상단] 필터 영역 (스크롤 컨테이너 밖으로 분리하여 독립 배치) -->
-                    <div class="flex-shrink-0 space-y-4 pb-2 pr-1 transition-all">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
-                            <!-- [수정] 제목 옆에 로딩 태그 추가 -->
-                            <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">서비스 일지 ${getLoadingTag()}</h2>
-                            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                                <button onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="file-spreadsheet" size="16"></i> 양식</button>
-                                <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors">
-                                    <i data-lucide="upload" size="16"></i> 업로드
-                                    <input type="file" class="hidden" onchange="app.uploadLogExcel(this)" accept=".xlsx, .xls">
-                                </label>
-                                <button onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
-                                <button onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
-                                <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
-                            </div>
-                        </div>
-
-                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
-                            <!-- [수정] 모든 필터 요소에 h-9 (36px) 클래스 적용하여 높이 통일 -->
-                            <select class="input-field h-9 py-1 px-2 text-sm w-24 font-medium border-slate-200 bg-slate-50 mr-1 focus:ring-0 focus:border-emerald-500" onchange="app.setLogYear(this.value)">
-                                ${logYearOptions.join('')}
-                            </select>
-
-                            <div class="flex items-center gap-2 w-full sm:w-auto px-2 bg-slate-50 rounded-lg border border-slate-200 h-9">
-                                <input type="date" id="log-filter-start" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${start}" max="9999-12-31">
-                                <span class="text-slate-400">~</span>
-                                <input type="date" id="log-filter-end" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${end}" max="9999-12-31">
-                                <!-- [수정] 조회 버튼에 새로운 검색 함수 연결 -->
-                                <button onclick="app.searchLogsByDateRange()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
-                            </div>
-                            <input id="log-search-name" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
-                            
-                            <!-- [신규] 내용 검색 필터 추가 -->
-                            <input id="log-search-content" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="내용 검색 (Enter)" value="${contentSearch}" onkeydown="if(event.key === 'Enter') app.setFilter('log','contentSearch',this.value)" oninput="if(this.value === '') app.setFilter('log','contentSearch','')">
-
-                            <input id="log-search-provider" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
-                            <div class="relative z-30 w-full sm:w-auto">
-                                <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-28"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
-                                ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
-                            </div>
-                            <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
-                                <select class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
-                                <select class="input-field h-9 py-1 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
-                            </div>
-                            <!-- [수정] 초기화 버튼 텍스트 제거 (아이콘만 남김) -->
-                            <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 h-9 px-2 hover:bg-slate-50 rounded transition-colors" title="초기화"><i data-lucide="refresh-cw" size="14"></i></button>
-                        </div>
-
-                        <div class="flex items-center justify-between px-1 h-8">
-                            <div class="flex items-center gap-3">
-                                <div class="text-sm text-slate-500">
-                                    총 <span class="font-bold text-slate-800">${totalLogs}</span>건
-                                    <span class="text-xs text-slate-400 font-normal ml-1">(${state.ui.logPage} / ${totalPages} 페이지)</span>
+                <div class="space-y-6 animate-fade-in p-1">
+                    <!-- [상단] 필터 영역 (Sticky: 전체 스크롤 시 상단 고정) -->
+                    <div class="sticky top-0 z-50 bg-slate-50 pt-2 pb-2 shadow-sm -mx-1 px-1">
+                        <div class="space-y-4 pb-2 transition-all">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
+                                <!-- [수정] 제목 옆에 로딩 태그 추가 -->
+                                <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">서비스 일지 ${getLoadingTag()}</h2>
+                                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                                    <button onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="file-spreadsheet" size="16"></i> 양식</button>
+                                    <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors">
+                                        <i data-lucide="upload" size="16"></i> 업로드
+                                        <input type="file" class="hidden" onchange="app.uploadLogExcel(this)" accept=".xlsx, .xls">
+                                    </label>
+                                    <button onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
+                                    <button onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
+                                    <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
                                 </div>
-                                <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
-                                    <input type="checkbox" id="log-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${visibleLogs.length === 0 ? 'disabled' : ''}>
-                                    <span class="text-sm font-medium text-slate-600">전체선택 (현재 페이지)</span>
-                                </label>
-                                <div class="flex items-center gap-2" id="log-batch-actions">
-                                    ${state.ui.selectedLogIds.size > 0 ? `
-                                        <button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors animate-fade-in">일괄수정(${state.ui.selectedLogIds.size})</button>
-                                        <button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors animate-fade-in">선택삭제</button>
-                                    ` : ''}
+                            </div>
+
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
+                                <!-- [수정] 모든 필터 요소에 h-9 (36px) 클래스 적용하여 높이 통일 -->
+                                <select class="input-field h-9 py-1 px-2 text-sm w-24 font-medium border-slate-200 bg-slate-50 mr-1 focus:ring-0 focus:border-emerald-500" onchange="app.setLogYear(this.value)">
+                                    ${logYearOptions.join('')}
+                                </select>
+
+                                <div class="flex items-center gap-2 w-full sm:w-auto px-2 bg-slate-50 rounded-lg border border-slate-200 h-9">
+                                    <input type="date" id="log-filter-start" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${start}" max="9999-12-31">
+                                    <span class="text-slate-400">~</span>
+                                    <input type="date" id="log-filter-end" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${end}" max="9999-12-31">
+                                    <!-- [수정] 조회 버튼에 새로운 검색 함수 연결 -->
+                                    <button onclick="app.searchLogsByDateRange()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
+                                </div>
+                                <input id="log-search-name" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
+                                
+                                <!-- [신규] 내용 검색 필터 추가 -->
+                                <input id="log-search-content" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="내용 검색 (Enter)" value="${contentSearch}" onkeydown="if(event.key === 'Enter') app.setFilter('log','contentSearch',this.value)" oninput="if(this.value === '') app.setFilter('log','contentSearch','')">
+
+                                <input id="log-search-provider" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
+                                <div class="relative z-30 w-full sm:w-auto">
+                                    <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-28"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
+                                    ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
+                                </div>
+                                <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
+                                    <select class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
+                                    <select class="input-field h-9 py-1 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
+                                </div>
+                                <!-- [수정] 초기화 버튼 텍스트 제거 (아이콘만 남김) -->
+                                <button onclick="app.resetFilters('log')" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 h-9 px-2 hover:bg-slate-50 rounded transition-colors" title="초기화"><i data-lucide="refresh-cw" size="14"></i></button>
+                            </div>
+
+                            <div class="flex items-center justify-between px-1 h-8">
+                                <div class="flex items-center gap-3">
+                                    <div class="text-sm text-slate-500">
+                                        총 <span class="font-bold text-slate-800">${totalLogs}</span>건
+                                        <span class="text-xs text-slate-400 font-normal ml-1">(${state.ui.logPage} / ${totalPages} 페이지)</span>
+                                    </div>
+                                    <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
+                                        <input type="checkbox" id="log-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${visibleLogs.length === 0 ? 'disabled' : ''}>
+                                        <span class="text-sm font-medium text-slate-600">전체선택 (현재 페이지)</span>
+                                    </label>
+                                    <div class="flex items-center gap-2" id="log-batch-actions">
+                                        ${state.ui.selectedLogIds.size > 0 ? `
+                                            <button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors animate-fade-in">일괄수정(${state.ui.selectedLogIds.size})</button>
+                                            <button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors animate-fade-in">선택삭제</button>
+                                        ` : ''}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- [중단] 목록 영역 (남은 공간 차지 + 내부 스크롤) -->
-                    <div id="log-list-container" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-4">
+                    <!-- [수정] style 속성에 max-height를 부여하여 내용이 길어지면 내부 스크롤이 생기도록 함 -->
+                    <div id="log-list-container" class="${listClass}" style="${containerStyle}">
                         ${visibleLogs.length === 0 ? '<div class="text-center py-12 text-slate-400">검색 결과가 없습니다.</div>' : visibleLogs.map(l => {
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
@@ -1254,8 +1269,8 @@
                         }).join('')}
                     </div>
 
-                    <!-- [하단] 페이지네이션 (고정) -->
-                    <div class="flex-shrink-0 py-2 border-t border-slate-200 bg-slate-50">
+                    <!-- [하단] 페이지네이션 (Fixed Bottom) -->
+                    <div class="${footerClass}">
                         ${paginationHTML}
                     </div>
                 </div>`;
