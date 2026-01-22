@@ -1104,8 +1104,8 @@
             if (totalPages > 1) {
                 paginationHTML = `<div class="flex justify-center items-center gap-1 select-none">`;
                 
-                // 이전 버튼
-                paginationHTML += `<button onclick="app.setLogPage(${state.ui.logPage - 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" size="16"></i></button>`;
+                // 이전 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
+                paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${state.ui.logPage - 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" size="16"></i></button>`;
                 
                 // 페이지 번호 표시 범위 계산
                 let startPage = Math.max(1, state.ui.logPage - 2);
@@ -1114,24 +1114,24 @@
 
                 // 첫 페이지
                 if (startPage > 1) {
-                    paginationHTML += `<button onclick="app.setLogPage(1)" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">1</button>`;
+                    paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(1)" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">1</button>`;
                     if (startPage > 2) paginationHTML += `<span class="text-slate-300 text-xs px-1">...</span>`;
                 }
 
-                // 번호 버튼
+                // 번호 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
                 for (let i = startPage; i <= endPage; i++) {
                     const activeClass = i === state.ui.logPage ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'hover:bg-slate-100 text-slate-600';
-                    paginationHTML += `<button onclick="app.setLogPage(${i})" class="w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${activeClass}">${i}</button>`;
+                    paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${i})" class="w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${activeClass}">${i}</button>`;
                 }
 
                 // 마지막 페이지
                 if (endPage < totalPages) {
                     if (endPage < totalPages - 1) paginationHTML += `<span class="text-slate-300 text-xs px-1">...</span>`;
-                    paginationHTML += `<button onclick="app.setLogPage(${totalPages})" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">${totalPages}</button>`;
+                    paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${totalPages})" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">${totalPages}</button>`;
                 }
 
-                // 다음 버튼
-                paginationHTML += `<button onclick="app.setLogPage(${state.ui.logPage + 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" size="16"></i></button>`;
+                // 다음 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
+                paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${state.ui.logPage + 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" size="16"></i></button>`;
                 
                 paginationHTML += `</div>`;
             }
