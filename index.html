@@ -7835,11 +7835,11 @@
                             </h3>
                             <div class="flex items-center gap-2">
                                 ${!isEdit ? `
-                                    <button type="button" onclick="app.saveTempLog()" class="px-3 py-1.5 text-xs bg-orange-50 text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-100 font-bold transition-colors flex items-center gap-1" title="현재 작성 중인 내용을 임시 저장합니다 (최대 10건)">
-                                        <i data-lucide="save" size="12"></i> 임시저장
+                                    <button type="button" onclick="app.saveTempLog()" class="px-3 py-1.5 text-xs bg-orange-50 text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-100 font-bold transition-colors" title="현재 작성 중인 내용을 임시 저장합니다 (최대 10건)">
+                                        임시저장
                                     </button>
-                                    <button type="button" id="btn-load-temp" onclick="app.loadTempLog()" class="px-3 py-1.5 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 font-bold transition-colors flex items-center gap-1 ${hasTempData ? '' : 'hidden'}" title="임시 저장된 목록을 불러옵니다">
-                                        <i data-lucide="list" size="12"></i> 불러오기
+                                    <button type="button" id="btn-load-temp" onclick="app.loadTempLog()" class="px-3 py-1.5 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 font-bold transition-colors ${hasTempData ? '' : 'hidden'}" title="임시 저장된 목록을 불러옵니다">
+                                        불러오기
                                     </button>
                                     <div class="w-px h-4 bg-slate-300 mx-1"></div>
                                 ` : ''}
