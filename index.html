@@ -8015,6 +8015,20 @@
                 commonData.serviceCategory = items[0].category;
                 commonData.serviceName = items.map(i => i.serviceName).join(', ');
 
+                // [신규] 중복 일지 체크: 수정이 아닌(신규 작성) 경우에만 확인
+                if (!id) {
+                    const targetDate = commonData.date;
+                    // 현재 선택된 대상자 중, 같은 날짜에 이미 일지가 존재하는 사람 필터링
+                    const duplicates = window.currentLogClients.filter(name => 
+                        state.logs.some(l => l.date === targetDate && l.clientName === name)
+                    );
+
+                    if (duplicates.length > 0) {
+                        const msg = `[중복 알림] 다음 대상자는 해당 날짜(${targetDate})에 이미 일지가 존재합니다.\n\n대상자: ${duplicates.join(', ')}\n\n그래도 계속 저장하시겠습니까?`;
+                        if (!confirm(msg)) return; // 취소 시 저장 중단
+                    }
+                }
+
                 // 다중 생성(Batch)일 경우에만 플래그 설정
                 const isBatchCreate = !id && window.currentLogClients.length > 1;
                 if (isBatchCreate) state.isBatching = true;
