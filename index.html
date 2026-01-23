@@ -1126,7 +1126,8 @@
                 paginationHTML = `<div class="flex justify-center items-center gap-1 select-none">`;
                 
                 // 이전 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
-                paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${state.ui.logPage - 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" size="16"></i></button>`;
+                // [분할화면 수정] onmousedown="event.stopPropagation()" 추가하여 창 포커스 이벤트 간섭 방지
+                paginationHTML += `<button onmousedown="event.stopPropagation()" onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${state.ui.logPage - 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === 1 ? 'disabled' : ''}><i data-lucide="chevron-left" size="16"></i></button>`;
                 
                 // 페이지 번호 표시 범위 계산
                 let startPage = Math.max(1, state.ui.logPage - 2);
@@ -1135,24 +1136,24 @@
 
                 // 첫 페이지
                 if (startPage > 1) {
-                    paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(1)" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">1</button>`;
+                    paginationHTML += `<button onmousedown="event.stopPropagation()" onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(1)" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">1</button>`;
                     if (startPage > 2) paginationHTML += `<span class="text-slate-300 text-xs px-1">...</span>`;
                 }
 
                 // 번호 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
                 for (let i = startPage; i <= endPage; i++) {
                     const activeClass = i === state.ui.logPage ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'hover:bg-slate-100 text-slate-600';
-                    paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${i})" class="w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${activeClass}">${i}</button>`;
+                    paginationHTML += `<button onmousedown="event.stopPropagation()" onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${i})" class="w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${activeClass}">${i}</button>`;
                 }
 
                 // 마지막 페이지
                 if (endPage < totalPages) {
                     if (endPage < totalPages - 1) paginationHTML += `<span class="text-slate-300 text-xs px-1">...</span>`;
-                    paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${totalPages})" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">${totalPages}</button>`;
+                    paginationHTML += `<button onmousedown="event.stopPropagation()" onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${totalPages})" class="w-8 h-8 flex items-center justify-center rounded text-sm font-medium hover:bg-slate-100 text-slate-600 transition-colors">${totalPages}</button>`;
                 }
 
                 // 다음 버튼 [수정: 클릭 시 스크롤 최상단 이동 추가]
-                paginationHTML += `<button onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${state.ui.logPage + 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" size="16"></i></button>`;
+                paginationHTML += `<button onmousedown="event.stopPropagation()" onclick="document.getElementById('log-list-container').scrollTop = 0; app.setLogPage(${state.ui.logPage + 1})" class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-100 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors" ${state.ui.logPage === totalPages ? 'disabled' : ''}><i data-lucide="chevron-right" size="16"></i></button>`;
                 
                 paginationHTML += `</div>`;
             }
@@ -1183,14 +1184,15 @@
                                 <!-- [수정] 제목 옆에 로딩 태그 추가 -->
                                 <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">서비스 일지 ${getLoadingTag()}</h2>
                                 <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                                    <button onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="file-spreadsheet" size="16"></i> 양식</button>
-                                    <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors">
+                                    <!-- [분할화면 수정] 상단 버튼들에도 event.stopPropagation 추가 -->
+                                    <button onmousedown="event.stopPropagation()" onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="file-spreadsheet" size="16"></i> 양식</button>
+                                    <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors" onmousedown="event.stopPropagation()">
                                         <i data-lucide="upload" size="16"></i> 업로드
                                         <input type="file" class="hidden" onchange="app.uploadLogExcel(this)" accept=".xlsx, .xls">
                                     </label>
-                                    <button onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
-                                    <button onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
-                                    <button onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
+                                    <button onmousedown="event.stopPropagation()" onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
+                                    <button onmousedown="event.stopPropagation()" onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
+                                    <button onmousedown="event.stopPropagation()" onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
                                 </div>
                             </div>
 
@@ -1205,7 +1207,7 @@
                                     <span class="text-slate-400">~</span>
                                     <input type="date" id="log-filter-end" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${end}" max="9999-12-31">
                                     <!-- [수정] 조회 버튼에 새로운 검색 함수 연결 -->
-                                    <button onclick="app.searchLogsByDateRange()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
+                                    <button onmousedown="event.stopPropagation()" onclick="app.searchLogsByDateRange()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
                                 </div>
                                 <input id="log-search-name" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
                                 
@@ -1222,7 +1224,7 @@
                                     <select class="input-field h-9 py-1 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
                                 </div>
                                 <!-- [수정] 초기화 버튼에 app.render() 추가하여 분할 화면에서 갱신 보장 -->
-                                <button onclick="app.resetFilters('log'); app.render()" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 h-9 px-2 hover:bg-slate-50 rounded transition-colors" title="초기화"><i data-lucide="refresh-cw" size="14"></i></button>
+                                <button onmousedown="event.stopPropagation()" onclick="app.resetFilters('log'); app.render()" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 h-9 px-2 hover:bg-slate-50 rounded transition-colors" title="초기화"><i data-lucide="refresh-cw" size="14"></i></button>
                             </div>
 
                             <div class="flex items-center justify-between px-1 h-8">
@@ -1231,14 +1233,14 @@
                                         총 <span class="font-bold text-slate-800">${totalLogs}</span>건
                                         <span class="text-xs text-slate-400 font-normal ml-1">(${state.ui.logPage} / ${totalPages} 페이지)</span>
                                     </div>
-                                    <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
+                                    <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors" onmousedown="event.stopPropagation()">
                                         <input type="checkbox" id="log-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${visibleLogs.length === 0 ? 'disabled' : ''}>
                                         <span class="text-sm font-medium text-slate-600">전체선택 (현재 페이지)</span>
                                     </label>
                                     <div class="flex items-center gap-2" id="log-batch-actions">
                                         ${state.ui.selectedLogIds.size > 0 ? `
-                                            <button onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors animate-fade-in">일괄수정(${state.ui.selectedLogIds.size})</button>
-                                            <button onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors animate-fade-in">선택삭제</button>
+                                            <button onmousedown="event.stopPropagation()" onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors animate-fade-in">일괄수정(${state.ui.selectedLogIds.size})</button>
+                                            <button onmousedown="event.stopPropagation()" onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors animate-fade-in">선택삭제</button>
                                         ` : ''}
                                     </div>
                                 </div>
@@ -1256,7 +1258,7 @@
                                 <div class="md:w-1/3 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6 flex-shrink-0 w-full">
                                     <div class="mb-4">
                                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                            <div class="flex items-center gap-2"><input type="checkbox" class="log-checkbox w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" data-id="${l.id}" onchange="app.toggleLogSelection('${l.id}')" ${state.ui.selectedLogIds.has(l.id) ? 'checked' : ''}><span class="text-sm text-slate-500 font-medium whitespace-nowrap">${l.date}</span></div>
+                                            <div class="flex items-center gap-2"><input type="checkbox" class="log-checkbox w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" data-id="${l.id}" onmousedown="event.stopPropagation()" onchange="app.toggleLogSelection('${l.id}')" ${state.ui.selectedLogIds.has(l.id) ? 'checked' : ''}><span class="text-sm text-slate-500 font-medium whitespace-nowrap">${l.date}</span></div>
                                             <span class="text-slate-300">|</span>
                                             <div class="flex items-baseline gap-1"><span class="font-bold text-slate-800 text-base hover:text-blue-600 cursor-pointer" onclick="app.openClientModal('${l.clientId}')">${l.clientName}</span>${c ? `<span class="text-xs text-slate-500">(${calculateAge(c.birthDate)}세/${c.gender})</span>` : ''}</div>
                                             ${c ? `<div class="flex items-center gap-1 text-xs text-slate-500"><span class="text-slate-300">|</span><span>${c.region}</span><span class="text-slate-300">·</span><span class="${c.careLevel==='중점'?'text-pink-600 font-bold':(c.careLevel==='일반'?'text-blue-600 font-bold':'')}">${c.careLevel}</span></div>` : ''}
@@ -1279,9 +1281,10 @@
                                             <div class="flex items-center gap-2"><span class="text-sm bg-slate-100 text-slate-900 px-2 py-0.5 rounded whitespace-nowrap border border-slate-200">${l.provideMethod || '방문'}</span><span class="text-sm text-slate-900 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">${l.provider || '미지정'}</span></div>
                                         </div>
                                         <div class="flex gap-1 md:absolute md:top-0 md:right-0">
-                                            <button onclick="app.duplicateLog('${l.id}')" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="복사"><i data-lucide="copy" size="14"></i></button>
-                                            <button onclick="app.openLogModal('${l.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="수정"><i data-lucide="edit" size="14"></i></button>
-                                            <button onclick="app.deleteData('logs','${l.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
+                                            <!-- [분할화면 수정] 버튼 클릭 시 창 포커스 이벤트와 충돌하지 않도록 onmousedown="event.stopPropagation()" 추가 -->
+                                            <button onmousedown="event.stopPropagation()" onclick="app.duplicateLog('${l.id}')" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="복사"><i data-lucide="copy" size="14"></i></button>
+                                            <button onmousedown="event.stopPropagation()" onclick="app.openLogModal('${l.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="수정"><i data-lucide="edit" size="14"></i></button>
+                                            <button onmousedown="event.stopPropagation()" onclick="app.deleteData('logs','${l.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
                                         </div>
                                     </div>
                                     <div class="flex-1 mt-1"><p class="text-slate-800 text-base leading-relaxed whitespace-pre-wrap cursor-pointer p-2 -ml-2 rounded hover:bg-slate-50 hover:text-blue-800 transition-colors mt-0" title="클릭하여 수정하기" onclick="app.openLogModal('${l.id}')">${l.content}</p></div>
