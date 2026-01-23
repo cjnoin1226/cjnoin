@@ -7823,6 +7823,9 @@
                 if (l.clientName) {
                     window.currentLogClients.push(l.clientName);
                 }
+
+                // [신규] 임시 저장 데이터 존재 여부 확인
+                const hasTempData = !!localStorage.getItem('cj_temp_log_data');
                 
                 const html = `
                     <div class="bg-white w-full max-w-3xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto flex flex-col">
@@ -7830,25 +7833,36 @@
                             <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
                                 <i data-lucide="file-text" class="text-emerald-600"></i> ${isEdit ? '일지 수정' : (prefillData ? '일지 복사 작성' : '일지 작성')}
                             </h3>
-                            <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                            <div class="flex items-center gap-2">
+                                ${!isEdit ? `
+                                    <button type="button" onclick="app.saveTempLog()" class="px-3 py-1.5 text-xs bg-orange-50 text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-100 font-bold transition-colors flex items-center gap-1" title="현재 작성 중인 내용을 임시 저장합니다">
+                                        <i data-lucide="save" size="12"></i> 임시저장
+                                    </button>
+                                    <button type="button" id="btn-load-temp" onclick="app.loadTempLog()" class="px-3 py-1.5 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 font-bold transition-colors flex items-center gap-1 ${hasTempData ? '' : 'hidden'}" title="임시 저장된 내용을 불러옵니다">
+                                        <i data-lucide="rotate-ccw" size="12"></i> 불러오기
+                                    </button>
+                                    <div class="w-px h-4 bg-slate-300 mx-1"></div>
+                                ` : ''}
+                                <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                            </div>
                         </div>
-                        <form onsubmit="app.saveLog(event, '${id || ''}')" class="space-y-4 flex-1 overflow-y-auto p-1">
+                        <form id="log-form" onsubmit="app.saveLog(event, '${id || ''}')" class="space-y-4 flex-1 overflow-y-auto p-1">
                             
                             <!-- [유지] 상단 배치: 날짜, 제공방법, 제공자 -->
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">날짜</label>
-                                    <input type="date" name="date" class="input-field" value="${l.date || today}" required max="9999-12-31">
+                                    <input type="date" name="date" id="log-date" class="input-field" value="${l.date || today}" required max="9999-12-31">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">제공방법</label>
-                                    <select name="provideMethod" class="input-field">
+                                    <select name="provideMethod" id="log-method" class="input-field">
                                         ${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${l.provideMethod === m ? 'selected' : ''}>${m}</option>`).join('')}
                                     </select>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">제공자</label>
-                                    <input name="provider" class="input-field" value="${l.provider || ''}" placeholder="담당자명">
+                                    <input name="provider" id="log-provider" class="input-field" value="${l.provider || ''}" placeholder="담당자명">
                                 </div>
                             </div>
 
@@ -7898,7 +7912,7 @@
                             <!-- 진행 내용 -->
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1">진행 내용</label>
-                                <textarea name="content" class="input-field h-32 leading-relaxed" required placeholder="서비스 진행 내용을 입력하세요">${l.content || ''}</textarea>
+                                <textarea name="content" id="log-content" class="input-field h-32 leading-relaxed" required placeholder="서비스 진행 내용을 입력하세요">${l.content || ''}</textarea>
                             </div>
 
                             <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 mt-4">
@@ -7924,6 +7938,88 @@
                     }
                     if(window.lucide) lucide.createIcons();
                 }, 0);
+            },
+
+            // [신규] 임시 저장 기능 함수
+            saveTempLog: () => {
+                const date = document.getElementById('log-date').value;
+                const method = document.getElementById('log-method').value;
+                const provider = document.getElementById('log-provider').value;
+                const content = document.getElementById('log-content').value;
+                const clients = window.currentLogClients;
+
+                // 서비스 항목 수집
+                const rows = document.querySelectorAll('.svc-row');
+                const serviceItems = [];
+                rows.forEach(row => {
+                    const cat = row.querySelector('.cat-sel').value;
+                    const svc = row.querySelector('.svc-sel').value;
+                    const det = row.querySelector('.det-inp').value;
+                    if(svc) serviceItems.push({ category: cat, serviceName: svc, detailNote: det });
+                });
+
+                const tempData = {
+                    date,
+                    provideMethod: method,
+                    provider,
+                    content,
+                    clients,
+                    serviceItems
+                };
+
+                localStorage.setItem('cj_temp_log_data', JSON.stringify(tempData));
+                
+                // 불러오기 버튼 활성화
+                const loadBtn = document.getElementById('btn-load-temp');
+                if (loadBtn) loadBtn.classList.remove('hidden');
+
+                alert('현재 작성 중인 내용이 임시 저장되었습니다.\n나중에 "불러오기" 버튼으로 복원할 수 있습니다.');
+            },
+
+            // [신규] 임시 저장 불러오기 함수
+            loadTempLog: () => {
+                const savedJson = localStorage.getItem('cj_temp_log_data');
+                if (!savedJson) {
+                    alert('저장된 임시 데이터가 없습니다.');
+                    return;
+                }
+
+                if (!confirm('임시 저장된 내용을 불러오시겠습니까?\n현재 작성 중인 내용은 덮어씌워집니다.')) return;
+
+                try {
+                    const data = JSON.parse(savedJson);
+
+                    // 기본 필드 복원
+                    if (data.date) document.getElementById('log-date').value = data.date;
+                    if (data.provideMethod) document.getElementById('log-method').value = data.provideMethod;
+                    if (data.provider) document.getElementById('log-provider').value = data.provider;
+                    if (data.content) document.getElementById('log-content').value = data.content;
+
+                    // 대상자 목록 복원
+                    if (data.clients && Array.isArray(data.clients)) {
+                        window.currentLogClients = data.clients;
+                        app.renderLogClients(false);
+                    }
+
+                    // 서비스 목록 복원
+                    const container = document.getElementById('svc-container');
+                    container.innerHTML = ''; // 기존 목록 초기화
+                    if (data.serviceItems && Array.isArray(data.serviceItems)) {
+                        data.serviceItems.forEach(item => {
+                            // renderSvcRow 함수를 활용해 행 추가 (ID는 새로 생성)
+                            renderSvcRow({ ...item, id: Date.now() + Math.random() });
+                        });
+                    } else {
+                         // 서비스 없으면 기본 행 추가
+                         renderSvcRow({ category: '노인상담 및 정보제공', serviceName: '정서지원서비스(안전안부확인)', detailNote: '' });
+                    }
+                    
+                    if(window.lucide) lucide.createIcons();
+
+                } catch (e) {
+                    console.error("임시 저장 데이터 파싱 오류", e);
+                    alert('데이터를 불러오는 중 오류가 발생했습니다.');
+                }
             },
 
             // [신규] 일지 작성용 대상자 관리 함수들 (수정됨)
