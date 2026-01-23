@@ -418,6 +418,8 @@
             editingServiceId: null,
             // [신규] 일괄 작업 중 화면 갱신 방지 플래그 (true면 render() 스킵)
             isBatching: false,
+            // [신규] 저장 중복 방지 플래그 (더블클릭 방지)
+            isSaving: false,
             // [신규] 전체 로그 로딩 완료 여부 (현재 연도 기준)
             isFullLogLoaded: false,
             // [신규] 로드된 연도 추적용 Set
@@ -7993,6 +7995,9 @@
             saveLog: async (e, id) => {
                 e.preventDefault();
                 
+                // [수정] 중복 저장 방지 (저장 중이면 무시)
+                if (state.isSaving) return;
+
                 if (window.currentLogClients.length === 0) {
                     return alert("대상자를 최소 1명 이상 선택해주세요.");
                 }
@@ -8028,6 +8033,9 @@
                         if (!confirm(msg)) return; // 취소 시 저장 중단
                     }
                 }
+
+                // [수정] 저장 시작 플래그 설정
+                state.isSaving = true;
 
                 // 다중 생성(Batch)일 경우에만 플래그 설정
                 const isBatchCreate = !id && window.currentLogClients.length > 1;
@@ -8092,6 +8100,7 @@
                     console.error(err);
                     alert("저장 실패: " + err.message); 
                 } finally {
+                    state.isSaving = false; // [수정] 저장 종료 플래그 해제
                     if (isBatchCreate) {
                         state.isBatching = false;
                     }
