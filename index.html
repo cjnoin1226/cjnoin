@@ -8200,10 +8200,6 @@
                 // [수정] 중복 저장 방지
                 if (state.isSaving) return;
 
-                if (window.currentLogClients.length === 0) {
-                    return alert("대상자를 최소 1명 이상 선택해주세요.");
-                }
-
                 const fd = new FormData(e.target);
                 const commonData = Object.fromEntries(fd.entries());
                 
@@ -8216,6 +8212,7 @@
                     const det = row.querySelector('.det-inp').value;
                     if(svc) items.push({ id: Date.now() + Math.random(), category: cat, serviceName: svc, detailNote: det });
                 });
+                
                 if(items.length === 0) return alert("최소 1개의 서비스를 입력해주세요.");
                 
                 commonData.serviceItems = items;
@@ -8224,22 +8221,22 @@
 
                 // [신규] 중복 일지 체크: 수정이 아닌(신규 작성) 경우에만 확인
                 if (!id) {
+                    if (window.currentLogClients.length === 0) return alert("대상자를 최소 1명 이상 선택해주세요.");
+
                     const targetDate = commonData.date;
-                    // 현재 선택된 대상자 중, 같은 날짜에 이미 일지가 존재하는 사람 필터링
                     const duplicates = window.currentLogClients.filter(name => 
                         state.logs.some(l => l.date === targetDate && l.clientName === name)
                     );
 
                     if (duplicates.length > 0) {
                         const msg = `[중복 알림] 다음 대상자는 해당 날짜(${targetDate})에 이미 일지가 존재합니다.\n\n대상자: ${duplicates.join(', ')}\n\n그래도 계속 저장하시겠습니까?`;
-                        if (!confirm(msg)) return; // 취소 시 저장 중단
+                        if (!confirm(msg)) return; 
                     }
                 }
 
                 // [수정] 저장 시작 플래그 설정
                 state.isSaving = true;
 
-                // 다중 생성(Batch)일 경우에만 플래그 설정
                 const isBatchCreate = !id && window.currentLogClients.length > 1;
                 if (isBatchCreate) state.isBatching = true;
 
@@ -8249,26 +8246,38 @@
                 if (commonData.date) affectedYears.add(getYear(commonData.date));
 
                 try {
-                    const currentYear = new Date().getFullYear(); // [신규] 현재 연도 기준값
+                    const currentYear = new Date().getFullYear();
 
                     if (id) {
-                        // 수정 모드 (단일 건)
-                        const clientName = window.currentLogClients[0]; // 수정 시에는 1명만 있음
+                        // [수정] 수정 모드 (단일 건)
+                        
+                        // 1. 대상자 이름 안전하게 가져오기 (누락 시 기존 로그에서 복구)
+                        let clientName = window.currentLogClients[0];
+                        if (!clientName) {
+                            const original = state.logs.find(l => l.id === id);
+                            if (original) clientName = original.clientName;
+                        }
+                        if (!clientName) throw new Error("대상자 정보를 찾을 수 없습니다.");
+
                         const client = state.clients.find(c => c.name === clientName);
                         if (client) commonData.clientId = client.id;
                         commonData.clientName = clientName;
 
-                        // [신규] 수정 전 원래 연도도 갱신 대상에 포함
+                        // 2. 수정 전 원래 연도도 갱신 대상에 포함 (날짜 변경 대비)
                         const originalLog = state.logs.find(l => l.id === id);
                         if (originalLog && originalLog.date) affectedYears.add(getYear(originalLog.date));
 
+                        // 3. 서버 저장
                         await updateDoc(doc(db, "logs", id), commonData);
                         
-                        // [신규] 로컬 상태 수동 업데이트 (즉각 반응용)
+                        // 4. 로컬 상태 즉시 업데이트 (화면 반영용)
                         const existingIndex = state.logs.findIndex(l => l.id === id);
                         if (existingIndex !== -1) {
                             state.logs[existingIndex] = { ...state.logs[existingIndex], ...commonData };
                         }
+                        
+                        // 5. 서버 데이터 동기화 대기 (데이터 무결성 확보)
+                        await app.refreshYears(Array.from(affectedYears));
 
                         alert("일지가 수정되었습니다.");
                     } else {
@@ -8281,9 +8290,7 @@
                             
                             const docRef = await addDoc(collection(db, "logs"), data);
                             
-                            // [핵심 개선] 입력된 날짜의 연도가 '현재 연도'가 아닐 경우에만 수동으로 로컬 목록에 추가
-                            // 이유: 현재 연도는 onSnapshot이 실시간으로 감지하여 자동으로 추가해주므로, 수동 추가 시 중복됨.
-                            // 반면 과거 연도는 onSnapshot 범위 밖이므로 수동으로 추가해야 즉시 화면에 보임.
+                            // 현재 연도가 아니면 수동으로 로컬 목록에 추가 (즉시 반영용)
                             const logYear = parseInt(data.date.split('-')[0]);
                             if (logYear !== currentYear) {
                                 state.logs.push({ id: docRef.id, ...data });
@@ -8293,22 +8300,20 @@
                         });
                         
                         await Promise.all(batchPromises);
-                        
-                        // [신규] 과거 데이터가 수동 추가되었을 수 있으므로 날짜순 재정렬 수행
-                        state.logs.sort((a, b) => {
-                            if (a.date !== b.date) return b.date.localeCompare(a.date);
-                            const providerA = a.provider || '', providerB = b.provider || '';
-                            if (providerA !== providerB) return providerA.localeCompare(providerB);
-                            return (a.clientName || '').localeCompare(b.clientName || '');
-                        });
+                        await app.refreshYears(Array.from(affectedYears));
                         
                         alert(`${window.currentLogClients.length}건의 일지가 저장되었습니다.`);
                     }
                     
+                    // 6. 목록 재정렬 (날짜순)
+                    state.logs.sort((a, b) => {
+                        if (a.date !== b.date) return b.date.localeCompare(a.date);
+                        const providerA = a.provider || '', providerB = b.provider || '';
+                        if (providerA !== providerB) return providerA.localeCompare(providerB);
+                        return (a.clientName || '').localeCompare(b.clientName || '');
+                    });
+                    
                     app.closeModal();
-
-                    // [신규] 영향 받은 연도 데이터 백그라운드 갱신 (데이터 무결성 보장용)
-                    await app.refreshYears(Array.from(affectedYears));
 
                 } catch (err) { 
                     console.error(err);
