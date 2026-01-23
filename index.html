@@ -7995,7 +7995,7 @@
             saveLog: async (e, id) => {
                 e.preventDefault();
                 
-                // [수정] 중복 저장 방지 (저장 중이면 무시)
+                // [수정] 중복 저장 방지
                 if (state.isSaving) return;
 
                 if (window.currentLogClients.length === 0) {
@@ -8077,16 +8077,16 @@
                             
                             const docRef = await addDoc(collection(db, "logs"), data);
                             
-                            // [신규] 로컬 상태 수동 추가
-                            state.logs.push({ id: docRef.id, ...data });
+                            // [수정] 로컬 상태 수동 추가 제거 (중복 원인 해결)
+                            // state.logs.push({ id: docRef.id, ...data }); 
                             
                             return docRef;
                         });
                         
                         await Promise.all(batchPromises);
                         
-                        // [신규] 추가 후 정렬 (최신순)
-                        state.logs.sort((a, b) => b.date.localeCompare(a.date));
+                        // [수정] 정렬 로직 제거 (자동 동기화에 맡김)
+                        // state.logs.sort((a, b) => b.date.localeCompare(a.date));
                         
                         alert(`${window.currentLogClients.length}건의 일지가 저장되었습니다.`);
                     }
