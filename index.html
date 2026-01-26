@@ -1255,7 +1255,8 @@
                             const c = state.clients.find(cl => cl.id === l.clientId);
                             return `
                             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-start gap-6 hover:shadow-md transition-shadow relative">
-                                <div class="md:w-1/3 border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6 flex-shrink-0 w-full">
+                                <!-- [수정] 왼쪽 칸 가로 비율 33.3% -> 28%로 변경 (md:w-[28%]) -->
+                                <div class="md:w-[28%] border-b md:border-b-0 md:border-r border-slate-100 pb-4 md:pb-0 md:pr-6 flex-shrink-0 w-full">
                                     <div class="mb-4">
                                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                                             <div class="flex items-center gap-2"><input type="checkbox" class="log-checkbox w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" data-id="${l.id}" onmousedown="event.stopPropagation()" onchange="app.toggleLogSelection('${l.id}')" ${state.ui.selectedLogIds.has(l.id) ? 'checked' : ''}><span class="text-sm text-slate-500 font-medium whitespace-nowrap">${l.date}</span></div>
