@@ -2390,30 +2390,39 @@
                 if (s === 'log') state.ui.logPage = 1;
                 if(doRender) { if (state.viewMode === 'single') updateTabContent(state.activeTab); else render(); }
             },
-            // [수정] 일지 연도 필터 간편 설정 함수 (데이터 로딩 로직 추가 및 전체 연도 지원)
+            // [수정] 일지 연도 필터 간편 설정 함수 (데이터 재로딩 로직 개선)
             setLogYear: async (year) => {
+                const currentYear = new Date().getFullYear();
+
                 if (year === 'all') {
-                    // [신규] 전체 연도 선택 시: 2010년부터 내년까지 데이터 로딩 시도
-                    const currentYear = new Date().getFullYear();
+                    // [신규] 전체 연도 선택 시: 로드되지 않았거나 데이터가 없는 연도에 대해 재검증 시도
+                    // 사용자 요청: "불러와지지 않은 데이터만 다시한번 불러와지게" -> 데이터가 없는 연도를 재확인
                     const yearsToLoad = [];
                     // [수정] 과거 데이터 범위 2010년으로 확장
                     for (let y = 2010; y <= currentYear + 1; y++) {
-                        if (!state.loadedYears.has(y)) {
+                        const yStr = String(y);
+                        // 해당 연도의 데이터가 실제로 메모리에 있는지 확인
+                        const hasData = state.logs.some(l => l.date.startsWith(yStr));
+                        
+                        // 로드 기록이 없거나, 로드 기록은 있는데 데이터가 0건인 경우 재시도 대상에 포함
+                        // force=true를 사용하기 위해 식별
+                        if (!state.loadedYears.has(y) || !hasData) {
                             yearsToLoad.push(y);
                         }
                     }
 
                     if (yearsToLoad.length > 0) {
-                        app.showProgress('전체 기간 데이터 불러오는 중...', yearsToLoad.length);
+                        app.showProgress('전체 기간 데이터 확인 중...', yearsToLoad.length);
                         try {
-                            // 순차적으로 로드 (UI 간섭 방지를 위해 내부 UI 끄고 호출)
+                            // 순차적으로 로드
                             for (let i = 0; i < yearsToLoad.length; i++) {
                                 // [신규] 취소 플래그 확인
                                 if (state.loadingCancelled) {
                                     console.log("로딩이 사용자에 의해 취소되었습니다.");
                                     break;
                                 }
-                                await app.loadLogsByYear(yearsToLoad[i], false);
+                                // force=true 옵션을 사용하여 서버에서 강제 조회 (데이터가 없어도 다시 확인)
+                                await app.loadLogsByYear(yearsToLoad[i], false, true);
                                 app.updateProgress(i + 1);
                             }
                         } catch (e) {
@@ -2428,10 +2437,16 @@
                     state.filters.log.end = '9999-12-31';
                 } else if (year) {
                     const targetYear = parseInt(year);
-                    // 선택된 연도 데이터가 로드되었는지 확인하고 없으면 로딩
-                    if (!state.loadedYears.has(targetYear)) {
-                        await app.loadLogsByYear(targetYear);
+                    const yStr = String(targetYear);
+                    // 선택된 연도 데이터가 로드되었는지, 그리고 실제 데이터가 있는지 확인
+                    const hasData = state.logs.some(l => l.date.startsWith(yStr));
+
+                    // [수정] 로드된 적이 없거나, 로드됐어도 데이터가 안 보이면 강제 로딩 (force=true)
+                    // "가끔... 아무데이터가 안보일때가 있거든? 그래서 다시 해당연도로 필터링하면..." 상황 해결
+                    if (!state.loadedYears.has(targetYear) || !hasData) {
+                        await app.loadLogsByYear(targetYear, true, true);
                     }
+                    
                     state.filters.log.start = `${targetYear}-01-01`;
                     state.filters.log.end = `${targetYear}-12-31`;
                 } else {
@@ -7926,7 +7941,17 @@
                         </form>
                     </div>
                 `;
-                showModal(html);
+                
+                // [수정] 이중 모달 처리 로직 추가
+                // 기존 모달(modal-container)이 열려있으면 서브 모달(sub-modal-container)에 표시
+                const mainModal = document.getElementById('modal-container');
+                let targetContainerId = 'modal-container';
+                
+                if (mainModal && !mainModal.classList.contains('hidden')) {
+                    targetContainerId = 'sub-modal-container';
+                }
+
+                showModal(html, false, targetContainerId);
                 
                 // 초기 데이터 렌더링
                 app.renderLogClients(isEdit);
