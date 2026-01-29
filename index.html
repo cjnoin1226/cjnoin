@@ -8790,16 +8790,60 @@
                     alert("팝업 차단을 해제해주세요.");
                 }
             },
+            // [수정] 서비스 일지 엑셀 다운로드 (업로드 양식과 동일하게 상세 분리)
             downloadLogsExcel: () => {
-                const data = getFilteredLogs().map(l => ({
-                    날짜: l.date,
-                    대상자: l.clientName,
-                    제공방법: l.provideMethod,
-                    서비스내용: l.serviceName,
-                    상세내용: l.content,
-                    제공자: l.provider
-                }));
+                const logs = getFilteredLogs();
+                const data = [];
+
+                logs.forEach(l => {
+                    // 서비스 항목이 있으면 항목별로 행 분리하여 추가
+                    if (l.serviceItems && l.serviceItems.length > 0) {
+                        l.serviceItems.forEach(item => {
+                            data.push({
+                                '날짜': l.date,
+                                '대상자': l.clientName,
+                                '제공방법': l.provideMethod || '',
+                                '서비스분류': item.category || '',
+                                '서비스명': item.serviceName || '',
+                                '메모': item.detailNote || '',
+                                '내용': l.content || '',
+                                '제공자': l.provider || ''
+                            });
+                        });
+                    } else {
+                        // 서비스 항목이 없는 경우 (하위 호환)
+                        data.push({
+                            '날짜': l.date,
+                            '대상자': l.clientName,
+                            '제공방법': l.provideMethod || '',
+                            '서비스분류': l.serviceCategory || '',
+                            '서비스명': l.serviceName || '',
+                            '메모': '',
+                            '내용': l.content || '',
+                            '제공자': l.provider || ''
+                        });
+                    }
+                });
+
+                if (data.length === 0) {
+                    alert("다운로드할 데이터가 없습니다.");
+                    return;
+                }
+
                 const ws = XLSX.utils.json_to_sheet(data);
+                
+                // 컬럼 너비 설정 (가독성 향상)
+                ws['!cols'] = [
+                    { wch: 12 }, // 날짜
+                    { wch: 10 }, // 대상자
+                    { wch: 8 },  // 제공방법
+                    { wch: 15 }, // 서비스분류
+                    { wch: 20 }, // 서비스명
+                    { wch: 20 }, // 메모
+                    { wch: 40 }, // 내용
+                    { wch: 10 }  // 제공자
+                ];
+
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "ServiceLogs");
                 XLSX.writeFile(wb, `서비스일지_${new Date().toISOString().slice(0,10)}.xlsx`);
