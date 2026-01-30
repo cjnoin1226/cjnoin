@@ -987,8 +987,8 @@
                         
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-2">
                             <div class="flex flex-wrap items-center gap-3 w-full">
-                                <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span><input id="client-search-name" class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)" oninput="if(this.value === '') app.setFilter('client','search','')"></div>
-                                <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">연락처</span><input id="client-search-phone" class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter)" value="${searchPhone}" onkeydown="if(event.key === 'Enter') app.setFilter('client','searchPhone',this.value)" oninput="if(this.value === '') app.setFilter('client','searchPhone','')"></div>
+                                <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span><input id="client-search-name" class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter/이동)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)" onchange="app.setFilter('client','search',this.value)" oninput="if(this.value === '') app.setFilter('client','search','')"></div>
+                                <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">연락처</span><input id="client-search-phone" class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter/이동)" value="${searchPhone}" onkeydown="if(event.key === 'Enter') app.setFilter('client','searchPhone',this.value)" onchange="app.setFilter('client','searchPhone',this.value)" oninput="if(this.value === '') app.setFilter('client','searchPhone','')"></div>
                                 <!-- [수정] 초기화 버튼에 app.render() 추가하여 분할 화면에서 갱신 보장 -->
                                 <button onclick="app.resetFilters('client'); app.render()" class="bg-slate-100 text-slate-500 hover:text-slate-700 text-xs flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-lg font-medium transition-colors ml-auto sm:ml-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                             </div>
@@ -1216,12 +1216,12 @@
                                     <!-- [수정] 조회 버튼에 새로운 검색 함수 연결 -->
                                     <button onmousedown="event.stopPropagation()" onclick="app.searchLogsByDateRange()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
                                 </div>
-                                <input id="log-search-name" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
+                                <input id="log-search-name" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="이름 (Enter/이동)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" onchange="app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
                                 
                                 <!-- [신규] 내용 검색 필터 추가 -->
-                                <input id="log-search-content" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="내용 검색 (Enter)" value="${contentSearch}" onkeydown="if(event.key === 'Enter') app.setFilter('log','contentSearch',this.value)" oninput="if(this.value === '') app.setFilter('log','contentSearch','')">
+                                <input id="log-search-content" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="내용 검색 (Enter/이동)" value="${contentSearch}" onkeydown="if(event.key === 'Enter') app.setFilter('log','contentSearch',this.value)" onchange="app.setFilter('log','contentSearch',this.value)" oninput="if(this.value === '') app.setFilter('log','contentSearch','')">
 
-                                <input id="log-search-provider" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
+                                <input id="log-search-provider" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="제공자 (Enter/이동)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" onchange="app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
                                 <div class="relative z-30 w-full sm:w-auto">
                                     <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-28"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
                                     ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
@@ -1463,19 +1463,20 @@
 
                     <div id="meeting-list-container" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-[400px]">
                         <div class="flex items-center bg-slate-50 border-b border-slate-200 font-bold text-xs text-slate-500 sticky top-0 z-10">
-                            <div class="w-10 text-center py-3 flex-shrink-0 border-r border-slate-100">
+                            <!-- [수정] 비율 재설정: 5% / 10% / 5% / 8% / 5% / 40% / 10% / 17% -->
+                            <div class="w-[5%] text-center py-3 flex-shrink-0 border-r border-slate-100">
                                 <input type="checkbox" id="meeting-select-all" class="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" 
                                     ${allSelected ? 'checked' : ''} 
                                     onchange="app.toggleAllMeetings(this.checked)"
                                     ${filtered.length === 0 ? 'disabled' : ''}>
                             </div>
-                            <div class="w-24 text-center py-3 flex-shrink-0">날짜</div>
-                            <div class="w-16 text-center py-3 flex-shrink-0">대상자</div>
-                            <div class="w-24 text-center py-3 flex-shrink-0">생년/등급</div>
-                            <div class="w-16 text-center py-3 flex-shrink-0">구분</div>
-                            <div class="w-[300px] text-center py-3 px-2 flex-shrink-0">안건</div>
-                            <div class="w-24 text-center py-3 flex-shrink-0">작성자</div>
-                            <div class="w-24 text-center py-3 flex-shrink-0">관리</div>
+                            <div class="w-[10%] text-center py-3 flex-shrink-0">날짜</div>
+                            <div class="w-[5%] text-center py-3 flex-shrink-0">대상자</div>
+                            <div class="w-[8%] text-center py-3 flex-shrink-0">생년/등급</div>
+                            <div class="w-[5%] text-center py-3 flex-shrink-0">구분</div>
+                            <div class="w-[40%] text-center py-3 px-2 flex-shrink-0">안건</div>
+                            <div class="w-[10%] text-center py-3 flex-shrink-0">작성자</div>
+                            <div class="w-[17%] text-center py-3 flex-shrink-0">관리</div>
                         </div>
                         
                         <div class="overflow-y-auto flex-1 custom-scrollbar">
@@ -1493,18 +1494,18 @@
 
                                     return `
                                 <div class="flex items-center hover:bg-slate-50 transition-colors py-2 group">
-                                    <div class="w-10 text-center flex-shrink-0 flex items-center justify-center">
+                                    <div class="w-[5%] text-center flex-shrink-0 flex items-center justify-center">
                                         <input type="checkbox" class="meeting-checkbox w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                             ${state.ui.selectedMeetingIds.has(m.id) ? 'checked' : ''}
                                             onchange="app.toggleMeetingSelection('${m.id}')">
                                     </div>
-                                    <div class="w-24 text-center text-xs font-bold text-slate-700 flex-shrink-0 whitespace-nowrap">${m.date}</div>
-                                    <div class="w-16 text-center text-sm font-bold text-emerald-600 truncate px-1 flex-shrink-0" title="${m.clientName || '미지정'}">${m.clientName || '-'}</div>
-                                    <div class="w-24 text-center text-xs text-slate-600 flex-shrink-0 leading-tight">${clientInfo}</div>
-                                    <div class="w-16 text-center flex-shrink-0"><span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 whitespace-nowrap">${m.type || '수시'}</span></div>
-                                    <div class="w-[300px] text-sm text-slate-800 font-medium truncate px-3 cursor-pointer hover:text-blue-600 flex-shrink-0 text-left" onclick="app.openMeetingModal('${m.id}')" title="${m.topic || ''}">${m.topic || '제목 없음'}</div>
-                                    <div class="w-24 text-center text-sm text-slate-500 truncate px-1 flex-shrink-0" title="${m.writer}">${m.writer || '-'}</div>
-                                    <div class="w-24 flex justify-center gap-1 flex-shrink-0">
+                                    <div class="w-[10%] text-center text-xs font-bold text-slate-700 flex-shrink-0 whitespace-nowrap">${m.date}</div>
+                                    <div class="w-[5%] text-center text-sm font-bold text-emerald-600 truncate px-1 flex-shrink-0" title="${m.clientName || '미지정'}">${m.clientName || '-'}</div>
+                                    <div class="w-[8%] text-center text-xs text-slate-600 flex-shrink-0 leading-tight">${clientInfo}</div>
+                                    <div class="w-[5%] text-center flex-shrink-0"><span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 whitespace-nowrap">${m.type || '수시'}</span></div>
+                                    <div class="w-[40%] text-sm text-slate-800 font-medium truncate px-3 cursor-pointer hover:text-blue-600 flex-shrink-0 text-left" onclick="app.openMeetingModal('${m.id}')" title="${m.topic || ''}">${m.topic || '제목 없음'}</div>
+                                    <div class="w-[10%] text-center text-sm text-slate-500 truncate px-1 flex-shrink-0" title="${m.writer}">${m.writer || '-'}</div>
+                                    <div class="w-[17%] flex justify-center gap-1 flex-shrink-0">
                                         <button onclick="app.printMeeting('${m.id}')" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors" title="인쇄/PDF"><i data-lucide="printer" size="14"></i></button>
                                         <button onclick="app.openMeetingModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="수정"><i data-lucide="edit" size="14"></i></button>
                                         <button onclick="app.deleteData('meetings', '${m.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
@@ -1540,7 +1541,23 @@
                 if (month < 0 || month > 11) return;
                 if (l.serviceItems && l.serviceItems.length > 0) {
                     l.serviceItems.forEach(item => {
-                        const key = `${item.category}|${item.serviceName}`;
+                        let key = `${item.category}|${item.serviceName}`;
+                        
+                        // [긴급 수정] 과거 데이터 이름 매핑 로직 추가
+                        // 설정에서 서비스명을 바꿨을 때, 과거 기록이 집계되지 않는 문제를 해결하기 위해 매핑
+                        if (!stats[key]) {
+                            // "정서지원서비스(안전안부확인)" -> "정서지원서비스"로 매핑
+                            if (item.serviceName === '정서지원서비스(안전안부확인)') {
+                                const newKey = `${item.category}|정서지원서비스`;
+                                if (stats[newKey]) key = newKey;
+                            }
+                            // 반대의 경우도 (혹시 몰라) 처리: "정서지원서비스" -> "정서지원서비스(안전안부확인)"
+                            else if (item.serviceName === '정서지원서비스') {
+                                const oldKey = `${item.category}|정서지원서비스(안전안부확인)`;
+                                if (stats[oldKey]) key = oldKey;
+                            }
+                        }
+
                         if (stats[key]) { stats[key].counts[month]++; /* 전체 total은 일단 계산하지만, 표시할 때 재계산함 */ }
                     });
                 }
@@ -1603,7 +1620,11 @@
                     const services = headerGroups[cat];
                     headerRow1 += `<th class="py-2 px-2 border-b border-r bg-slate-100 text-center font-bold text-slate-700 whitespace-nowrap" colspan="${services.length}">${cat}</th>`;
                     services.forEach(s => {
-                        const displayName = s.serviceName === '정서지원서비스(안전안부확인)' ? '안전안부확인' : s.serviceName;
+                        // [수정] 표시 이름 처리: "정서지원서비스(안전안부확인)" -> "안전안부확인"
+                        let displayName = s.serviceName;
+                        if (s.serviceName === '정서지원서비스(안전안부확인)') displayName = '안전안부확인';
+                        // "정서지원서비스"의 경우도 "안전안부확인"으로 줄여서 보여줄지, 그대로 보여줄지 결정 (여기선 그대로)
+                        
                         headerRow2 += `<th class="py-2 px-2 border-b border-r bg-slate-50 text-center text-xs font-medium text-slate-600 min-w-[60px] max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis cursor-help" title="${s.serviceName}">${displayName}</th>`;
                     });
                 });
@@ -1798,6 +1819,19 @@
                     items.forEach(item => {
                         let key = type === 'category' ? item.category : item.serviceName;
                         if (!key && item.serviceName && type === 'category') { const s = state.services.find(svc => svc.name === item.serviceName); if(s) key = s.category; }
+                        
+                        // [긴급 수정] 통계 화면에서의 과거 데이터 매핑 로직
+                        if (type !== 'category') {
+                            // "정서지원서비스(안전안부확인)"이 목록에 없고 "정서지원서비스"가 목록에 있다면 매핑
+                            if (item.serviceName === '정서지원서비스(안전안부확인)' && !dataMap[cid].counts[key] && dataMap[cid].counts['정서지원서비스'] !== undefined) {
+                                key = '정서지원서비스';
+                            }
+                            // 반대의 경우 (안전안부확인으로 설정되어 있는데 옛날 데이터가 정서지원서비스인 경우)
+                            else if (item.serviceName === '정서지원서비스' && !dataMap[cid].counts[key] && dataMap[cid].counts['정서지원서비스(안전안부확인)'] !== undefined) {
+                                key = '정서지원서비스(안전안부확인)';
+                            }
+                        }
+
                         if (item.serviceName && item.serviceName.includes('정서지원')) dataMap[cid].emotionalCount++;
                         if (key && dataMap[cid].counts[key] !== undefined) { dataMap[cid].counts[key]++; dataMap[cid].total++; }
                     });
@@ -9525,54 +9559,102 @@
                 app.updateTabVisibility(); 
                 return;
             }
+            
             let main = document.getElementById('main-view-container'); 
             if (!main) return;
             app.renderTabBar(state.activeTab);
             main.className = "fixed inset-0 top-14 bg-slate-100 z-0 overflow-hidden"; 
-            main.innerHTML = ""; 
+            
+            // [수정] 분할 화면 스마트 업데이트: 창이 이미 존재하면 DOM을 새로 만들지 않고 내용만 갱신하여 상태 유지
+            const leftWin = document.getElementById('window-left');
+            const rightWin = document.getElementById('window-right');
 
-            const createWindow = (paneId) => {
-                const winState = state.windows[paneId];
-                const tabKey = state.paneTabs[paneId];
-                const isActive = state.focusedPane === paneId;
-                
-                const winDiv = document.createElement('div');
-                winDiv.id = `window-${paneId}`;
-                winDiv.className = `window-pane ${isActive ? 'active' : ''}`;
-                winDiv.style.left = `${winState.x}px`;
-                winDiv.style.top = `${winState.y}px`;
-                winDiv.style.width = `${winState.w}px`;
-                winDiv.style.height = `${winState.h}px`;
-                winDiv.style.zIndex = winState.z;
-                winDiv.onmousedown = () => app.setFocusedPane(paneId);
+            if (leftWin && rightWin) {
+                ['left', 'right'].forEach(paneId => {
+                    const tabKey = state.paneTabs[paneId];
+                    const winEl = document.getElementById(`window-${paneId}`);
+                    const contentEl = winEl.querySelector('.window-content');
+                    
+                    if (contentEl) {
+                        // 1. 현재 스크롤 위치 저장 (메인 컨테이너 및 각 탭별 리스트 컨테이너)
+                        const scrollMap = {
+                            'clients': 'client-list-container',
+                            'logs': 'log-list-container',
+                            'meeting': 'meeting-list-container',
+                            'statistics': 'stats-list-container',
+                            'performance': 'perf-table-container'
+                        };
+                        const listId = scrollMap[tabKey];
+                        let listScroll = 0;
+                        if (listId) {
+                            const listEl = contentEl.querySelector(`#${listId}`);
+                            if (listEl) listScroll = listEl.scrollTop;
+                        }
+                        const winScroll = contentEl.scrollTop;
 
-                const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map(dir => 
-                    `<div class="resizer resizer-${dir}" onmousedown="app.startResize(event, '${paneId}', '${dir}')"></div>`
-                ).join('');
+                        // 2. 내용 업데이트 (HTML 교체)
+                        contentEl.innerHTML = getTabHTML(tabKey);
 
-                // [수정] 버튼 클릭 시 드래그 이벤트가 실행되지 않도록 onmousedown="event.stopPropagation()" 추가
-                winDiv.innerHTML = `
-                    <div class="window-header" onmousedown="app.startDrag(event, '${paneId}')">
-                        <div class="window-title">
-                            <i data-lucide="${isActive ? 'app-window' : 'minus-square'}" size="16"></i>
-                            <span>${TAB_NAMES[tabKey] || tabKey}</span>
+                        // 3. 스크롤 위치 복구
+                        if (listId && listScroll > 0) {
+                            const newListEl = contentEl.querySelector(`#${listId}`);
+                            if (newListEl) newListEl.scrollTop = listScroll;
+                        }
+                        contentEl.scrollTop = winScroll;
+
+                        // 4. 제목 업데이트
+                        const titleEl = winEl.querySelector('.window-title span');
+                        if (titleEl) titleEl.textContent = TAB_NAMES[tabKey] || tabKey;
+                    }
+                });
+            } else {
+                // 윈도우가 없을 때만 초기화 후 생성 (최초 진입 시)
+                main.innerHTML = ""; 
+
+                const createWindow = (paneId) => {
+                    const winState = state.windows[paneId];
+                    const tabKey = state.paneTabs[paneId];
+                    const isActive = state.focusedPane === paneId;
+                    
+                    const winDiv = document.createElement('div');
+                    winDiv.id = `window-${paneId}`;
+                    winDiv.className = `window-pane ${isActive ? 'active' : ''}`;
+                    winDiv.style.left = `${winState.x}px`;
+                    winDiv.style.top = `${winState.y}px`;
+                    winDiv.style.width = `${winState.w}px`;
+                    winDiv.style.height = `${winState.h}px`;
+                    winDiv.style.zIndex = winState.z;
+                    winDiv.onmousedown = () => app.setFocusedPane(paneId);
+
+                    const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].map(dir => 
+                        `<div class="resizer resizer-${dir}" onmousedown="app.startResize(event, '${paneId}', '${dir}')"></div>`
+                    ).join('');
+
+                    // [수정] 버튼 클릭 시 드래그 이벤트가 실행되지 않도록 onmousedown="event.stopPropagation()" 추가
+                    winDiv.innerHTML = `
+                        <div class="window-header" onmousedown="app.startDrag(event, '${paneId}')">
+                            <div class="window-title">
+                                <i data-lucide="${isActive ? 'app-window' : 'minus-square'}" size="16"></i>
+                                <span>${TAB_NAMES[tabKey] || tabKey}</span>
+                            </div>
+                            <div class="window-controls">
+                                <button onmousedown="event.stopPropagation();" onclick="app.toggleSplitView()" class="text-slate-400 hover:text-red-500 transition-colors p-1" title="창 닫기 (분할 모드 종료)">
+                                    <i data-lucide="x" size="18"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="window-controls">
-                            <button onmousedown="event.stopPropagation();" onclick="app.toggleSplitView()" class="text-slate-400 hover:text-red-500 transition-colors p-1" title="창 닫기 (분할 모드 종료)">
-                                <i data-lucide="x" size="18"></i>
-                            </button>
+                        <div class="window-content p-4 overflow-y-auto h-full flex-1">
+                            ${getTabHTML(tabKey)}
                         </div>
-                    </div>
-                    <div class="window-content p-4 overflow-y-auto h-full flex-1">
-                        ${getTabHTML(tabKey)}
-                    </div>
-                    ${handles}
-                `;
-                return winDiv;
-            };
+                        ${handles}
+                    `;
+                    return winDiv;
+                };
 
-            main.appendChild(createWindow('left'));
-            main.appendChild(createWindow('right'));
+                main.appendChild(createWindow('left'));
+                main.appendChild(createWindow('right'));
+            }
+            
             if(window.lucide) lucide.createIcons();
 
             if (focusedId) {
