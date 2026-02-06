@@ -353,8 +353,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        // [수정] getDocs 추가 (과거 데이터 1회성 로딩용)
-        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, limit, writeBatch, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        // [수정] enableIndexedDbPersistence 추가 (오프라인 캐시 기능)
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, limit, writeBatch, where, getDocs, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAx1EJ_7kawHTzsNS97ts5FjCaTJRqJTdM",
@@ -370,6 +370,19 @@
             const fbApp = initializeApp(firebaseConfig);
             db = getFirestore(fbApp);
             auth = getAuth(fbApp);
+
+            // [신규] 오프라인 데이터 지속성 활성화 (앱 실행 시 캐시된 데이터 즉시 로딩)
+            enableIndexedDbPersistence(db)
+                .catch((err) => {
+                    if (err.code == 'failed-precondition') {
+                        // 다중 탭 오픈 등으로 실패 시 (보통 여러 탭을 열면 한 곳만 오프라인 모드 동작)
+                        console.warn('오프라인 지속성 활성화 실패: 여러 탭이 열려있습니다.');
+                    } else if (err.code == 'unimplemented') {
+                        // 브라우저 미지원
+                        console.warn('오프라인 지속성 미지원 브라우저입니다.');
+                    }
+                });
+
             signInAnonymously(auth).catch((error) => {
                 console.error("익명 로그인 실패:", error);
                 alert("로그인 실패: 인터넷 연결을 확인해주세요.");
@@ -987,8 +1000,8 @@
                         
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-2">
                             <div class="flex flex-wrap items-center gap-3 w-full">
-                                <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span><input id="client-search-name" class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter/이동)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)" onchange="app.setFilter('client','search',this.value)" oninput="if(this.value === '') app.setFilter('client','search','')"></div>
-                                <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">연락처</span><input id="client-search-phone" class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter/이동)" value="${searchPhone}" onkeydown="if(event.key === 'Enter') app.setFilter('client','searchPhone',this.value)" onchange="app.setFilter('client','searchPhone',this.value)" oninput="if(this.value === '') app.setFilter('client','searchPhone','')"></div>
+                                <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span><input id="client-search-name" class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('client','search',this.value)" oninput="if(this.value === '') app.setFilter('client','search','')"></div>
+                                <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">연락처</span><input id="client-search-phone" class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter)" value="${searchPhone}" onkeydown="if(event.key === 'Enter') app.setFilter('client','searchPhone',this.value)" oninput="if(this.value === '') app.setFilter('client','searchPhone','')"></div>
                                 <!-- [수정] 초기화 버튼에 app.render() 추가하여 분할 화면에서 갱신 보장 -->
                                 <button onclick="app.resetFilters('client'); app.render()" class="bg-slate-100 text-slate-500 hover:text-slate-700 text-xs flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-lg font-medium transition-colors ml-auto sm:ml-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                             </div>
@@ -1216,12 +1229,12 @@
                                     <!-- [수정] 조회 버튼에 새로운 검색 함수 연결 -->
                                     <button onmousedown="event.stopPropagation()" onclick="app.searchLogsByDateRange()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
                                 </div>
-                                <input id="log-search-name" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="이름 (Enter/이동)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" onchange="app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
+                                <input id="log-search-name" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter') app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
                                 
                                 <!-- [신규] 내용 검색 필터 추가 -->
-                                <input id="log-search-content" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="내용 검색 (Enter/이동)" value="${contentSearch}" onkeydown="if(event.key === 'Enter') app.setFilter('log','contentSearch',this.value)" onchange="app.setFilter('log','contentSearch',this.value)" oninput="if(this.value === '') app.setFilter('log','contentSearch','')">
+                                <input id="log-search-content" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="내용 검색 (Enter)" value="${contentSearch}" onkeydown="if(event.key === 'Enter') app.setFilter('log','contentSearch',this.value)" oninput="if(this.value === '') app.setFilter('log','contentSearch','')">
 
-                                <input id="log-search-provider" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="제공자 (Enter/이동)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" onchange="app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
+                                <input id="log-search-provider" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
                                 <div class="relative z-30 w-full sm:w-auto">
                                     <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-28"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
                                     ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
@@ -1463,20 +1476,20 @@
 
                     <div id="meeting-list-container" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-[400px]">
                         <div class="flex items-center bg-slate-50 border-b border-slate-200 font-bold text-xs text-slate-500 sticky top-0 z-10">
-                            <!-- [수정] 비율 재설정: 5% / 10% / 5% / 8% / 5% / 40% / 10% / 17% -->
+                            <!-- [수정] 가로 길이 비율 적용: 5% / 14% / 9% / 13% / 9% / 30% / 8% / 12% -->
                             <div class="w-[5%] text-center py-3 flex-shrink-0 border-r border-slate-100">
                                 <input type="checkbox" id="meeting-select-all" class="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" 
                                     ${allSelected ? 'checked' : ''} 
                                     onchange="app.toggleAllMeetings(this.checked)"
                                     ${filtered.length === 0 ? 'disabled' : ''}>
                             </div>
-                            <div class="w-[10%] text-center py-3 flex-shrink-0">날짜</div>
-                            <div class="w-[5%] text-center py-3 flex-shrink-0">대상자</div>
-                            <div class="w-[8%] text-center py-3 flex-shrink-0">생년/등급</div>
-                            <div class="w-[5%] text-center py-3 flex-shrink-0">구분</div>
-                            <div class="w-[40%] text-center py-3 px-2 flex-shrink-0">안건</div>
-                            <div class="w-[10%] text-center py-3 flex-shrink-0">작성자</div>
-                            <div class="w-[17%] text-center py-3 flex-shrink-0">관리</div>
+                            <div class="w-[14%] text-center py-3 flex-shrink-0">날짜</div>
+                            <div class="w-[9%] text-center py-3 flex-shrink-0">대상자</div>
+                            <div class="w-[13%] text-center py-3 flex-shrink-0">생년/등급</div>
+                            <div class="w-[9%] text-center py-3 flex-shrink-0">구분</div>
+                            <div class="w-[30%] text-center py-3 px-2 flex-shrink-0">안건</div>
+                            <div class="w-[8%] text-center py-3 flex-shrink-0">작성자</div>
+                            <div class="w-[12%] text-center py-3 flex-shrink-0">관리</div>
                         </div>
                         
                         <div class="overflow-y-auto flex-1 custom-scrollbar">
@@ -1499,13 +1512,13 @@
                                             ${state.ui.selectedMeetingIds.has(m.id) ? 'checked' : ''}
                                             onchange="app.toggleMeetingSelection('${m.id}')">
                                     </div>
-                                    <div class="w-[10%] text-center text-xs font-bold text-slate-700 flex-shrink-0 whitespace-nowrap">${m.date}</div>
-                                    <div class="w-[5%] text-center text-sm font-bold text-emerald-600 truncate px-1 flex-shrink-0" title="${m.clientName || '미지정'}">${m.clientName || '-'}</div>
-                                    <div class="w-[8%] text-center text-xs text-slate-600 flex-shrink-0 leading-tight">${clientInfo}</div>
-                                    <div class="w-[5%] text-center flex-shrink-0"><span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 whitespace-nowrap">${m.type || '수시'}</span></div>
-                                    <div class="w-[40%] text-sm text-slate-800 font-medium truncate px-3 cursor-pointer hover:text-blue-600 flex-shrink-0 text-left" onclick="app.openMeetingModal('${m.id}')" title="${m.topic || ''}">${m.topic || '제목 없음'}</div>
-                                    <div class="w-[10%] text-center text-sm text-slate-500 truncate px-1 flex-shrink-0" title="${m.writer}">${m.writer || '-'}</div>
-                                    <div class="w-[17%] flex justify-center gap-1 flex-shrink-0">
+                                    <div class="w-[14%] text-center text-xs font-bold text-slate-700 flex-shrink-0 whitespace-nowrap">${m.date}</div>
+                                    <div class="w-[9%] text-center text-sm font-bold text-emerald-600 truncate px-1 flex-shrink-0" title="${m.clientName || '미지정'}">${m.clientName || '-'}</div>
+                                    <div class="w-[13%] text-center text-xs text-slate-600 flex-shrink-0 leading-tight">${clientInfo}</div>
+                                    <div class="w-[9%] text-center flex-shrink-0"><span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 whitespace-nowrap">${m.type || '수시'}</span></div>
+                                    <div class="w-[30%] text-sm text-slate-800 font-medium truncate px-3 cursor-pointer hover:text-blue-600 flex-shrink-0 text-left" onclick="app.openMeetingModal('${m.id}')" title="${m.topic || ''}">${m.topic || '제목 없음'}</div>
+                                    <div class="w-[8%] text-center text-sm text-slate-500 truncate px-1 flex-shrink-0" title="${m.writer}">${m.writer || '-'}</div>
+                                    <div class="w-[12%] flex justify-center gap-1 flex-shrink-0">
                                         <button onclick="app.printMeeting('${m.id}')" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors" title="인쇄/PDF"><i data-lucide="printer" size="14"></i></button>
                                         <button onclick="app.openMeetingModal('${m.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="수정"><i data-lucide="edit" size="14"></i></button>
                                         <button onclick="app.deleteData('meetings', '${m.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
@@ -1807,36 +1820,88 @@
                 serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0);
             });
 
+            // [Debug] 디버깅용: 목록에 없는 서비스 추적을 위한 저장소
+            const unknownServices = new Set();
+
             state.logs.forEach(l => {
                 // [수정] start/end가 있을 때만 필터링 (없으면 전체 기간)
                 if (start && l.date < start) return;
                 if (end && l.date > end) return;
                 
                 let cid = l.clientId;
-                if (!dataMap[cid] && l.clientName) { const found = targetClients.find(c => c.name === l.clientName); if(found) cid = found.id; }
+                if (!dataMap[cid] && l.clientName) { 
+                    const found = targetClients.find(c => c.name === l.clientName); 
+                    if (found) cid = found.id; 
+                }
                 if (dataMap[cid]) {
                     const items = l.serviceItems || [{ serviceName: l.serviceName, category: l.serviceCategory }];
                     items.forEach(item => {
-                        let key = type === 'category' ? item.category : item.serviceName;
-                        if (!key && item.serviceName && type === 'category') { const s = state.services.find(svc => svc.name === item.serviceName); if(s) key = s.category; }
+                        // [수정] 통계 집계 로직 전면 개선 (상세/분류 모드 간 불일치 해결)
                         
-                        // [긴급 수정] 통계 화면에서의 과거 데이터 매핑 로직
-                        if (type !== 'category') {
-                            // "정서지원서비스(안전안부확인)"이 목록에 없고 "정서지원서비스"가 목록에 있다면 매핑
-                            if (item.serviceName === '정서지원서비스(안전안부확인)' && !dataMap[cid].counts[key] && dataMap[cid].counts['정서지원서비스'] !== undefined) {
-                                key = '정서지원서비스';
+                        // 1. 서비스 이름 매핑 (과거 데이터 호환성 확보)
+                        let effectiveName = item.serviceName;
+                        
+                        // 현재 서비스 목록에 해당 이름이 있는지 확인
+                        let exactMatch = state.services.find(s => s.name === effectiveName);
+                        
+                        if (!exactMatch) {
+                            // 목록에 없다면 대체 이름 확인 (과거 <-> 현재 매핑)
+                            if (effectiveName === '정서지원서비스(안전안부확인)') {
+                                if (state.services.some(s => s.name === '정서지원서비스')) effectiveName = '정서지원서비스';
+                            } else if (effectiveName === '정서지원서비스') {
+                                if (state.services.some(s => s.name === '정서지원서비스(안전안부확인)')) effectiveName = '정서지원서비스(안전안부확인)';
                             }
-                            // 반대의 경우 (안전안부확인으로 설정되어 있는데 옛날 데이터가 정서지원서비스인 경우)
-                            else if (item.serviceName === '정서지원서비스' && !dataMap[cid].counts[key] && dataMap[cid].counts['정서지원서비스(안전안부확인)'] !== undefined) {
-                                key = '정서지원서비스(안전안부확인)';
-                            }
+                            
+                            // 매핑된 이름으로 다시 검색
+                            exactMatch = state.services.find(s => s.name === effectiveName);
                         }
 
+                        // [Debug] 매핑 후에도 여전히 목록에 없는 서비스라면 기록
+                        if (!exactMatch) {
+                            const debugMsg = `[${l.date}] ${item.serviceName} (일지에 기록된 카테고리: ${item.category || '없음'}) - 대상자: ${l.clientName}`;
+                            unknownServices.add(debugMsg);
+                        }
+
+                        // 2. 집계 키(Key) 결정
+                        let key = '';
+                        
+                        // [중요] 합계 불일치 해결 핵심:
+                        // 상세별 보기와 분류별 보기의 기준을 "현재 서비스 목록에 존재하는지"로 통일합니다.
+                        // 목록에 없는 서비스(삭제됨 등)는 상세별 보기에서 표시할 방법이 없으므로, 분류별 보기에서도 제외하여 숫자를 맞춥니다.
+                        if (exactMatch) {
+                            if (type === 'category') {
+                                // [분류별 보기]
+                                // 매핑된 이름(effectiveName)을 이용해 현재 설정된 '카테고리'를 역추적합니다.
+                                key = exactMatch.category; 
+                            } else {
+                                // [상세별 보기]
+                                key = effectiveName; // 매핑된 서비스명 사용
+                            }
+                        } 
+                        // exactMatch가 없으면 key는 빈 문자열이 되어 집계에서 제외됨 (상세/분류 모두 동일하게 제외되어 합계 일치)
+
                         if (item.serviceName && item.serviceName.includes('정서지원')) dataMap[cid].emotionalCount++;
-                        if (key && dataMap[cid].counts[key] !== undefined) { dataMap[cid].counts[key]++; dataMap[cid].total++; }
+                        
+                        // 3. 카운트 증가 (유효한 컬럼인 경우에만)
+                        if (key && dataMap[cid].counts[key] !== undefined) { 
+                            dataMap[cid].counts[key]++; 
+                            dataMap[cid].total++; 
+                        }
                     });
                 }
             });
+
+            // [Debug] 콘솔에 미등록 서비스 출력
+            if (unknownServices.size > 0) {
+                console.warn(`%c======= [통계 집계 누락 서비스 알림 (${unknownServices.size}건)] =======`, 'color: red; font-weight: bold; font-size: 12px;');
+                console.warn("아래 서비스들은 '서비스 설정' 메뉴에 등록되지 않아 통계에서 제외되었습니다.");
+                console.warn("확인 후 '서비스 설정'에 해당 이름을 추가하거나, 일지 내용을 수정해주세요.");
+                // 날짜순 정렬하여 출력
+                const sorted = Array.from(unknownServices).sort();
+                sorted.forEach(s => console.log(`%c${s}`, 'color: #d97706')); // 오렌지색
+                console.warn("============================================================");
+            }
+
             const rows = Object.values(dataMap).filter(r => r.total >= 0).sort((a, b) => {
                 // [수정] 이름이 '-'인 데이터(기타 사업)는 항상 맨 뒤로 정렬
                 if (a.name === '-' && b.name !== '-') return 1;
@@ -1889,10 +1954,10 @@
             statsYearOptions.unshift(`<option value="">연도</option>`);
 
             return `
-                <div class="flex flex-col animate-fade-in p-1 h-[calc(100vh-9rem)]">
+                <div class="space-y-6 animate-fade-in p-1">
                     <!-- [수정] 제목 옆에 로딩 태그 추가 -->
-                    <h2 class="text-2xl font-bold text-slate-800 flex items-center flex-shrink-0 mb-4">서비스 제공 통계 ${getLoadingTag()}</h2>
-                    <div class="sticky top-0 z-50 bg-slate-50 pb-2 shadow-sm -mx-1 px-1 flex-shrink-0 mb-2">
+                    <h2 class="text-2xl font-bold text-slate-800 flex items-center">서비스 제공 통계 ${getLoadingTag()}</h2>
+                    <div class="sticky top-0 z-50 bg-slate-50 pt-2 pb-2 shadow-sm -mx-1 px-1">
                         <div class="flex flex-col sm:flex-row flex-wrap gap-2 items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                             <div class="flex bg-slate-100 p-1 rounded w-full sm:w-auto justify-center">
                                 <button onclick="app.setFilter('stats','type','category')" class="px-3 py-1 rounded text-sm flex-1 sm:flex-none ${type==='category'?'bg-white shadow':''}">분류별</button>
@@ -1924,7 +1989,7 @@
                             <button onclick="app.downloadStatsExcel()" class="w-full sm:w-auto bg-emerald-600 text-white p-2 rounded flex justify-center items-center flex-shrink-0"><i data-lucide="download" size="20"></i></button>
                         </div>
                     </div>
-                    <div id="stats-list-container" class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-auto flex-1 min-h-0 custom-scrollbar">
+                    <div id="stats-list-container" class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-auto max-h-[600px]">
                         <table class="w-auto text-sm text-left border-collapse whitespace-nowrap">
                             <thead class="sticky-header bg-slate-50 text-slate-600 font-semibold z-20 shadow-sm" style="position: sticky; top: 0; z-index: 40;">${theadHTML}</thead>
                             <tbody class="divide-y divide-slate-100">
