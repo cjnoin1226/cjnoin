@@ -9255,11 +9255,39 @@
                     if (dataMap[cid]) {
                         const items = l.serviceItems || [{ serviceName: l.serviceName, category: l.serviceCategory }];
                         items.forEach(item => {
-                            let key = type === 'category' ? item.category : item.serviceName;
-                            if (!key && item.serviceName && type === 'category') { 
-                                const s = state.services.find(svc => svc.name === item.serviceName); 
-                                if(s) key = s.category; 
+                            // [수정] 엑셀 다운로드에도 화면(renderStatistics)과 동일한 집계 로직 적용 (이름 매핑 및 유효성 검사)
+                            
+                            // 1. 서비스 이름 매핑 (과거 데이터 호환성 확보)
+                            let effectiveName = item.serviceName;
+                            
+                            // 현재 서비스 목록에 해당 이름이 있는지 확인
+                            let exactMatch = state.services.find(s => s.name === effectiveName);
+                            
+                            if (!exactMatch) {
+                                // 목록에 없다면 대체 이름 확인 (과거 <-> 현재 매핑)
+                                if (effectiveName === '정서지원서비스(안전안부확인)') {
+                                    if (state.services.some(s => s.name === '정서지원서비스')) effectiveName = '정서지원서비스';
+                                } else if (effectiveName === '정서지원서비스') {
+                                    if (state.services.some(s => s.name === '정서지원서비스(안전안부확인)')) effectiveName = '정서지원서비스(안전안부확인)';
+                                }
+                                // 매핑된 이름으로 다시 검색
+                                exactMatch = state.services.find(s => s.name === effectiveName);
                             }
+
+                            // 2. 집계 키(Key) 결정
+                            let key = '';
+                            
+                            // [중요] 화면과 엑셀의 합계 불일치 해결:
+                            // 화면 렌더링 로직과 동일하게 "현재 서비스 목록에 존재하는지"를 기준으로 카운트합니다.
+                            if (exactMatch) {
+                                if (type === 'category') {
+                                    key = exactMatch.category; // 현재 설정된 카테고리 사용
+                                } else {
+                                    key = effectiveName; // 매핑된 서비스명 사용
+                                }
+                            }
+                            // exactMatch가 없으면 key는 빈 문자열이 되어 집계에서 제외됨
+
                             if (key && dataMap[cid].counts[key] !== undefined) { 
                                 dataMap[cid].counts[key]++; 
                                 dataMap[cid].total++; 
