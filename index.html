@@ -469,7 +469,7 @@
                     region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' 
                 },
                 // [수정] log 필터에 contentSearch(내용 검색) 추가
-                log: { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', region: [] },
+                log: { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', detailNote: '', region: [] },
                 // [수정] 회의록 필터 확장 (구분, 대상자, 작성자 추가)
                 meeting: {
                     start: (() => { const d = new Date(); return `${d.getFullYear()}-01-01`; })(),
@@ -508,11 +508,11 @@
 
         function getFilteredLogs() {
             // [수정] contentSearch 구조 분해 할당 추가
-            const { start, end, search, contentSearch, provider, category, service, region } = state.filters.log;
+            const { start, end, search, contentSearch, provider, category, service, detailNote, region } = state.filters.log;
             
             // [수정] 사용자가 설정한 필터가 하나라도 있는지 확인 (contentSearch 포함)
             // start, end, search, contentSearch, provider, category, service는 문자열, region은 배열
-            const hasActiveFilter = start || end || search || contentSearch || provider || category || service || region.length > 0;
+            const hasActiveFilter = start || end || search || contentSearch || provider || category || service || detailNote || region.length > 0;
             const currentYearStr = String(new Date().getFullYear());
 
             const filtered = state.logs.filter(l => {
@@ -532,6 +532,7 @@
                        (!provider || (l.provider && l.provider.includes(provider))) && 
                        (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
                        (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service))) &&
+                       (!detailNote || (l.serviceItems && l.serviceItems.some(i => i.detailNote && i.detailNote.includes(detailNote)))) &&
                        (region.length === 0 || region.includes(clientRegion));
             });
             return filtered.sort((a, b) => {
@@ -1121,7 +1122,7 @@
 
             const categories = [...new Set(state.services.map(s => s.category))];
             // [수정] contentSearch 변수 추가
-            const { category, service, start, end, search, contentSearch, provider, region } = state.filters.log; 
+            const { category, service, detailNote, start, end, search, contentSearch, provider, region } = state.filters.log; 
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
             const allSelected = visibleLogs.length > 0 && visibleLogs.every(l => state.ui.selectedLogIds.has(l.id));
 
@@ -1242,6 +1243,7 @@
                                 <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
                                     <select class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
                                     <select class="input-field h-9 py-1 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
+                                    <input id="log-search-detailnote" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1" placeholder="메모 (Enter)" value="${detailNote || ''}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','detailNote',this.value)" oninput="if(this.value === '') app.setFilter('log','detailNote','')">
                                 </div>
                                 <!-- [수정] 초기화 버튼에 app.render() 추가하여 분할 화면에서 갱신 보장 -->
                                 <button onmousedown="event.stopPropagation()" onclick="app.resetFilters('log'); app.render()" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 h-9 px-2 hover:bg-slate-50 rounded transition-colors" title="초기화"><i data-lucide="refresh-cw" size="14"></i></button>
@@ -2286,7 +2288,7 @@
                     state.filters.client = { status: '이용', level: '', economicStatus: '', duplicateService: '', ictStatus: '', region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' };
                     state.ui.selectedClientIds.clear();
                 } else if (t === 'logs') {
-                    state.filters.log = { start: '', end: '', search: '', provider: '', category: '', service: '', region: [] };
+                    state.filters.log = { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', detailNote: '', region: [] };
                     state.ui.logPage = 1;
                     state.ui.selectedLogIds.clear();
                 } else if (t === 'meeting') {
@@ -2817,7 +2819,7 @@
                     if(state.viewMode==='single') updateTabContent('performance');
                 } else if (section === 'log') {
                     // [수정] contentSearch 초기화 추가
-                    state.filters.log = { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', region: [] };
+                    state.filters.log = { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', detailNote: '', region: [] };
                     state.ui.logRegionDropdownOpen = false;
                     // [신규] 일지 필터 초기화 시 페이지 1로 설정
                     state.ui.logPage = 1;
