@@ -8766,10 +8766,14 @@
                 const periodText = (startDate && endDate) ? `${startDate} ~ ${endDate}` : "-";
 
                 const commonCss = `
-                    @page { margin: 0; size: A4 portrait; } /* 브라우저 기본 여백 제거 */
+                    /* [수정] 페이지 여백 설정 (모든 페이지에 여백 적용하여 상단 붙음 방지) */
+                    @page { 
+                        size: A4 portrait; 
+                        margin: 15mm 10mm 15mm 20mm; /* 상(15mm) 우(10mm) 하(15mm) 좌(20mm-펀치구멍용) */
+                    } 
                     body { 
                         font-family: 'Malgun Gothic', 'Dotum', sans-serif; 
-                        padding: 20px 0.5cm 20px 2cm; 
+                        padding: 0; /* @page 마진을 사용하므로 body 패딩은 제거 */
                         color: #000; 
                         font-size: 11px;
                         -webkit-print-color-adjust: exact; /* 크롬 등에서 배경색 인쇄 강제 */
@@ -8787,6 +8791,10 @@
                     table.log-table th, table.log-table td { border: 1px solid #888; padding: 6px 4px; word-break: break-all; vertical-align: middle; font-size: 11px; }
                     table.log-table th { background-color: #f3f4f6 !important; text-align: center; font-weight: bold; height: 35px; border-bottom: 2px solid #666; color: #111; }
                     
+                    /* [추가] 페이지 넘김 시 테이블 헤더 반복 및 잘림 방지 */
+                    thead { display: table-header-group; }
+                    tr { page-break-inside: avoid; }
+
                     .text-center { text-align: center; }
                     .text-left { text-align: left; }
                     
@@ -9597,17 +9605,41 @@
         function closeDialog() { document.getElementById('dialog-container').classList.add('hidden'); }
         
         function renderSvcRow(item) {
+            // [수정] 카테고리 목록 생성 (저장된 카테고리가 현재 목록에 없으면 강제 추가)
             const cats = [...new Set(state.services.map(s => s.category))];
+            if (item.category && !cats.includes(item.category)) {
+                cats.push(item.category);
+            }
+
             const div = document.createElement('div');
             div.className = "svc-row flex flex-col sm:flex-row gap-2 mb-2 p-2 border rounded bg-white sm:bg-transparent sm:border-0";
             div.id = `row-${item.id || Date.now()}`;
             div.innerHTML = `
-                <select class="cat-sel input-field w-full sm:w-1/4" onchange="app.updateOpts(this)"><option value="">분류</option>${cats.map(c=>`<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}</select>
-                <select class="svc-sel input-field w-full sm:w-1/3"><option value="${item.serviceName}">${item.serviceName||'선택'}</option></select>
+                <select class="cat-sel input-field w-full sm:w-1/4" onchange="app.updateOpts(this)">
+                    <option value="">분류</option>
+                    ${cats.map(c=>`<option value="${c}" ${item.category===c?'selected':''}>${c}</option>`).join('')}
+                </select>
+                <select class="svc-sel input-field w-full sm:w-1/3"><option value="">선택</option></select>
                 <div class="flex w-full sm:flex-1 gap-2"><input class="det-inp input-field flex-1" placeholder="메모" value="${item.detailNote||''}"><button type="button" onclick="app.removeSvcRow('${div.id.split('-')[1]}')" class="text-red-400 p-1"><i data-lucide="minus-circle"></i></button></div>
             `;
             document.getElementById('svc-container').appendChild(div);
-            if(item.category) { const sel = div.querySelector('.svc-sel'); const svcs = state.services.filter(s => s.category === item.category); sel.innerHTML = svcs.map(s => `<option value="${s.name}" ${s.name===item.serviceName?'selected':''}>${s.name}</option>`).join(''); }
+            
+            // [수정] 서비스명 옵션 처리 (저장된 서비스명이 목록에 없으면 강제 추가)
+            if(item.category) { 
+                const sel = div.querySelector('.svc-sel'); 
+                const svcs = state.services.filter(s => s.category === item.category); 
+                
+                // 현재 유효한 서비스 목록 옵션 생성
+                let opts = svcs.map(s => `<option value="${s.name}" ${s.name===item.serviceName?'selected':''}>${s.name}</option>`).join('');
+                
+                // 저장된 서비스명이 있고, 유효 목록에 없다면 추가
+                const exists = svcs.some(s => s.name === item.serviceName);
+                if (item.serviceName && !exists) {
+                    opts = `<option value="${item.serviceName}" selected>${item.serviceName} (미등록)</option>` + opts;
+                }
+                
+                sel.innerHTML = opts; 
+            }
             if(window.lucide) lucide.createIcons();
         }
 
