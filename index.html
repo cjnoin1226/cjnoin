@@ -2917,8 +2917,13 @@
                 
                 state.isBatching = true; // [일괄작업] 렌더링 중지
                 try {
-                    const promises = Array.from(state.ui.selectedClientIds).map(id => updateDoc(doc(db, "clients", id), updateData));
-                    await Promise.all(promises);
+                    // [수정] Promise.all 방식에서 writeBatch 방식으로 변경 (오류 방지)
+                    const batch = writeBatch(db);
+                    Array.from(state.ui.selectedClientIds).forEach(id => {
+                        batch.update(doc(db, "clients", id), updateData);
+                    });
+                    await batch.commit();
+                    
                     alert(`${state.ui.selectedClientIds.size}명의 대상자 정보가 수정되었습니다.`);
                     state.ui.selectedClientIds.clear();
                     closeModal();
@@ -3563,8 +3568,13 @@
             executeDeleteSelectedClients: async () => { 
                 state.isBatching = true; // [일괄작업]
                 try { 
-                    const promises = Array.from(state.ui.selectedClientIds).map(id => deleteDoc(doc(db, "clients", id))); 
-                    await Promise.all(promises); 
+                    // [수정] Promise.all 방식에서 writeBatch 방식으로 변경 (오류 방지)
+                    const batch = writeBatch(db);
+                    Array.from(state.ui.selectedClientIds).forEach(id => {
+                        batch.delete(doc(db, "clients", id));
+                    });
+                    await batch.commit();
+                    
                     state.ui.selectedClientIds.clear(); 
                     closeDialog(); 
                 } catch (err) { 
@@ -3628,8 +3638,13 @@
             executeDeleteSelectedMeetings: async () => {
                 state.isBatching = true; // [일괄작업]
                 try {
-                    const promises = Array.from(state.ui.selectedMeetingIds).map(id => deleteDoc(doc(db, "meetings", id)));
-                    await Promise.all(promises);
+                    // [수정] Promise.all 방식에서 writeBatch 방식으로 변경 (오류 방지)
+                    const batch = writeBatch(db);
+                    Array.from(state.ui.selectedMeetingIds).forEach(id => {
+                        batch.delete(doc(db, "meetings", id));
+                    });
+                    await batch.commit();
+                    
                     state.ui.selectedMeetingIds.clear();
                     closeDialog();
                 } catch (err) {
@@ -8553,8 +8568,12 @@
                 
                 state.isBatching = true; 
                 try {
-                    const promises = Array.from(state.ui.selectedLogIds).map(id => updateDoc(doc(db, "logs", id), updateData));
-                    await Promise.all(promises);
+                    // [수정] Promise.all 방식에서 writeBatch 방식으로 변경 (오류 방지)
+                    const batch = writeBatch(db);
+                    Array.from(state.ui.selectedLogIds).forEach(id => {
+                        batch.update(doc(db, "logs", id), updateData);
+                    });
+                    await batch.commit();
                     
                     // [신규] 연도 갱신을 위한 집합
                     const affectedYears = new Set();
@@ -8587,8 +8606,12 @@
             executeDeleteSelectedLogs: async () => { 
                 state.isBatching = true; 
                 try { 
-                    const promises = Array.from(state.ui.selectedLogIds).map(id => deleteDoc(doc(db, "logs", id))); 
-                    await Promise.all(promises); 
+                    // [수정] Promise.all 방식에서 writeBatch 방식으로 변경 (오류 방지)
+                    const batch = writeBatch(db);
+                    Array.from(state.ui.selectedLogIds).forEach(id => {
+                        batch.delete(doc(db, "logs", id));
+                    });
+                    await batch.commit();
                     
                     // [최적화] 로컬 상태 즉시 삭제 (연도 추적 및 재로딩 제거)
                     state.logs = state.logs.filter(l => !state.ui.selectedLogIds.has(l.id));
