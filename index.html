@@ -2102,6 +2102,23 @@
         }
 
         window.app = {
+            // [신규] 확인 버튼을 누르지 않아도 2초 뒤 자동으로 사라지는 팝업 알림 (토스트)
+            showToast: (msg) => {
+                const t = document.createElement('div');
+                t.className = 'fixed top-6 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-5 py-3 rounded-xl shadow-2xl z-[150] font-bold text-sm flex items-center gap-2 transition-all duration-300 opacity-0 -translate-y-2 pointer-events-none';
+                t.innerHTML = `<i data-lucide="check-circle" class="text-emerald-400" size="18"></i> <span>${msg}</span>`;
+                document.body.appendChild(t);
+                if(window.lucide) lucide.createIcons();
+                
+                // 스르륵 나타나는 애니메이션
+                requestAnimationFrame(() => t.classList.remove('opacity-0', '-translate-y-2'));
+                
+                // 2초 뒤 사라짐
+                setTimeout(() => { 
+                    t.classList.add('opacity-0', '-translate-y-2'); 
+                    setTimeout(() => t.remove(), 300); 
+                }, 2000);
+            },
             setTab: (t, updateHistory = true) => { 
                 // [신규] 탭 전환 전, 현재 탭의 스크롤 위치 저장
                 if (state.viewMode === 'single') {
@@ -8431,7 +8448,7 @@
                         // 사용자를 기다리게 하지 않고 백그라운드에서 처리합니다.
                         app.refreshYears(Array.from(affectedYears)).catch(e => console.error(e));
 
-                        alert("일지가 수정되었습니다.");
+                        app.showToast("일지가 수정되었습니다.");
                     } else {
                         // 작성 모드 (다중 건 생성 가능)
                         const batchPromises = window.currentLogClients.map(async (clientName) => {
@@ -8456,7 +8473,7 @@
                         // 서버 데이터 동기화 (비동기 전환 - await 제거)
                         app.refreshYears(Array.from(affectedYears)).catch(e => console.error(e));
                         
-                        alert(`${window.currentLogClients.length}건의 일지가 저장되었습니다.`);
+                        app.showToast(`${window.currentLogClients.length}건의 일지가 저장되었습니다.`);
                     }
                     
                     // 6. 목록 재정렬 (날짜순) - 로컬 데이터 기반으로 즉시 정렬
@@ -8589,7 +8606,7 @@
                     });
                     state.logs.sort((a, b) => b.date.localeCompare(a.date)); // 날짜 변경 가능성 있으므로 재정렬
 
-                    alert(`${state.ui.selectedLogIds.size}건의 일지가 수정되었습니다.`);
+                    app.showToast(`${state.ui.selectedLogIds.size}건의 일지가 수정되었습니다.`);
                     state.ui.selectedLogIds.clear();
                     closeModal();
 
