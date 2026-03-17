@@ -2206,46 +2206,47 @@
                 setVal('cm-re-plan', pastData.plan);
 
                 // 6. 결과 체크박스
-                setCheckboxes('cm-re-result-chk', pastData.result);
-                setVal('cm-re-result', pastData.result);
+            setCheckboxes('cm-re-result-chk', pastData.result);
+            setVal('cm-re-result', pastData.result);
 
-                // 7. 가족사항 테이블 렌더링
-                const famTbody = document.getElementById('cm-re-family-tbody');
-                const famInput = document.getElementById('cm-re-family');
-                if (famTbody && famInput) {
-                    let famData = [];
-                    try { famData = JSON.parse(pastData.family); if (!Array.isArray(famData)) famData = []; } 
-                    catch(e) { if (pastData.family) famData = [{ note: pastData.family }]; }
-                    
-                    while (famData.length < 3) famData.push({});
-                    
-                    const updateScript = "const tbody=this.closest('tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const data=rows.map(tr=>({rel:tr.querySelector('.r-rel').value, name:tr.querySelector('.r-name').value, birth:tr.querySelector('.r-birth').value, job:tr.querySelector('.r-job').value, relg:tr.querySelector('.r-relg').value, co:tr.querySelector('.r-co').value, note:tr.querySelector('.r-note').value})); document.getElementById('cm-re-family').value=JSON.stringify(data);";
+            // 7. 가족사항 테이블 렌더링
+            const famTbody = document.getElementById('cm-re-family-tbody');
+            if (famTbody) {
+                let famData = [];
+                try { famData = JSON.parse(pastData.family); if (!Array.isArray(famData)) famData = []; } 
+                catch(e) { if (pastData.family) famData = [{ note: pastData.family }]; }
+                
+                while (famData.length < 3) famData.push({});
+                
+                const updateScript = "const tbody=this.closest('tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const data=rows.map(tr=>({rel:tr.querySelector('.r-rel').value, name:tr.querySelector('.r-name').value, birth:tr.querySelector('.r-birth').value, job:tr.querySelector('.r-job').value, relg:tr.querySelector('.r-relg').value, co:tr.querySelector('.r-co').value, note:tr.querySelector('.r-note').value})); document.getElementById('cm-re-family').value=JSON.stringify(data);";
 
-                    famTbody.innerHTML = famData.map(f => `
-                        <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-rel w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.rel || ''}" oninput="${updateScript}"></td>
-                            <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-name w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.name || ''}" oninput="${updateScript}"></td>
-                            <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-birth w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.birth || ''}" placeholder="YYYY-MM-DD" oninput="${updateScript}"></td>
-                            <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-job w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.job || ''}" oninput="${updateScript}"></td>
-                            <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-relg w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.relg || ''}" oninput="${updateScript}"></td>
-                            <td class="p-0 border-r border-b border-slate-200 last:border-b-0">
-                                <select class="r-co w-full p-1.5 text-center outline-none bg-transparent focus:bg-white cursor-pointer transition-colors" onchange="${updateScript}">
-                                    <option value=""></option>
-                                    <option value="O" ${f.co === 'O' ? 'selected' : ''}>O</option>
-                                    <option value="X" ${f.co === 'X' ? 'selected' : ''}>X</option>
-                                </select>
-                            </td>
-                            <td class="p-0 border-b border-slate-200 last:border-b-0"><input type="text" class="r-note w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.note || ''}" oninput="${updateScript}"></td>
-                        </tr>
-                    `).join('');
-                    famInput.value = JSON.stringify(famData);
-                }
+                const rowsHtml = famData.map(f => `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-rel w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.rel || ''}" oninput="${updateScript}"></td>
+                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-name w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.name || ''}" oninput="${updateScript}"></td>
+                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-birth w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.birth || ''}" placeholder="YYYY-MM-DD" oninput="${updateScript}"></td>
+                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-job w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.job || ''}" oninput="${updateScript}"></td>
+                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-relg w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.relg || ''}" oninput="${updateScript}"></td>
+                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0">
+                            <select class="r-co w-full p-1.5 text-center outline-none bg-transparent focus:bg-white cursor-pointer transition-colors" onchange="${updateScript}">
+                                <option value=""></option>
+                                <option value="O" ${f.co === 'O' ? 'selected' : ''}>O</option>
+                                <option value="X" ${f.co === 'X' ? 'selected' : ''}>X</option>
+                            </select>
+                        </td>
+                        <td class="p-0 border-b border-slate-200 last:border-b-0"><input type="text" class="r-note w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.note || ''}" oninput="${updateScript}"></td>
+                    </tr>
+                `).join('');
+                
+                const famVal = JSON.stringify(famData).replace(/'/g, "&#39;");
+                famTbody.innerHTML = rowsHtml + `<input type="hidden" id="cm-re-family" value='${famVal}'>`;
+            }
 
-                app.showToast(`${targetYear}년 재사정 기록을 성공적으로 불러왔습니다.`);
-            },
+            app.showToast(`${targetYear}년 재사정 기록을 성공적으로 불러왔습니다.`);
+        },
 
-            // [신규] 확인 버튼을 누르지 않아도 2초 뒤 자동으로 사라지는 팝업 알림 (토스트)
-            showToast: (msg) => {
+        // [신규] 확인 버튼을 누르지 않아도 2초 뒤 자동으로 사라지는 팝업 알림 (토스트)
+        showToast: (msg) => {
                 const t = document.createElement('div');
                 t.className = 'fixed top-6 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-5 py-3 rounded-xl shadow-2xl z-[150] font-bold text-sm flex items-center gap-2 transition-all duration-300 opacity-0 -translate-y-2 pointer-events-none';
                 t.innerHTML = `<i data-lucide="check-circle" class="text-emerald-400" size="18"></i> <span>${msg}</span>`;
