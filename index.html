@@ -7334,6 +7334,9 @@
                         .inner-tbl tr:last-child th, .inner-tbl tr:last-child td { border-bottom: none; }
                         /* [수정] 내부 헤더 우측 선도 연하게(#bbb) 변경 */
                         .inner-tbl th { background-color: #f9f9f9; border-right: 1px solid #bbb; width: 50px; text-align: center; font-weight: bold; }
+                        
+                        /* [신규] 구역 단위 잘림 방지용 클래스 (페이지 중간에 잘리는 것 방지) */
+                        .keep-together { page-break-inside: avoid; break-inside: avoid; }
                     </style>
                 `;
 
@@ -7361,9 +7364,10 @@
                     const provReasons = getVal(cm, 'initial.provision.reasons') || [];
 
                     htmlContent = `
-                        <!-- [수정] 제목과 결재란 겹침 현상 해결: 중앙 고정을 해제하고 남은 공간 안에서만 정렬되게 하여 겹침 방지 -->
-                        <div style="display: flex; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
-                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center; padding-left: 80px;">초 기 면 접 지</h1>
+                        <!-- [수정] 제목과 결재란 겹침 방지: 좌측 여백을 줄여 자연스럽게 왼쪽으로 당김 -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
+                            <div style="width: 40px; flex-shrink: 0;"></div> <!-- 좌측 여백 축소 -->
+                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">초 기 면 접 지</h1>
                             <div style="width: 180px; flex-shrink: 0;">
                                 ${signBoxHtml}
                             </div>
@@ -7583,9 +7587,10 @@
                     }).join('');
 
                     htmlContent = `
-                        <!-- [수정] 제목과 결재란 겹침 현상 해결: 중앙 고정을 해제하고 남은 공간 안에서만 정렬되게 하여 겹침 방지 -->
-                        <div style="display: flex; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
-                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center; padding-left: 80px;">사 정 기 록 지</h1>
+                        <!-- [수정] 제목과 결재란 겹침 방지: 좌측 여백을 줄여 자연스럽게 왼쪽으로 당김 -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
+                            <div style="width: 40px; flex-shrink: 0;"></div> <!-- 좌측 여백 축소 -->
+                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">사 정 기 록 지</h1>
                             <div style="width: 180px; flex-shrink: 0;">
                                 ${signBoxHtml}
                             </div>
@@ -7780,9 +7785,10 @@
                     `).join('') || '<tr><td colspan="7" class="text-center" style="color:#888;">입력된 가족사항이 없습니다.</td></tr>';
 
                     htmlContent = `
-                        <!-- [수정] 제목과 결재란 겹침 현상 해결: 가로 공간에 맞춰 자연스럽게 왼쪽으로 밀림 -->
-                        <div style="display: flex; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
-                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center; padding-left: 80px;">재 사 정 기 록 지 (${year}년)</h1>
+                        <!-- [수정] 제목과 결재란 겹침 방지: 좌측 여백을 줄여 자연스럽게 왼쪽으로 당김 -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
+                            <div style="width: 40px; flex-shrink: 0;"></div> <!-- 좌측 여백 축소 -->
+                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">재 사 정 기 록 지 (${year}년)</h1>
                             <div style="width: 180px; flex-shrink: 0;">
                                 ${signBoxHtml}
                             </div>
@@ -8006,9 +8012,10 @@
                     }).join('') : '<tr><td colspan="4" class="text-center">내용 없음</td></tr>';
 
                     htmlContent = `
-                        <!-- [수정] 제목과 결재란 겹침 현상 해결: 중앙 고정을 해제하고 남은 공간 안에서만 정렬되게 하여 겹침 방지 -->
-                        <div style="display: flex; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
-                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center; padding-left: 80px;">서비스 만족도 및 욕구조사 (${year}년)</h1>
+                        <!-- [수정] 만족도조사 제목 텍스트 변경 및 좌측 여백을 줄여 자연스럽게 왼쪽으로 당김 -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
+                            <div style="width: 40px; flex-shrink: 0;"></div> <!-- 좌측 여백 축소 -->
+                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">만족도 조사 및 모니터링(${year}년)</h1>
                             <div style="width: 180px; flex-shrink: 0;">
                                 ${signBoxHtml}
                             </div>
@@ -8021,47 +8028,57 @@
                             <tr><th>조사자</th><td>${getVal(cm, 'satisfaction.surveyor')}</td><th>방법</th><td>${getVal(cm, 'satisfaction.method')}</td></tr>
                         </table>
 
-                        <h2>1. 서비스 만족도</h2>
-                        <table>
-                            <!-- [수정] 컬럼 너비 비율 재조정 (목표와 실행내용 공간 확대, 잘림 방지) -->
-                            <colgroup>
-                                <col style="width: 22%;">
-                                <col style="width: 43%;">
-                                <col style="width: 15%;">
-                                <col style="width: 20%;">
-                            </colgroup>
-                            <tr class="bg-gray"><th>목표</th><th>실행내용</th><th>이용자 만족도</th><th>담당자 평가</th></tr>
-                            ${goalRows}
-                        </table>
+                        <!-- [수정] 잘림 방지를 위해 keep-together 클래스 적용 -->
+                        <div class="keep-together">
+                            <h2>1. 서비스 만족도</h2>
+                            <table>
+                                <!-- [수정] 컬럼 너비 비율 재조정 (목표와 실행내용 공간 확대, 잘림 방지) -->
+                                <colgroup>
+                                    <col style="width: 22%;">
+                                    <col style="width: 43%;">
+                                    <col style="width: 15%;">
+                                    <col style="width: 20%;">
+                                </colgroup>
+                                <tr class="bg-gray"><th>목표</th><th>실행내용</th><th>이용자 만족도</th><th>담당자 평가</th></tr>
+                                ${goalRows}
+                            </table>
+                        </div>
 
-                        <h2>2. 전반적 만족도</h2>
-                        <table>
-                            <tr><th width="70%">문항</th><th>점수(5점만점)</th></tr>
-                            <tr><td>1. 시간 준수</td><td class="text-center">${getVal(cm, 'satisfaction.q1')}</td></tr>
-                            <tr><td>2. 친절성</td><td class="text-center">${getVal(cm, 'satisfaction.q2')}</td></tr>
-                            <tr><td>3. 정보 제공</td><td class="text-center">${getVal(cm, 'satisfaction.q3')}</td></tr>
-                            <tr><td>4. 서비스 효과</td><td class="text-center">${getVal(cm, 'satisfaction.q4')}</td></tr>
-                            <tr><td>5. 전반적 만족도</td><td class="text-center">${getVal(cm, 'satisfaction.q5')}</td></tr>
-                        </table>
+                        <!-- [수정] 잘림 방지를 위해 keep-together 클래스 적용 -->
+                        <div class="keep-together">
+                            <h2>2. 전반적 만족도</h2>
+                            <table>
+                                <tr><th width="80%">문항</th><th>점수(5점만점)</th></tr>
+                                <tr><td>1. 담당 직원은 약속 시간을 잘 지켰습니까? (시간 준수)</td><td class="text-center">${getVal(cm, 'satisfaction.q1')}</td></tr>
+                                <tr><td>2. 담당 직원은 친절하고 예의 바르게 대하였습니까? (친절성)</td><td class="text-center">${getVal(cm, 'satisfaction.q2')}</td></tr>
+                                <tr><td>3. 서비스 내용과 절차에 대해 충분히 설명을 들으셨습니까? (정보 제공)</td><td class="text-center">${getVal(cm, 'satisfaction.q3')}</td></tr>
+                                <tr><td>4. 제공된 서비스가 귀하의 어려움을 해결하는 데 도움이 되었습니까? (서비스 효과)</td><td class="text-center">${getVal(cm, 'satisfaction.q4')}</td></tr>
+                                <tr><td>5. 전반적으로 제공된 서비스에 만족하십니까? (전반적 만족도)</td><td class="text-center">${getVal(cm, 'satisfaction.q5')}</td></tr>
+                            </table>
+                        </div>
 
-                        <h2>3. 모니터링 및 종합계획</h2>
-                        <table>
-                            <tr><th width="20%">기능상태 변화</th><td>${getVal(cm, 'satisfaction.monitor.funcChange')}</td></tr>
-                            <tr><th width="20%">욕구 변화</th><td>${getVal(cm, 'satisfaction.monitor.needsChange')}</td></tr>
-                            <tr><th width="20%">결과 반영</th><td>
-                                ${renderChk(getVal(cm, 'satisfaction.monitorResult.maintain'))} 유지 &nbsp;
-                                ${renderChk(getVal(cm, 'satisfaction.monitorResult.change'))} 변경 &nbsp;
-                                ${renderChk(getVal(cm, 'satisfaction.monitorResult.revisit'))} 재상담
-                            </td></tr>
-                            <tr><th width="20%" height="80">종합의견</th><td>${(getVal(cm, 'satisfaction.comprehensivePlan')||'').replace(/\n/g, '<br>')}</td></tr>
-                        </table>
+                        <!-- [수정] 잘림 방지를 위해 keep-together 클래스 적용 -->
+                        <div class="keep-together">
+                            <h2>3. 모니터링 및 종합계획</h2>
+                            <table>
+                                <tr><th width="20%">기능상태 변화</th><td>${getVal(cm, 'satisfaction.monitor.funcChange')}</td></tr>
+                                <tr><th width="20%">욕구 변화</th><td>${getVal(cm, 'satisfaction.monitor.needsChange')}</td></tr>
+                                <tr><th width="20%">결과 반영</th><td>
+                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.maintain'))} 유지 &nbsp;
+                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.change'))} 변경 &nbsp;
+                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.revisit'))} 재상담
+                                </td></tr>
+                                <tr><th width="20%" height="80">종합의견</th><td>${(getVal(cm, 'satisfaction.comprehensivePlan')||'').replace(/\n/g, '<br>')}</td></tr>
+                            </table>
+                        </div>
                     `;
                 } else if (docType === 'evaluation') {
                     docTitle = `사례평가서(${year}년)`;
                     htmlContent = `
-                        <!-- [수정] 제목과 결재란 겹침 현상 해결: 중앙 고정을 해제하고 남은 공간 안에서만 정렬되게 하여 겹침 방지 -->
-                        <div style="display: flex; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
-                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center; padding-left: 80px;">사 례 평 가 서 (${year}년)</h1>
+                        <!-- [수정] 제목과 결재란 겹침 방지: 좌측 여백을 줄여 자연스럽게 왼쪽으로 당김 -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
+                            <div style="width: 40px; flex-shrink: 0;"></div> <!-- 좌측 여백 축소 -->
+                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">사 례 평 가 서 (${year}년)</h1>
                             <div style="width: 180px; flex-shrink: 0;">
                                 ${signBoxHtml}
                             </div>
