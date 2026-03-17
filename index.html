@@ -7275,7 +7275,8 @@
                             -webkit-print-color-adjust: exact; 
                             print-color-adjust: exact; 
                         }
-                        h1 { text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px; text-decoration: underline; letter-spacing: 2px; }
+                        /* [수정] h1 태그 줄바꿈 방지(white-space: nowrap) 적용 및 여백 설정 변경 */
+                        h1 { text-align: center; font-size: 24px; font-weight: bold; margin: 0; text-decoration: underline; letter-spacing: 2px; white-space: nowrap; }
                         
                         /* 제목이 페이지 하단에 혼자 남지 않도록 설정 */
                         h2 { 
@@ -7360,9 +7361,12 @@
                     const provReasons = getVal(cm, 'initial.provision.reasons') || [];
 
                     htmlContent = `
-                        <h1>초 기 면 접 지</h1>
-                        ${signBoxHtml}
-                        <div class="clearfix"></div>
+                        <!-- [수정] 절대 위치를 활용하여 중앙 타이틀과 우측 결재란이 한 줄에 깔끔하게 배치되도록 개선 -->
+                        <div style="position: relative; min-height: 90px; margin-bottom: 10px;">
+                            ${signBoxHtml}
+                            <h1 style="position: absolute; left: 50%; bottom: 25px; transform: translateX(-50%);">초 기 면 접 지</h1>
+                            <div class="clearfix"></div>
+                        </div>
 
                         <table>
                             <col width="15%"><col width="35%"><col width="15%"><col width="35%">
@@ -7577,9 +7581,12 @@
                     }).join('');
 
                     htmlContent = `
-                        <h1>사 정 기 록 지</h1>
-                        ${signBoxHtml}
-                        <div class="clearfix"></div>
+                        <!-- [수정] 절대 위치를 활용하여 중앙 타이틀과 우측 결재란이 한 줄에 깔끔하게 배치되도록 개선 -->
+                        <div style="position: relative; min-height: 90px; margin-bottom: 10px;">
+                            ${signBoxHtml}
+                            <h1 style="position: absolute; left: 50%; bottom: 25px; transform: translateX(-50%);">사 정 기 록 지</h1>
+                            <div class="clearfix"></div>
+                        </div>
 
                         <table>
                             <col width="15%"><col width="35%"><col width="15%"><col width="35%">
@@ -7769,9 +7776,12 @@
                     `).join('') || '<tr><td colspan="7" class="text-center" style="color:#888;">입력된 가족사항이 없습니다.</td></tr>';
 
                     htmlContent = `
-                        <h1>재 사 정 기 록 지 (${year}년)</h1>
-                        ${signBoxHtml}
-                        <div class="clearfix"></div>
+                        <!-- [수정] 절대 위치를 활용하여 중앙 타이틀과 우측 결재란이 한 줄에 깔끔하게 배치되도록 개선 (줄바꿈 방지) -->
+                        <div style="position: relative; min-height: 90px; margin-bottom: 10px;">
+                            ${signBoxHtml}
+                            <h1 style="position: absolute; left: 50%; bottom: 25px; transform: translateX(-50%);">재 사 정 기 록 지 (${year}년)</h1>
+                            <div class="clearfix"></div>
+                        </div>
 
                         <!-- 1. 상단: 재사정일자 -->
                         <div style="text-align: right; margin-bottom: 5px; font-weight: bold;">
@@ -7990,9 +8000,12 @@
                     }).join('') : '<tr><td colspan="4" class="text-center">내용 없음</td></tr>';
 
                     htmlContent = `
-                        <h1>서비스 만족도 및 욕구조사 (${year}년)</h1>
-                        ${signBoxHtml}
-                        <div class="clearfix"></div>
+                        <!-- [수정] 절대 위치를 활용하여 중앙 타이틀과 우측 결재란이 한 줄에 깔끔하게 배치되도록 개선 -->
+                        <div style="position: relative; min-height: 90px; margin-bottom: 10px;">
+                            ${signBoxHtml}
+                            <h1 style="position: absolute; left: 50%; bottom: 25px; transform: translateX(-50%);">서비스 만족도 및 욕구조사 (${year}년)</h1>
+                            <div class="clearfix"></div>
+                        </div>
 
                         <table>
                             <col width="15%"><col width="35%"><col width="15%"><col width="35%">
@@ -8038,9 +8051,12 @@
                 } else if (docType === 'evaluation') {
                     docTitle = `사례평가서(${year}년)`;
                     htmlContent = `
-                        <h1>사 례 평 가 서 (${year}년)</h1>
-                        ${signBoxHtml}
-                        <div class="clearfix"></div>
+                        <!-- [수정] 절대 위치를 활용하여 중앙 타이틀과 우측 결재란이 한 줄에 깔끔하게 배치되도록 개선 -->
+                        <div style="position: relative; min-height: 90px; margin-bottom: 10px;">
+                            ${signBoxHtml}
+                            <h1 style="position: absolute; left: 50%; bottom: 25px; transform: translateX(-50%);">사 례 평 가 서 (${year}년)</h1>
+                            <div class="clearfix"></div>
+                        </div>
 
                         <table>
                             <tr><th>대상자명</th><td>${client.name}</td><th>평가일자</th><td>${getVal(cm, 'evaluation.date')}</td></tr>
