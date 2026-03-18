@@ -6542,9 +6542,12 @@
                                         
                                         <!-- 1) 서비스 만족도 조사 -->
                                         <div class="flex justify-between items-center mb-2">
-                                            <h5 class="font-bold text-slate-700 text-sm">1) 서비스 만족도 조사</h5>
-                                            ${getSectionResetBtn('sec-sat-1')}
-                                        </div>
+                                            <div class="flex items-center gap-2">
+                                                <h5 class="font-bold text-slate-700 text-sm">1) 서비스 만족도 조사</h5>
+                                                <button type="button" onclick="app.addSatGoalRow()" class="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded hover:bg-emerald-100 font-bold transition-colors">+ 행 추가</button>
+                                         </div>
+                                        ${getSectionResetBtn('sec-sat-1')}
+                                     </div>
                                         <div id="sec-sat-1" class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm mb-6">
                                             <table class="w-full text-sm text-left border-collapse">
                                                 <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
@@ -6562,13 +6565,10 @@
                                         </div>
 
                                         <!-- 2) 전반적 만족도 조사 -->
-                                       <div class="flex justify-between items-center mb-2">
-                                          <div class="flex items-center gap-2">
-                                             <h5 class="font-bold text-slate-700 text-sm">1) 서비스 만족도 조사</h5>
-                                             <button type="button" onclick="app.addSatGoalRow()" class="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded hover:bg-emerald-100 font-bold transition-colors">+ 행 추가</button>
-                                          </div>
-                                          ${getSectionResetBtn('sec-sat-1')}
-                                      </div>
+                                        <div class="flex justify-between items-center mb-2">
+                                            <h5 class="font-bold text-slate-700 text-sm">2) 전반적 만족도 조사</h5>
+                                            ${getSectionResetBtn('sec-sat-2')}
+                                        </div>
                                         <div id="sec-sat-2" class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm mb-6">
                                             <table class="w-full text-sm text-left table-fixed">
                                                 <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
