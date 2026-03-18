@@ -3575,16 +3575,29 @@
                 const client = state.clients.find(c => c.name === data.clientName);
                 data.clientId = client ? client.id : '';
 
-                try {
+                    try {
                     if (id) {
                         await updateDoc(doc(db, "meetings", id), data);
-                        alert("회의록이 수정되었습니다.");
+                        // [추가] 화면 즉시 갱신
+                        const idx = state.meetings.findIndex(m => m.id === id);
+                        if (idx > -1) state.meetings[idx] = { ...state.meetings[idx], ...data };
+                        app.showToast("회의록이 수정되었습니다.");
                     } else {
                         data.createdAt = new Date().toISOString();
-                        await addDoc(collection(db, "meetings"), data);
-                        alert("회의록이 등록되었습니다.");
+                        const docRef = await addDoc(collection(db, "meetings"), data);
+                        // [추가] 화면 즉시 갱신
+                        state.meetings.push({ id: docRef.id, ...data });
+                        app.showToast("회의록이 등록되었습니다.");
                     }
-                    app.closeModal();
+                    
+                    app.closeModal(); // 회의록 작성 모달 닫기
+                    
+                    // [추가] 밑에 깔려있는 대상자관리 모달이 켜져있다면, 방금 쓴 회의록이 보이도록 대상자 모달도 새로고침!
+                    const clientForm = document.getElementById('client-form');
+                    if (clientForm && clientForm.dataset.id) {
+                        app.openClientModal(clientForm.dataset.id);
+                    }
+                    
                     if (state.viewMode === 'single') updateTabContent('meeting'); else render();
                 } catch (err) {
                     alert("저장 실패: " + err.message);
