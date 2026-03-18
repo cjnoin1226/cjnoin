@@ -2128,115 +2128,107 @@
         }
 
         window.app = {
-    // [신규] 섹션별 초기화 기능 (만족도조사 등에서 사용)
-    resetInputs: (sectionId) => {
-        const section = document.getElementById(sectionId);
-        if (!section) return;
+            // [신규] 특정 구역 초기화 함수 (만족도조사 서비스 목표/실행내용 부분 초기화 포함)
+            resetInputs: (sectionId) => {
+                if (!confirm('해당 영역을 초기화하시겠습니까? (저장하지 않은 내용은 사라집니다)')) return;
 
-        // 특별 처리: 만족도 조사의 1번 항목 (평가는 놔두고 목표/내용만 초기화)
-        if (sectionId === 'sec-sat-1') {
-            if (!confirm('서비스 목표와 실행내용을 기본값으로 초기화하시겠습니까?\\n(작성하신 평가 및 만족도 내용은 안전하게 유지됩니다)')) return;
+                const container = document.getElementById(sectionId);
+                if (!container) return;
 
-            const formEl = document.getElementById('client-form');
-            const clientId = formEl ? formEl.dataset.id : null;
-            if (!clientId) return;
+                if (sectionId === 'sec-sat-1') {
+                    // 1) 만족도 조사 1. 서비스 만족도 조사 영역 특별 처리
+                    // (이용자 만족도, 담당자 평가는 유지하고 목표와 실행내용만 일지 기반으로 재생성)
+                    const formEl = document.getElementById('client-form');
+                    const clientId = formEl ? formEl.dataset.id : null;
+                    const c = state.clients.find(x => x.id === clientId);
+                    if (!c) return;
 
-            const targetYear = state.ui.cmYear;
-            const normalize = (str) => (str || '').replace(/\s+/g, '');
-            
-            // 1. 해당 연도의 서비스 로그 다시 불러오기
-            const providedLogs = state.logs.filter(l => l.clientId === clientId && l.date.startsWith(String(targetYear)));
-            
-            // 2. 카테고리(기본 목표) 재추출
-            const providedCategoriesMap = new Map();
-            providedLogs.forEach(l => {
-                if (l.serviceItems) {
-                    l.serviceItems.forEach(item => {
-                        if (item.category) {
-                            const key = normalize(item.category);
-                            if (!providedCategoriesMap.has(key)) {
-                                providedCategoriesMap.set(key, item.category.trim());
-                            }
-                        }
-                    });
-                }
-            });
+                    const targetYear = state.ui.cmYear;
+                    const providedLogs = state.logs.filter(l => l.clientId === c.id && l.date.startsWith(String(targetYear)));
 
-            // 3. 서비스 설정 순서대로 정렬
-            const serviceOrderList = [...new Set(state.services.map(s => s.category))];
-            const defaultGoals = Array.from(providedCategoriesMap.values()).sort((a, b) => {
-                const normA = normalize(a);
-                const normB = normalize(b);
-                const idxA = serviceOrderList.findIndex(cat => normalize(cat) === normA);
-                const idxB = serviceOrderList.findIndex(cat => normalize(cat) === normB);
-                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-                if (idxA !== -1) return -1;
-                if (idxB !== -1) return 1;
-                return a.localeCompare(b);
-            });
-
-            // 4. 화면에 있는 목표/실행내용 칸만 덮어쓰기 (평가칸은 절대 건드리지 않음)
-            const goalInputs = section.querySelectorAll('textarea[id^="sat-goal-"]');
-            const actionInputs = section.querySelectorAll('textarea[id^="sat-action-"]');
-
-            goalInputs.forEach((goalEl, i) => {
-                const actionEl = actionInputs[i];
-                const displayGoal = defaultGoals[i] || ''; // 기본 목표
-                
-                // 실행내용 자동 계산
-                let autoAction = '';
-                if (displayGoal) {
-                    const normalizedDisplayGoal = normalize(displayGoal);
-                    const actionMap = new Map();
-                    providedLogs.forEach(log => {
-                        if (log.serviceItems) {
-                            log.serviceItems.forEach(item => {
-                                if (item.category && normalize(item.category) === normalizedDisplayGoal) {
-                                    if (!actionMap.has(item.serviceName)) actionMap.set(item.serviceName, new Set());
-                                    if (item.detailNote && item.detailNote.trim() !== '') actionMap.get(item.serviceName).add(item.detailNote.trim());
+                    const normalize = (str) => (str || '').replace(/\s+/g, '');
+                    const providedCategoriesMap = new Map();
+                    
+                    providedLogs.forEach(l => {
+                        if (l.serviceItems) {
+                            l.serviceItems.forEach(item => {
+                                if (item.category) {
+                                    const key = normalize(item.category);
+                                    if (!providedCategoriesMap.has(key)) {
+                                        providedCategoriesMap.set(key, item.category.trim());
+                                    }
                                 }
                             });
                         }
                     });
-                    const actions = [];
-                    actionMap.forEach((notesSet, serviceName) => {
-                        let itemText = serviceName;
-                        if (notesSet.size > 0) {
-                            const notes = [...notesSet].map(note => ` • ${note}`).join('\n');
-                            itemText += `\n${notes}`;
-                        }
-                        actions.push(itemText);
+
+                    const serviceOrderList = [...new Set(state.services.map(s => s.category))];
+                    const allGoals = Array.from(providedCategoriesMap.values()).sort((a, b) => {
+                        const normA = normalize(a);
+                        const normB = normalize(b);
+                        const idxA = serviceOrderList.findIndex(cat => normalize(cat) === normA);
+                        const idxB = serviceOrderList.findIndex(cat => normalize(cat) === normB);
+
+                        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                        if (idxA !== -1) return -1;
+                        if (idxB !== -1) return 1;
+                        return a.localeCompare(b);
                     });
-                    autoAction = actions.join('\n\n');
+
+                    const goalInputs = container.querySelectorAll('textarea[id^="sat-goal-"]');
+                    
+                    goalInputs.forEach((goalEl, i) => {
+                        const actionEl = document.getElementById(`sat-action-${i}`);
+                        const displayGoal = allGoals[i] || '';
+                        
+                        let autoAction = '';
+                        if (displayGoal) {
+                            const normalizedDisplayGoal = normalize(displayGoal);
+                            const actionMap = new Map();
+                            providedLogs.forEach(log => {
+                                if (log.serviceItems) {
+                                    log.serviceItems.forEach(item => {
+                                        if (item.category && normalize(item.category) === normalizedDisplayGoal) {
+                                            if (!actionMap.has(item.serviceName)) actionMap.set(item.serviceName, new Set());
+                                            if (item.detailNote && item.detailNote.trim() !== '') actionMap.get(item.serviceName).add(item.detailNote.trim());
+                                        }
+                                    });
+                                }
+                            });
+                            const actions = [];
+                            actionMap.forEach((notesSet, serviceName) => {
+                                let itemText = serviceName;
+                                if (notesSet.size > 0) {
+                                    const notes = [...notesSet].map(note => ` • ${note}`).join('\n');
+                                    itemText += `\n${notes}`;
+                                }
+                                actions.push(itemText);
+                            });
+                            autoAction = actions.join('\n\n');
+                        }
+
+                        goalEl.value = displayGoal;
+                        if (actionEl) actionEl.value = autoAction;
+                        
+                        // 높이 리사이징
+                        goalEl.style.height = 'auto'; goalEl.style.height = (goalEl.scrollHeight) + 'px';
+                        if (actionEl) { actionEl.style.height = 'auto'; actionEl.style.height = (actionEl.scrollHeight) + 'px'; }
+                    });
+                    app.showToast('서비스 목표 및 실행 내용이 기본값으로 초기화되었습니다.');
+
+                } else {
+                    // 2) 그 외 영역들은 전체 값 비우기 (일반 초기화)
+                    const inputs = container.querySelectorAll('input, select, textarea');
+                    inputs.forEach(el => {
+                        if (el.type === 'checkbox' || el.type === 'radio') {
+                            el.checked = false;
+                        } else {
+                            el.value = '';
+                        }
+                    });
+                    app.showToast('해당 영역이 초기화되었습니다.');
                 }
-
-                // 값 덮어쓰기 및 높이 조절
-                goalEl.value = displayGoal;
-                goalEl.style.height = 'auto'; goalEl.style.height = goalEl.scrollHeight + 'px';
-                
-                if (actionEl) {
-                    actionEl.value = autoAction;
-                    actionEl.style.height = 'auto'; actionEl.style.height = actionEl.scrollHeight + 'px';
-                }
-            });
-
-            app.showToast('목표와 실행내용이 기본값으로 돌아갔습니다.');
-            return;
-        }
-
-        // 다른 일반 항목의 초기화 버튼 동작 (일괄 비우기)
-        if (!confirm('이 항목의 작성 내용을 모두 초기화하시겠습니까?')) return;
-        const inputs = section.querySelectorAll('input, textarea, select');
-        inputs.forEach(el => {
-            if (el.type === 'checkbox' || el.type === 'radio') {
-                el.checked = false;
-            } else {
-                el.value = '';
-                if(el.tagName.toLowerCase() === 'textarea') el.style.height = 'auto';
-            }
-        });
-        app.showToast('초기화되었습니다.');
-    },
+            },
 
     // [신규] 폼 변경 여부 확인 함수
     hasFormChanged: () => {
@@ -7427,9 +7419,12 @@
                         /* 테이블 스타일 */
                         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
                         
-                        /* 행 단위로 페이지 넘김 처리 (글자가 반으로 잘리는 것 방지) */
-                        tr { break-inside: avoid; page-break-inside: avoid; }
-                        
+                        /* 행 중간에서도 페이지가 나뉘도록 허용 (빈 공간 채우기) */
+    tr { break-inside: auto; page-break-inside: auto; }
+                        /* 표가 잘릴 때 제목(헤더) 반복 및 표 내부 분할 허용 */
+                        thead { display: table-header-group; }
+                        table { page-break-inside: auto; break-inside: auto; }
+
                         th, td { border: 1px solid #000; padding: 5px; word-break: break-all; vertical-align: middle; }
                         th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
                         
@@ -8151,7 +8146,6 @@
                     }).join('') : '<tr><td colspan="4" class="text-center">내용 없음</td></tr>';
 
                     htmlContent = `
-                        <!-- [수정] 만족도조사 제목 텍스트 변경 및 좌측 여백을 줄여 자연스럽게 왼쪽으로 당김 -->
                         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
                             <div style="width: 40px; flex-shrink: 0;"></div> <!-- 좌측 여백 축소 -->
                             <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">만족도 조사 및 모니터링(${year}년)</h1>
@@ -8167,39 +8161,39 @@
                             <tr><th>조사자</th><td>${getVal(cm, 'satisfaction.surveyor')}</td><th>방법</th><td>${getVal(cm, 'satisfaction.method')}</td></tr>
                         </table>
 
-                        <!-- [수정] 잘림 방지를 위해 keep-together 클래스 적용 -->
-                        <div class="keep-together">
-                            <h2>1. 서비스 만족도</h2>
-                            <table>
-                                <!-- [수정] 컬럼 너비 비율 재조정 (목표와 실행내용 공간 확대, 잘림 방지) -->
-                                <colgroup>
-                                    <col style="width: 22%;">
-                                    <col style="width: 43%;">
-                                    <col style="width: 15%;">
-                                    <col style="width: 20%;">
-                                </colgroup>
+                        <h2>1. 서비스 만족도</h2>
+                        <table>
+                            <colgroup>
+                                <col style="width: 22%;">
+                                <col style="width: 43%;">
+                                <col style="width: 15%;">
+                                <col style="width: 20%;">
+                            </colgroup>
+                            <thead>
                                 <tr class="bg-gray"><th>목표</th><th>실행내용</th><th>이용자 만족도</th><th>담당자 평가</th></tr>
+                            </thead>
+                            <tbody>
                                 ${goalRows}
-                            </table>
-                        </div>
+                            </tbody>
+                        </table>
 
-                        <!-- [수정] 잘림 방지를 위해 keep-together 클래스 적용 -->
-                        <div class="keep-together">
-                            <h2>2. 전반적 만족도</h2>
-                            <table>
+                        <h2>2. 전반적 만족도</h2>
+                        <table>
+                            <thead>
                                 <tr><th width="80%">문항</th><th>점수(5점만점)</th></tr>
+                            </thead>
+                            <tbody>
                                 <tr><td>1. 담당 직원은 약속 시간을 잘 지켰습니까? (시간 준수)</td><td class="text-center">${getVal(cm, 'satisfaction.q1')}</td></tr>
                                 <tr><td>2. 담당 직원은 친절하고 예의 바르게 대하였습니까? (친절성)</td><td class="text-center">${getVal(cm, 'satisfaction.q2')}</td></tr>
                                 <tr><td>3. 서비스 내용과 절차에 대해 충분히 설명을 들으셨습니까? (정보 제공)</td><td class="text-center">${getVal(cm, 'satisfaction.q3')}</td></tr>
                                 <tr><td>4. 제공된 서비스가 귀하의 어려움을 해결하는 데 도움이 되었습니까? (서비스 효과)</td><td class="text-center">${getVal(cm, 'satisfaction.q4')}</td></tr>
                                 <tr><td>5. 전반적으로 제공된 서비스에 만족하십니까? (전반적 만족도)</td><td class="text-center">${getVal(cm, 'satisfaction.q5')}</td></tr>
-                            </table>
-                        </div>
+                            </tbody>
+                        </table>
 
-                        <!-- [수정] 잘림 방지를 위해 keep-together 클래스 적용 -->
-                        <div class="keep-together">
-                            <h2>3. 모니터링 및 종합계획</h2>
-                            <table>
+                        <h2>3. 모니터링 및 종합계획</h2>
+                        <table>
+                            <tbody>
                                 <tr><th width="20%">기능상태 변화</th><td>${getVal(cm, 'satisfaction.monitor.funcChange')}</td></tr>
                                 <tr><th width="20%">욕구 변화</th><td>${getVal(cm, 'satisfaction.monitor.needsChange')}</td></tr>
                                 <tr><th width="20%">결과 반영</th><td>
@@ -8208,8 +8202,8 @@
                                     ${renderChk(getVal(cm, 'satisfaction.monitorResult.revisit'))} 재상담
                                 </td></tr>
                                 <tr><th width="20%" height="80">종합의견</th><td>${(getVal(cm, 'satisfaction.comprehensivePlan')||'').replace(/\n/g, '<br>')}</td></tr>
-                            </table>
-                        </div>
+                            </tbody>
+                        </table>
                     `;
                 } else if (docType === 'evaluation') {
                     docTitle = `사례평가서(${year}년)`;
