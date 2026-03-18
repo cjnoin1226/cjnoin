@@ -2134,6 +2134,29 @@
         const currentState = app.captureFormState();
         return currentState !== state.ui.initialFormState;
     },
+    // [신규] 현재 폼의 모든 입력값을 하나의 문자열로 캡처하는 핵심 함수
+    captureFormState: () => {
+        // 현재 화면에 있는 폼(form) 요소를 찾습니다.
+        const form = document.querySelector('form'); 
+        if (!form) return '';
+
+        let stateString = '';
+        // 폼 안의 모든 input, select, textarea 요소를 싹 다 가져옵니다.
+        const inputs = form.querySelectorAll('input, select, textarea');
+        
+        inputs.forEach(input => {
+            // 체크박스나 라디오 버튼은 체크 여부를 저장
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                stateString += `${input.name}=${input.checked}|`;
+            } else {
+                // 일반 텍스트, 숫자, 셀렉트 박스 등은 그 값을 저장
+                stateString += `${input.name}=${input.value}|`;
+            }
+        });
+        
+        return stateString;
+    },
+    
             // [신규] 과거 재사정 기록 복사 함수
             copyPastReassessment: (clientId) => {
                 const client = state.clients.find(c => c.id === clientId);
