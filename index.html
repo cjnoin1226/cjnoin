@@ -2128,6 +2128,35 @@
         }
 
         window.app = {
+        addSatGoalRow: () => {
+                const tbody = document.querySelector('#sec-sat-1 tbody');
+                if (!tbody) return;
+                const newId = Date.now();
+                const tr = document.createElement('tr');
+                
+                const group1 = ["매우 만족", "만족", "보통"];
+                const group2 = ["불만족", "매우 불만족"];
+                const renderItem = (opt) => `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors"><input type="checkbox" name="service-sat-${newId}" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer" onclick="app.checkExclusive(this)"><span class="text-xs text-slate-700 font-medium whitespace-nowrap">${opt}</span></label>`;
+                const satOptions = `<div class="flex flex-col gap-2 p-3"><div class="flex flex-wrap items-center gap-2">${group1.map(renderItem).join('')}</div><div class="flex flex-wrap items-center gap-2 pt-1 border-t border-dashed border-slate-100">${group2.map(renderItem).join('')}</div></div>`;
+
+                tr.innerHTML = `
+                    <td class="p-0 border-r border-slate-200"><textarea id="sat-goal-${newId}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 font-bold text-slate-700 overflow-hidden" placeholder="목표 직접 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'"></textarea></td>
+                    <td class="p-0 border-r border-slate-200"><textarea id="sat-action-${newId}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 whitespace-pre overflow-hidden" placeholder="실행내용 직접 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'"></textarea></td>
+                    <td class="p-0 border-r border-slate-200 align-top bg-white">${satOptions}</td>
+                    <td class="p-0 relative">
+                        <textarea id="sat-worker-${newId}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 overflow-hidden pr-8" placeholder="평가 내용" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'"></textarea>
+                        <button type="button" onclick="app.removeSatGoalRow(this)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500" title="이 항목 삭제"><i data-lucide="x-circle" size="16"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                if(window.lucide) lucide.createIcons();
+            },
+
+            removeSatGoalRow: (btn) => {
+                if(!confirm("이 서비스 목표 행을 삭제하시겠습니까?")) return;
+                const tr = btn.closest('tr');
+                if (tr) tr.remove();
+            },    
             // [신규] 특정 구역 초기화 함수 (만족도조사 서비스 목표/실행내용 부분 초기화 포함)
             resetInputs: (sectionId) => {
                 if (!confirm('해당 영역을 초기화하시겠습니까? (저장하지 않은 내용은 사라집니다)')) return;
@@ -4366,7 +4395,7 @@
                         return `<div class="flex flex-col gap-2 p-3"><div class="flex flex-wrap items-center gap-2">${group1.map(renderItem).join('')}</div><div class="flex flex-wrap items-center gap-2 pt-1 border-t border-dashed border-slate-100">${group2.map(renderItem).join('')}</div></div>`;
                     };
 
-                    serviceGoalRowsHTML += `<tr><td class="p-0 border-r border-slate-200"><textarea id="sat-goal-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 font-bold text-slate-700 overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${displayGoal}</textarea></td><td class="p-0 border-r border-slate-200"><textarea id="sat-action-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 whitespace-pre overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${displayAction}</textarea></td><td class="p-0 border-r border-slate-200 align-top bg-white">${renderSatisfactionOptions(i, savedUserSat)}</td><td class="p-0"><textarea id="sat-worker-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 overflow-hidden" placeholder="평가 내용" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${savedWorkerEval}</textarea></td></tr>`;
+                    serviceGoalRowsHTML += `<tr><td class="p-0 border-r border-slate-200"><textarea id="sat-goal-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 font-bold text-slate-700 overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${displayGoal}</textarea></td><td class="p-0 border-r border-slate-200"><textarea id="sat-action-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 whitespace-pre overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${displayAction}</textarea></td><td class="p-0 border-r border-slate-200 align-top bg-white">${renderSatisfactionOptions(i, savedUserSat)}</td><td class="p-0 relative"><textarea id="sat-worker-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 overflow-hidden pr-8" placeholder="평가 내용" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${savedWorkerEval}</textarea><button type="button" onclick="app.removeSatGoalRow(this)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500" title="이 항목 삭제"><i data-lucide="x-circle" size="16"></i></button></td></tr>`;
                 });
 
                 // [유지] 초기 데이터(현재 연도) 생성
@@ -6533,10 +6562,13 @@
                                         </div>
 
                                         <!-- 2) 전반적 만족도 조사 -->
-                                        <div class="flex justify-between items-center mb-2">
-                                            <h5 class="font-bold text-slate-700 text-sm">2) 전반적 만족도 조사</h5>
-                                            ${getSectionResetBtn('sec-sat-2')}
-                                        </div>
+                                       <div class="flex justify-between items-center mb-2">
+                                          <div class="flex items-center gap-2">
+                                             <h5 class="font-bold text-slate-700 text-sm">1) 서비스 만족도 조사</h5>
+                                             <button type="button" onclick="app.addSatGoalRow()" class="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded hover:bg-emerald-100 font-bold transition-colors">+ 행 추가</button>
+                                          </div>
+                                          ${getSectionResetBtn('sec-sat-1')}
+                                      </div>
                                         <div id="sec-sat-2" class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm mb-6">
                                             <table class="w-full text-sm text-left table-fixed">
                                                 <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
@@ -7245,12 +7277,15 @@
                     method: getEl('cm-sat-method'), 
                     surveyor: getEl('cm-sat-surveyor'),
                     manager: getEl('cm-sat-manager'),
-                    serviceGoals: Array.from(document.querySelectorAll('textarea[id^="sat-goal-"]')).map((el, idx) => ({
-                        goal: el.value,
-                        action: document.getElementById(`sat-action-${idx}`)?.value || '',
-                        userSat: document.querySelector(`input[name="service-sat-${idx}"]:checked`)?.value || '',
-                        workerEval: document.getElementById(`sat-worker-${idx}`)?.value || ''
-                    })),
+                    serviceGoals: Array.from(document.querySelectorAll('textarea[id^="sat-goal-"]')).map(el => {
+                        const uniqueId = el.id.replace('sat-goal-', '');
+                        return {
+                            goal: el.value,
+                            action: document.getElementById(`sat-action-${uniqueId}`)?.value || '',
+                            userSat: document.querySelector(`input[name="service-sat-${uniqueId}"]:checked`)?.value || '',
+                            workerEval: document.getElementById(`sat-worker-${uniqueId}`)?.value || ''
+                        };
+                    }),
                     monitor: {
                         funcChange: getEl('cm-sat-mon-func'),
                         envChange: getEl('cm-sat-mon-env'),
