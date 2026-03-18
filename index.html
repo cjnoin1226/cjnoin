@@ -2128,6 +2128,12 @@
         }
 
         window.app = {
+    // [신규] 폼 변경 여부 확인 함수
+    hasFormChanged: () => {
+        if (!state.ui.initialFormState) return false;
+        const currentState = app.captureFormState();
+        return currentState !== state.ui.initialFormState;
+    },
             // [신규] 과거 재사정 기록 복사 함수
             copyPastReassessment: (clientId) => {
                 const client = state.clients.find(c => c.id === clientId);
@@ -8212,11 +8218,17 @@
                 if(window.lucide) lucide.createIcons();
             },
             
-            // [수정] 팝업 닫기 기능 연결
-            closeModal: () => closeModal(),
+            // [수정] 팝업 닫기 기능 연결 (변경사항 체크 로직 포함)
+            closeModal: () => {
+                if (app.hasFormChanged()) {
+                    if (!confirm("수정된 내용이 있습니다. 저장하지 않고 닫으시겠습니까?")) return;
+                }
+                state.ui.initialFormState = null; // 초기화
+                closeModal(); // 실제 글로벌 닫기 함수 호출
+            },
             closeDialog: () => closeDialog(),
-            handleModalOverlayClick: () => { if (state.ui.allowOverlayClose) closeModal(); },
-            handleSubModalOverlayClick: () => { if (state.ui.allowOverlayClose) closeModal(); },
+            handleModalOverlayClick: () => { if (state.ui.allowOverlayClose) app.closeModal(); },
+            handleSubModalOverlayClick: () => { if (state.ui.allowOverlayClose) app.closeModal(); },
 
             // [신규] 로딩 취소 함수
             cancelLoading: () => {
@@ -9971,11 +9983,25 @@
             if (initialTab !== 'dashboard') app.setTab(initialTab, false);
         });
 
-        function showModal(html, allowOverlayClose = false, targetId = 'modal-container') { 
+       function showModal(html, allowOverlayClose = false, targetId = 'modal-container') { 
             const m = document.getElementById(targetId); 
             m.innerHTML = html; 
             m.classList.remove('hidden'); 
             state.ui.allowOverlayClose = allowOverlayClose;
+            
+            // [추가] 모달이 열릴 때 초기 상태를 저장하고, '저장(submit)' 버튼 클릭을 감지합니다.
+            setTimeout(() => {
+                if (window.app && app.captureFormState) {
+                    state.ui.initialFormState = app.captureFormState();
+                }
+                const form = m.querySelector('form');
+                if (form) {
+                    // 폼 제출(저장) 시에는 경고창이 뜨지 않도록 초기 상태를 비워줍니다.
+                    form.addEventListener('submit', () => {
+                        state.ui.initialFormState = null; 
+                    });
+                }
+            }, 100);
         }
 
         function closeModal() { 
