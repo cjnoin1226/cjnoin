@@ -6801,11 +6801,15 @@
                                         <textarea id="cm-eval-opinion" class="input-field w-full h-32 leading-relaxed resize-none p-3" placeholder="종합적인 소견 및 향후 계획을 입력하세요.">${getVal(cm, 'evaluation.generalOpinion')}</textarea>
                                     </div>
                                     <div id="sub-tab-meeting-list" class="sub-tab-content ${state.ui.caseSubTab === 'meeting-list' ? 'active' : ''} space-y-4">
-    <div class="bg-slate-50 p-2 pl-3 rounded flex justify-between items-center gap-2 border border-slate-200">
+<div class="bg-slate-50 p-2 pl-3 rounded flex justify-between items-center gap-2 border border-slate-200">
         <div class="text-sm text-slate-600 flex items-center gap-2">
             <i data-lucide="clipboard-list" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
             <span>이 대상자와 관련된 사례회의 기록입니다.</span>
         </div>
+        <!-- ▼ 추가된 회의록 작성 버튼 ▼ -->
+        <button type="button" onclick="app.openMeetingModal(null, { clientName: '${c.name}', clientBirth: '${c.birthDate}', clientLevel: '${c.careLevel}' })" class="text-xs bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1 rounded hover:bg-emerald-100 font-bold transition-colors shadow-sm flex items-center gap-1">
+            <i data-lucide="plus" size="14"></i> 회의록 작성
+        </button>
     </div>
     <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col h-[500px]">
         <div class="overflow-y-auto flex-1 custom-scrollbar">
