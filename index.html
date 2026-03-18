@@ -2202,12 +2202,12 @@
                     actionMap.forEach((notesSet, serviceName) => {
                         let itemText = serviceName;
                         if (notesSet.size > 0) {
-                            const notes = [...notesSet].map(note => ` • ${note}`).join('\\n');
-                            itemText += `\\n${notes}`;
+                            const notes = [...notesSet].map(note => ` • ${note}`).join('\n');
+                            itemText += `\n${notes}`;
                         }
                         actions.push(itemText);
                     });
-                    autoAction = actions.join('\\n\\n');
+                    autoAction = actions.join('\n\n');
                 }
 
                 // 값 덮어쓰기 및 높이 조절
