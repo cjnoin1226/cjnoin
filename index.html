@@ -2298,121 +2298,155 @@
     },
     
             // [신규] 과거 재사정 기록 복사 함수
-            copyPastReassessment: (clientId) => {
-                const client = state.clients.find(c => c.id === clientId);
-                if (!client) return alert('대상자를 찾을 수 없습니다.');
+// [신규] 연도 선택 팝업을 띄우는 함수
+          openReassessHistorySelector: (clientId) => {
+              const client = state.clients.find(c => c.id === clientId);
+              if (!client) return alert('대상자를 찾을 수 없습니다.');
 
-                const cm = client.caseManagement;
-                if (!cm || !cm.history) return alert('불러올 과거 기록이 없습니다.');
+              const cm = client.caseManagement;
+              if (!cm || !cm.history) return alert('불러올 재사정 기록이 없습니다.');
 
-                const currentYear = state.ui.cmYear;
-                
-                // 현재 연도보다 이전 연도 중, 재사정 기록이 있는 연도 추출 후 내림차순 정렬
-                const pastYears = Object.keys(cm.history)
-                    .map(Number)
-                    .filter(y => y < currentYear && cm.history[y].reAssessment && Object.keys(cm.history[y].reAssessment).length > 0)
-                    .sort((a, b) => b - a);
+              const currentYear = state.ui.cmYear;
 
-                if (pastYears.length === 0) return alert('불러올 과거 재사정 기록이 없습니다.');
+              // 현재 보고 있는 연도(currentYear)를 제외하고, 재사정 기록이 존재하는 모든 연도를 찾습니다.
+              const availableYears = Object.keys(cm.history)
+                  .map(Number)
+                  .filter(y => y !== currentYear && cm.history[y].reAssessment && Object.keys(cm.history[y].reAssessment).length > 0)
+                  .sort((a, b) => b - a); // 최신 연도순 정렬
 
-                const targetYear = pastYears[0]; // 가장 최근 과거 연도
-                const pastData = cm.history[targetYear].reAssessment;
+              if (availableYears.length === 0) return alert('불러올 다른 연도의 재사정 기록이 없습니다.');
 
-                if (!confirm(`${targetYear}년 재사정 기록을 불러오시겠습니까?\n(현재 화면의 내용이 덮어씌워집니다)`)) return;
+              // 팝업창에 들어갈 버튼 목록 생성
+              const buttonsHtml = availableYears.map(y => `
+                  <button onclick="app.executeCopyReassessment('${clientId}', ${y})" class="w-full text-left px-4 py-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg font-bold text-slate-700 transition-colors mb-2 shadow-sm">
+                      ${y}년 재사정 기록 불러오기
+                  </button>
+              `).join('');
 
-                // 헬퍼 함수: ID로 값을 세팅하거나, Checkbox 배열을 세팅
-                const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-                const setCheckboxes = (name, valuesArray) => {
-                    if (!Array.isArray(valuesArray)) valuesArray = valuesArray ? [valuesArray] : [];
-                    document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
-                        cb.checked = valuesArray.includes(cb.value);
-                    });
-                };
+              const html = `
+                  <div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl mx-4">
+                      <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                          <div class="p-2 bg-blue-50 text-blue-600 rounded-full"><i data-lucide="history" size="20"></i></div>
+                          <div>
+                              <h3 class="font-bold text-lg text-slate-900">재사정 기록 불러오기</h3>
+                              <p class="text-xs text-slate-500">현재 화면(${currentYear}년)에 덮어씌울 연도를 선택하세요.</p>
+                          </div>
+                      </div>
+                      <div class="max-h-[300px] overflow-y-auto custom-scrollbar mb-4">
+                          ${buttonsHtml}
+                      </div>
+                      <div class="text-right">
+                          <button onclick="app.closeDialog()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-medium hover:bg-slate-200 transition-colors">취소</button>
+                      </div>
+                  </div>
+              `;
+              showDialog(html);
+              if(window.lucide) lucide.createIcons();
+          },
 
-                // 1. 주소, 전화번호
-                setVal('cm-re-address', pastData.address);
-                setVal('cm-re-phone', pastData.phone);
+          // [신규] 선택한 연도의 데이터를 실제로 덮어씌우는 함수
+          executeCopyReassessment: (clientId, targetYear) => {
+              const client = state.clients.find(c => c.id === clientId);
+              if (!client) return;
 
-                // 2. 경제상황
-                setCheckboxes('cm-re-eco', pastData.economic);
-                setVal('cm-re-eco-cond', pastData.economicDetail?.conditional);
-                setVal('cm-re-eco-other', pastData.economicDetail?.other);
-                
-                const ecoCondWrapper = document.getElementById('cm-re-eco-cond');
-                if (ecoCondWrapper) ecoCondWrapper.classList.toggle('hidden', !(pastData.economic || []).some(e => e.includes('조건부')));
-                
-                const ecoOtherWrapper = document.getElementById('cm-re-eco-other');
-                if (ecoOtherWrapper) ecoOtherWrapper.classList.toggle('hidden', !(pastData.economic || []).includes('기타'));
+              const pastData = client.caseManagement.history[targetYear].reAssessment;
 
-                // 3. 세대유형
-                setCheckboxes('cm-re-house', pastData.household);
+              if (!confirm(`${targetYear}년 재사정 기록을 현재 화면(${state.ui.cmYear}년)에 덮어씌우시겠습니까?`)) return;
 
-                // 4. 재사정유형 (select + input 처리)
-                const typeSelect = document.getElementById('cm-re-type-select');
-                const typeDetail = document.getElementById('cm-re-type-detail');
-                if (typeSelect && typeDetail) {
-                    const rOpts = ["새로운 욕구가 발생", "긴급한 상황이 발생"];
-                    if (rOpts.includes(pastData.type)) {
-                        typeSelect.value = pastData.type;
-                        typeDetail.classList.add('hidden');
-                        typeDetail.value = '';
-                    } else if (pastData.type) {
-                        typeSelect.value = '기타';
-                        typeDetail.classList.remove('hidden');
-                        typeDetail.value = pastData.type;
-                    } else {
-                        typeSelect.value = '';
-                        typeDetail.classList.add('hidden');
-                        typeDetail.value = '';
-                    }
-                }
+              // 헬퍼 함수
+              const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+              const setCheckboxes = (name, valuesArray) => {
+                  if (!Array.isArray(valuesArray)) valuesArray = valuesArray ? [valuesArray] : [];
+                  document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+                      cb.checked = valuesArray.includes(cb.value);
+                  });
+              };
 
-                // 5. 텍스트 입력 영역
-                setVal('cm-re-factor', pastData.factor);
-                setVal('cm-re-ct-needs', pastData.ctNeeds);
-                setVal('cm-re-service-issue', pastData.serviceIssue);
-                setVal('cm-re-worker-opinion', pastData.workerOpinion);
-                setVal('cm-re-plan', pastData.plan);
+              // 1. 주소, 전화번호
+              setVal('cm-re-address', pastData.address);
+              setVal('cm-re-phone', pastData.phone);
 
-                // 6. 결과 체크박스
-            setCheckboxes('cm-re-result-chk', pastData.result);
-            setVal('cm-re-result', pastData.result);
+              // 2. 경제상황
+              setCheckboxes('cm-re-eco', pastData.economic);
+              setVal('cm-re-eco-cond', pastData.economicDetail?.conditional);
+              setVal('cm-re-eco-other', pastData.economicDetail?.other);
 
-            // 7. 가족사항 테이블 렌더링
-            const famTbody = document.getElementById('cm-re-family-tbody');
-            if (famTbody) {
-                let famData = [];
-                try { famData = JSON.parse(pastData.family); if (!Array.isArray(famData)) famData = []; } 
-                catch(e) { if (pastData.family) famData = [{ note: pastData.family }]; }
-                
-                while (famData.length < 3) famData.push({});
-                
-                const updateScript = "const tbody=this.closest('tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const data=rows.map(tr=>({rel:tr.querySelector('.r-rel').value, name:tr.querySelector('.r-name').value, birth:tr.querySelector('.r-birth').value, job:tr.querySelector('.r-job').value, relg:tr.querySelector('.r-relg').value, co:tr.querySelector('.r-co').value, note:tr.querySelector('.r-note').value})); document.getElementById('cm-re-family').value=JSON.stringify(data);";
+              const ecoCondWrapper = document.getElementById('cm-re-eco-cond');
+              if (ecoCondWrapper) ecoCondWrapper.classList.toggle('hidden', !(pastData.economic || []).some(e => e.includes('조건부')));
 
-                const rowsHtml = famData.map(f => `
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-rel w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.rel || ''}" oninput="${updateScript}"></td>
-                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-name w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.name || ''}" oninput="${updateScript}"></td>
-                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-birth w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.birth || ''}" placeholder="YYYY-MM-DD" oninput="${updateScript}"></td>
-                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-job w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.job || ''}" oninput="${updateScript}"></td>
-                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-relg w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.relg || ''}" oninput="${updateScript}"></td>
-                        <td class="p-0 border-r border-b border-slate-200 last:border-b-0">
-                            <select class="r-co w-full p-1.5 text-center outline-none bg-transparent focus:bg-white cursor-pointer transition-colors" onchange="${updateScript}">
-                                <option value=""></option>
-                                <option value="O" ${f.co === 'O' ? 'selected' : ''}>O</option>
-                                <option value="X" ${f.co === 'X' ? 'selected' : ''}>X</option>
-                            </select>
-                        </td>
-                        <td class="p-0 border-b border-slate-200 last:border-b-0"><input type="text" class="r-note w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.note || ''}" oninput="${updateScript}"></td>
-                    </tr>
-                `).join('');
-                
-                const famVal = JSON.stringify(famData).replace(/'/g, "&#39;");
-                famTbody.innerHTML = rowsHtml + `<input type="hidden" id="cm-re-family" value='${famVal}'>`;
-            }
+              const ecoOtherWrapper = document.getElementById('cm-re-eco-other');
+              if (ecoOtherWrapper) ecoOtherWrapper.classList.toggle('hidden', !(pastData.economic || []).includes('기타'));
 
-            app.showToast(`${targetYear}년 재사정 기록을 성공적으로 불러왔습니다.`);
-        },
+              // 3. 세대유형
+              setCheckboxes('cm-re-house', pastData.household);
+
+              // 4. 재사정유형
+              const typeSelect = document.getElementById('cm-re-type-select');
+              const typeDetail = document.getElementById('cm-re-type-detail');
+              if (typeSelect && typeDetail) {
+                  const rOpts = ["새로운 욕구가 발생", "긴급한 상황이 발생"];
+                  if (rOpts.includes(pastData.type)) {
+                      typeSelect.value = pastData.type;
+                      typeDetail.classList.add('hidden');
+                      typeDetail.value = '';
+                  } else if (pastData.type) {
+                      typeSelect.value = '기타';
+                      typeDetail.classList.remove('hidden');
+                      typeDetail.value = pastData.type;
+                  } else {
+                      typeSelect.value = '';
+                      typeDetail.classList.add('hidden');
+                      typeDetail.value = '';
+                  }
+              }
+
+              // 5. 텍스트 입력 영역
+              setVal('cm-re-factor', pastData.factor);
+              setVal('cm-re-ct-needs', pastData.ctNeeds);
+              setVal('cm-re-service-issue', pastData.serviceIssue);
+              setVal('cm-re-worker-opinion', pastData.workerOpinion);
+              setVal('cm-re-plan', pastData.plan);
+
+              // 6. 결과 체크박스
+              setCheckboxes('cm-re-result-chk', pastData.result);
+              setVal('cm-re-result', pastData.result);
+
+              // 7. 가족사항 테이블
+              const famTbody = document.getElementById('cm-re-family-tbody');
+              if (famTbody) {
+                  let famData = [];
+                  try { famData = JSON.parse(pastData.family); if (!Array.isArray(famData)) famData = []; } 
+                  catch(e) { if (pastData.family) famData = [{ note: pastData.family }]; }
+
+                  while (famData.length < 3) famData.push({});
+
+                  const updateScript = "const tbody=this.closest('tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const data=rows.map(tr=>({rel:tr.querySelector('.r-rel').value, name:tr.querySelector('.r-name').value, birth:tr.querySelector('.r-birth').value, job:tr.querySelector('.r-job').value, relg:tr.querySelector('.r-relg').value, co:tr.querySelector('.r-co').value, note:tr.querySelector('.r-note').value})); document.getElementById('cm-re-family').value=JSON.stringify(data);";
+
+                  const rowsHtml = famData.map(f => `
+                      <tr class="hover:bg-slate-50 transition-colors">
+                          <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-rel w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.rel || ''}" oninput="${updateScript}"></td>
+                          <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-name w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.name || ''}" oninput="${updateScript}"></td>
+                          <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-birth w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.birth || ''}" placeholder="YYYY-MM-DD" oninput="${updateScript}"></td>
+                          <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-job w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.job || ''}" oninput="${updateScript}"></td>
+                          <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-relg w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.relg || ''}" oninput="${updateScript}"></td>
+                          <td class="p-0 border-r border-b border-slate-200 last:border-b-0">
+                              <select class="r-co w-full p-1.5 text-center outline-none bg-transparent focus:bg-white cursor-pointer transition-colors" onchange="${updateScript}">
+                                  <option value=""></option>
+                                  <option value="O" ${f.co === 'O' ? 'selected' : ''}>O</option>
+                                  <option value="X" ${f.co === 'X' ? 'selected' : ''}>X</option>
+                              </select>
+                          </td>
+                          <td class="p-0 border-b border-slate-200 last:border-b-0"><input type="text" class="r-note w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="${f.note || ''}" oninput="${updateScript}"></td>
+                      </tr>
+                  `).join('');
+
+                  const famVal = JSON.stringify(famData).replace(/'/g, "&#39;");
+                  famTbody.innerHTML = rowsHtml + `<input type="hidden" id="cm-re-family" value='${famVal}'>`;
+              }
+
+              app.closeDialog();
+              app.showToast(`${targetYear}년 재사정 기록을 성공적으로 불러왔습니다.`);
+          },
 
         // [신규] 확인 버튼을 누르지 않아도 2초 뒤 자동으로 사라지는 팝업 알림 (토스트)
         showToast: (msg) => {
@@ -6315,9 +6349,9 @@
                                                 <label class="text-sm block mb-1 font-bold">재사정일자</label>
                                                 <input type="date" id="cm-re-date" class="input-field w-40" value="${getVal(cm, 'reAssessment.date')}" max="9999-12-31">
                                             </div>
-                                            <button type="button" onclick="app.copyPastReassessment('${c.id}')" class="text-xs bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-50 transition-colors flex items-center gap-1 font-bold shadow-sm mb-1" title="이전 연도의 가장 최근 재사정 기록을 덮어씌웁니다.">
-                                                <i data-lucide="history" size="14"></i> 과거 기록 불러오기
-                                            </button>
+                                   <button type="button" onclick="app.openReassessHistorySelector('${c.id}')" class="text-xs bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-50 transition-colors flex items-center gap-1 font-bold shadow-sm mb-1" title="원하는 연도의 재사정 기록을 선택하여 덮어씌웁니다.">
+                                      <i data-lucide="history" size="14"></i> 기록 불러오기
+                                   </button>
                                         </div>
 
                                         <!-- [신규] 대상자 기본정보 섹션 (일자 바로 아래 배치) - 한 줄 배치로 수정 -->
