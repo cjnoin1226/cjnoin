@@ -7721,14 +7721,64 @@
                     const famData = getVal(cm, 'initial.familyDetails') || [];
                     const famRows = famData.map(f => `<tr><td class="text-center">${f.rel||''}</td><td class="text-center">${f.name||''}</td><td class="text-center">${f.age||''}</td><td class="text-center">${f.co||''}</td><td>${f.note||''}</td></tr>`).join('') || '<tr><td colspan="5" class="text-center">없음</td></tr>';
                     
-                    // 체크박스/라디오 렌더링 헬퍼
+                    // 체크박스/라디오 렌더링 헬퍼를 이용한 전체 옵션 표시 로직
                     const eco = getVal(cm, 'initial.living.economic') || [];
+                    const ecoList = ['기초수급(의료/생계/주거)', '조건부 수급', '차상위', '일반(저소득)', '기타'];
+                    const ecoHTML = ecoList.map(item => {
+                        let label = item;
+                        if(item === '조건부 수급' && getVal(cm, 'initial.living.economicDetail.conditional')) label += `(${getVal(cm, 'initial.living.economicDetail.conditional')})`;
+                        if(item === '기타' && getVal(cm, 'initial.living.economicDetail.other')) label += `(${getVal(cm, 'initial.living.economicDetail.other')})`;
+                        return renderChkBox(label, eco.includes(item));
+                    }).join('');
+                    const monthlyInc = getVal(cm, 'initial.living.economicDetail.monthlyIncome');
+                    const mainSrc = getVal(cm, 'initial.living.economicDetail.mainSource');
+                    const ecoExtra = (monthlyInc ? `<span class="text-bold">[월소득]</span> ${monthlyInc}만원 ` : '') + (mainSrc ? `<span class="text-bold">[주소득원]</span> ${mainSrc}` : '');
+
                     const house = getVal(cm, 'initial.living.household') || [];
+                    const houseList = ['독거세대', '부부세대', '동거', '자녀동거세대', '조손동거세대'];
+                    const houseHTML = houseList.map(h => {
+                        let label = h;
+                        if(h === '동거' && getVal(cm, 'initial.living.householdDetail.cohabitation')) label += `(${getVal(cm, 'initial.living.householdDetail.cohabitation')})`;
+                        if(h === '자녀동거세대' && getVal(cm, 'initial.living.householdDetail.childCohabitation')) label += `(${getVal(cm, 'initial.living.householdDetail.childCohabitation')})`;
+                        return renderChkBox(label, house.includes(h));
+                    }).join('');
+
                     const housing = getVal(cm, 'initial.living.housing') || [];
-                    const health = getVal(cm, 'initial.physical.health') || [];
+                    const housingList = ['자가', '전세', '월세', '영구임대', '무상거주', '시설', '기타'];
+                    const housingHTML = housingList.map(h => {
+                        let label = h;
+                        if(h === '전세' && getVal(cm, 'initial.living.housingDetail.jeonseDeposit')) label += `(${getVal(cm, 'initial.living.housingDetail.jeonseDeposit')}만)`;
+                        if(h === '월세' && (getVal(cm, 'initial.living.housingDetail.wolseDeposit') || getVal(cm, 'initial.living.housingDetail.wolseRent'))) label += `(${getVal(cm, 'initial.living.housingDetail.wolseDeposit')}/${getVal(cm, 'initial.living.housingDetail.wolseRent')}만)`;
+                        return renderChkBox(label, housing.includes(h));
+                    }).join('');
                     
+                    const dwelling = getVal(cm, 'initial.living.dwellingType') || [];
+                    const dwellingList = ['단독주택', '아파트', '연립주택', '다세대주택', '기타'];
+                    const dwellingHTML = dwellingList.map(d => renderChkBox(d, dwelling.includes(d))).join('');
+
+                    const health = getVal(cm, 'initial.physical.health') || [];
+                    const healthList = ['건강하다', '질환은 있지만 건강한 편이다', '특별한 질환은 없지만 노환으로 건강하지 못하다', '질환으로 건강이 나쁘다'];
+                    const healthHTML = healthList.map(h => renderChkBox(h, health.includes(h))).join('');
+
+                    const disabStatus = getVal(cm, 'initial.physical.disabilityStatus') || '';
+                    const disabType = getVal(cm, 'initial.physical.disabilityType') || '';
+                    const disabHTML = renderChkBox('무', disabStatus === '무') + renderChkBox(`유${disabType ? `(${disabType})` : ''}`, disabStatus === '유');
+
+                    const grade = getVal(cm, 'initial.physical.grade') || [];
+                    const gradeList = ['없음', '1등급', '2등급', '3등급', '4등급', '5등급', '등급 외'];
+                    const gradeHTML = gradeList.map(g => renderChkBox(g, grade.includes(g))).join('');
+                    
+                    const device = getVal(cm, 'initial.physical.device') || [];
+                    const deviceDet = getVal(cm, 'initial.physical.deviceDetail');
+                    const deviceList = ['사용안함', '휠체어', '지팡이', '목발', '보청기', '틀니', '돋보기', '기타'];
+                    const deviceHTML = deviceList.map(d => renderChkBox(d === '기타' && deviceDet ? `기타(${deviceDet})` : d, device.includes(d))).join('');
+
                     const provStatus = getVal(cm, 'initial.provision.status');
                     const provReasons = getVal(cm, 'initial.provision.reasons') || [];
+                    const provHTML = renderChkBox('적격', provStatus === '적격') + renderChkBox(`부적격${getVal(cm, 'initial.provision.disqualifiedReason') ? `(${getVal(cm, 'initial.provision.disqualifiedReason')})` : ''}`, provStatus === '부적격');
+                    
+                    const reasonList = ['자조능력 없음', '부양자의 부양능력 약화', '긴급지원', '기타'];
+                    const reasonHTML = reasonList.map(r => renderChkBox(r === '기타' && getVal(cm, 'initial.provision.reasonOther') ? `기타(${getVal(cm, 'initial.provision.reasonOther')})` : r, provReasons.includes(r))).join('');
 
                     htmlContent = `
                         <!-- [수정] 제목과 결재란 겹침 방지: 좌측 여백을 줄여 자연스럽게 왼쪽으로 당김 -->
@@ -7758,23 +7808,23 @@
 
                         <h2>2. 생활상태</h2>
                         <table>
-                            <tr><th width="20%">경제상황</th><td>${eco.join(', ') || '-'} ${getVal(cm, 'initial.living.economicDetail.monthlyIncome') ? `(월소득: ${getVal(cm, 'initial.living.economicDetail.monthlyIncome')}만)` : ''}</td></tr>
-                            <tr><th>세대유형</th><td>${house.join(', ') || '-'}</td></tr>
-                            <tr><th>주거형태</th><td>${housing.join(', ') || '-'} ${getVal(cm, 'initial.living.housingDetail.jeonseDeposit') ? `(전세:${getVal(cm, 'initial.living.housingDetail.jeonseDeposit')})` : ''}</td></tr>
+                            <tr><th width="20%">경제상황</th><td style="line-height:1.6;">${ecoHTML}<br>${ecoExtra}</td></tr>
+                            <tr><th>세대유형</th><td style="line-height:1.6;">${houseHTML}</td></tr>
+                            <tr><th>주거형태</th><td style="line-height:1.6;"><strong>[점유]</strong> ${housingHTML}<br><strong>[유형]</strong> ${dwellingHTML}</td></tr>
                         </table>
 
                         <h2>3. 신체상태</h2>
                         <table>
-                            <tr><th width="20%">건강상태</th><td>${health.join(', ') || '-'}</td></tr>
-                            <tr><th>만성질환</th><td>${getVal(cm, 'initial.physical.chronic')}</td></tr>
-                            <tr><th>장애여부</th><td>${getVal(cm, 'initial.physical.disability')}</td></tr>
-                            <tr><th>등급</th><td>${(getVal(cm, 'initial.physical.grade') || []).join(', ') || '-'}</td></tr>
+                            <tr><th width="20%">건강상태</th><td style="line-height:1.6;">${healthHTML}</td></tr>
+                            <tr><th>만성질환</th><td style="line-height:1.6;">${getVal(cm, 'initial.physical.chronic')}</td></tr>
+                            <tr><th>장애여부</th><td style="line-height:1.6;">${disabHTML}</td></tr>
+                            <tr><th>등급/보장구</th><td style="line-height:1.6;"><strong>[등급]</strong> ${gradeHTML}<br><strong>[보장구]</strong> ${deviceHTML}</td></tr>
                         </table>
 
                         <h2>4. 서비스 판정</h2>
                         <table>
-                            <tr><th width="20%">판정</th><td>${renderRadio(provStatus, '적격')} &nbsp; ${renderRadio(provStatus, '부적격')} ${provStatus === '부적격' ? `(${getVal(cm, 'initial.provision.disqualifiedReason')})` : ''}</td></tr>
-                            <tr><th>사유</th><td>${provReasons.join(', ') || '-'} ${getVal(cm, 'initial.provision.reasonOther') ? `(${getVal(cm, 'initial.provision.reasonOther')})` : ''}</td></tr>
+                            <tr><th width="20%">판정</th><td style="line-height:1.6;">${provHTML}</td></tr>
+                            <tr><th>사유</th><td style="line-height:1.6;">${reasonHTML}</td></tr>
                             <tr><th>제공내용</th><td>${getVal(cm, 'initial.provision.content')}</td></tr>
                         </table>
 
