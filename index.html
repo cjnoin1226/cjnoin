@@ -10384,7 +10384,10 @@
                 sub.classList.add('hidden');
                 sub.innerHTML = ''; 
             } else {
-                document.getElementById('modal-container').classList.add('hidden'); 
+                const main = document.getElementById('modal-container');
+                main.classList.add('hidden'); 
+                // [버그 해결 핵심] 모달이 닫힐 때, 엉뚱한 저장을 유발하는 숨겨진 잔해를 완벽히 소각합니다!
+                main.innerHTML = ''; 
             }
         }
         
