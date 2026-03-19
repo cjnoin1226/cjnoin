@@ -7580,6 +7580,13 @@
                 try {
                     if (id) {
                         await updateDoc(doc(db, "clients", id), updateData);
+                        
+                        // [추가] 인쇄 등 즉각적인 반영을 위해 컴퓨터 메모리(로컬 데이터) 즉시 동기화
+                        const existingIndex = state.clients.findIndex(c => c.id === id);
+                        if (existingIndex !== -1) {
+                            state.clients[existingIndex] = { ...state.clients[existingIndex], ...updateData };
+                        }
+                        
                         alert("대상자 정보가 수정되었습니다.");
                     } else {
                         updateData.createdAt = new Date().toISOString();
