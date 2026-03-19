@@ -2174,7 +2174,42 @@
                 }
                 tr.remove(); // 화면에서 지움
             }
-        },    
+        },  
+            // [신규] 초기면접지 가족사항 추가 함수
+            addFamilyRow: () => {
+                const tbody = document.getElementById('cm-fam-tbody');
+                if (!tbody) return;
+                if (tbody.querySelectorAll('.fam-row').length >= 6) {
+                    alert('가족사항은 최대 6명까지만 추가할 수 있습니다.');
+                    return;
+                }
+                const tr = document.createElement('tr');
+                tr.className = 'fam-row group hover:bg-slate-50';
+                tr.innerHTML = `
+                    <td class="border-r border-b border-slate-200 p-0"><input type="text" class="fam-rel w-full p-1 text-center outline-none bg-transparent focus:bg-white transition-colors" value="" placeholder="관계"></td>
+                    <td class="border-r border-b border-slate-200 p-0"><input type="text" class="fam-name w-full p-1 text-center outline-none bg-transparent focus:bg-white transition-colors" value="" placeholder="이름"></td>
+                    <td class="border-r border-b border-slate-200 p-0"><input type="text" class="fam-age w-full p-1 text-center outline-none bg-transparent focus:bg-white transition-colors" value="" placeholder="나이"></td>
+                    <td class="border-r border-b border-slate-200 p-0">
+                        <select class="fam-co w-full p-1 text-center outline-none bg-transparent focus:bg-white cursor-pointer transition-colors">
+                            <option value=""></option>
+                            <option value="동거">동거</option>
+                            <option value="비동거">비동거</option>
+                        </select>
+                    </td>
+                    <td class="border-r border-b border-slate-200 p-0"><input type="text" class="fam-note w-full p-1 outline-none bg-transparent focus:bg-white transition-colors" value=""></td>
+                    <td class="border-b border-slate-200 p-0 text-center">
+                        <button type="button" onclick="app.removeFamilyRow(this)" class="text-slate-400 hover:text-red-500 p-1 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                if(window.lucide) lucide.createIcons();
+            },
+
+            // [신규] 초기면접지 가족사항 삭제 함수
+            removeFamilyRow: (btn) => {
+                const tr = btn.closest('tr');
+                if (tr) tr.remove();
+            },
             // [신규] 특정 구역 초기화 함수 (만족도조사 서비스 목표/실행내용 부분 초기화 포함)
             resetInputs: (sectionId) => {
                 if (!confirm('해당 영역을 초기화하시겠습니까? (저장하지 않은 내용은 사라집니다)')) return;
