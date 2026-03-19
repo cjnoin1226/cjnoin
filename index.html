@@ -6947,6 +6947,7 @@
                         <th class="p-3 min-w-[200px] bg-slate-50">주요 안건</th>
                         <th class="p-3 w-[120px] text-center whitespace-nowrap bg-slate-50">참석자</th>
                         <th class="p-3 w-[100px] text-center whitespace-nowrap bg-slate-50">작성자</th>
+                        <th class="p-3 w-[100px] text-center whitespace-nowrap bg-slate-50">관리</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
@@ -6962,13 +6963,17 @@
                         
                         return clientMeetings.map(m => `
                             <!-- 줄을 클릭하면 바로 회의록 수정 창(openMeetingModal)이 뜨도록 연결되어 있습니다 -->
-                            <tr class="hover:bg-slate-50 transition-colors cursor-pointer" onclick="app.openMeetingModal('${m.id}')" title="클릭하여 상세보기">
-                                <td class="p-3 font-bold text-slate-700">${m.date}</td>
-                                <td class="p-3 text-center"><span class="px-2 py-1 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 whitespace-nowrap">${m.type}</span></td>
-                                <td class="p-3 text-slate-800 font-medium">${m.topic || '-'}</td>
-                                <td class="p-3 text-center text-slate-500 text-xs truncate max-w-[150px]" title="${m.attendees}">${m.attendees}</td>
-                                <td class="p-3 text-center text-slate-600">${m.writer}</td>
-                            </tr>
+                           <tr class="hover:bg-slate-50 transition-colors group">
+                               <td class="p-3 font-bold text-slate-700 cursor-pointer hover:text-blue-600" onclick="app.openMeetingModal('${m.id}')" title="클릭하여 상세보기">${m.date}</td>
+                               <td class="p-3 text-center"><span class="px-2 py-1 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 whitespace-nowrap">${m.type}</span></td>
+                               <td class="p-3 text-slate-800 font-medium cursor-pointer hover:text-blue-600" onclick="app.openMeetingModal('${m.id}')" title="클릭하여 상세보기">${m.topic || '-'}</td>
+                               <td class="p-3 text-center text-slate-500 text-xs truncate max-w-[150px]" title="${m.attendees}">${m.attendees}</td>
+                               <td class="p-3 text-center text-slate-600">${m.writer}</td>
+                               <td class="p-3 flex justify-center gap-1">
+                                    <button type="button" onclick="app.duplicateMeeting('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="복사"><i data-lucide="copy" size="14"></i></button>
+                                    <button type="button" onclick="app.deleteData('meetings', '${m.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
+                                </td>
+                             </tr>
                         `).join('');
                     })()}
                 </tbody>
@@ -7065,6 +7070,7 @@
                                                         <th class="p-3 min-w-[200px] bg-slate-50">주요 안건</th>
                                                         <th class="p-3 w-[120px] text-center whitespace-nowrap bg-slate-50">참석자</th>
                                                         <th class="p-3 w-[100px] text-center whitespace-nowrap bg-slate-50">작성자</th>
+                                                        <th class="p-3 w-[100px] text-center whitespace-nowrap bg-slate-50">관리</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody class="divide-y divide-slate-100 bg-white">
@@ -7078,13 +7084,17 @@
                                                         }
                                                         
                                                         return clientMeetings.map(m => `
-                                                            <tr class="hover:bg-slate-50 transition-colors cursor-pointer" onclick="app.openMeetingModal('${m.id}')" title="클릭하여 상세보기">
-                                                                <td class="p-3 font-bold text-slate-700">${m.date}</td>
-                                                                <td class="p-3 text-center"><span class="px-2 py-1 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 whitespace-nowrap">${m.type}</span></td>
-                                                                <td class="p-3 text-slate-800 font-medium">${m.topic || '-'}</td>
-                                                                <td class="p-3 text-center text-slate-500 text-xs truncate max-w-[150px]" title="${m.attendees}">${m.attendees}</td>
-                                                                <td class="p-3 text-center text-slate-600">${m.writer}</td>
-                                                            </tr>
+                                                <tr class="hover:bg-slate-50 transition-colors group">
+                                                    <td class="p-3 font-bold text-slate-700 cursor-pointer hover:text-blue-600" onclick="app.openMeetingModal('${m.id}')" title="클릭하여 상세보기">${m.date}</td>
+                                                    <td class="p-3 text-center"><span class="px-2 py-1 rounded bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100 whitespace-nowrap">${m.type}</span></td>
+                                                    <td class="p-3 text-slate-800 font-medium cursor-pointer hover:text-blue-600" onclick="app.openMeetingModal('${m.id}')" title="클릭하여 상세보기">${m.topic || '-'}</td>
+                                                    <td class="p-3 text-center text-slate-500 text-xs truncate max-w-[150px]" title="${m.attendees}">${m.attendees}</td>
+                                                    <td class="p-3 text-center text-slate-600">${m.writer}</td>
+                                                    <td class="p-3 flex justify-center gap-1">
+                                                        <button type="button" onclick="app.duplicateMeeting('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="복사"><i data-lucide="copy" size="14"></i></button>
+                                                        <button type="button" onclick="app.deleteData('meetings', '${m.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
+                                                   </td>
+                                                </tr>
                                                         `).join('');
                                                     })()}
                                                 </tbody>
@@ -9176,6 +9186,18 @@
                     }
                 }
             },
+             // [신규] 사례회의록 복사 기능
+             duplicateMeeting: (id) => {
+                 const m = state.meetings.find(x => x.id === id);
+                 if (!m) return;
+                 
+                 const data = { ...m };
+                 delete data.id;
+                 delete data.createdAt;
+                 data.date = new Date().toISOString().split('T')[0]; // 오늘 날짜로 기본 설정
+                
+                 app.openMeetingModal(null, data);
+             },
 
             duplicateLog: (id) => {
                 const l = state.logs.find(x => x.id === id);
