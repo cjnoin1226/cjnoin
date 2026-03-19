@@ -7792,12 +7792,17 @@
                         <div class="clearfix"></div>
 
                         <table>
-                            <col width="15%"><col width="35%"><col width="15%"><col width="35%">
-                            <tr><th>상담일시</th><td>${getVal(cm, 'initial.date')}</td><th>상담자</th><td>${getVal(cm, 'initial.interviewer')}</td></tr>
-                            <tr><th>대상자명</th><td>${client.name}</td><th>주민번호</th><td>${client.residentNum || ''}</td></tr>
-                            <tr><th>연락처</th><td>${client.phone}</td><th>보호자</th><td>${client.guardianRelation ? client.guardianRelation + '/' : ''}${client.guardianPhone}</td></tr>
-                            <tr><th>주소</th><td colspan="3">${client.address}</td></tr>
-                            <tr><th>종교</th><td>${getVal(cm, 'initial.religion')}</td><th>의뢰인</th><td>${getVal(cm, 'initial.referrer.name')} (${getVal(cm, 'initial.referrer.relation')})</td></tr>
+                            <colgroup>
+                                <col width="12%">
+                                <col width="21%">
+                                <col width="12%">
+                                <col width="21%">
+                                <col width="12%">
+                                <col width="22%">
+                            </colgroup>
+                            <tr><th>상담일시</th><td>${getVal(cm, 'initial.date')}</td><th>상담자</th><td>${getVal(cm, 'initial.interviewer')}</td><th>의뢰인</th><td>${getVal(cm, 'initial.referrer.name')} (${getVal(cm, 'initial.referrer.relation')})</td></tr>
+                            <tr><th>대상자명</th><td>${client.name}</td><th>주민번호</th><td>${client.residentNum || ''}</td><th>연락처</th><td>${client.phone}</td></tr>
+                            <tr><th>주소</th><td colspan="3">${client.address}</td><th>종교</th><td>${getVal(cm, 'initial.religion')}</td></tr>
                         </table>
 
                         <h2>1. 가족사항</h2>
