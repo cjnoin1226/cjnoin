@@ -1062,7 +1062,7 @@
                         <div class="flex items-center gap-3">
                             <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors">
                                 <input type="checkbox" id="client-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllClients(this.checked)" ${allSelected ? 'checked' : ''} ${filtered.length === 0 ? 'disabled' : ''}>
-                                <span class="text-sm font-bold text-slate-600">전체선택 (${filtered.length}명)</span>
+                                <span class="text-sm font-bold text-slate-600">전체선택 (${filteredTotal}명)</span>
                             </label>
                             <!-- [이동] 일괄수정/선택삭제 버튼을 전체선택 오른쪽으로 이동 -->
                             <div id="client-batch-actions" class="flex gap-2">
@@ -3921,6 +3921,8 @@
                     }
                 }
                 const filtered = state.clients.filter(c => {
+                    if (c.name === '-') return false; // 👈 [추가] '-' 데이터는 전체선택에서 강제 제외!
+
                     const matchEconomic = !economicStatus || (c.economicStatus && (
                         c.economicStatus === economicStatus || 
                         (economicStatus === '조건부 기초수급' && c.economicStatus === '조건부 수급자') ||
