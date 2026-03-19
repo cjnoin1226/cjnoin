@@ -7263,13 +7263,13 @@
                     religion: getEl('cm-initial-religion'), // [신규] 종교 필드 추가
                     // 기존 필드 유지
                     conclusion: getEl('cm-initial-conclusion'),
-                    // [신규] 확장된 필드 매핑
-                    familyDetails: [0,1,2,3].map(i => ({
-                        rel: getEl(`cm-init-fam-rel-${i}`),
-                        name: getEl(`cm-init-fam-name-${i}`),
-                        age: getEl(`cm-init-fam-age-${i}`),
-                        co: getEl(`cm-init-fam-co-${i}`),
-                        note: getEl(`cm-init-fam-note-${i}`)
+                    // [신규] 확장된 필드 매핑 (화면에 보이는 모든 가족 줄을 동적으로 읽어옴)
+                    familyDetails: Array.from(document.querySelectorAll('#cm-fam-tbody .fam-row')).map(row => ({
+                        rel: row.querySelector('.fam-rel') ? row.querySelector('.fam-rel').value : '',
+                        name: row.querySelector('.fam-name') ? row.querySelector('.fam-name').value : '',
+                        age: row.querySelector('.fam-age') ? row.querySelector('.fam-age').value : '',
+                        co: row.querySelector('.fam-co') ? row.querySelector('.fam-co').value : '',
+                        note: row.querySelector('.fam-note') ? row.querySelector('.fam-note').value : ''
                     })),
                     // [신규] 생활상태 (체크박스 데이터)
                     living: {
