@@ -3409,7 +3409,7 @@
                         </div>
                         <form id="meeting-form" onsubmit="app.saveMeeting(event, '${id || ''}')" class="space-y-6 flex-1 overflow-y-auto p-1">
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div><label class="block text-sm font-bold text-slate-700 mb-1">회의 일자</label><input type="date" name="date" class="input-field" value="${m.date || today}" required></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">회의 일자</label><input type="date" name="date" class="input-field" value="${m.date || today}" max="9999-12-31" required></div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">회의 구분</label>
                                     <select name="type" class="input-field" onchange="app.toggleMeetingDecisionVisibility(this.value)">
@@ -3599,34 +3599,40 @@
                     if (startDateEl) startDateEl.value = '';
                 }
             },
-            // [신규] 회의록 저장 로직
-            saveMeeting: async (e, id) => {
-                e.preventDefault();
-                const fd = new FormData(e.target);
-                const data = Object.fromEntries(fd.entries());
+                    // [신규] 회의록 저장 로직
+                 saveMeeting: async (e, id) => {
+                     e.preventDefault();
+                     if (state.isSaving) return; // [방어 1] 마우스 두 번 클릭(따닥) 방지
+
+                     const fd = new FormData(e.target);
+                     const data = Object.fromEntries(fd.entries());
                 
-                // 대상자 ID 매핑
-                const client = state.clients.find(c => c.name === data.clientName);
-                data.clientId = client ? client.id : '';
+                    // 대상자 ID 매핑
+                     const client = state.clients.find(c => c.name === data.clientName);
+                     data.clientId = client ? client.id : '';
+
+                     state.isSaving = true; // 저장 시작 플래그 켜기
 
                     try {
-                    if (id) {
-                        await updateDoc(doc(db, "meetings", id), data);
-                        // [추가] 화면 즉시 갱신
-                        const idx = state.meetings.findIndex(m => m.id === id);
-                        if (idx > -1) state.meetings[idx] = { ...state.meetings[idx], ...data };
-                        app.showToast("회의록이 수정되었습니다.");
-                    } else {
-                        data.createdAt = new Date().toISOString();
-                        const docRef = await addDoc(collection(db, "meetings"), data);
-                        // [추가] 화면 즉시 갱신
-                        state.meetings.push({ id: docRef.id, ...data });
-                        app.showToast("회의록이 등록되었습니다.");
-                    }
+                        if (id) {
+                            await updateDoc(doc(db, "meetings", id), data);
+                            // 화면 즉시 갱신
+                            const idx = state.meetings.findIndex(m => m.id === id);
+                            if (idx > -1) state.meetings[idx] = { ...state.meetings[idx], ...data };
+                            app.showToast("회의록이 수정되었습니다.");
+                       } else {
+                          data.createdAt = new Date().toISOString();
+                          const docRef = await addDoc(collection(db, "meetings"), data);
+                          // [방어 2] 서버에서 이미 가져온 데이터인지 확인 후, 없을 때만 화면에 즉시 띄움 (쌍둥이 생성 방지)
+                          if (!state.meetings.some(m => m.id === docRef.id)) {
+                              state.meetings.push({ id: docRef.id, ...data });
+                          }
+                          app.showToast("회의록이 등록되었습니다.");
+                      }
                     
-                    app.closeModal(); // 회의록 작성 모달 닫기
+                          app.closeModal(); // 회의록 작성 모달 닫기
                     
-                    // [추가] 밑에 깔려있는 대상자관리 모달이 켜져있다면, 방금 쓴 회의록이 보이도록 대상자 모달도 새로고침!
+                    // 밑에 깔려있는 대상자관리 모달이 켜져있다면, 방금 쓴 회의록이 보이도록 대상자 모달도 새로고침!
                     const clientForm = document.getElementById('client-form');
                     if (clientForm && clientForm.dataset.id) {
                         app.openClientModal(clientForm.dataset.id);
@@ -3635,6 +3641,8 @@
                     if (state.viewMode === 'single') updateTabContent('meeting'); else render();
                 } catch (err) {
                     alert("저장 실패: " + err.message);
+                } finally {
+                    state.isSaving = false; // 저장이 완전히 끝나면 방어막 해제
                 }
             },
             // [신규] 회의록 인쇄/PDF 기능
@@ -4213,7 +4221,14 @@
                 showModal(html);
                 if(window.lucide) lucide.createIcons();
             },
-            setClientModalTab: (tabName) => {
+                setClientModalTab: (tabName) => {
+                // [신규] 현재 탭과 다른 탭으로 이동하려 할 때, 수정된 내용이 있는지 검사
+                if (state.ui.clientModalTab !== tabName && app.hasFormChanged()) {
+                    if (!confirm("수정된 내용이 있습니다. 저장하지 않고 다른 탭으로 이동하시겠습니까?")) return;
+                    // '확인'을 눌러 이동을 허락했다면, 귀찮게 계속 경고가 뜨는 것을 막기 위해 현재 폼 상태를 새로운 기준으로 갱신
+                    state.ui.initialFormState = app.captureFormState(); 
+                }
+
                 state.ui.clientModalTab = tabName;
                 document.querySelectorAll('.modal-tab-btn').forEach(btn => { if (btn.dataset.tab === tabName) btn.classList.add('active'); else btn.classList.remove('active'); });
                 document.querySelectorAll('.modal-tab-content').forEach(content => { if (content.id === `tab-${tabName}`) content.classList.add('active'); else content.classList.remove('active'); });
@@ -4226,6 +4241,13 @@
                 }, 10);
             },
             setCaseSubTab: (tabName) => {
+                // [신규] 현재 하위 탭과 다른 탭으로 이동하려 할 때, 수정된 내용이 있는지 검사
+                if (state.ui.caseSubTab !== tabName && app.hasFormChanged()) {
+                    if (!confirm("수정된 내용이 있습니다. 저장하지 않고 다른 탭으로 이동하시겠습니까?")) return;
+                    // '확인'을 눌러 이동을 허락했다면, 귀찮게 계속 경고가 뜨는 것을 막기 위해 현재 폼 상태를 새로운 기준으로 갱신
+                    state.ui.initialFormState = app.captureFormState(); 
+                }
+
                 state.ui.caseSubTab = tabName;
                 document.querySelectorAll('.sub-tab-btn').forEach(btn => { if (btn.dataset.subtab === tabName) btn.classList.add('active'); else btn.classList.remove('active'); });
                 document.querySelectorAll('.sub-tab-content').forEach(content => { if (content.id === `sub-tab-${tabName}`) content.classList.add('active'); else content.classList.remove('active'); });
