@@ -4225,8 +4225,13 @@
                 // [신규] 현재 탭과 다른 탭으로 이동하려 할 때, 수정된 내용이 있는지 검사
                 if (state.ui.clientModalTab !== tabName && app.hasFormChanged()) {
                     if (!confirm("수정된 내용이 있습니다. 저장하지 않고 다른 탭으로 이동하시겠습니까?")) return;
-                    // '확인'을 눌러 이동을 허락했다면, 귀찮게 계속 경고가 뜨는 것을 막기 위해 현재 폼 상태를 새로운 기준으로 갱신
-                    state.ui.initialFormState = app.captureFormState(); 
+                    // [수정] 확인을 눌렀다면 수정한 내용을 날려버리기 위해 모달을 다시 그림
+                    const form = document.getElementById('client-form');
+                    if (form) {
+                        state.ui.clientModalTab = tabName; // 이동할 탭으로 미리 변경
+                        app.openClientModal(form.dataset.id || ''); // 모달 새로고침 (입력된 값 날아감)
+                        return; // 아래 코드는 실행 안 함
+                    }
                 }
 
                 state.ui.clientModalTab = tabName;
@@ -4242,10 +4247,13 @@
             },
             setCaseSubTab: (tabName) => {
                 // [신규] 현재 하위 탭과 다른 탭으로 이동하려 할 때, 수정된 내용이 있는지 검사
-                if (state.ui.caseSubTab !== tabName && app.hasFormChanged()) {
-                    if (!confirm("수정된 내용이 있습니다. 저장하지 않고 다른 탭으로 이동하시겠습니까?")) return;
-                    // '확인'을 눌러 이동을 허락했다면, 귀찮게 계속 경고가 뜨는 것을 막기 위해 현재 폼 상태를 새로운 기준으로 갱신
-                    state.ui.initialFormState = app.captureFormState(); 
+                if (!confirm("수정된 내용이 있습니다. 저장하지 않고 다른 탭으로 이동하시겠습니까?")) return;
+                // [수정] 확인을 눌렀다면 수정한 내용을 날려버리기 위해 모달을 다시 그림
+                const form = document.getElementById('client-form');
+                if (form) {
+                    state.ui.caseSubTab = tabName; // 이동할 탭으로 미리 변경
+                    app.openClientModal(form.dataset.id || ''); // 모달 새로고침 (입력된 값 날아감)
+                    return; // 아래 코드는 실행 안 함
                 }
 
                 state.ui.caseSubTab = tabName;
