@@ -2276,21 +2276,32 @@
     },
     // [신규] 현재 폼의 모든 입력값을 하나의 문자열로 캡처하는 핵심 함수
     captureFormState: () => {
-        // 현재 화면에 있는 폼(form) 요소를 찾습니다.
-        const form = document.querySelector('form'); 
+        // [수정] 여러 창이 겹쳐있을 때 엉뚱한 폼을 검사하지 않도록 현재 눈에 보이는 폼만 정확히 잡아냅니다.
+        let form = document.querySelector('#sub-modal-container form');
+        if (!form || document.getElementById('sub-modal-container').classList.contains('hidden')) {
+            form = document.querySelector('#modal-container form');
+        }
+        if (!form || document.getElementById('modal-container').classList.contains('hidden')) {
+            form = document.querySelector('form');
+        }
         if (!form) return '';
 
         let stateString = '';
-        // 폼 안의 모든 input, select, textarea 요소를 싹 다 가져옵니다.
         const inputs = form.querySelectorAll('input, select, textarea');
         
         inputs.forEach(input => {
-            // 체크박스나 라디오 버튼은 체크 여부를 저장
+            // 이름이 없는 항목들도 헷갈리지 않게 고유 아이디표를 붙여줍니다.
+            const key = input.name || input.id || 'unnamed';
+            
             if (input.type === 'checkbox' || input.type === 'radio') {
-                stateString += `${input.name}=${input.checked}|`;
+                stateString += `${key}=${input.checked}|`;
             } else {
-                // 일반 텍스트, 숫자, 셀렉트 박스 등은 그 값을 저장
-                stateString += `${input.name}=${input.value}|`;
+                // [수정] 브라우저가 몰래 넣는 눈에 안 보이는 공백이나 줄바꿈 오차를 무시합니다.
+                let val = input.value || '';
+                if (input.tagName.toLowerCase() === 'textarea') {
+                    val = val.replace(/\r\n/g, '\n').trim();
+                }
+                stateString += `${key}=${val}|`;
             }
         });
         
