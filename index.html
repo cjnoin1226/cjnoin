@@ -929,8 +929,8 @@
             const today = new Date().toISOString().split('T')[0];
 
             state.clients.forEach(c => {
-                // [수정] 이름이 '-'인 데이터는 통계 집계에서 제외 (기타 사업 관리용)
-                if (c.name === '-') return;
+                // [추가] 이름이 '-'인 데이터는 모든 통계 집계에서 강제 패스!
+                if (c.name === '-') return; 
 
                 const isTerminatedToday = c.status === '종결' || (c.endDate && c.endDate < today);
                 const isNotStartedYet = c.serviceStartDate && c.serviceStartDate > today;
