@@ -2296,9 +2296,9 @@
             if (input.type === 'checkbox' || input.type === 'radio') {
                 stateString += `${key}=${input.checked}|`;
             } else {
-                // [수정] 브라우저가 몰래 넣는 눈에 안 보이는 공백이나 줄바꿈 오차를 무시합니다.
+                // [완벽수정] 모든 입력칸(텍스트, 선택박스 등)의 눈에 안 보이는 공백/오차를 100% 무시합니다.
                 let val = input.value || '';
-                if (input.tagName.toLowerCase() === 'textarea') {
+                if (typeof val === 'string') {
                     val = val.replace(/\r\n/g, '\n').trim();
                 }
                 stateString += `${key}=${val}|`;
@@ -4239,6 +4239,7 @@
                     // [수정] 확인을 눌렀다면 수정한 내용을 날려버리기 위해 모달을 다시 그림
                     const form = document.getElementById('client-form');
                     if (form) {
+                        state.ui.initialFormState = null; // 👈 [추가] 꼬임 방지를 위해 기존 기억을 완전히 삭제!
                         state.ui.clientModalTab = tabName; // 이동할 탭으로 미리 변경
                         app.openClientModal(form.dataset.id || ''); // 모달 새로고침 (입력된 값 날아감)
                         return; // 아래 코드는 실행 안 함
@@ -4260,12 +4261,13 @@
                 // [신규] 현재 하위 탭과 다른 탭으로 이동하려 할 때, 수정된 내용이 있는지 검사
                 if (!confirm("수정된 내용이 있습니다. 저장하지 않고 다른 탭으로 이동하시겠습니까?")) return;
                 // [수정] 확인을 눌렀다면 수정한 내용을 날려버리기 위해 모달을 다시 그림
-                const form = document.getElementById('client-form');
-                if (form) {
-                    state.ui.caseSubTab = tabName; // 이동할 탭으로 미리 변경
-                    app.openClientModal(form.dataset.id || ''); // 모달 새로고침 (입력된 값 날아감)
-                    return; // 아래 코드는 실행 안 함
-                }
+                    const form = document.getElementById('client-form');
+                    if (form) {
+                        state.ui.initialFormState = null; // 👈 [추가] 꼬임 방지를 위해 기존 기억을 완전히 삭제!
+                        state.ui.caseSubTab = tabName; // 이동할 탭으로 미리 변경
+                        app.openClientModal(form.dataset.id || ''); // 모달 새로고침 (입력된 값 날아감)
+                        return; // 아래 코드는 실행 안 함
+                    }
 
                 state.ui.caseSubTab = tabName;
                 document.querySelectorAll('.sub-tab-btn').forEach(btn => { if (btn.dataset.subtab === tabName) btn.classList.add('active'); else btn.classList.remove('active'); });
