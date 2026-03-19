@@ -1074,6 +1074,15 @@
                         </div>
                     </div>
 
+                    <!-- [추가] 대상자 목록 구분 헤더 (PC 화면에서만 보임) -->
+                    <div class="hidden md:grid md:grid-cols-[150px_160px_140px_1fr_70px] gap-1 items-center px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 shadow-sm mb-2 mr-1">
+                        <div class="pl-6">이름 (생년월일)</div>
+                        <div>기본 정보</div>
+                        <div>연락처</div>
+                        <div>주소</div>
+                        <div class="text-right pr-2">관리</div>
+                    </div>   
+
                     <div id="client-list-container" class="overflow-y-auto max-h-[70vh] custom-scrollbar space-y-2 pr-1 pb-4">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
                         filtered.map(c => {
