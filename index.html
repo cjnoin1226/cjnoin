@@ -4188,8 +4188,8 @@
                     yearOptionsHTML = `<option value="${y}" ${String(y) === currentYear ? 'selected' : ''}>${y}년</option>` + yearOptionsHTML;
                 }
 
-                const newClients = state.clients.filter(c => c.serviceStartDate && c.serviceStartDate.startsWith(currentYear)).sort((a,b) => b.serviceStartDate.localeCompare(a.serviceStartDate));
-                const endClients = state.clients.filter(c => c.endDate && c.endDate.startsWith(currentYear)).sort((a,b) => b.endDate.localeCompare(a.endDate));
+                const newClients = state.clients.filter(c => c.name !== '-' && c.serviceStartDate && c.serviceStartDate.startsWith(currentYear)).sort((a,b) => b.serviceStartDate.localeCompare(a.serviceStartDate));
+                const endClients = state.clients.filter(c => c.name !== '-' && c.endDate && c.endDate.startsWith(currentYear)).sort((a,b) => b.endDate.localeCompare(a.endDate));
                 
                 const html = `<div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
                     <div class="flex justify-between items-center mb-6 flex-shrink-0">
