@@ -8086,7 +8086,7 @@
                             <tr>
                                 <th>의료기관<br>이용현황</th>
                                 <td style="padding: 0;">
-                                    <table style="width: 100%; border: none; margin: 0; table-layout: fixed;">
+                                    <table style="width: 100%; border-collapse: collapse; border-style: hidden; margin: 0; table-layout: fixed;">
                                         <colgroup>
                                             <col style="width: 20%;">
                                             <col style="width: 15%;">
@@ -8095,25 +8095,25 @@
                                             <col style="width: 20%;">
                                             <col style="width: 20%;">
                                         </colgroup>
-                                        <tr style="background: #f8f9fa;">
-                                            <th style="border: none; border-right: 1px solid #000; border-bottom: 1px solid #000; font-size: 10px; padding: 2px;">의료기관명</th>
-                                            <th style="border: none; border-right: 1px solid #000; border-bottom: 1px solid #000; font-size: 10px; padding: 2px;">질병</th>
-                                            <th style="border: none; border-right: 1px solid #000; border-bottom: 1px solid #000; font-size: 10px; padding: 2px;">통원상황</th>
-                                            <th style="border: none; border-right: 1px solid #000; border-bottom: 1px solid #000; font-size: 10px; padding: 2px;">빈도</th>
-                                            <th style="border: none; border-right: 1px solid #000; border-bottom: 1px solid #000; font-size: 10px; padding: 2px;">복약(치료)</th>
-                                            <th style="border: none; border-bottom: 1px solid #000; font-size: 10px; padding: 2px;">연락처</th>
-                                        </tr>
-                                        ${medHist.map((m, i) => `
                                         <tr>
-                                            <td style="border: none; border-right: 1px solid #000; border-bottom: ${i === medHist.length - 1 ? 'none' : '1px solid #000'}; text-align: center; font-size: 10px; padding: 2px;">${m.institution || ''}</td>
-                                            <td style="border: none; border-right: 1px solid #000; border-bottom: ${i === medHist.length - 1 ? 'none' : '1px solid #000'}; text-align: center; font-size: 10px; padding: 2px;">${m.disease || ''}</td>
-                                            <td style="border: none; border-right: 1px solid #000; border-bottom: ${i === medHist.length - 1 ? 'none' : '1px solid #000'}; text-align: center; font-size: 10px; padding: 2px;">${m.status || ''}</td>
-                                            <td style="border: none; border-right: 1px solid #000; border-bottom: ${i === medHist.length - 1 ? 'none' : '1px solid #000'}; text-align: center; font-size: 10px; padding: 2px;">${m.frequency || ''}</td>
-                                            <td style="border: none; border-right: 1px solid #000; border-bottom: ${i === medHist.length - 1 ? 'none' : '1px solid #000'}; text-align: center; font-size: 10px; padding: 2px;">${m.medication || ''}</td>
-                                            <td style="border: none; border-bottom: ${i === medHist.length - 1 ? 'none' : '1px solid #000'}; text-align: center; font-size: 10px; padding: 2px;">${m.contact || ''}</td>
+                                            <th style="font-size: 10px; padding: 2px;">의료기관명</th>
+                                            <th style="font-size: 10px; padding: 2px;">질병</th>
+                                            <th style="font-size: 10px; padding: 2px;">통원상황</th>
+                                            <th style="font-size: 10px; padding: 2px;">빈도</th>
+                                            <th style="font-size: 10px; padding: 2px;">복약(치료)</th>
+                                            <th style="font-size: 10px; padding: 2px;">연락처</th>
+                                        </tr>
+                                        ${medHist.map(m => `
+                                        <tr>
+                                            <td style="font-size: 10px; padding: 2px; text-align: center;">${m.institution || ''}</td>
+                                            <td style="font-size: 10px; padding: 2px; text-align: center;">${m.disease || ''}</td>
+                                            <td style="font-size: 10px; padding: 2px; text-align: center;">${m.status || ''}</td>
+                                            <td style="font-size: 10px; padding: 2px; text-align: center;">${m.frequency || ''}</td>
+                                            <td style="font-size: 10px; padding: 2px; text-align: center;">${m.medication || ''}</td>
+                                            <td style="font-size: 10px; padding: 2px; text-align: center;">${m.contact || ''}</td>
                                         </tr>
                                         `).join('')}
-                                        ${medHist.length === 0 ? '<tr><td colspan="6" style="border: none; text-align: center; padding: 10px; color: #999;">-</td></tr>' : ''}
+                                        ${medHist.length === 0 ? '<tr><td colspan="6" style="text-align: center; padding: 10px; color: #999;">-</td></tr>' : ''}
                                     </table>
                                 </td>
                             </tr>
