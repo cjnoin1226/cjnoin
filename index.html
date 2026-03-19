@@ -7652,8 +7652,8 @@
                         /* 테이블 스타일 */
                         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
                         
-                        /* 행 중간에서도 페이지가 나뉘도록 허용 (빈 공간 채우기) */
-    tr { break-inside: auto; page-break-inside: auto; }
+                        /* 행 중간이 잘리지 않도록 보호 (페이지 넘김 시 통째로 이동) */
+                        tr { break-inside: avoid; page-break-inside: avoid; }
                         /* 표가 잘릴 때 제목(헤더) 반복 및 표 내부 분할 허용 */
                         thead { display: table-header-group; }
                         table { page-break-inside: auto; break-inside: auto; }
