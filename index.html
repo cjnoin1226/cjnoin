@@ -960,8 +960,8 @@
             
             const isFilterActive = search !== '' || searchPhone !== '' || status !== '이용' || level !== '' || economicStatus !== '' || duplicateService !== '' || ictStatus !== '' || region.length > 0 || gender !== '' || targetYear !== '' || targetMonth !== '';
 
-            // [신규] 전체 선택 여부 확인
-            const allSelected = filtered.length > 0 && filtered.every(c => state.ui.selectedClientIds.has(c.id));
+            // [신규] 전체 선택 여부 확인 ('-' 제외된 목록으로 100% 검사)
+            const allSelected = realFiltered.length > 0 && realFiltered.every(c => state.ui.selectedClientIds.has(c.id));
 
             return `
                 <div class="flex flex-col animate-fade-in">
