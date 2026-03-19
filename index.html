@@ -7177,101 +7177,89 @@
                 }, 0);
             },
             
-            // [추가] 대상자 정보 저장 (사례관리 내용 포함)
+            // [수정] 대상자 정보 저장 (숨겨진 창과의 꼬임 방지를 위해 완벽히 e.target으로 스코프 제한)
             saveClient: async (e, id) => {
                 e.preventDefault();
 
-                // [수정] 폼 데이터 수집 및 헬퍼 함수, 기존 데이터 정의 추가 (오류 해결)
                 const fd = new FormData(e.target);
                 const data = Object.fromEntries(fd.entries());
 
-                const getEl = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
-                const getRadio = (name) => { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; };
-                const getCheck = (name) => { const el = document.querySelector(`input[name="${name}"]`); return el ? el.checked : false; };
-                const getCheckedValues = (name) => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(el => el.value);
+                // [핵심] document 대신 e.target을 사용하여 오직 '현재 활성화된 폼' 안에서만 데이터를 찾습니다!
+                const getEl = (id) => { const el = e.target.querySelector(`#${id}`); return el ? el.value : ''; };
+                const getRadio = (name) => { const el = e.target.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; };
+                const getCheck = (name) => { const el = e.target.querySelector(`input[name="${name}"]`); return el ? el.checked : false; };
+                const getCheckedValues = (name) => Array.from(e.target.querySelectorAll(`input[name="${name}"]:checked`)).map(el => el.value);
 
                 const client = state.clients.find(c => c.id === id);
                 const currentCm = client ? (client.caseManagement || {}) : {};
 
-                // [신규] 연도별 저장 데이터 분리
                 const targetYear = state.ui.cmYear;
                 
-                // [신규] 선정기준표 데이터 수집 (5개 영역 구조 반영)
                 const selection = {
                     date: getEl('cm-sel-date'),
                     writer: getEl('cm-sel-writer'),
-                    // 경제영역
                     economic: {
                         benefit: getRadio('sel-eco-benefit'),
                         housing: getRadio('sel-eco-housing'),
-                        incomeScore: getRadio('sel-eco-income-score'), // [신규] 소득 점수
+                        incomeScore: getRadio('sel-eco-income-score'),
                         realIncome: getEl('sel-eco-real-income'),
                         totalIncome: getEl('sel-eco-total-income'),
-                        bonus: { // [수정] 가산점 상세 항목별 저장
+                        bonus: { 
                             family: getRadio('sel-eco-bonus-family'),
                             rent: getRadio('sel-eco-bonus-rent'),
-                            jjokbang: document.querySelector('input[name="sel-eco-bonus-jjokbang"]')?.checked ? '2점' : ''
+                            jjokbang: e.target.querySelector('input[name="sel-eco-bonus-jjokbang"]')?.checked ? '2점' : ''
                         }
                     },
-                    // 신체영역
                     physical: {
                         disease: getRadio('sel-phy-disease'),
                         disability: getRadio('sel-phy-disability'),
                         iadl: getRadio('sel-phy-iadl'),
-                        bonus: { // [수정] 신체영역 가산점 구조 변경
+                        bonus: { 
                             items: getCheckedValues('sel-phy-bonus-check'),
                             adl: getRadio('sel-phy-bonus-adl')
                         }
                     },
-                    // [신규] 정신영역
                     mental: {
                         cognitive: getRadio('sel-men-cognitive'),
-                        cognitiveDetail: getCheckedValues('sel-men-cognitive-detail'), // 인지 가산
+                        cognitiveDetail: getCheckedValues('sel-men-cognitive-detail'),
                         depression: getRadio('sel-men-depression'),
-                        depressionBonus: getCheckedValues('sel-men-dep-bonus'), // [신규] 우울 가산
+                        depressionBonus: getCheckedValues('sel-men-dep-bonus'),
                         alcohol: getRadio('sel-men-alcohol'),
-                        alcoholBonus: getCheckedValues('sel-men-alc-bonus'), // [신규] 알콜 가산
+                        alcoholBonus: getCheckedValues('sel-men-alc-bonus'),
                         abuse: getRadio('sel-men-abuse'),
-                        abuseBonus: getCheckedValues('sel-men-abuse-bonus') // [신규] 학대 가산
+                        abuseBonus: getCheckedValues('sel-men-abuse-bonus')
                     },
-                    // [신규] 사회영역
                     social: {
                         household: getRadio('sel-soc-household'),
                         family: getRadio('sel-soc-family'),
                         neighbor: getRadio('sel-soc-neighbor'),
                         activity: getRadio('sel-soc-activity'),
-                        bonus: getCheckedValues('sel-soc-bonus') // [신규]
+                        bonus: getCheckedValues('sel-soc-bonus')
                     },
-                    // [신규] 사례관리자 평가
-                    manager: { // [수정] 구조 변경 (score, bonus)
+                    manager: { 
                         score: getEl('sel-man-score'),
-                        bonus: getCheckedValues('sel-man-bonus') // [신규]
+                        bonus: getCheckedValues('sel-man-bonus')
                     },
-                    // 하위 호환을 위해 managerEval 필드도 유지하거나 manager.score로 일원화 (여기선 일원화 후 로딩 로직에서 처리 권장)
-                    managerEval: getEl('sel-man-score'), // 레거시 유지
+                    managerEval: getEl('sel-man-score'), 
                     
-                    // 종합
                     totalScore: getEl('sel-total'),
                     decision: getRadio('sel-decision'),
                     note: getEl('sel-note')
                 };
 
-                // 1. 초기면접, 사정 기록 (루트 레벨 유지) -> [수정] 새 필드 추가
                 const initial = {
                     date: getEl('cm-initial-date'),
                     interviewer: getEl('cm-initial-interviewer'),
-                    religion: getEl('cm-initial-religion'), // [신규] 종교 필드 추가
-                    // 기존 필드 유지
+                    religion: getEl('cm-initial-religion'),
                     conclusion: getEl('cm-initial-conclusion'),
-                    // [신규] 확장된 필드 매핑 (화면에 보이는 모든 가족 줄을 동적으로 읽어옴)
-                    familyDetails: Array.from(document.querySelectorAll('#cm-fam-tbody .fam-row')).map(row => ({
+                    // [핵심] 가족사항도 무조건 현재 폼(e.target) 안에서만 긁어오도록 수정!
+                    familyDetails: Array.from(e.target.querySelectorAll('.fam-row')).map(row => ({
                         rel: row.querySelector('.fam-rel') ? row.querySelector('.fam-rel').value : '',
                         name: row.querySelector('.fam-name') ? row.querySelector('.fam-name').value : '',
                         age: row.querySelector('.fam-age') ? row.querySelector('.fam-age').value : '',
                         co: row.querySelector('.fam-co') ? row.querySelector('.fam-co').value : '',
                         note: row.querySelector('.fam-note') ? row.querySelector('.fam-note').value : ''
                     })),
-                    // [신규] 생활상태 (체크박스 데이터)
                     living: {
                         economic: getCheckedValues('cm-init-live-eco'),
                         economicDetail: {
@@ -7293,14 +7281,13 @@
                         },
                         dwellingType: getCheckedValues('cm-init-live-dwelling')
                     },
-                    // [수정] 신체상태 (Physical Condition)
                     physical: {
                         health: getCheckedValues('cm-init-phy-health-option'),
                         chronic: getEl('cm-init-phy-chronic'),
-                        disabilityStatus: document.querySelector('input[name="cm-init-phy-disability-status"]:checked')?.value || '',
+                        disabilityStatus: e.target.querySelector('input[name="cm-init-phy-disability-status"]:checked')?.value || '',
                         disabilityType: getEl('cm-init-phy-disability-type'),
                         disability: (() => {
-                            const s = document.querySelector('input[name="cm-init-phy-disability-status"]:checked')?.value;
+                            const s = e.target.querySelector('input[name="cm-init-phy-disability-status"]:checked')?.value;
                             const t = getEl('cm-init-phy-disability-type');
                             if (s === '유') return t ? `유(${t})` : '유';
                             if (s === '무') return '무';
@@ -7310,14 +7297,11 @@
                         deviceDetail: getEl('cm-init-phy-device-detail'),
                         grade: getCheckedValues('cm-init-phy-grade-check')
                     },
-                    // [신규] 타서비스 이용현황
                     otherServices: {
                         serviceName: getEl('cm-init-other-service-name'),
                         institution: getEl('cm-init-other-service-institution')
                     },
-                    // [신규] 신청서비스
                     requestedServices: getEl('cm-init-requested-services'),
-                    // [신규] 서비스 제공 정보
                     provision: {
                         status: getRadio('cm-init-prov-status'),
                         disqualifiedReason: getEl('cm-init-prov-disq-reason'),
@@ -7325,17 +7309,16 @@
                         reasonOther: getEl('cm-init-prov-reason-other'),
                         content: getEl('cm-init-prov-content')
                     },
-                    // [신규] 의뢰인 정보
                     referrer: {
                         name: getEl('cm-init-referrer-name'),
                         relation: getEl('cm-init-referrer-relation'),
                         phone: getEl('cm-init-referrer-phone'),
                         path: getEl('cm-init-referrer-path')
                     },
-                    health: { // 기존 데이터 호환성 유지
+                    health: {
                         disease: getEl('cm-init-phy-chronic'), 
                         disability: (() => {
-                            const s = document.querySelector('input[name="cm-init-phy-disability-status"]:checked')?.value;
+                            const s = e.target.querySelector('input[name="cm-init-phy-disability-status"]:checked')?.value;
                             const t = getEl('cm-init-phy-disability-type');
                             if (s === '유') return t ? `유(${t})` : '유';
                             if (s === '무') return '무';
@@ -7343,23 +7326,18 @@
                         })(),
                         medication: getEl('cm-initial-medication')
                     },
-                    economic: {
-                        housing: '', // 기존 필드 삭제됨
-                        income: ''   // 기존 필드 삭제됨
-                    }
+                    economic: { housing: '', income: '' }
                 };
 
                 const assessment = {
                     date: getEl('cm-assess-date'),
                     writer: getEl('cm-assess-writer'),
-                    // [신규] 상세 기본정보 데이터 저장
                     data: {
                         economic: getCheckedValues('cm-assess-eco'),
                         economicDetail: {
                             conditional: getEl('cm-assess-eco-cond'),
                             other: getEl('cm-assess-eco-other'),
                             monthlyIncome: getEl('cm-assess-eco-income'),
-                            // [수정] 소득원 상세 데이터 저장 구조 변경
                             incomeSources: {
                                 earned: { checked: getCheck('cm-assess-inc-earned'), value: getEl('cm-assess-inc-earned-val') },
                                 gov: { checked: getCheck('cm-assess-inc-gov'), value: getEl('cm-assess-inc-gov-val') },
@@ -7374,28 +7352,19 @@
                             wolseDeposit: getEl('cm-assess-house-w-dep'),
                             wolseRent: getEl('cm-assess-house-w-rent')
                         },
-                        // [신규] 주택형태 저장
                         dwellingType: getCheckedValues('cm-assess-dwelling'),
-                        dwellingDetail: {
-                            other: getEl('cm-assess-dwelling-other')
-                        },
-                        // [신규] 주거환경 저장
+                        dwellingDetail: { other: getEl('cm-assess-dwelling-other') },
                         housingEnvironment: getCheckedValues('cm-assess-env-type'),
                         housingEnvironmentDetail: {
-                            elevator: document.querySelector('input[name="cm-assess-env-elevator"]:checked')?.value || '',
+                            elevator: e.target.querySelector('input[name="cm-assess-env-elevator"]:checked')?.value || '',
                             other: getEl('cm-assess-env-other')
                         },
-                        // [신규] 화장실 형태 저장
                         toiletType: {
                             share: getCheckedValues('cm-assess-toilet-share'),
                             style: getCheckedValues('cm-assess-toilet-style')
                         },
-                        // [신규] 난방형태 저장
                         heatingType: getCheckedValues('cm-assess-heating'),
-                        heatingTypeDetail: {
-                            other: getEl('cm-assess-heating-other')
-                        },
-                        // [신규] 주택/위생 상태 저장
+                        heatingTypeDetail: { other: getEl('cm-assess-heating-other') },
                         housingCondition: {
                             status: getCheckedValues('cm-assess-h-cond').join(', '),
                             detail: getEl('cm-assess-h-cond-detail')
@@ -7406,56 +7375,51 @@
                         },
                         physical: {
                             health: getCheckedValues('cm-assess-health'),
-                            // [수정] 질환명 체크박스 값 수집 및 조립 로직
                             chronic: (() => {
-                                const checked = Array.from(document.querySelectorAll('input[name="cm-assess-chronic-item"]:checked')).map(cb => {
+                                const checked = Array.from(e.target.querySelectorAll('input[name="cm-assess-chronic-item"]:checked')).map(cb => {
                                     if (cb.value === '암') {
-                                        const detail = document.getElementById('cm-assess-chronic-cancer-detail').value.trim();
+                                        const detail = getEl('cm-assess-chronic-cancer-detail').trim();
                                         return detail ? `암(${detail})` : '암';
                                     }
                                     if (cb.value === '기타') {
-                                        const detail = document.getElementById('cm-assess-chronic-other-detail').value.trim();
+                                        const detail = getEl('cm-assess-chronic-other-detail').trim();
                                         return detail ? `기타(${detail})` : '기타';
                                     }
                                     return cb.value;
                                 });
                                 return checked.join(', ');
                             })(),
-                            mobilityStatus: getCheckedValues('cm-assess-mobility').join(', '), // [수정] 라디오(getRadio) -> 체크박스(getCheckedValues)로 변경하여 다중값 저장 지원
+                            mobilityStatus: getCheckedValues('cm-assess-mobility').join(', '), 
                             disabilityStatus: getCheckedValues('cm-assess-dis-status').join(', '),
                             disabilityType: getEl('cm-assess-dis-type'),
                             grade: getCheckedValues('cm-assess-grade'),
-                            // [신규] 보장구 저장 로직
                             device: getCheckedValues('cm-assess-device'),
                             deviceDetail: getEl('cm-assess-device-detail'),
-                            // [신규] 신체적/정신적 문제 저장 로직
                             physicalIssues: (() => {
-                                const checked = Array.from(document.querySelectorAll('input[name="cm-assess-phy-issue"]:checked')).map(cb => {
+                                const checked = Array.from(e.target.querySelectorAll('input[name="cm-assess-phy-issue"]:checked')).map(cb => {
                                     if (cb.value === '기타') {
-                                        const detail = document.getElementById('cm-assess-phy-issue-detail').value.trim();
+                                        const detail = getEl('cm-assess-phy-issue-detail').trim();
                                         return detail ? `기타(${detail})` : '기타';
                                     }
                                     return cb.value;
                                 });
                                 return checked.join(', ');
                             })(),
-                            physicalIssuesDetail: getEl('cm-assess-phy-issue-detail'), // 상세 내용 별도 저장 (복원용)
+                            physicalIssuesDetail: getEl('cm-assess-phy-issue-detail'), 
                             mentalIssues: (() => {
-                                const checked = Array.from(document.querySelectorAll('input[name="cm-assess-men-issue"]:checked')).map(cb => {
+                                const checked = Array.from(e.target.querySelectorAll('input[name="cm-assess-men-issue"]:checked')).map(cb => {
                                     if (cb.value === '기타') {
-                                        const detail = document.getElementById('cm-assess-men-issue-detail').value.trim();
+                                        const detail = getEl('cm-assess-men-issue-detail').trim();
                                         return detail ? `기타(${detail})` : '기타';
                                     }
                                     return cb.value;
                                 });
                                 return checked.join(', ');
                             })(),
-                            mentalIssuesDetail: getEl('cm-assess-men-issue-detail'), // 상세 내용 별도 저장 (복원용)
-                            // [신규] 과거병력/현재병력 저장
+                            mentalIssuesDetail: getEl('cm-assess-men-issue-detail'), 
                             historyPast: getEl('cm-assess-history-past'),
                             historyCurrent: getEl('cm-assess-history-current')
                         },
-                        // [신규] 의료기관 이용현황 저장
                         medicalHistory: [0, 1].map(i => ({
                             institution: getEl(`cm-assess-med-inst-${i}`),
                             disease: getEl(`cm-assess-med-dis-${i}`),
@@ -7465,38 +7429,31 @@
                             contact: getEl(`cm-assess-med-contact-${i}`)
                         }))
                     },
-                    // [수정] 상세 사정 내용 매핑 (Narrative)
                     physical: getEl('cm-assess-phy'),
                     mental: getEl('cm-assess-men'),
                     social: getEl('cm-assess-soc'),
                     economic: getEl('cm-assess-eco'),
                     environment: getEl('cm-assess-env'),
-                    // 종합 및 계획
                     general: getEl('cm-assess-general'),
                     goal: getEl('cm-assess-goal'),
                     plan: getEl('cm-assess-plan'),
-                    // 하위 호환을 위해 유지 (필요시)
                     content: getEl('cm-assess-general') 
                 };
 
-                // [수정] 재사정 데이터 매핑 변경 (전화번호 추가)
                 const reAssessment = {
                     date: getEl('cm-re-date'),
-                    // 분류 데이터 (경제 + 세대)
                     economic: getCheckedValues('cm-re-eco'),
                     economicDetail: {
                         conditional: getEl('cm-re-eco-cond'),
                         other: getEl('cm-re-eco-other')
                     },
                     household: getCheckedValues('cm-re-house'),
-                    // 기타 정보
                     address: getEl('cm-re-address'),
-                    phone: getEl('cm-re-phone'), // [추가] 전화번호
+                    phone: getEl('cm-re-phone'), 
                     family: getEl('cm-re-family'),
-                    // [복구] 재사정유형 저장 로직 (Select + Input 조합)
                     type: (() => {
-                        const sel = document.getElementById('cm-re-type-select');
-                        return (sel && sel.value === '기타') ? document.getElementById('cm-re-type-detail').value : (sel ? sel.value : '');
+                        const sel = e.target.querySelector('#cm-re-type-select');
+                        return (sel && sel.value === '기타') ? getEl('cm-re-type-detail') : (sel ? sel.value : '');
                     })(),
                     factor: getEl('cm-re-factor'),
                     ctNeeds: getEl('cm-re-ct-needs'),
@@ -7507,19 +7464,19 @@
                 };
 
                 const satisfaction = {
-                type: getEl('cm-sat-type'),
-                date: getEl('cm-sat-date'),
-                method: getEl('cm-sat-method'), 
-                surveyor: getEl('cm-sat-surveyor'),
-                manager: getEl('cm-sat-manager'),
-                deletedGoals: window.deletedSatGoals || [], // <-- 이 줄만 추가!!!
-                serviceGoals: Array.from(document.querySelectorAll('textarea[id^="sat-goal-"]')).map(el => {
+                    type: getEl('cm-sat-type'),
+                    date: getEl('cm-sat-date'),
+                    method: getEl('cm-sat-method'), 
+                    surveyor: getEl('cm-sat-surveyor'),
+                    manager: getEl('cm-sat-manager'),
+                    deletedGoals: window.deletedSatGoals || [],
+                    serviceGoals: Array.from(e.target.querySelectorAll('textarea[id^="sat-goal-"]')).map(el => {
                         const uniqueId = el.id.replace('sat-goal-', '');
                         return {
                             goal: el.value,
-                            action: document.getElementById(`sat-action-${uniqueId}`)?.value || '',
-                            userSat: document.querySelector(`input[name="service-sat-${uniqueId}"]:checked`)?.value || '',
-                            workerEval: document.getElementById(`sat-worker-${uniqueId}`)?.value || ''
+                            action: getEl(`sat-action-${uniqueId}`),
+                            userSat: getRadio(`service-sat-${uniqueId}`),
+                            workerEval: getEl(`sat-worker-${uniqueId}`)
                         };
                     }),
                     monitor: {
@@ -7569,10 +7526,8 @@
                 };
 
                 const history = currentCm.history || {};
-                // [수정] history에 selection 데이터도 포함하여 저장
                 history[targetYear] = { reAssessment, satisfaction, evaluation };
 
-                // [수정] selection 객체 포함하여 caseManagement 구성
                 const caseManagement = { ...currentCm, initial, assessment, selection, history };
                 const updateData = { ...data, caseManagement };
                 if (updateData.name) updateData.name = updateData.name.trim();
@@ -7581,13 +7536,12 @@
                     if (id) {
                         await updateDoc(doc(db, "clients", id), updateData);
                         
-                        // [추가] 인쇄 등 즉각적인 반영을 위해 컴퓨터 메모리(로컬 데이터) 즉시 동기화
                         const existingIndex = state.clients.findIndex(c => c.id === id);
                         if (existingIndex !== -1) {
                             state.clients[existingIndex] = { ...state.clients[existingIndex], ...updateData };
                         }
                         
-                        alert("대상자 정보가 수정되었습니다.");
+                        alert("대상자 정보가 수정/저장되었습니다.");
                     } else {
                         updateData.createdAt = new Date().toISOString();
                         const docRef = await addDoc(collection(db, "clients"), updateData);
@@ -7601,7 +7555,7 @@
                     alert("저장 중 오류가 발생했습니다: " + err.message);
                 }
             },
-
+            
             // [신규] 사례관리 인쇄 및 PDF 저장 기능
             printCaseManagement: async (clientId, mode = 'print', docType = null, targetYear = null) => {
                 const client = state.clients.find(c => c.id === clientId);
