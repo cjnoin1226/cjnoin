@@ -2268,11 +2268,9 @@
                 }
             },
 
-    // [신규] 폼 변경 여부 확인 함수
+    // [스마트 감지] 폼 변경 여부 확인 함수
     hasFormChanged: () => {
-        if (!state.ui.initialFormState) return false;
-        const currentState = app.captureFormState();
-        return currentState !== state.ui.initialFormState;
+        return !!state.ui.isDirty; // 사용자가 진짜로 건드렸을 때만 true
     },
     // [신규] 현재 폼의 모든 입력값을 하나의 문자열로 캡처하는 핵심 함수
     captureFormState: () => {
@@ -4236,13 +4234,13 @@
                 // [신규] 현재 탭과 다른 탭으로 이동하려 할 때, 수정된 내용이 있는지 검사
                 if (state.ui.clientModalTab !== tabName && app.hasFormChanged()) {
                     if (!confirm("수정된 내용이 있습니다. 저장하지 않고 다른 탭으로 이동하시겠습니까?")) return;
-                    // [수정] 확인을 눌렀다면 수정한 내용을 날려버리기 위해 모달을 다시 그림
+                    
                     const form = document.getElementById('client-form');
                     if (form) {
-                        state.ui.initialFormState = null; // 👈 [추가] 꼬임 방지를 위해 기존 기억을 완전히 삭제!
-                        state.ui.clientModalTab = tabName; // 이동할 탭으로 미리 변경
-                        app.openClientModal(form.dataset.id || ''); // 모달 새로고침 (입력된 값 날아감)
-                        return; // 아래 코드는 실행 안 함
+                        state.ui.isDirty = false; // 👈 이동하기 전에 기억을 즉시 깨끗하게 세탁!
+                        state.ui.clientModalTab = tabName; 
+                        app.openClientModal(form.dataset.id || ''); 
+                        return; 
                     }
                 }
 
@@ -4258,16 +4256,18 @@
                 }, 10);
             },
             setCaseSubTab: (tabName) => {
-                // [신규] 현재 하위 탭과 다른 탭으로 이동하려 할 때, 수정된 내용이 있는지 검사
-                if (!confirm("수정된 내용이 있습니다. 저장하지 않고 다른 탭으로 이동하시겠습니까?")) return;
-                // [수정] 확인을 눌렀다면 수정한 내용을 날려버리기 위해 모달을 다시 그림
+                // [복구 완료!] 탭이 다르고, 실제로 내용이 변경되었을 때만 알림 띄우기
+                if (state.ui.caseSubTab !== tabName && app.hasFormChanged()) {
+                    if (!confirm("수정된 내용이 있습니다. 저장하지 않고 다른 탭으로 이동하시겠습니까?")) return;
+                    
                     const form = document.getElementById('client-form');
                     if (form) {
-                        state.ui.initialFormState = null; // 👈 [추가] 꼬임 방지를 위해 기존 기억을 완전히 삭제!
-                        state.ui.caseSubTab = tabName; // 이동할 탭으로 미리 변경
-                        app.openClientModal(form.dataset.id || ''); // 모달 새로고침 (입력된 값 날아감)
-                        return; // 아래 코드는 실행 안 함
+                        state.ui.isDirty = false; // 👈 이동하기 전에 기억을 즉시 깨끗하게 세탁!
+                        state.ui.caseSubTab = tabName; 
+                        app.openClientModal(form.dataset.id || ''); 
+                        return; 
                     }
+                }
 
                 state.ui.caseSubTab = tabName;
                 document.querySelectorAll('.sub-tab-btn').forEach(btn => { if (btn.dataset.subtab === tabName) btn.classList.add('active'); else btn.classList.remove('active'); });
@@ -10332,17 +10332,19 @@
             m.classList.remove('hidden'); 
             state.ui.allowOverlayClose = allowOverlayClose;
             
-            // [추가] 모달이 열릴 때 초기 상태를 저장하고, '저장(submit)' 버튼 클릭을 감지합니다.
             setTimeout(() => {
-                if (window.app && app.captureFormState) {
-                    state.ui.initialFormState = app.captureFormState();
-                }
+                // [스마트 감지] 모달이 열리면 무조건 깨끗한 상태로 리셋!
+                state.ui.isDirty = false;
+                
                 const form = m.querySelector('form');
                 if (form) {
-                    // 폼 제출(저장) 시에는 경고창이 뜨지 않도록 초기 상태를 비워줍니다.
                     form.addEventListener('submit', () => {
-                        state.ui.initialFormState = null; 
+                        state.ui.isDirty = false; 
                     });
+
+                    // [스마트 감지] 사용자가 '진짜로' 키보드를 치거나 마우스를 클릭했을 때만 오염(Dirty) 처리
+                    form.addEventListener('input', () => { state.ui.isDirty = true; });
+                    form.addEventListener('change', () => { state.ui.isDirty = true; });
                 }
             }, 100);
         }
