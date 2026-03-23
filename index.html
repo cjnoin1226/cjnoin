@@ -4322,7 +4322,7 @@
                 // [추가] 탭 변경 시 연도 선택 박스 표시 여부 제어
                 const yearWrapper = document.getElementById('year-select-wrapper');
                 if (yearWrapper) {
-                    if (['reassess', 'satisfaction', 'evaluation'].includes(tabName)) {
+                    if (['reassess', 'satisfaction', 'evaluation', 'servicePlan'].includes(tabName)) {
                         yearWrapper.classList.remove('hidden');
                     } else {
                         yearWrapper.classList.add('hidden');
@@ -4687,6 +4687,7 @@
                                         <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'initial' ? 'active' : ''}" data-subtab="initial" onclick="app.setCaseSubTab('initial')">초기면접지</button>
                                         <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'selection' ? 'active' : ''}" data-subtab="selection" onclick="app.setCaseSubTab('selection')">선정기준표</button>
                                         <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'assessment' ? 'active' : ''}" data-subtab="assessment" onclick="app.setCaseSubTab('assessment')">사정기록지</button>
+                                        <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'servicePlan' ? 'active' : ''}" data-subtab="servicePlan" onclick="app.setCaseSubTab('servicePlan')">서비스계획서</button>
                                         <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'reassess' ? 'active' : ''}" data-subtab="reassess" onclick="app.setCaseSubTab('reassess')">재사정</button>
                                         <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'satisfaction' ? 'active' : ''}" data-subtab="satisfaction" onclick="app.setCaseSubTab('satisfaction')">만족도조사</button>
                                         <button type="button" class="sub-tab-btn ${state.ui.caseSubTab === 'evaluation' ? 'active' : ''}" data-subtab="evaluation" onclick="app.setCaseSubTab('evaluation')">사례평가서</button>
@@ -7027,6 +7028,85 @@
         </div>
     </div>
 </div>
+                                    <!-- [신규] 서비스계획서 탭 내용 -->
+<div id="sub-tab-servicePlan" class="sub-tab-content ${state.ui.caseSubTab === 'servicePlan' ? 'active' : ''} space-y-4">
+    <div class="border border-slate-300 bg-white shadow-sm overflow-hidden mt-4">
+        <table class="w-full text-sm text-left border-collapse table-fixed">
+            <colgroup>
+                <col class="w-[12%]">
+                <col class="w-[21%]">
+                <col class="w-[12%]">
+                <col class="w-[21%]">
+                <col class="w-[12%]">
+                <col class="w-[22%]">
+            </colgroup>
+            <tbody>
+                <!-- 1. 대상자 / 작성자 / 날짜 (가로 1줄 배치) -->
+                <tr>
+                    <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">대상자명</th>
+                    <td class="border border-slate-300 p-0">
+                        <input type="text" class="input-field w-full border-0 focus:ring-inset rounded-none h-full bg-slate-50 text-center font-bold text-slate-800" value="${c.name}" readonly tabindex="-1">
+                    </td>
+                    <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">작성자</th>
+                    <td class="border border-slate-300 p-0">
+                        <input type="text" id="cm-plan-writer" class="input-field w-full border-0 focus:ring-inset rounded-none h-full text-center" placeholder="이름 입력" value="">
+                    </td>
+                    <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">날짜</th>
+                    <td class="border border-slate-300 p-0">
+                        <input type="date" id="cm-plan-date" class="input-field w-full border-0 focus:ring-inset rounded-none h-full" value="">
+                    </td>
+                </tr>
+                <!-- 2. 목표 -->
+                <tr>
+                    <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700 leading-tight">목표<br><span class="font-normal text-[10px] text-slate-500">(서비스 제공 방법)</span></th>
+                    <td colspan="5" class="border border-slate-300 p-0">
+                        <textarea id="cm-plan-goal" class="input-field w-full min-h-[100px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed text-sm" placeholder="1. 위기관리체계구축\n - 내용\n2. 욕구기반위기관리서비스제공\n - 내용" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'"></textarea>
+                    </td>
+                </tr>
+                <!-- 3. 서비스 제공 계획 헤더 -->
+                <tr>
+                    <th colspan="6" class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-800 tracking-wider">서 비 스 제 공 계 획</th>
+                </tr>
+                <!-- 4. 내부 테이블 (서비스 리스트) -->
+                <tr>
+                    <td colspan="6" class="border border-slate-300 p-0 bg-white">
+                        <table class="w-full text-xs text-center border-collapse">
+                            <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-300">
+                                <tr>
+                                    <th class="border-r border-slate-300 p-2 w-[30%]">서비스 분류<br><span class="text-[10px] font-normal text-slate-500">(대분류 / 중분류 / 소분류)</span></th>
+                                    <th class="border-r border-slate-300 p-2 w-[15%] leading-tight">서비스<br>제공 횟수</th>
+                                    <th class="border-r border-slate-300 p-2 w-[25%] leading-tight">서비스내용<br>및 방법</th>
+                                    <th class="border-r border-slate-300 p-2 w-[15%]">서비스 기간</th>
+                                    <th class="p-2 w-[15%] leading-tight">서비스<br>점검 및 평가</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 예시 데이터 행 -->
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="border-r border-b border-slate-300 p-2">위기관리체계구축<br>> 사례관리</td>
+                                    <td class="border-r border-b border-slate-300 p-2"><input type="text" class="w-full text-center bg-transparent outline-none" placeholder="연 1회 이상"></td>
+                                    <td class="border-r border-b border-slate-300 p-2"><textarea class="w-full bg-transparent outline-none resize-none text-center" rows="2" placeholder="사례관리 및 재사정"></textarea></td>
+                                    <td class="border-r border-b border-slate-300 p-2 text-red-500"><input type="text" class="w-full text-center text-red-500 font-bold bg-transparent outline-none" placeholder="2025 ~ 2026"></td>
+                                    <td class="border-b border-slate-300 p-2"><input type="text" class="w-full text-center bg-transparent outline-none" placeholder="연 1회 점검"></td>
+                                </tr>
+                                <!-- 더하기 버튼 줄 -->
+                                <tr>
+                                    <td colspan="5" class="p-1 bg-slate-50 text-center border-b border-slate-300">
+                                        <button type="button" class="text-[10px] bg-white border border-slate-300 text-slate-500 px-2 py-1 rounded hover:bg-slate-100 font-bold w-full" onclick="alert('행 추가 기능 연결 필요')">+ 서비스 항목 추가</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                <!-- 5. 조정 및 종결 -->
+                <tr>
+                    <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700 leading-tight">서비스<br>조정<br>및<br>종결</th>
+                    <td colspan="5" class="border border-slate-300 p-0">
+                        <textarea id="cm-plan-adjust" class="input-field w-full min-h-[100px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed text-sm" placeholder="- 서비스 이용자에게 적절하지 않거나...\n- 다른 지역으로 이주를 하였을 때...\n- 3개월 이상 연락이 끊겼을 경우" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'"></textarea>
+                    </td>
+                </tr>
+            </tbody>
                                     <div id="sub-tab-history-list" class="sub-tab-content ${state.ui.caseSubTab === 'history-list' ? 'active' : ''} space-y-4">
                                         <div class="bg-slate-50 p-2 pl-3 rounded flex flex-col sm:flex-row justify-between items-center gap-2 border border-slate-200">
                                             <div class="text-sm text-slate-600 flex items-center gap-2">
