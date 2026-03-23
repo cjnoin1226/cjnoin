@@ -7085,14 +7085,33 @@
                         <table class="w-full text-xs text-center border-collapse">
                             <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-300">
                                 <tr>
-                                    <th class="border-r border-slate-300 p-2 w-[30%]">서비스 분류<br><span class="text-[10px] font-normal text-slate-500">(대분류 / 중분류 / 소분류)</span></th>
-                                    <th class="border-r border-slate-300 p-2 w-[15%] leading-tight">서비스<br>제공 횟수</th>
-                                    <th class="border-r border-slate-300 p-2 w-[25%] leading-tight">서비스내용<br>및 방법</th>
+                                    <th class="border-r border-slate-300 p-2 w-[10%]">대분류</th>
+                                    <th class="border-r border-slate-300 p-2 w-[12%]">중분류</th>
+                                    <th class="border-r border-slate-300 p-2 w-[12%]">소분류</th>
+                                    <th class="border-r border-slate-300 p-2 w-[12%] leading-tight">서비스<br>제공 횟수</th>
+                                    <th class="border-r border-slate-300 p-2 w-[24%] leading-tight">서비스내용<br>및 방법</th>
                                     <th class="border-r border-slate-300 p-2 w-[15%]">서비스 기간</th>
                                     <th class="p-2 w-[15%] leading-tight">서비스<br>점검 및 평가</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                <!-- 예시 데이터 행 -->
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="border-r border-b border-slate-300 p-2 text-center">위기관리<br>체계구축</td>
+                                    <td class="border-r border-b border-slate-300 p-2 text-center">사례관리</td>
+                                    <td class="border-r border-b border-slate-300 p-2 text-center">재사정 및<br>모니터링</td>
+                                    <td class="border-r border-b border-slate-300 p-2"><input type="text" class="w-full text-center bg-transparent outline-none" placeholder="연 1회 이상"></td>
+                                    <td class="border-r border-b border-slate-300 p-2"><textarea class="w-full bg-transparent outline-none resize-none text-center" rows="2" placeholder="사례관리 및 재사정"></textarea></td>
+                                    <td class="border-r border-b border-slate-300 p-2 text-red-500"><input type="text" class="w-full text-center text-red-500 font-bold bg-transparent outline-none" placeholder="2025 ~ 2026"></td>
+                                    <td class="border-b border-slate-300 p-2"><input type="text" class="w-full text-center bg-transparent outline-none" placeholder="연 1회 점검"></td>
+                                </tr>
+                                <!-- 더하기 버튼 줄 (colspan을 5에서 7로 변경) -->
+                                <tr>
+                                    <td colspan="7" class="p-1 bg-slate-50 text-center border-b border-slate-300">
+                                        <button type="button" class="text-[10px] bg-white border border-slate-300 text-slate-500 px-2 py-1 rounded hover:bg-slate-100 font-bold w-full" onclick="alert('행 추가 기능 연결 필요')">+ 서비스 항목 추가</button>
+                                    </td>
+                                </tr>
+                            </tbody>
                                 <!-- 예시 데이터 행 -->
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="border-r border-b border-slate-300 p-2">위기관리체계구축<br>> 사례관리</td>
