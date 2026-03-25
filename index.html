@@ -4379,6 +4379,22 @@
                 const initialAge = c.birthDate ? `만 ${calculateAge(c.birthDate)}세` : '';
                 const cm = c.caseManagement || {};
                 
+                // 탭 상태 유지 로직 (처음 열 때만 초기화)
+                const mainModal = document.getElementById('modal-container');
+                const subModal = document.getElementById('sub-modal-container');
+                const openMainForm = !mainModal.classList.contains('hidden') ? mainModal.querySelector('#client-form') : null;
+                const openSubForm = !subModal.classList.contains('hidden') ? subModal.querySelector('#client-form') : null;
+                const isRefreshing = (openMainForm && openMainForm.dataset.id === id) || (openSubForm && openSubForm.dataset.id === id);
+
+                if (isRefreshing) {
+                    // 이미 열려있고 같은 ID면 탭 유지 (state.ui.clientModalTab 값 사용)
+                } else {
+                    state.ui.clientModalTab = 'basic'; 
+                    state.ui.caseSubTab = 'initial';
+                    // 연도 초기화 (데이터가 있는 가장 최근 연도 또는 올해)
+                    state.ui.cmYear = new Date().getFullYear();
+                }
+                
                 // [신규] 데이터 가져오기 헬퍼 함수 (연도별 데이터 + 구버전 데이터 호환)
                 const targetYear = state.ui.cmYear;
                 const getVal = (obj, path) => {
@@ -4410,22 +4426,6 @@
 
                     return (val === undefined || val === null) ? '' : val;
                 };
-                
-                // 탭 상태 유지 로직 (처음 열 때만 초기화)
-                const mainModal = document.getElementById('modal-container');
-                const subModal = document.getElementById('sub-modal-container');
-                const openMainForm = !mainModal.classList.contains('hidden') ? mainModal.querySelector('#client-form') : null;
-                const openSubForm = !subModal.classList.contains('hidden') ? subModal.querySelector('#client-form') : null;
-                const isRefreshing = (openMainForm && openMainForm.dataset.id === id) || (openSubForm && openSubForm.dataset.id === id);
-
-                if (isRefreshing) {
-                    // 이미 열려있고 같은 ID면 탭 유지 (state.ui.clientModalTab 값 사용)
-                } else {
-                    state.ui.clientModalTab = 'basic'; 
-                    state.ui.caseSubTab = 'initial';
-                    // 연도 초기화 (데이터가 있는 가장 최근 연도 또는 올해)
-                    state.ui.cmYear = new Date().getFullYear();
-                }
 
                 // [유지] 서비스 내역 탭 - 연도 선택 및 데이터 로드 기능 준비
                 const currentYear = new Date().getFullYear();
