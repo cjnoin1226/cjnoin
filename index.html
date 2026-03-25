@@ -4557,8 +4557,8 @@
                         autoAction = actions.join('\n\n');
                     }
                     
-                    // [스마트 동기화] 일지에 기록이 있으면 무조건 최신 일지 내용으로 즉시 덮어쓰기
-                    const displayAction = autoAction ? autoAction : (savedItem.action || '');
+                    // [수정] 사용자가 직접 수정한 내용(savedItem.action)이 있으면 무조건 그것을 유지!
+                    const displayAction = savedItem.action ? savedItem.action : autoAction;
                     const savedUserSat = savedItem.userSat || '';
                     const savedWorkerEval = savedItem.workerEval || '';
 
