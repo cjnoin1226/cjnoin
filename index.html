@@ -7754,13 +7754,17 @@
                         /* [수정] h1 태그 줄바꿈 방지(white-space: nowrap) 적용 및 여백 설정 변경 */
                         h1 { text-align: center; font-size: 24px; font-weight: bold; margin: 0; text-decoration: underline; letter-spacing: 2px; white-space: nowrap; }
                         
-                        /* 제목이 페이지 하단에 혼자 남지 않도록 설정 */
+                        /* 제목이 페이지 하단에 혼자 남지 않도록 설정 (고아 객체 방지) */
+                        h1, h2, h3, h4, h5 { 
+                            break-after: avoid !important; 
+                            page-break-after: avoid !important; 
+                            break-inside: avoid !important; 
+                            page-break-inside: avoid !important; 
+                        }
                         h2 { 
                             font-size: 14px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; 
                             border-left: 4px solid #333; padding-left: 8px; background: #eee; padding: 5px; 
-                            break-after: avoid; page-break-after: avoid; 
                         }
-                        
                         /* 테이블 스타일 */
                         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
                         
@@ -8699,6 +8703,8 @@
                         margin:       10, // A4 기준 사방 10mm 여백
                         filename:     `${client.name}_${docTitle}.pdf`,
                         image:        { type: 'jpeg', quality: 0.98 },
+                        // [추가] PDF 생성 시 제목(h2, h3)과 표(tr)가 분리되거나 중간에 잘리지 않도록 강력하게 보호
+                        pagebreak:    { mode: 'css', avoid: ['h1', 'h2', 'h3', 'h4', 'h5', 'tr'] },
                         // scrollX: 0, scrollY: 0 옵션으로 캡처 시작점을 화면 맨 왼쪽 위로 강제 고정하여 잘림 완벽 방지
                         html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
                         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
