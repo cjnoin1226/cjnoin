@@ -8680,24 +8680,20 @@
                     setTimeout(() => win.print(), 500);
                 } else if (mode === 'pdf' || mode === 'blob') {
                     const element = document.createElement('div');
-                    // [수정] PDF 전용 강제 래퍼. padding을 제거하여 html2pdf 여백(margin)과 이중으로 겹쳐 축소되는 현상 완벽 차단!
+                    // [수정] PDF 변환 시 표 테두리가 굵어지는 버그를 막기 위해 zoom을 강제로 리셋하고 A4 너비(794px)로 고정합니다.
                     element.innerHTML = `
                         ${commonCss}
-                        <div style="width: 794px; background-color: #fff; font-family: 'Malgun Gothic', 'Dotum', sans-serif; font-size: 11px;">
+                        <style> body { zoom: 1 !important; } </style>
+                        <div style="width: 794px; padding: 20px; background-color: #fff;">
                             ${htmlContent}
                         </div>
                     `;
                     
                     const opt = {
-                        margin: [15, 10, 15, 15], // 상, 우, 하, 좌 마진(mm)
+                        margin: 10,
                         filename: `${client.name}_${docTitle}.pdf`,
                         image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { 
-                            scale: 2, 
-                            useCORS: true, 
-                            windowWidth: 794, // A4 표준 픽셀 너비
-                            scrollY: 0
-                        },
+                        html2canvas: { scale: 2, useCORS: true, windowWidth: 800 },
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                     };
 
