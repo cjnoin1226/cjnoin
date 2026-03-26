@@ -8680,13 +8680,20 @@
                     setTimeout(() => win.print(), 500);
                 } else if (mode === 'pdf' || mode === 'blob') {
                     const element = document.createElement('div');
-                    element.innerHTML = `${commonCss}<div style="padding: 20px;">${htmlContent}</div>`;
+                    // [수정] PDF 생성 시 A4 너비(800px)를 강제 고정하고, 인쇄용 폰트/크기를 직접 주입하여 찌그러짐 방지
+                    element.innerHTML = `
+                        ${commonCss}
+                        <div style="width: 800px; padding: 20px; font-family: 'Malgun Gothic', 'Dotum', sans-serif; font-size: 10px; color: #000; background-color: #fff;">
+                            ${htmlContent}
+                        </div>
+                    `;
                     
                     const opt = {
-                        margin: 10,
+                        margin: [15, 10, 15, 15], // 인쇄 여백과 동일하게 상, 우, 하, 좌 마진(mm)을 각각 설정
                         filename: `${client.name}_${docTitle}.pdf`,
                         image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { scale: 2, useCORS: true },
+                        // windowWidth를 800으로 강제하여 내부 표가 찌그러지는 현상 완벽 차단
+                        html2canvas: { scale: 2, useCORS: true, windowWidth: 800 },
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                     };
 
