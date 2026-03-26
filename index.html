@@ -8555,10 +8555,23 @@
                         </div>
                         <div class="clearfix"></div>
 
-                        <table>
-                            <col width="15%"><col width="35%"><col width="15%"><col width="35%">
-                            <tr><th>대상자명</th><td>${client.name}</td><th>조사일자</th><td>${getVal(cm, 'satisfaction.date')}</td></tr>
-                            <tr><th>조사자</th><td>${getVal(cm, 'satisfaction.surveyor')}</td><th>방법</th><td>${getVal(cm, 'satisfaction.method')}</td></tr>
+                        <table style="font-size: 10px;">
+                            <colgroup>
+                                <col width="8%"><col width="12%">
+                                <col width="8%"><col width="12%">
+                                <col width="6%"><col width="7%">
+                                <col width="7%"><col width="10%">
+                                <col width="7%"><col width="10%">
+                                <col width="8%"><col width="5%">
+                            </colgroup>
+                            <tr>
+                                <th>대상자명</th><td class="text-center text-bold">${client.name}</td>
+                                <th>조사일자</th><td class="text-center">${getVal(cm, 'satisfaction.date')}</td>
+                                <th>방법</th><td class="text-center">${getVal(cm, 'satisfaction.method')}</td>
+                                <th>조사자</th><td class="text-center">${getVal(cm, 'satisfaction.surveyor')}</td>
+                                <th>담당자</th><td class="text-center">${getVal(cm, 'satisfaction.manager')}</td>
+                                <th>모니터링</th><td class="text-center">${getVal(cm, 'satisfaction.type')}</td>
+                            </tr>
                         </table>
 
                         <h2>1. 이용자 의견조사</h2>
