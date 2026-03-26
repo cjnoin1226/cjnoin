@@ -8561,7 +8561,9 @@
                             <tr><th>조사자</th><td>${getVal(cm, 'satisfaction.surveyor')}</td><th>방법</th><td>${getVal(cm, 'satisfaction.method')}</td></tr>
                         </table>
 
-                        <h2>1. 서비스 만족도</h2>
+                        <h2>1. 이용자 의견조사</h2>
+                        
+                        <h3 style="font-size: 13px; font-weight: bold; margin-top: 10px; margin-bottom: 5px;">1) 서비스 만족도 조사</h3>
                         <table>
                             <colgroup>
                                 <col style="width: 22%;">
@@ -8577,7 +8579,7 @@
                             </tbody>
                         </table>
 
-                        <h2>2. 전반적 만족도</h2>
+                        <h3 style="font-size: 13px; font-weight: bold; margin-top: 15px; margin-bottom: 5px;">2) 전반적 만족도 조사</h3>
                         <table>
                             <thead>
                                 <tr><th width="80%">문항</th><th>점수(5점만점)</th></tr>
@@ -8591,17 +8593,24 @@
                             </tbody>
                         </table>
 
-                        <h2>3. 모니터링 및 종합계획</h2>
+                        <h3 style="font-size: 13px; font-weight: bold; margin-top: 15px; margin-bottom: 5px;">3) 욕구변화 모니터링</h3>
                         <table>
                             <tbody>
                                 <tr><th width="20%">기능상태 변화</th><td>${getVal(cm, 'satisfaction.monitor.funcChange')}</td></tr>
-                                <tr><th width="20%">욕구 변화</th><td>${getVal(cm, 'satisfaction.monitor.needsChange')}</td></tr>
-                                <tr><th width="20%">결과 반영</th><td>
-                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.maintain'))} 유지 &nbsp;
-                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.change'))} 변경 &nbsp;
-                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.revisit'))} 재상담
+                                <tr><th width="20%">생활 환경 및 능력변화</th><td>${getVal(cm, 'satisfaction.monitor.envChange')}</td></tr>
+                                <tr><th width="20%">변화된 욕구</th><td>${getVal(cm, 'satisfaction.monitor.needsChange')}</td></tr>
+                            </tbody>
+                        </table>
+
+                        <h2>2. 서비스 종합계획</h2>
+                        <table>
+                            <tbody>
+                                <tr><th width="20%">모니터링 결과 반영</th><td>
+                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.maintain'))} 서비스 유지 &nbsp;
+                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.change'))} 서비스 계획 변경 &nbsp;
+                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.revisit'))} 재방문 상담
                                 </td></tr>
-                                <tr><th width="20%" height="80">종합의견</th><td>${(getVal(cm, 'satisfaction.comprehensivePlan')||'').replace(/\n/g, '<br>')}</td></tr>
+                                <tr><th width="20%" height="80">종합평가 및 향후계획</th><td style="vertical-align: top;">${(getVal(cm, 'satisfaction.comprehensivePlan')||'').replace(/\n/g, '<br>')}</td></tr>
                             </tbody>
                         </table>
                     `;
