@@ -8469,20 +8469,24 @@
 
                     // 2. 저장된 데이터 가져오기
                     const savedGoalsData = getVal(cm, 'satisfaction.serviceGoals') || [];
+                    const deletedGoals = getVal(cm, 'satisfaction.deletedGoals') || [];
                     const uniqueGoalsMap = new Map();
 
-                    // 3. 저장된 목표 먼저 추가
-                    savedGoalsData.forEach(g => {
-                        if (g.goal) {
-                            const key = normalize(g.goal);
-                            uniqueGoalsMap.set(key, g.goal.trim());
+                    // 3. 일지 내역을 반영하되, 사용자가 삭제했던 항목(휴지통)은 제외
+                    providedCategoriesMap.forEach((val, key) => {
+                        if (!deletedGoals.includes(key)) {
+                            uniqueGoalsMap.set(key, val);
                         }
                     });
 
-                    // 4. 자동 추출된 카테고리 중 없는 것 추가
-                    providedCategoriesMap.forEach((val, key) => {
-                        if (!uniqueGoalsMap.has(key)) {
-                            uniqueGoalsMap.set(key, val);
+                    // 4. 과거에 저장된 내역 병합 (삭제 안 된 것 또는 평가가 남겨진 것만 유지)
+                    savedGoalsData.forEach(g => {
+                        if (g.goal) {
+                            const key = normalize(g.goal);
+                            // 일지엔 없지만 삭제되지 않았거나, 선생님이 이미 평가를 남긴 항목은 보호
+                            if (!uniqueGoalsMap.has(key) && (!deletedGoals.includes(key) || g.userSat || g.workerEval)) {
+                                uniqueGoalsMap.set(key, g.goal.trim());
+                            }
                         }
                     });
 
