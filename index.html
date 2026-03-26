@@ -8680,21 +8680,28 @@
                     setTimeout(() => win.print(), 500);
                 } else if (mode === 'pdf' || mode === 'blob') {
                     const element = document.createElement('div');
-                    // [수정] PDF 변환 시 표 테두리가 굵어지는 버그를 막기 위해 zoom을 강제로 리셋하고 A4 너비(794px)로 고정합니다.
+                    // [해결] 왼쪽 잘림 방지(scrollX 고정) 및 선 굵기 증폭 현상 완화(0.5px 강제 적용)
                     element.innerHTML = `
                         ${commonCss}
-                        <style> body { zoom: 1 !important; } </style>
-                        <div style="width: 794px; padding: 20px; background-color: #fff;">
+                        <style>
+                            /* PDF 생성 시 축소 효과 완전 무효화 및 여백 리셋 */
+                            body { zoom: 1 !important; margin: 0 !important; padding: 0 !important; }
+                            /* 해상도 뻥튀기로 인한 선 굵어짐 현상을 막기 위해 아주 얇은 선(0.5px) 강제 주입 */
+                            table, th, td, .sign-box td { border-width: 0.5px !important; border-color: #555 !important; }
+                            .pdf-container { width: 100%; box-sizing: border-box; background: #fff; padding: 5px; }
+                        </style>
+                        <div class="pdf-container">
                             ${htmlContent}
                         </div>
                     `;
                     
                     const opt = {
-                        margin: 10,
-                        filename: `${client.name}_${docTitle}.pdf`,
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { scale: 2, useCORS: true, windowWidth: 800 },
-                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        margin:       10, // A4 기준 사방 10mm 여백
+                        filename:     `${client.name}_${docTitle}.pdf`,
+                        image:        { type: 'jpeg', quality: 0.98 },
+                        // scrollX: 0, scrollY: 0 옵션으로 캡처 시작점을 화면 맨 왼쪽 위로 강제 고정하여 잘림 완벽 방지
+                        html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
+                        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                     };
 
                     if (mode === 'blob') {
