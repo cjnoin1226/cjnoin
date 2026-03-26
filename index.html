@@ -8684,41 +8684,43 @@
                     setTimeout(() => win.print(), 500);
                 } else if (mode === 'pdf' || mode === 'blob') {
                     const element = document.createElement('div');
-                    // [최종해결] 인쇄 화면과 100% 동일한 구성을 위해 A4 정사이즈(794px)로 너비를 강제 고정합니다.
-                    // 왼쪽 잘림 현상을 막기 위해 margin을 0으로 묶고, html2canvas에 width 명시.
+                    
+                    // [최종 해결] 억지로 화면을 자르던 너비 옵션(width)들을 전부 폐기!
+                    // 내부 pdf-wrapper에만 800px을 주고 padding 2px을 주어 왼쪽 선이 잘려 나가는 버그를 원천 차단합니다.
+                    // 인쇄 화면(htmlContent)과 100% 완벽히 동일한 내용/비율이 담깁니다.
                     element.innerHTML = `
                         ${commonCss}
                         <style>
-                            body { zoom: 1 !important; margin: 0 !important; padding: 0 !important; background: #fff; }
-                            .pdf-container { 
-                                width: 794px !important; /* 인쇄 A4 너비와 동일하게 강제 고정 */
-                                max-width: 794px !important;
-                                margin: 0 !important;
-                                padding: 0 !important;
-                                background: #fff; 
-                                box-sizing: border-box;
+                            /* PDF 변환 시 불필요한 브라우저 여백/확대 무시 */
+                            body { zoom: 1 !important; margin: 0 !important; padding: 0 !important; background-color: #fff; }
+                            
+                            .pdf-wrapper { 
+                                width: 800px; 
+                                box-sizing: border-box; 
+                                padding: 2px; /* 👈 이 2px이 화면 캡처 시 왼쪽 선이 잘려 나가는 것을 막아주는 생명줄입니다 */
+                                background-color: #fff; 
                             }
-                            /* PDF 변환 시 선 굵어짐 방지 */
-                            table, th, td, .sign-box td { border-width: 0.5px !important; border-color: #000 !important; }
+                            
+                            /* 표 테두리가 떡지듯 굵어지는 현상을 방지하기 위해 1px 단일 선으로 강제 통일 */
+                            table, th, td, .sign-box td { border: 1px solid #000 !important; }
                         </style>
-                        <div class="pdf-container">
+                        <div class="pdf-wrapper">
                             ${htmlContent}
                         </div>
                     `;
                     
                     const opt = {
-                        // 인쇄 여백과 똑같이 [상, 우, 하, 좌] 지정 (왼쪽 20mm 펀치구멍 여백 반영)
+                        // 인쇄 버튼 눌렀을 때와 완벽히 똑같은 여백 설정 [상 15, 우 10, 하 15, 좌(펀치구멍) 20]
                         margin:       [15, 10, 15, 20], 
                         filename:     `${client.name}_${docTitle}.pdf`,
-                        image:        { type: 'jpeg', quality: 1 },
+                        image:        { type: 'jpeg', quality: 0.98 },
                         pagebreak:    { mode: 'css', avoid: ['h1', 'h2', 'h3', 'h4', 'h5', 'tr'] },
                         html2canvas:  { 
                             scale: 2, 
                             useCORS: true, 
-                            windowWidth: 794, // 브라우저 창 너비 제한
-                            width: 794,       // 캡처 너비 강제 고정 (잘림 완벽 방지)
-                            scrollX: 0, 
-                            scrollY: 0 
+                            // 화면 스크롤 위치 때문에 엉뚱한 곳이 캡처되는 버그 차단
+                            scrollY: 0, 
+                            scrollX: 0 
                         },
                         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                     };
