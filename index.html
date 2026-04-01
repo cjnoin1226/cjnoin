@@ -453,7 +453,9 @@
                 clientModalTab: 'basic',
                 caseSubTab: 'initial',
                 allowOverlayClose: false,
-                cmYear: new Date().getFullYear(), 
+                cmYear: new Date().getFullYear(),
+                cmStatsRegionDropdownOpen: false, // 사례관리 통계 드롭다운 열림 상태
+                cmStatsRegions: [], // 사례관리 통계 선택된 행정동 
                 // [수정] 페이지네이션 상태 추가 및 기존 visibleLogLimit 제거 대체
                 logPage: 1,
                 logsPerPage: 50,
@@ -4290,19 +4292,9 @@
             },
 
                 // [신규] 사례관리 서류 작성 현황 모달
-            showCaseManagementStatsModal: (targetYear = null, targetRegions = []) => {
+            showCaseManagementStatsModal: (targetYear = null) => {
                 const currentYear = targetYear ? parseInt(targetYear) : new Date().getFullYear();
-                const selectedRegions = Array.isArray(targetRegions) ? targetRegions : [];
-
-                // 행정동 필터 체크박스 생성
-                const regionCheckboxesHTML = CONSTANTS.DONG_LIST.map(dong => `
-                    <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded transition-colors">
-                        <input type="checkbox" value="${dong}" class="cm-region-filter w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500" 
-                            ${selectedRegions.includes(dong) ? 'checked' : ''} 
-                            onchange="app.updateCaseStatsFilter()">
-                        <span class="text-sm font-medium text-slate-700">${dong}</span>
-                    </label>
-                `).join('');
+                const selectedRegions = state.ui.cmStatsRegions || [];
 
                 // 연도 선택 옵션 생성
                 let yearOptionsHTML = '';
@@ -4391,22 +4383,30 @@
                                     <div class="p-2 bg-purple-100 text-purple-600 rounded-full"><i data-lucide="file-check-2" size="20"></i></div> 
                                     사례관리 서류 현황
                                 </h3>
-                                <select id="cm-stats-year" onchange="app.updateCaseStatsFilter()" class="input-field py-1 px-2 text-base font-bold text-purple-600 bg-purple-50 border-purple-200 focus:border-purple-500 w-32 shadow-sm">
+                                <select id="cm-stats-year" onchange="app.showCaseManagementStatsModal(this.value)" class="input-field py-1 px-2 text-base font-bold text-purple-600 bg-purple-50 border-purple-200 focus:border-purple-500 w-32 shadow-sm">
                                     ${yearOptionsHTML}
                                 </select>
-                                <!-- 추가된 행정동 체크박스 영역 (PC용) -->
-                                <div class="hidden sm:flex flex-wrap items-center gap-2 ml-4 border-l border-slate-200 pl-4">
-                                    <span class="text-sm font-bold text-slate-700">행정동:</span>
-                                    ${regionCheckboxesHTML}
+                                
+                                <!-- 신규: 행정동 드롭다운 -->
+                                <div class="relative z-30 ml-2">
+                                    <button onclick="app.toggleCmStatsRegionDropdown()" class="input-field py-1 px-2 text-sm font-bold text-slate-700 bg-white border-slate-200 focus:border-purple-500 w-32 shadow-sm flex items-center justify-between h-[34px]">
+                                        <span class="truncate">${selectedRegions.length > 0 ? (selectedRegions.length === CONSTANTS.DONG_LIST.length ? '전체 동' : selectedRegions.join(',')) : '전체 동'}</span>
+                                        <i data-lucide="chevron-down" size="14" class="text-slate-400"></i>
+                                    </button>
+                                    ${state.ui.cmStatsRegionDropdownOpen ? `
+                                        <div class="fixed inset-0 z-40" onclick="app.toggleCmStatsRegionDropdown()"></div>
+                                        <div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">
+                                            ${CONSTANTS.DONG_LIST.map(d => `
+                                                <label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none">
+                                                    <input type="checkbox" class="rounded text-purple-600 focus:ring-purple-500 w-4 h-4 border-slate-300" ${selectedRegions.includes(d) ? 'checked' : ''} onchange="app.toggleCmStatsRegionFilter('${d}')">
+                                                    <span class="text-slate-700">${d}</span>
+                                                </label>
+                                            `).join('')}
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                             <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
-                        </div>
-                        
-                        <!-- 모바일 화면 좁을 때 아래로 떨어지는 체크박스 영역 -->
-                        <div class="sm:hidden flex flex-wrap items-center gap-2 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                            <span class="text-sm font-bold text-slate-700 w-full mb-1">행정동 필터:</span>
-                            ${regionCheckboxesHTML}
                         </div>
                         
                         <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4 flex flex-wrap justify-between items-center flex-shrink-0 gap-2">
@@ -4452,16 +4452,21 @@
                 if(window.lucide) lucide.createIcons();
             },
 
-            // [신규] 사례관리 통계 필터 업데이트 (연도 + 행정동 다중선택)
-            updateCaseStatsFilter: () => {
+            // [신규] 사례관리 통계 행정동 드롭다운 토글
+            toggleCmStatsRegionDropdown: () => {
+                state.ui.cmStatsRegionDropdownOpen = !state.ui.cmStatsRegionDropdownOpen;
                 const yearEl = document.getElementById('cm-stats-year');
-                const targetYear = yearEl ? yearEl.value : new Date().getFullYear();
-                
-                // 체크된 행정동만 배열로 수집
-                const checkedRegions = Array.from(document.querySelectorAll('.cm-region-filter:checked')).map(cb => cb.value);
-                
-                // 모달 갱신
-                app.showCaseManagementStatsModal(targetYear, checkedRegions);
+                app.showCaseManagementStatsModal(yearEl ? yearEl.value : null);
+            },
+            
+            // [신규] 사례관리 통계 행정동 필터 체크 처리
+            toggleCmStatsRegionFilter: (val) => {
+                const r = state.ui.cmStatsRegions;
+                const idx = r.indexOf(val);
+                if (idx > -1) r.splice(idx, 1);
+                else r.push(val);
+                const yearEl = document.getElementById('cm-stats-year');
+                app.showCaseManagementStatsModal(yearEl ? yearEl.value : null);
             },
 
             setClientModalTab: (tabName) => {
