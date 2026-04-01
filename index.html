@@ -4289,9 +4289,20 @@
                 if(window.lucide) lucide.createIcons();
             },
 
-            // [신규] 사례관리 서류 작성 현황 모달
-            showCaseManagementStatsModal: (targetYear = null) => {
+                // [신규] 사례관리 서류 작성 현황 모달
+            showCaseManagementStatsModal: (targetYear = null, targetRegions = []) => {
                 const currentYear = targetYear ? parseInt(targetYear) : new Date().getFullYear();
+                const selectedRegions = Array.isArray(targetRegions) ? targetRegions : [];
+
+                // 행정동 필터 체크박스 생성
+                const regionCheckboxesHTML = CONSTANTS.DONG_LIST.map(dong => `
+                    <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded transition-colors">
+                        <input type="checkbox" value="${dong}" class="cm-region-filter w-4 h-4 text-purple-600 border-slate-300 rounded focus:ring-purple-500" 
+                            ${selectedRegions.includes(dong) ? 'checked' : ''} 
+                            onchange="app.updateCaseStatsFilter()">
+                        <span class="text-sm font-medium text-slate-700">${dong}</span>
+                    </label>
+                `).join('');
 
                 // 연도 선택 옵션 생성
                 let yearOptionsHTML = '';
@@ -4303,6 +4314,7 @@
                 // 표시할 대상자 필터링 (이용중/장기부재 + 해당 연도 종결자 표시, '-' 제외)
                 const targetClients = state.clients.filter(c => {
                     if (c.name === '-') return false;
+                    if (selectedRegions.length > 0 && !selectedRegions.includes(c.region)) return false; // 행정동 필터 적용
                     const isTerminated = c.status === '종결';
                     if (!isTerminated) return true; 
                     if (c.endDate && c.endDate.startsWith(String(currentYear))) return true; 
@@ -4379,11 +4391,22 @@
                                     <div class="p-2 bg-purple-100 text-purple-600 rounded-full"><i data-lucide="file-check-2" size="20"></i></div> 
                                     사례관리 서류 현황
                                 </h3>
-                                <select onchange="app.showCaseManagementStatsModal(this.value)" class="input-field py-1 px-2 text-base font-bold text-purple-600 bg-purple-50 border-purple-200 focus:border-purple-500 w-32 shadow-sm">
+                                <select id="cm-stats-year" onchange="app.updateCaseStatsFilter()" class="input-field py-1 px-2 text-base font-bold text-purple-600 bg-purple-50 border-purple-200 focus:border-purple-500 w-32 shadow-sm">
                                     ${yearOptionsHTML}
                                 </select>
+                                <!-- 추가된 행정동 체크박스 영역 (PC용) -->
+                                <div class="hidden sm:flex flex-wrap items-center gap-2 ml-4 border-l border-slate-200 pl-4">
+                                    <span class="text-sm font-bold text-slate-700">행정동:</span>
+                                    ${regionCheckboxesHTML}
+                                </div>
                             </div>
                             <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                        </div>
+                        
+                        <!-- 모바일 화면 좁을 때 아래로 떨어지는 체크박스 영역 -->
+                        <div class="sm:hidden flex flex-wrap items-center gap-2 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <span class="text-sm font-bold text-slate-700 w-full mb-1">행정동 필터:</span>
+                            ${regionCheckboxesHTML}
                         </div>
                         
                         <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4 flex flex-wrap justify-between items-center flex-shrink-0 gap-2">
@@ -4427,6 +4450,18 @@
                 `;
                 showModal(html);
                 if(window.lucide) lucide.createIcons();
+            },
+
+            // [신규] 사례관리 통계 필터 업데이트 (연도 + 행정동 다중선택)
+            updateCaseStatsFilter: () => {
+                const yearEl = document.getElementById('cm-stats-year');
+                const targetYear = yearEl ? yearEl.value : new Date().getFullYear();
+                
+                // 체크된 행정동만 배열로 수집
+                const checkedRegions = Array.from(document.querySelectorAll('.cm-region-filter:checked')).map(cb => cb.value);
+                
+                // 모달 갱신
+                app.showCaseManagementStatsModal(targetYear, checkedRegions);
             },
 
             setClientModalTab: (tabName) => {
