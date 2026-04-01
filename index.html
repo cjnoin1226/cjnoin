@@ -8967,6 +8967,7 @@
                     if (!confirm("수정된 내용이 있습니다. 저장하지 않고 닫으시겠습니까?")) return;
                 }
                 state.ui.initialFormState = null; // 초기화
+                state.ui.cmStatsRegions = []; // <--- 이 줄을 추가하세요! (사례관리 통계 행정동 필터 초기화)
                 closeModal(); // 실제 글로벌 닫기 함수 호출
             },
             closeDialog: () => closeDialog(),
