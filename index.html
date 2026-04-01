@@ -4334,8 +4334,12 @@
                     }
                 };
 
-                const renderStatus = (dateStr) => {
-                    if (dateStr) return `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">O<span class="hidden sm:inline font-normal text-slate-500 ml-1">(${dateStr.substring(5)})</span></span>`;
+               // [수정] showYearOnly 파라미터 추가: true면 '26년' 형태, false면 '04-01' 형태로 표시
+                const renderStatus = (dateStr, showYearOnly = false) => {
+                    if (dateStr) {
+                        let displayStr = showYearOnly ? `${dateStr.substring(2, 4)}년` : dateStr.substring(5);
+                        return `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">O<span class="hidden sm:inline font-normal text-slate-500 ml-1">(${displayStr})</span></span>`;
+                    }
                     return `<span class="text-xs text-slate-300">-</span>`;
                 };
 
@@ -4353,12 +4357,12 @@
                             <td class="p-2 font-bold text-slate-700 text-center">${c.name}</td>
                             <td class="p-2 text-center text-xs ${c.careLevel === '중점' ? 'text-pink-600 font-bold' : 'text-blue-600'}">${c.careLevel}</td>
                             <td class="p-2 text-center text-xs text-slate-500">${c.region}</td>
-                            <td class="p-2 text-center">${renderStatus(doc1)}</td>
-                            <td class="p-2 text-center">${renderStatus(doc2)}</td>
-                            <td class="p-2 text-center">${renderStatus(doc3)}</td>
-                            <td class="p-2 text-center bg-blue-50/30">${renderStatus(doc4)}</td>
-                            <td class="p-2 text-center bg-blue-50/30">${renderStatus(doc5)}</td>
-                            <td class="p-2 text-center bg-blue-50/30">${renderStatus(doc6)}</td>
+                            <td class="p-2 text-center">${renderStatus(doc1, true)}</td> <!-- 연도만 표시 -->
+                            <td class="p-2 text-center">${renderStatus(doc2, true)}</td> <!-- 연도만 표시 -->
+                            <td class="p-2 text-center">${renderStatus(doc3, true)}</td> <!-- 연도만 표시 -->
+                            <td class="p-2 text-center bg-blue-50/30">${renderStatus(doc4, false)}</td> <!-- 날짜 표시 -->
+                            <td class="p-2 text-center bg-blue-50/30">${renderStatus(doc5, false)}</td> <!-- 날짜 표시 -->
+                            <td class="p-2 text-center bg-blue-50/30">${renderStatus(doc6, false)}</td> <!-- 날짜 표시 -->
                         </tr>
                     `;
                 }).join('');
