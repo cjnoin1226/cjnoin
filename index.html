@@ -1011,6 +1011,18 @@
                               <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1 group-hover:text-emerald-600 transition-colors">올해 현황 (${currentYearStr})</span><div class="text-sm font-bold flex gap-2"><span class="text-emerald-600">신규 ${yearStats.new}</span><span class="text-slate-300">|</span><span class="text-slate-500">종결 ${yearStats.end}</span></div></div>
                               <div class="p-3 bg-orange-50 rounded-full text-orange-500 ml-auto group-hover:bg-orange-100 transition-colors"><i data-lucide="activity" size="20"></i></div>
                            </div>
+                        <!-- 신규 추가: 사례관리 현황 통계 박스 -->
+                           <div onclick="app.showCaseManagementStatsModal()" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 cursor-pointer hover:bg-slate-50 transition-colors group">
+                              <div class="flex flex-col justify-center">
+                                  <span class="text-xs text-slate-500 font-bold mb-1 group-hover:text-purple-600 transition-colors">사례관리 현황</span>
+                                  <div class="text-sm font-bold flex items-center gap-1">
+                                      <span class="text-slate-700">서류 작성 여부 확인</span>
+                                  </div>
+                              </div>
+                              <div class="p-3 bg-purple-50 rounded-full text-purple-500 ml-auto group-hover:bg-purple-100 transition-colors">
+                                  <i data-lucide="file-check-2" size="20"></i>
+                              </div>
+                           </div>
                             ${isFilterActive ? `
                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 animate-fade-in">
                               <div class="flex flex-col justify-center">
@@ -4276,7 +4288,144 @@
                 showModal(html);
                 if(window.lucide) lucide.createIcons();
             },
-                setClientModalTab: (tabName) => {
+
+            // [신규] 사례관리 서류 작성 현황 모달
+            showCaseManagementStatsModal: (targetYear = null) => {
+                const currentYear = targetYear ? parseInt(targetYear) : new Date().getFullYear();
+
+                // 연도 선택 옵션 생성
+                let yearOptionsHTML = '';
+                const thisYear = new Date().getFullYear();
+                for (let y = 2015; y <= thisYear + 1; y++) {
+                    yearOptionsHTML = `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}년</option>` + yearOptionsHTML;
+                }
+
+                // 표시할 대상자 필터링 (이용중/장기부재 + 해당 연도 종결자 표시, '-' 제외)
+                const targetClients = state.clients.filter(c => {
+                    if (c.name === '-') return false;
+                    const isTerminated = c.status === '종결';
+                    if (!isTerminated) return true; 
+                    if (c.endDate && c.endDate.startsWith(String(currentYear))) return true; 
+                    return false;
+                }).sort((a, b) => {
+                    const levelPriority = { '중점': 1, '일반': 2 };
+                    const pA = levelPriority[a.careLevel] || 3;
+                    const pB = levelPriority[b.careLevel] || 3;
+                    if (pA !== pB) return pA - pB;
+                    return a.name.localeCompare(b.name);
+                });
+
+                // 서류 날짜 추출 헬퍼 함수
+                const getDocStatus = (c, section, isYearly = false) => {
+                    const cm = c.caseManagement || {};
+                    if (!isYearly) {
+                        // 초기, 선정, 사정은 연도 무관 최신 기록
+                        return cm[section] && cm[section].date ? cm[section].date : '';
+                    } else {
+                        // 재사정, 만족도, 평가는 연도별 기록 추적
+                        if (cm.history && cm.history[currentYear] && cm.history[currentYear][section] && cm.history[currentYear][section].date) {
+                            return cm.history[currentYear][section].date;
+                        }
+                        // 구버전 호환성 체크
+                        if (cm[section] && cm[section].date && cm[section].date.startsWith(String(currentYear))) {
+                            return cm[section].date;
+                        }
+                        return '';
+                    }
+                };
+
+                const renderStatus = (dateStr) => {
+                    if (dateStr) return `<span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">O<span class="hidden sm:inline font-normal text-slate-500 ml-1">(${dateStr.substring(5)})</span></span>`;
+                    return `<span class="text-xs text-slate-300">-</span>`;
+                };
+
+                let tableRows = targetClients.map((c, idx) => {
+                    const doc1 = getDocStatus(c, 'initial', false);
+                    const doc2 = getDocStatus(c, 'selection', false);
+                    const doc3 = getDocStatus(c, 'assessment', false);
+                    const doc4 = getDocStatus(c, 'reAssessment', true);
+                    const doc5 = getDocStatus(c, 'satisfaction', true);
+                    const doc6 = getDocStatus(c, 'evaluation', true);
+
+                    return `
+                        <tr class="hover:bg-slate-50 transition-colors cursor-pointer" onclick="app.openClientModal('${c.id}')" title="클릭 시 대상자 카드로 이동">
+                            <td class="p-2 text-center text-slate-400 text-xs">${idx + 1}</td>
+                            <td class="p-2 font-bold text-slate-700 text-center">${c.name}</td>
+                            <td class="p-2 text-center text-xs ${c.careLevel === '중점' ? 'text-pink-600 font-bold' : 'text-blue-600'}">${c.careLevel}</td>
+                            <td class="p-2 text-center text-xs text-slate-500">${c.region}</td>
+                            <td class="p-2 text-center">${renderStatus(doc1)}</td>
+                            <td class="p-2 text-center">${renderStatus(doc2)}</td>
+                            <td class="p-2 text-center">${renderStatus(doc3)}</td>
+                            <td class="p-2 text-center bg-blue-50/30">${renderStatus(doc4)}</td>
+                            <td class="p-2 text-center bg-blue-50/30">${renderStatus(doc5)}</td>
+                            <td class="p-2 text-center bg-blue-50/30">${renderStatus(doc6)}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                if (targetClients.length === 0) {
+                    tableRows = `<tr><td colspan="10" class="p-8 text-center text-slate-400">조회된 대상자가 없습니다.</td></tr>`;
+                }
+
+                const html = `
+                    <div class="bg-white w-full max-w-5xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+                        <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                            <div class="flex items-center gap-3">
+                                <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
+                                    <div class="p-2 bg-purple-100 text-purple-600 rounded-full"><i data-lucide="file-check-2" size="20"></i></div> 
+                                    사례관리 서류 현황
+                                </h3>
+                                <select onchange="app.showCaseManagementStatsModal(this.value)" class="input-field py-1 px-2 text-base font-bold text-purple-600 bg-purple-50 border-purple-200 focus:border-purple-500 w-32 shadow-sm">
+                                    ${yearOptionsHTML}
+                                </select>
+                            </div>
+                            <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                        </div>
+                        
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4 flex flex-wrap justify-between items-center flex-shrink-0 gap-2">
+                            <div class="text-sm text-slate-600 font-medium">
+                                총 <span class="font-bold text-slate-800">${targetClients.length}</span>명
+                            </div>
+                            <div class="text-xs text-slate-500">
+                                * 파란색 배경 항목(재사정, 만족도, 평가서)은 선택된 연도(${currentYear}년) 기준입니다.<br>
+                                * 대상자 줄을 클릭하면 해당 대상자의 상세 카드로 이동합니다.
+                            </div>
+                        </div>
+
+                        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col min-h-0 flex-1">
+                            <div class="overflow-y-auto flex-1 custom-scrollbar">
+                                <table class="w-full text-sm text-left border-collapse relative">
+                                    <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+                                        <tr>
+                                            <th class="p-3 text-center w-[5%] whitespace-nowrap bg-slate-100">No</th>
+                                            <th class="p-3 text-center w-[10%] whitespace-nowrap bg-slate-100">이름</th>
+                                            <th class="p-3 text-center w-[8%] whitespace-nowrap bg-slate-100">등급</th>
+                                            <th class="p-3 text-center w-[10%] whitespace-nowrap bg-slate-100">행정동</th>
+                                            <th class="p-3 text-center w-[11%] whitespace-nowrap bg-slate-100">초기면접지</th>
+                                            <th class="p-3 text-center w-[11%] whitespace-nowrap bg-slate-100">선정기준표</th>
+                                            <th class="p-3 text-center w-[11%] whitespace-nowrap bg-slate-100">사정기록지</th>
+                                            <th class="p-3 text-center w-[11%] whitespace-nowrap bg-blue-50">재사정</th>
+                                            <th class="p-3 text-center w-[11%] whitespace-nowrap bg-blue-50">만족도조사</th>
+                                            <th class="p-3 text-center w-[12%] whitespace-nowrap bg-blue-50">사례평가서</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 bg-white">
+                                        ${tableRows}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 text-right flex-shrink-0 pt-2 border-t border-slate-100">
+                            <button onclick="app.closeModal()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button>
+                        </div>
+                    </div>
+                `;
+                showModal(html);
+                if(window.lucide) lucide.createIcons();
+            },
+
+            setClientModalTab: (tabName) => {
                 // [신규] 현재 탭과 다른 탭으로 이동하려 할 때, 수정된 내용이 있는지 검사
                 if (state.ui.clientModalTab !== tabName && app.hasFormChanged()) {
                     if (!confirm("수정된 내용이 있습니다. 저장하지 않고 다른 탭으로 이동하시겠습니까?")) return;
