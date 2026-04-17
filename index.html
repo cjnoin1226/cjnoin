@@ -6629,9 +6629,15 @@
                                                 <label class="text-sm block mb-1 font-bold">재사정일자</label>
                                                 <input type="date" id="cm-re-date" class="input-field w-40" value="${getVal(cm, 'reAssessment.date')}" max="9999-12-31">
                                             </div>
-                                   <button type="button" onclick="app.openReassessHistorySelector('${c.id}')" class="text-xs bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-50 transition-colors flex items-center gap-1 font-bold shadow-sm mb-1" title="원하는 연도의 재사정 기록을 선택하여 덮어씌웁니다.">
-                                      <i data-lucide="history" size="14"></i> 기록 불러오기
-                                   </button>
+                                            <!-- [신규] 버튼들을 나란히 묶는 div 추가 -->
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <button type="button" onclick="app.openMeetingModal(null, { clientName: '${c.name}', clientBirth: '${c.birthDate}', clientLevel: '${c.careLevel}', type: '재사정' })" class="text-xs bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1.5 rounded hover:bg-emerald-100 transition-colors flex items-center gap-1 font-bold shadow-sm" title="이 대상자의 재사정 회의록을 작성합니다.">
+                                                    <i data-lucide="plus" size="14"></i> 사례회의록 작성
+                                                </button>
+                                                <button type="button" onclick="app.openReassessHistorySelector('${c.id}')" class="text-xs bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-50 transition-colors flex items-center gap-1 font-bold shadow-sm" title="원하는 연도의 재사정 기록을 선택하여 덮어씌웁니다.">
+                                                    <i data-lucide="history" size="14"></i> 기록 불러오기
+                                                </button>
+                                            </div>
                                         </div>
 
                                         <!-- [신규] 대상자 기본정보 섹션 (일자 바로 아래 배치) - 한 줄 배치로 수정 -->
