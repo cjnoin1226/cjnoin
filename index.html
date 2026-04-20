@@ -2216,10 +2216,42 @@
                 if(window.lucide) lucide.createIcons();
             },
 
-            // [신규] 초기면접지 가족사항 삭제 함수
-            removeFamilyRow: (btn) => {
-                const tr = btn.closest('tr');
-                if (tr) tr.remove();
+            // [신규] 재사정기록지 가족사항 행 추가 함수
+            addReassessFamilyRow: () => {
+                const tbody = document.getElementById('cm-re-family-tbody');
+                if (!tbody) return;
+                
+                const updateScript = `const tbody=this.closest('tbody'); const rows=Array.from(tbody.querySelectorAll('tr')); const data=rows.map(tr=>({rel:tr.querySelector('.r-rel').value, name:tr.querySelector('.r-name').value, birth:tr.querySelector('.r-birth').value, job:tr.querySelector('.r-job').value, relg:tr.querySelector('.r-relg').value, co:tr.querySelector('.r-co').value, note:tr.querySelector('.r-note').value})); document.getElementById('cm-re-family').value=JSON.stringify(data);`;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-rel w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="" oninput="${updateScript}"></td>
+                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-name w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="" oninput="${updateScript}"></td>
+                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-birth w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="" placeholder="YYYY-MM-DD" oninput="${updateScript}"></td>
+                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-job w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="" oninput="${updateScript}"></td>
+                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="r-relg w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors" value="" oninput="${updateScript}"></td>
+                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0">
+                        <select class="r-co w-full p-1.5 text-center outline-none bg-transparent focus:bg-white cursor-pointer transition-colors" onchange="${updateScript}">
+                            <option value=""></option>
+                            <option value="O">O</option>
+                            <option value="X">X</option>
+                        </select>
+                    </td>
+                    <td class="p-0 border-b border-slate-200 last:border-b-0 relative">
+                        <input type="text" class="r-note w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors pr-6" value="" oninput="${updateScript}">
+                        <button type="button" onclick="this.closest('tr').remove(); ${updateScript}" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500" title="행 삭제"><i data-lucide="minus-circle" size="14"></i></button>
+                    </td>
+                `;
+                
+                // 데이터 보관용 hidden input 바로 위에 새 행을 삽입
+                const hiddenInput = document.getElementById('cm-re-family');
+                if (hiddenInput) {
+                    tbody.insertBefore(tr, hiddenInput);
+                } else {
+                    tbody.appendChild(tr);
+                }
+                if(window.lucide) lucide.createIcons();
             },
             // [신규] 특정 구역 초기화 함수 (만족도조사 서비스 목표/실행내용 부분 초기화 포함)
             resetInputs: (sectionId) => {
@@ -6750,7 +6782,12 @@
 
                                                 <!-- 3줄: 가족사항 (신규 추가) -->
                                                 <div class="border-t border-dashed border-slate-200 pt-3 mt-1">
-                                                    <span class="text-xs font-bold text-slate-500 mb-2 block">[가족사항]</span>
+                                                    <div class="flex items-center gap-2 mb-2">
+                                                        <span class="text-xs font-bold text-slate-500">[가족사항]</span>
+                                                        <button type="button" onclick="app.addReassessFamilyRow()" class="w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-blue-50 hover:text-blue-600 transition-all shadow-sm" title="가족 추가">
+                                                            <i data-lucide="plus" size="12"></i>
+                                                        </button>
+                                                    </div>
                                                     <div class="overflow-x-auto border border-slate-200 rounded-lg bg-white">
                                                         <table class="w-full text-xs text-left border-collapse min-w-[600px]">
                                                             <thead class="bg-slate-50 text-slate-600 font-bold">
