@@ -7476,19 +7476,32 @@
                                                 <tbody class="divide-y divide-slate-100 bg-white">
                                                     ${(() => {
                                                         const changes = c.changeHistory || [];
+                                                        
+                                                        // 화면에서 날짜를 바꾸거나 삭제했을 때 hidden input에 데이터를 실시간 동기화하는 스크립트
+                                                        const updateScript = `const tbody=this.closest('tbody'); const rows=Array.from(tbody.querySelectorAll('tr.change-row')); const data=rows.map(tr=>({date:tr.querySelector('.c-date').value, field:tr.querySelector('.c-field').innerText, oldValue:tr.querySelector('.c-old').innerText, newValue:tr.querySelector('.c-new-val').innerText})); document.getElementById('cm-change-history').value=JSON.stringify(data);`;
+
                                                         if (changes.length === 0) {
-                                                            return `<tr><td colspan="5" class="p-8 text-center text-slate-400">기록된 변경 이력이 없습니다.</td></tr>`;
+                                                            return `<tr><td colspan="5" class="p-8 text-center text-slate-400">기록된 변경 이력이 없습니다.</td></tr><input type="hidden" id="cm-change-history" value="[]">`;
                                                         }
-                                                        // 최신순 정렬
-                                                        return [...changes].sort((a, b) => b.date.localeCompare(a.date)).map(h => `
-                                                            <tr class="hover:bg-slate-50 transition-colors">
-                                                                <td class="p-3 text-center text-slate-600 font-medium">${h.date}</td>
-                                                                <td class="p-3 text-center font-bold text-slate-700"><span class="px-2 py-1 bg-slate-100 rounded border border-slate-200 text-xs">${h.field}</span></td>
-                                                                <td class="p-3 text-center text-slate-400 line-through">${h.oldValue || '-'}</td>
+                                                        
+                                                        // 최신순 정렬하여 렌더링
+                                                        const rowsHtml = [...changes].sort((a, b) => b.date.localeCompare(a.date)).map(h => `
+                                                            <tr class="hover:bg-slate-50 transition-colors change-row">
+                                                                <td class="p-1.5 text-center">
+                                                                    <input type="date" class="c-date input-field w-full py-1.5 px-1 text-xs text-center border-transparent hover:border-slate-200 focus:border-emerald-500 bg-transparent focus:bg-white transition-all cursor-pointer font-medium text-slate-600" value="${h.date}" onchange="${updateScript}" max="9999-12-31">
+                                                                </td>
+                                                                <td class="p-3 text-center font-bold text-slate-700"><span class="c-field px-2 py-1 bg-slate-100 rounded border border-slate-200 text-xs">${h.field}</span></td>
+                                                                <td class="p-3 text-center text-slate-400 line-through c-old">${h.oldValue || ''}</td>
                                                                 <td class="p-3 text-center text-slate-300"><i data-lucide="arrow-right" size="14" class="mx-auto"></i></td>
-                                                                <td class="p-3 text-center text-blue-600 font-bold">${h.newValue || '-'}</td>
+                                                                <td class="p-3 text-center text-blue-600 font-bold relative">
+                                                                    <span class="c-new-val">${h.newValue || ''}</span>
+                                                                    <button type="button" onclick="if(confirm('이 변경 이력을 삭제하시겠습니까?')){ this.closest('tr').remove(); ${updateScript} }" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500" title="이력 삭제"><i data-lucide="trash-2" size="16"></i></button>
+                                                                </td>
                                                             </tr>
                                                         `).join('');
+                                                        
+                                                        const historyVal = JSON.stringify(changes).replace(/'/g, "&#39;");
+                                                        return rowsHtml + `<input type="hidden" id="cm-change-history" value='${historyVal}'>`;
                                                     })()}
                                                 </tbody>
                                             </table>
@@ -7890,7 +7903,14 @@
                         else if (state.ui.caseSubTab === 'reassess' && reAssessment.date) recordDate = reAssessment.date;
                     }
 
-                    let changes = client.changeHistory || [];
+                    // [수정] 기존 DB 데이터가 아니라, 화면(DOM)에서 수정/삭제된 최신 이력 데이터를 가져옴
+                    let changes = [];
+                    const historyInput = getEl('cm-change-history');
+                    if (historyInput) {
+                        try { changes = JSON.parse(historyInput); } catch(e) { changes = client.changeHistory || []; }
+                    } else {
+                        changes = client.changeHistory || [];
+                    }
                     
                     const checkFields = [
                         { key: 'address', label: '주소' },
@@ -7907,14 +7927,16 @@
                         // 값이 다르면 이력에 추가!
                         if (oldVal !== newVal) {
                             changes.push({
-                                date: recordDate, // <-- todayStr 대신 똑똑하게 판별된 날짜 적용!
+                                date: recordDate, 
                                 field: f.label,
                                 oldValue: oldVal,
                                 newValue: newVal
                             });
                         }
                     });
-                    updateData.changeHistory = changes;
+                    
+                    // [수정] 수정한 날짜들을 포함해 최신순으로 다시 한 번 정렬해서 저장
+                    updateData.changeHistory = changes.sort((a, b) => b.date.localeCompare(a.date));
                 }
 
                 try {
