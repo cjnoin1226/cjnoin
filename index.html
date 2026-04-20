@@ -2253,6 +2253,29 @@
                 }
                 if(window.lucide) lucide.createIcons();
             },
+
+                // [신규] 사정기록지 의료기관 행 추가 함수
+            addAssessMedRow: () => {
+                const tbody = document.getElementById('cm-assess-med-tbody');
+                if (!tbody) return;
+                
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 assess-med-row relative';
+                tr.innerHTML = `
+                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-inst w-full p-1 text-center outline-none bg-transparent focus:bg-white" value=""></td>
+                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-dis w-full p-1 text-center outline-none bg-transparent focus:bg-white" value=""></td>
+                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-status w-full p-1 text-center outline-none bg-transparent focus:bg-white" value=""></td>
+                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-freq w-full p-1 text-center outline-none bg-transparent focus:bg-white" value=""></td>
+                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-drug w-full p-1 text-center outline-none bg-transparent focus:bg-white" value=""></td>
+                    <td class="p-0 border-b border-slate-200 last:border-b-0 relative">
+                        <input type="text" class="med-contact w-full p-1 text-center outline-none bg-transparent focus:bg-white pr-6" value="">
+                        <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500" title="행 삭제"><i data-lucide="minus-circle" size="14"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                if(window.lucide) lucide.createIcons();
+            },
+
             // [신규] 특정 구역 초기화 함수 (만족도조사 서비스 목표/실행내용 부분 초기화 포함)
             resetInputs: (sectionId) => {
                 if (!confirm('해당 영역을 초기화하시겠습니까? (저장하지 않은 내용은 사라집니다)')) return;
@@ -6534,7 +6557,12 @@
 
                                                         <!-- [신규] 의료기관 이용현황 테이블 추가 -->
                                                         <div class="flex flex-col gap-2 pt-2 border-t border-dashed border-slate-100 mt-1">
-                                                            <span class="text-xs font-bold text-slate-600">의료기관 이용현황:</span>
+                                                            <div class="flex items-center gap-2">
+                                                                <span class="text-xs font-bold text-slate-600">의료기관 이용현황:</span>
+                                                                <button type="button" onclick="app.addAssessMedRow()" class="w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-blue-50 hover:text-blue-600 transition-all shadow-sm" title="의료기관 추가">
+                                                                    <i data-lucide="plus" size="12"></i>
+                                                                </button>
+                                                            </div>
                                                             <div class="overflow-x-auto border border-slate-200 rounded-lg">
                                                                 <table class="w-full text-xs text-left border-collapse min-w-[500px]">
                                                                     <thead class="bg-slate-50 text-slate-600 font-bold">
@@ -6547,17 +6575,27 @@
                                                                             <th class="p-1 border-b border-slate-200 text-center w-[20%]">연락처</th>
                                                                         </tr>
                                                                     </thead>
-                                                                    <tbody>
-                                                                        ${[0, 1].map(i => `
-                                                                            <tr class="hover:bg-slate-50">
-                                                                                <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" id="cm-assess-med-inst-${i}" class="w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${getVal(cm, `assessment.data.medicalHistory.${i}.institution`) || ''}"></td>
-                                                                                <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" id="cm-assess-med-dis-${i}" class="w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${getVal(cm, `assessment.data.medicalHistory.${i}.disease`) || ''}"></td>
-                                                                                <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" id="cm-assess-med-status-${i}" class="w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${getVal(cm, `assessment.data.medicalHistory.${i}.status`) || ''}"></td>
-                                                                                <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" id="cm-assess-med-freq-${i}" class="w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${getVal(cm, `assessment.data.medicalHistory.${i}.frequency`) || ''}"></td>
-                                                                                <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" id="cm-assess-med-drug-${i}" class="w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${getVal(cm, `assessment.data.medicalHistory.${i}.medication`) || ''}"></td>
-                                                                                <td class="p-0 border-b border-slate-200 last:border-b-0"><input type="text" id="cm-assess-med-contact-${i}" class="w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${getVal(cm, `assessment.data.medicalHistory.${i}.contact`) || ''}"></td>
-                                                                            </tr>
-                                                                        `).join('')}
+                                                                    <tbody id="cm-assess-med-tbody">
+                                                                        ${(() => {
+                                                                            const medData = getVal(cm, 'assessment.data.medicalHistory') || [];
+                                                                            let rows = [...medData];
+                                                                            if (rows.length < 2) {
+                                                                                while (rows.length < 2) rows.push({});
+                                                                            }
+                                                                            return rows.map((m) => `
+                                                                                <tr class="hover:bg-slate-50 assess-med-row relative">
+                                                                                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-inst w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${m.institution || ''}"></td>
+                                                                                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-dis w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${m.disease || ''}"></td>
+                                                                                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-status w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${m.status || ''}"></td>
+                                                                                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-freq w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${m.frequency || ''}"></td>
+                                                                                    <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-drug w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${m.medication || ''}"></td>
+                                                                                    <td class="p-0 border-b border-slate-200 last:border-b-0 relative">
+                                                                                        <input type="text" class="med-contact w-full p-1 text-center outline-none bg-transparent focus:bg-white pr-6" value="${m.contact || ''}">
+                                                                                        <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500" title="행 삭제"><i data-lucide="minus-circle" size="14"></i></button>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            `).join('');
+                                                                        })()}
                                                                     </tbody>
                                                                 </table>
                                                             </div>
@@ -7765,13 +7803,13 @@
                             historyPast: getEl('cm-assess-history-past'),
                             historyCurrent: getEl('cm-assess-history-current')
                         },
-                        medicalHistory: [0, 1].map(i => ({
-                            institution: getEl(`cm-assess-med-inst-${i}`),
-                            disease: getEl(`cm-assess-med-dis-${i}`),
-                            status: getEl(`cm-assess-med-status-${i}`),
-                            frequency: getEl(`cm-assess-med-freq-${i}`),
-                            medication: getEl(`cm-assess-med-drug-${i}`),
-                            contact: getEl(`cm-assess-med-contact-${i}`)
+                        medicalHistory: Array.from(e.target.querySelectorAll('.assess-med-row')).map(row => ({
+                            institution: row.querySelector('.med-inst') ? row.querySelector('.med-inst').value : '',
+                            disease: row.querySelector('.med-dis') ? row.querySelector('.med-dis').value : '',
+                            status: row.querySelector('.med-status') ? row.querySelector('.med-status').value : '',
+                            frequency: row.querySelector('.med-freq') ? row.querySelector('.med-freq').value : '',
+                            medication: row.querySelector('.med-drug') ? row.querySelector('.med-drug').value : '',
+                            contact: row.querySelector('.med-contact') ? row.querySelector('.med-contact').value : ''
                         }))
                     },
                     physical: getEl('cm-assess-phy'),
