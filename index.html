@@ -7838,7 +7838,16 @@
                 if (updateData.name) updateData.name = updateData.name.trim();
                 
                 if (id && client) {
-                    const todayStr = new Date().toISOString().split('T')[0];
+                    // 기본값은 오늘 날짜
+                    let recordDate = new Date().toISOString().split('T')[0];
+                    
+                    // 현재 사례관리 탭에서 서류를 작성 중이라면, 해당 서류의 일자를 우선 적용
+                    if (state.ui.clientModalTab === 'case') {
+                        if (state.ui.caseSubTab === 'initial' && initial.date) recordDate = initial.date;
+                        else if (state.ui.caseSubTab === 'assessment' && assessment.date) recordDate = assessment.date;
+                        else if (state.ui.caseSubTab === 'reassess' && reAssessment.date) recordDate = reAssessment.date;
+                    }
+
                     let changes = client.changeHistory || [];
                     
                     const checkFields = [
@@ -7856,7 +7865,7 @@
                         // 값이 다르면 이력에 추가!
                         if (oldVal !== newVal) {
                             changes.push({
-                                date: todayStr,
+                                date: recordDate, // <-- todayStr 대신 똑똑하게 판별된 날짜 적용!
                                 field: f.label,
                                 oldValue: oldVal,
                                 newValue: newVal
