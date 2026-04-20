@@ -7477,15 +7477,13 @@
                                                     ${(() => {
                                                         const changes = c.changeHistory || [];
                                                         
-                                                        // 화면에서 날짜를 바꾸거나 삭제했을 때 hidden input에 데이터를 실시간 동기화하는 스크립트
-                                                        const updateScript = `const tbody=this.closest('tbody'); const rows=Array.from(tbody.querySelectorAll('tr.change-row')); const data=rows.map(tr=>({date:tr.querySelector('.c-date').value, field:tr.querySelector('.c-field').innerText, oldValue:tr.querySelector('.c-old').innerText, newValue:tr.querySelector('.c-new-val').innerText})); document.getElementById('cm-change-history').value=JSON.stringify(data);`;
+                                                        const updateScript = `const form=this.closest('form'); const rows=Array.from(form.querySelectorAll('tr.change-row')); const data=rows.map(tr=>({date:tr.querySelector('.c-date').value, field:tr.querySelector('.c-field').innerText, oldValue:tr.querySelector('.c-old').innerText, newValue:tr.querySelector('.c-new-val').innerText})); form.querySelector('.cm-change-history-input').value=JSON.stringify(data);`;
 
                                                         if (changes.length === 0) {
-                                                            return `<tr><td colspan="5" class="p-8 text-center text-slate-400">기록된 변경 이력이 없습니다.</td></tr><input type="hidden" id="cm-change-history" value="[]">`;
+                                                            return `<tr><td colspan="5" class="p-8 text-center text-slate-400">기록된 변경 이력이 없습니다.</td></tr>`;
                                                         }
                                                         
-                                                        // 최신순 정렬하여 렌더링
-                                                        const rowsHtml = [...changes].sort((a, b) => b.date.localeCompare(a.date)).map(h => `
+                                                        return [...changes].sort((a, b) => b.date.localeCompare(a.date)).map(h => `
                                                             <tr class="hover:bg-slate-50 transition-colors change-row">
                                                                 <td class="p-1.5 text-center">
                                                                     <input type="date" class="c-date input-field w-full py-1.5 px-1 text-xs text-center border-transparent hover:border-slate-200 focus:border-emerald-500 bg-transparent focus:bg-white transition-all cursor-pointer font-medium text-slate-600" value="${h.date}" onchange="${updateScript}" max="9999-12-31">
@@ -7495,15 +7493,16 @@
                                                                 <td class="p-3 text-center text-slate-300"><i data-lucide="arrow-right" size="14" class="mx-auto"></i></td>
                                                                 <td class="p-3 text-center text-blue-600 font-bold relative">
                                                                     <span class="c-new-val">${h.newValue || ''}</span>
-                                                                    <button type="button" onclick="if(confirm('이 변경 이력을 삭제하시겠습니까?')){ this.closest('tr').remove(); ${updateScript} }" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500" title="이력 삭제"><i data-lucide="trash-2" size="16"></i></button>
+                                                                    <!-- 🚨 핵심 수정: 지우기 전에 미리 폼(form)을 변수에 담아두고 나서 지우도록 순서 변경! -->
+                                                                    <button type="button" onclick="if(confirm('이 변경 이력을 삭제하시겠습니까?')){ const form=this.closest('form'); this.closest('tr').remove(); const rows=Array.from(form.querySelectorAll('tr.change-row')); const data=rows.map(tr=>({date:tr.querySelector('.c-date').value, field:tr.querySelector('.c-field').innerText, oldValue:tr.querySelector('.c-old').innerText, newValue:tr.querySelector('.c-new-val').innerText})); form.querySelector('.cm-change-history-input').value=JSON.stringify(data); }" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500" title="이력 삭제"><i data-lucide="trash-2" size="16"></i></button>
                                                                 </td>
                                                             </tr>
                                                         `).join('');
-                                                        
-                                                        const historyVal = JSON.stringify(changes).replace(/'/g, "&#39;");
-                                                        return rowsHtml + `<input type="hidden" id="cm-change-history" value='${historyVal}'>`;
                                                     })()}
                                                 </tbody>
+                                            </table>
+                                            <!-- 안전한 작동을 위해 숨겨진 저장소를 table 태그 바로 밖으로 이동 -->
+                                            <input type="hidden" id="cm-change-history" class="cm-change-history-input" value='${(() => { const changes = c.changeHistory || []; return JSON.stringify(changes).replace(/'/g, "&#39;"); })()}'>
                                             </table>
                                         </div>
                                     </div>
