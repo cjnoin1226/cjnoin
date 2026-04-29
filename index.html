@@ -3771,6 +3771,9 @@
             printMeetingsData: (meetings) => {
                 if (!meetings || meetings.length === 0) return;
 
+                // [추가] 체크박스 렌더링 헬퍼 함수 추가 (오류 해결의 핵심!)
+                const renderChkBox = (label, isChecked) => `<span class="chk-item ${isChecked ? 'text-selected' : 'text-muted'}"><span class="chk ${isChecked ? 'checked' : ''}">${isChecked ? 'V' : ''}</span>${label}</span>`;
+
                 const commonCss = `
                     body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; color: #000; margin: 0; }
                     .doc-wrapper { page-break-after: always; margin-bottom: 30px; }
@@ -3798,7 +3801,14 @@
                     .content-table td { border: 1px solid #000; padding: 15px; vertical-align: top; }
                     
                     .clearfix::after { content: ""; clear: both; display: table; }
-                    .decision-badge { display: inline-block; padding: 2px 8px; border: 1px solid #000; border-radius: 4px; font-weight: bold; font-size: 12px; background-color: #fff; margin-left: 8px; }
+                    
+                    /* [추가] 체크박스 그리기용 CSS 스타일 추가 */
+                    .chk { display: inline-block; width: 12px; height: 12px; border: 1px solid #000; margin-right: 3px; vertical-align: middle; text-align: center; line-height: 10px; font-size: 10px; }
+                    .chk.checked { background: #000; color: #fff; }
+                    .chk-item { display: inline-block; margin-right: 8px; margin-bottom: 2px; }
+                    .text-selected { color: #000; font-weight: bold; }
+                    .text-muted { color: #bbb; }
+                    .text-muted .chk { border-color: #bbb; }
                 `;
 
                 let fullHtml = `<html><head><title>사례회의록 인쇄</title><style>${commonCss}</style></head><body onload="window.print();">`;
