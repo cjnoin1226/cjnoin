@@ -8045,6 +8045,8 @@
                             border-left: 4px solid #333; padding-left: 8px; background: #eee; padding: 5px; 
                             break-after: avoid; page-break-after: avoid; 
                         }
+                        /* [추가] 소제목(h3)도 맨 밑에 혼자 떨어지지 않도록 방지 */
+                        h3 { break-after: avoid; page-break-after: avoid; }
                         
                         /* 테이블 스타일 */
                         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
@@ -8865,23 +8867,21 @@
 
                         <h2>1. 이용자 의견조사</h2>
                         
-                        <div class="keep-together">
-                            <h3 style="font-size: 13px; font-weight: bold; margin-top: 10px; margin-bottom: 5px;">1) 서비스 만족도 조사</h3>
-                            <table>
-                                <colgroup>
-                                    <col style="width: 19%;">
-                                    <col style="width: 38%;">
-                                    <col style="width: 13%;">
-                                    <col style="width: 30%;">
-                                </colgroup>
-                                <thead>
-                                    <tr class="bg-gray"><th>목표</th><th>실행내용</th><th>이용자 만족도</th><th>담당자 평가</th></tr>
-                                </thead>
-                                <tbody>
-                                    ${goalRows}
-                                </tbody>
-                            </table>
-                        </div>
+                        <h3 style="font-size: 13px; font-weight: bold; margin-top: 10px; margin-bottom: 5px;">1) 서비스 만족도 조사</h3>
+                        <table>
+                            <colgroup>
+                                <col style="width: 19%;">
+                                <col style="width: 38%;">
+                                <col style="width: 13%;">
+                                <col style="width: 30%;">
+                            </colgroup>
+                            <thead>
+                                <tr class="bg-gray"><th>목표</th><th>실행내용</th><th>이용자 만족도</th><th>담당자 평가</th></tr>
+                            </thead>
+                            <tbody>
+                                ${goalRows}
+                            </tbody>
+                        </table>
 
                         <div class="keep-together">
                             <h3 style="font-size: 13px; font-weight: bold; margin-top: 15px; margin-bottom: 5px;">2) 전반적 만족도 조사</h3>
