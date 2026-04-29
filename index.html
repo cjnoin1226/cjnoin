@@ -8865,56 +8865,64 @@
 
                         <h2>1. 이용자 의견조사</h2>
                         
-                        <h3 style="font-size: 13px; font-weight: bold; margin-top: 10px; margin-bottom: 5px;">1) 서비스 만족도 조사</h3>
-                        <table>
-                            <colgroup>
-                                <col style="width: 19%;">
-                                <col style="width: 38%;">
-                                <col style="width: 13%;">
-                                <col style="width: 30%;">
-                            </colgroup>
-                            <thead>
-                                <tr class="bg-gray"><th>목표</th><th>실행내용</th><th>이용자 만족도</th><th>담당자 평가</th></tr>
-                            </thead>
-                            <tbody>
-                                ${goalRows}
-                            </tbody>
-                        </table>
+                        <div class="keep-together">
+                            <h3 style="font-size: 13px; font-weight: bold; margin-top: 10px; margin-bottom: 5px;">1) 서비스 만족도 조사</h3>
+                            <table>
+                                <colgroup>
+                                    <col style="width: 19%;">
+                                    <col style="width: 38%;">
+                                    <col style="width: 13%;">
+                                    <col style="width: 30%;">
+                                </colgroup>
+                                <thead>
+                                    <tr class="bg-gray"><th>목표</th><th>실행내용</th><th>이용자 만족도</th><th>담당자 평가</th></tr>
+                                </thead>
+                                <tbody>
+                                    ${goalRows}
+                                </tbody>
+                            </table>
+                        </div>
 
-                        <h3 style="font-size: 13px; font-weight: bold; margin-top: 15px; margin-bottom: 5px;">2) 전반적 만족도 조사</h3>
-                        <table>
-                            <thead>
-                                <tr><th width="80%">문항</th><th>점수(5점만점)</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr><td>1. 담당 직원은 약속 시간을 잘 지켰습니까? (시간 준수)</td><td class="text-center">${getVal(cm, 'satisfaction.q1')}</td></tr>
-                                <tr><td>2. 담당 직원은 친절하고 예의 바르게 대하였습니까? (친절성)</td><td class="text-center">${getVal(cm, 'satisfaction.q2')}</td></tr>
-                                <tr><td>3. 서비스 내용과 절차에 대해 충분히 설명을 들으셨습니까? (정보 제공)</td><td class="text-center">${getVal(cm, 'satisfaction.q3')}</td></tr>
-                                <tr><td>4. 제공된 서비스가 귀하의 어려움을 해결하는 데 도움이 되었습니까? (서비스 효과)</td><td class="text-center">${getVal(cm, 'satisfaction.q4')}</td></tr>
-                                <tr><td>5. 전반적으로 제공된 서비스에 만족하십니까? (전반적 만족도)</td><td class="text-center">${getVal(cm, 'satisfaction.q5')}</td></tr>
-                            </tbody>
-                        </table>
+                        <div class="keep-together">
+                            <h3 style="font-size: 13px; font-weight: bold; margin-top: 15px; margin-bottom: 5px;">2) 전반적 만족도 조사</h3>
+                            <table>
+                                <thead>
+                                    <tr><th width="80%">문항</th><th>점수(5점만점)</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>1. 담당 직원은 약속 시간을 잘 지켰습니까? (시간 준수)</td><td class="text-center">${getVal(cm, 'satisfaction.q1')}</td></tr>
+                                    <tr><td>2. 담당 직원은 친절하고 예의 바르게 대하였습니까? (친절성)</td><td class="text-center">${getVal(cm, 'satisfaction.q2')}</td></tr>
+                                    <tr><td>3. 서비스 내용과 절차에 대해 충분히 설명을 들으셨습니까? (정보 제공)</td><td class="text-center">${getVal(cm, 'satisfaction.q3')}</td></tr>
+                                    <tr><td>4. 제공된 서비스가 귀하의 어려움을 해결하는 데 도움이 되었습니까? (서비스 효과)</td><td class="text-center">${getVal(cm, 'satisfaction.q4')}</td></tr>
+                                    <tr><td>5. 전반적으로 제공된 서비스에 만족하십니까? (전반적 만족도)</td><td class="text-center">${getVal(cm, 'satisfaction.q5')}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
 
-                        <h3 style="font-size: 13px; font-weight: bold; margin-top: 15px; margin-bottom: 5px;">3) 욕구변화 모니터링</h3>
-                        <table>
-                            <tbody>
-                                <tr><th width="20%">기능상태 변화</th><td>${getVal(cm, 'satisfaction.monitor.funcChange')}</td></tr>
-                                <tr><th width="20%">생활 환경 및 능력변화</th><td>${getVal(cm, 'satisfaction.monitor.envChange')}</td></tr>
-                                <tr><th width="20%">변화된 욕구</th><td>${getVal(cm, 'satisfaction.monitor.needsChange')}</td></tr>
-                            </tbody>
-                        </table>
+                        <div class="keep-together">
+                            <h3 style="font-size: 13px; font-weight: bold; margin-top: 15px; margin-bottom: 5px;">3) 욕구변화 모니터링</h3>
+                            <table>
+                                <tbody>
+                                    <tr><th width="20%">기능상태 변화</th><td>${getVal(cm, 'satisfaction.monitor.funcChange')}</td></tr>
+                                    <tr><th width="20%">생활 환경 및 능력변화</th><td>${getVal(cm, 'satisfaction.monitor.envChange')}</td></tr>
+                                    <tr><th width="20%">변화된 욕구</th><td>${getVal(cm, 'satisfaction.monitor.needsChange')}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
 
-                        <h2>2. 서비스 종합계획</h2>
-                        <table>
-                            <tbody>
-                                <tr><th width="20%">모니터링 결과 반영</th><td>
-                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.maintain'))} 서비스 유지 &nbsp;
-                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.change'))} 서비스 계획 변경 &nbsp;
-                                    ${renderChk(getVal(cm, 'satisfaction.monitorResult.revisit'))} 재방문 상담
-                                </td></tr>
-                                <tr><th width="20%" height="80">종합평가 및 향후계획</th><td style="vertical-align: top;">${(getVal(cm, 'satisfaction.comprehensivePlan')||'').replace(/\n/g, '<br>')}</td></tr>
-                            </tbody>
-                        </table>
+                        <div class="keep-together">
+                            <h2>2. 서비스 종합계획</h2>
+                            <table>
+                                <tbody>
+                                    <tr><th width="20%">모니터링 결과 반영</th><td>
+                                        ${renderChk(getVal(cm, 'satisfaction.monitorResult.maintain'))} 서비스 유지 &nbsp;
+                                        ${renderChk(getVal(cm, 'satisfaction.monitorResult.change'))} 서비스 계획 변경 &nbsp;
+                                        ${renderChk(getVal(cm, 'satisfaction.monitorResult.revisit'))} 재방문 상담
+                                    </td></tr>
+                                    <tr><th width="20%" height="80">종합평가 및 향후계획</th><td style="vertical-align: top;">${(getVal(cm, 'satisfaction.comprehensivePlan')||'').replace(/\n/g, '<br>')}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     `;
                 } else if (docType === 'evaluation') {
                     docTitle = `사례평가서(${year}년)`;
