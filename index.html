@@ -3804,12 +3804,17 @@
                 let fullHtml = `<html><head><title>사례회의록 인쇄</title><style>${commonCss}</style></head><body onload="window.print();">`;
 
                 meetings.forEach(m => {
-                    // [신규] 결정사항 텍스트 및 배지 처리
+                    // [수정] 결정사항 텍스트 및 배지 처리 (체크박스 형태로 모두 표시)
                     let decisionContent = (m.decision || '').replace(/\n/g, '<br>');
-                    let decisionBadgeHtml = '';
-                    if (m.serviceDecision) {
-                        decisionBadgeHtml = `<span class="decision-badge">${m.serviceDecision}</span>`;
-                    }
+                    
+                    // 체크되지 않은 빈 칸도 모두 표시하고, 선택된 항목에만 V 표시
+                    let decisionBadgeHtml = `
+                        <div style="display: inline-block; margin-left: 15px; font-weight: normal; font-size: 12px; vertical-align: middle;">
+                            ${renderChkBox('서비스 제공', m.serviceDecision === '서비스 제공')}
+                            <span style="display: inline-block; width: 10px;"></span>
+                            ${renderChkBox('서비스 종결', m.serviceDecision === '서비스 종결')}
+                        </div>
+                    `;
 
                     // [추가] 정보가 누락된 경우 대상자 마스터 데이터에서 조회 (하위 호환성)
                     let clientLevel = m.clientLevel;
@@ -3845,7 +3850,7 @@
                         </div>
 
                         <div class="info-group">
-                            <!-- 1열: 일시, 장소, 작성자 (3등분) -->
+                            <!-- 1열: 일시, 회의구분, 작성자 (3등분) -->
                             <table>
                                 <colgroup>
                                     <col style="width: 12%;">
@@ -3858,14 +3863,14 @@
                                 <tr>
                                     <th>일 시</th>
                                     <td>${m.date}</td>
-                                    <th>장 소</th>
-                                    <td>상담실</td>
+                                    <th>회의구분</th>
+                                    <td>${m.type}</td>
                                     <th>작성자</th>
                                     <td>${m.writer}</td>
                                 </tr>
                             </table>
                             
-                            <!-- 2열: 회의구분, 참석자 (2등분) - 위치 이동됨 -->
+                            <!-- 2열: 장소, 참석자 (2등분) -->
                             <table>
                                 <colgroup>
                                     <col style="width: 12%;">
@@ -3874,8 +3879,8 @@
                                     <col style="width: 55%;">
                                 </colgroup>
                                 <tr>
-                                    <th>회의구분</th>
-                                    <td>${m.type}</td>
+                                    <th>장 소</th>
+                                    <td>상담실</td>
                                     <th>참석자</th>
                                     <td class="align-left">${m.attendees}</td>
                                 </tr>
