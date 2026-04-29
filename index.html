@@ -4985,7 +4985,8 @@
                                                             <td class="border border-slate-300 p-1 text-center text-slate-600 bg-slate-50 truncate">${c.gender}</td>
                                                             
                                                             <th class="border border-slate-300 bg-slate-100 p-1 text-center font-bold text-slate-700">연령</th>
-                                                            <td class="border border-slate-300 p-1 text-center text-slate-600 bg-slate-50 truncate">${c.birthDate ? calculateAge(c.birthDate) + '세' : '-'}</td>
+                                                            <!-- [수정] 작성 연도(targetYear) 기준으로 나이 계산 -->
+                                                            <td class="border border-slate-300 p-1 text-center text-slate-600 bg-slate-50 truncate">${c.birthDate ? (targetYear - parseInt(c.birthDate.substring(0, 4))) + '세' : '-'}</td>
                                                             
                                                             <th class="border border-slate-300 bg-slate-100 p-1 text-center font-bold text-slate-700">생년월일</th>
                                                             <td class="border border-slate-300 p-1 text-center text-slate-600 bg-slate-50 truncate">${c.birthDate || '-'}</td>
@@ -5975,7 +5976,8 @@
                                                 <!-- 기본 인적사항 (요약) -->
                                                 <div class="flex flex-wrap gap-4 pb-4 border-b border-slate-100">
                                                     <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">성명</span><span class="text-sm font-bold text-slate-800">${c.name}</span></div>
-                                                    <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">생년월일</span><span class="text-sm text-slate-700">${c.birthDate} (${calculateAge(c.birthDate)}세)</span></div>
+                                                    <!-- [수정] 작성 연도(targetYear) 기준으로 나이 계산 -->
+                                                    <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">생년월일</span><span class="text-sm text-slate-700">${c.birthDate} (${c.birthDate ? (targetYear - parseInt(c.birthDate.substring(0, 4))) : 0}세)</span></div>
                                                     <div class="flex items-center gap-2 flex-1"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">주소</span><span class="text-sm text-slate-700 truncate">${getVal(cm, 'assessment.snapAddress') || c.address}</span></div>
                                                 </div>
 
@@ -8443,7 +8445,8 @@
                             <col width="15%"><col width="35%"><col width="15%"><col width="35%">
                             <tr>
                                 <th>대상자명</th><td>${client.name}</td>
-                                <th>생년월일</th><td>${client.birthDate} (${calculateAge(client.birthDate)}세)</td>
+                                <!-- [수정] 인쇄 연도(year) 기준으로 나이 계산 -->
+                                <th>생년월일</th><td>${client.birthDate} (${client.birthDate ? (year - parseInt(client.birthDate.substring(0, 4))) : 0}세)</td>
                             </tr>
                             <tr>
                                 <th>사정일자</th><td>${getVal(cm, 'assessment.date')}</td>
