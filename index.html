@@ -4999,13 +4999,13 @@
                                                         <!-- 3. 주소 -->
                                                         <tr>
                                                             <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">주소</th>
-                                                            <td colspan="9" class="border border-slate-300 p-2 text-slate-600 bg-slate-50">${c.address}</td>
+                                                            <td colspan="9" class="border border-slate-300 p-2 text-slate-600 bg-slate-50">${getVal(cm, 'initial.snapAddress') || c.address}</td>
                                                         </tr>
 
                                                         <!-- 4. 연락처 -->
                                                         <tr>
                                                             <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">연락처</th>
-                                                            <td colspan="4" class="border border-slate-300 p-2 text-slate-600 bg-slate-50">${c.phone}</td>
+                                                            <td colspan="4" class="border border-slate-300 p-2 text-slate-600 bg-slate-50">${getVal(cm, 'initial.snapPhone') || c.phone}</td>
                                                             <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">보호자</th>
                                                             <td colspan="4" class="border border-slate-300 p-2 text-slate-600 bg-slate-50">${c.guardianRelation ? c.guardianRelation + ' / ' : ''}${c.guardianPhone}</td>
                                                         </tr>
@@ -5976,7 +5976,7 @@
                                                 <div class="flex flex-wrap gap-4 pb-4 border-b border-slate-100">
                                                     <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">성명</span><span class="text-sm font-bold text-slate-800">${c.name}</span></div>
                                                     <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">생년월일</span><span class="text-sm text-slate-700">${c.birthDate} (${calculateAge(c.birthDate)}세)</span></div>
-                                                    <div class="flex items-center gap-2 flex-1"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">주소</span><span class="text-sm text-slate-700 truncate">${c.address}</span></div>
+                                                    <div class="flex items-center gap-2 flex-1"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">주소</span><span class="text-sm text-slate-700 truncate">${getVal(cm, 'assessment.snapAddress') || c.address}</span></div>
                                                 </div>
 
                                                 <!-- ① 경제상황 -->
@@ -7619,6 +7619,8 @@
                     interviewer: getEl('cm-initial-interviewer'),
                     religion: getEl('cm-initial-religion'),
                     conclusion: getEl('cm-initial-conclusion'),
+                    snapAddress: currentCm.initial?.snapAddress || (client ? client.address : ''),
+                    snapPhone: currentCm.initial?.snapPhone || (client ? client.phone : ''),
                     // [핵심] 가족사항도 무조건 현재 폼(e.target) 안에서만 긁어오도록 수정!
                     familyDetails: Array.from(e.target.querySelectorAll('.fam-row')).map(row => ({
                         rel: row.querySelector('.fam-rel') ? row.querySelector('.fam-rel').value : '',
@@ -7699,6 +7701,7 @@
                 const assessment = {
                     date: getEl('cm-assess-date'),
                     writer: getEl('cm-assess-writer'),
+                    snapAddress: currentCm.assessment?.snapAddress || (client ? client.address : ''),
                     data: {
                         economic: getCheckedValues('cm-assess-eco'),
                         economicDetail: {
@@ -8218,8 +8221,8 @@
                                 <col width="22%">
                             </colgroup>
                             <tr><th>상담일시</th><td>${getVal(cm, 'initial.date')}</td><th>상담자</th><td>${getVal(cm, 'initial.interviewer')}</td><th>의뢰인</th><td>${getVal(cm, 'initial.referrer.name')} (${getVal(cm, 'initial.referrer.relation')})</td></tr>
-                            <tr><th>대상자명</th><td>${client.name}</td><th>주민번호</th><td>${client.residentNum || ''}</td><th>연락처</th><td>${client.phone}</td></tr>
-                            <tr><th>주소</th><td colspan="3">${client.address}</td><th>종교</th><td>${getVal(cm, 'initial.religion')}</td></tr>
+                            <tr><th>대상자명</th><td>${client.name}</td><th>주민번호</th><td>${client.residentNum || ''}</td><th>연락처</th><td>${getVal(cm, 'initial.snapPhone') || client.phone}</td></tr>
+                            <tr><th>주소</th><td colspan="3">${getVal(cm, 'initial.snapAddress') || client.address}</td><th>종교</th><td>${getVal(cm, 'initial.religion')}</td></tr>
                         </table>
 
                         <h2>1. 가족사항</h2>
