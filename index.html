@@ -982,9 +982,15 @@
                                     ${state.ui.clientExportDropdownOpen ? `
                                         <div class="fixed inset-0 z-30" onclick="app.toggleClientExportDropdown()"></div>
                                         <div class="absolute top-full right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-40 p-1 animate-fade-in flex flex-col">
+                                            <div class="absolute top-full right-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-40 p-1 animate-fade-in flex flex-col">
                                             <button onclick="app.downloadClientListExcel(); app.toggleClientExportDropdown()" class="text-left px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded flex items-center gap-2 transition-colors">
                                                 <i data-lucide="file-spreadsheet" size="14" class="text-green-600"></i> 
                                                 <span>명부 엑셀 저장</span>
+                                            </button>
+                                            <!-- [신규] PDF 버튼 대신 들어간 일괄 인쇄 버튼 -->
+                                            <button onclick="app.openCasePrintSelector(); app.toggleClientExportDropdown()" class="text-left px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded flex items-center gap-2 transition-colors border-t border-slate-50">
+                                                <i data-lucide="printer" size="14" class="text-blue-500"></i> 
+                                                <span>사례관리 서류 인쇄</span>
                                             </button>
                                         </div>
                                     ` : ''}
@@ -4138,7 +4144,8 @@
                 }
             },
 
-            openCasePdfSelector: () => {
+            // [신규] 사례관리 서류 인쇄 다이얼로그 (다중 선택 지원)
+            openCasePrintSelector: () => {
                 if (state.ui.selectedClientIds.size === 0) {
                     alert("대상을 선택해주세요.");
                     return;
@@ -4152,16 +4159,16 @@
                 const html = `
                     <div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl">
                         <div class="flex items-center gap-2 mb-4">
-                            <div class="p-2 bg-slate-100 text-slate-600 rounded-full"><i data-lucide="file-text" size="20"></i></div>
+                            <div class="p-2 bg-blue-100 text-blue-600 rounded-full"><i data-lucide="printer" size="20"></i></div>
                             <div>
-                                <h3 class="font-bold text-lg text-slate-900">사례관리 PDF 저장</h3>
+                                <h3 class="font-bold text-lg text-slate-900">사례관리 서류 인쇄</h3>
                                 <p class="text-xs text-slate-500">${titleText}</p>
                             </div>
                         </div>
                         <div class="space-y-4 mb-6">
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1">문서 종류</label>
-                                <select id="pdf-doc-type" class="input-field text-sm">
+                                <select id="print-doc-type" class="input-field text-sm">
                                     <option value="initial">초기면접지</option>
                                     <option value="assessment">사정기록지</option>
                                     <option value="reassess">재사정 기록지</option>
@@ -4171,90 +4178,82 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1">대상 연도</label>
-                                <select id="pdf-doc-year" class="input-field text-sm">
+                                <select id="print-doc-year" class="input-field text-sm">
                                     ${Array.from({length: 5}, (_, i) => currentYear + 1 - i).map(y => `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}년</option>`).join('')}
                                 </select>
-                                <p class="text-[10px] text-slate-400 mt-1">* 재사정/만족도/평가서는 연도별로 저장됩니다.</p>
+                                <p class="text-[10px] text-slate-400 mt-1">* 재사정/만족도/평가서는 선택한 연도의 기록이 출력됩니다.</p>
                             </div>
-                            ${count > 1 ? `<div class="p-3 bg-blue-50 text-blue-700 text-xs rounded-lg flex items-start gap-2"><i data-lucide="info" size="14" class="mt-0.5 flex-shrink-0"></i><span>다중 선택 시 ZIP 파일로 압축되어 다운로드됩니다.<br>대상자 수에 따라 시간이 소요될 수 있습니다.</span></div>` : ''}
+                            ${count > 1 ? `<div class="p-3 bg-blue-50 text-blue-700 text-xs rounded-lg flex items-start gap-2"><i data-lucide="info" size="14" class="mt-0.5 flex-shrink-0"></i><span>다중 선택 시 모든 대상자의 서류가 한 번에 인쇄 창으로 열립니다.</span></div>` : ''}
                         </div>
                         <div class="flex gap-2">
                             <button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 font-medium transition-colors">취소</button>
-                            <button onclick="app.executeDownloadCasePdf()" class="flex-1 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 font-bold shadow-sm transition-colors">다운로드</button>
+                            <button onclick="app.executePrintCaseDocuments()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow-sm transition-colors">인쇄 창 열기</button>
                         </div>
                     </div>
                 `;
                 showDialog(html);
                 if(window.lucide) lucide.createIcons();
             },
-            executeDownloadCasePdf: async () => {
-                const docType = document.getElementById('pdf-doc-type').value;
-                const year = parseInt(document.getElementById('pdf-doc-year').value);
+
+            // [신규] 다중 선택 서류 일괄 인쇄 실행
+            executePrintCaseDocuments: async () => {
+                const docType = document.getElementById('print-doc-type').value;
+                const year = parseInt(document.getElementById('print-doc-year').value);
                 const clientIds = Array.from(state.ui.selectedClientIds);
                 
                 app.closeDialog();
 
                 if (clientIds.length === 0) return;
 
-                if (clientIds.length === 1) {
-                    // 단일 파일 다운로드
-                    app.printCaseManagement(clientIds[0], 'pdf', docType, year);
-                } else {
-                    // 다중 파일 ZIP 다운로드
-                    const loadingId = 'pdf-zip-loading';
-                    const loadingHtml = `<div id="${loadingId}" class="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-black/50 text-white backdrop-blur-sm">
-                        <div class="animate-spin mb-4"><i data-lucide="loader-2" size="48"></i></div>
-                        <div class="text-lg font-bold">PDF 생성 및 압축 중...</div>
-                        <div class="text-sm text-slate-300 mt-2" id="${loadingId}-progress">0 / ${clientIds.length}</div>
-                    </div>`;
-                    document.body.insertAdjacentHTML('beforeend', loadingHtml);
-                    if(window.lucide) lucide.createIcons();
+                const loadingId = 'print-loading';
+                const loadingHtml = `<div id="${loadingId}" class="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-black/50 text-white backdrop-blur-sm">
+                    <div class="animate-spin mb-4"><i data-lucide="loader-2" size="48"></i></div>
+                    <div class="text-lg font-bold">인쇄용 문서 생성 중...</div>
+                    <div class="text-sm text-slate-300 mt-2" id="${loadingId}-progress">0 / ${clientIds.length}</div>
+                </div>`;
+                document.body.insertAdjacentHTML('beforeend', loadingHtml);
+                if(window.lucide) lucide.createIcons();
 
-                    try {
-                        const zip = new JSZip();
-                        let completed = 0;
-                        const progressEl = document.getElementById(`${loadingId}-progress`);
+                try {
+                    let combinedHtml = '';
+                    let commonCss = '';
+                    let completed = 0;
+                    const progressEl = document.getElementById(`${loadingId}-progress`);
+
+                    for (const cid of clientIds) {
+                        // 각 대상자의 HTML 조각만 가져오기
+                        const result = await app.printCaseManagement(cid, 'html', docType, year);
                         
-                        // 문서 이름 매핑
-                        const docNames = {
-                            initial: '초기면접지',
-                            assessment: '사정기록지',
-                            reassess: '재사정기록지',
-                            satisfaction: '만족도조사',
-                            evaluation: '사례평가서'
-                        };
-                        const docName = docNames[docType] || docType;
-
-                        for (const cid of clientIds) {
-                            // Blob 모드로 PDF 데이터 가져오기
-                            const blob = await app.printCaseManagement(cid, 'blob', docType, year);
-                            if (blob) {
-                                const client = state.clients.find(c => c.id === cid);
-                                const safeName = (client ? client.name : 'Unknown').replace(/[/\\?%*:|"<>]/g, '-');
-                                const filename = `${safeName}_${docName}_${year}.pdf`;
-                                zip.file(filename, blob);
-                            }
+                        if (result && result.html) {
+                            if (!commonCss) commonCss = result.css; // CSS는 한 번만 적용
                             
-                            completed++;
-                            if(progressEl) progressEl.innerText = `${completed} / ${clientIds.length}`;
+                            // 각 대상자 문서 사이에 페이지 나눔 태그 추가 (page-break-after: always)
+                            combinedHtml += `<div style="page-break-after: always; padding: 20px;">${result.html}</div>`;
                         }
-
-                        const content = await zip.generateAsync({type:"blob"});
                         
-                        // 다운로드 링크 생성 및 클릭
-                        const link = document.createElement('a');
-                        link.href = URL.createObjectURL(content);
-                        link.download = `사례관리서류_모음(${docName}_${year})_${new Date().toISOString().slice(0,10)}.zip`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-
-                    } catch (e) {
-                        console.error(e);
-                        alert("PDF 생성 중 오류가 발생했습니다: " + e.message);
-                    } finally {
-                        document.getElementById(loadingId)?.remove();
+                        completed++;
+                        if(progressEl) progressEl.innerText = `${completed} / ${clientIds.length}`;
                     }
+
+                    if (!combinedHtml) {
+                        alert("출력할 문서 내용이 없습니다.");
+                        return;
+                    }
+
+                    // 모든 대상자의 HTML을 하나로 합쳐서 새 창을 열고 인쇄 실행
+                    const win = window.open('', '_blank');
+                    win.document.write(`<html><head><title>사례관리 서류 일괄 인쇄</title>${commonCss}</head><body>${combinedHtml}</body></html>`);
+                    win.document.close();
+                    win.focus();
+                    
+                    // 이미지가 렌더링될 약간의 시간을 준 뒤 인쇄 창 호출
+                    setTimeout(() => win.print(), 800);
+
+                } catch (e) {
+                    console.error(e);
+                    alert("인쇄 준비 중 오류가 발생했습니다: " + e.message);
+                } finally {
+                    document.getElementById(loadingId)?.remove();
                 }
             },
 
@@ -8986,6 +8985,9 @@
                     } else {
                         html2pdf().set(opt).from(element).save();
                     }
+                } else if (mode === 'html') {
+                    // [신규] 다중 인쇄를 위해 HTML과 CSS만 따로 반환
+                    return { html: htmlContent, css: commonCss }; 
                 }
             },
 
