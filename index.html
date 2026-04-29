@@ -6694,7 +6694,10 @@
                                                 <div class="w-[80px]">
                                                     <label class="text-[10px] text-slate-500 block mb-0.5">등급</label>
                                                     <select id="cm-re-level" class="input-field py-1 px-2 text-xs cursor-pointer">
-                                                        ${CONSTANTS.CARE_LEVEL_LIST.map(v => `<option value="${v}" ${c.careLevel === v ? 'selected' : ''}>${v}</option>`).join('')}
+                                                        ${(() => {
+                                                            const savedLevel = getVal(cm, 'reAssessment.careLevel') || c.careLevel;
+                                                            return CONSTANTS.CARE_LEVEL_LIST.map(v => `<option value="${v}" ${savedLevel === v ? 'selected' : ''}>${v}</option>`).join('');
+                                                        })()}
                                                     </select>
                                                 </div>
                                                 <div class="w-24">
@@ -7806,6 +7809,7 @@
 
                 const reAssessment = {
                     date: getEl('cm-re-date'),
+                    careLevel: getEl('cm-re-level'), // 👈 [핵심 추가] 수정한 등급도 같이 저장!
                     economic: getCheckedValues('cm-re-eco'),
                     economicDetail: {
                         conditional: getEl('cm-re-eco-cond'),
@@ -8652,12 +8656,12 @@
                             </tr>
                             <tr>
                                 <th>등급</th>
-                                <td>${client.careLevel}</td>
-                                <th>전화번호(현행)</th>
+                                <td>${getVal(cm, 'reAssessment.careLevel') || client.careLevel}</td>
+                                <th>전화번호</th>
                                 <td>${getVal(cm, 'reAssessment.phone')}</td>
                             </tr>
                             <tr>
-                                <th>주소(현행)</th>
+                                <th>주소</th>
                                 <td colspan="3">${getVal(cm, 'reAssessment.address')}</td>
                             </tr>
                         </table>
