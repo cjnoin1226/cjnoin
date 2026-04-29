@@ -3539,8 +3539,8 @@
                                     
                                     <input id="mt-client-birth" name="clientBirth" class="input-field w-32 bg-slate-100 text-slate-500" placeholder="생년월일" value="${m.clientBirth || ''}" readonly tabindex="-1">
                                     <input id="mt-client-level" name="clientLevel" class="input-field w-24 bg-slate-100 text-slate-500" placeholder="등급" value="${m.clientLevel || ''}" readonly tabindex="-1">
-                                    <!-- [신규] 서비스 시작일 필드 추가 -->
-                                    <input id="mt-client-start-date" name="clientStartDate" class="input-field w-32 bg-slate-100 text-slate-500" placeholder="서비스 시작일" value="${m.clientStartDate || ''}" readonly tabindex="-1">
+                                    <!-- [신규] 서비스 시작일 필드 추가 (버튼 클릭이나 과거 데이터도 알아서 DB를 검색해 채워줍니다) -->
+                                    <input id="mt-client-start-date" name="clientStartDate" class="input-field w-32 bg-slate-100 text-slate-500" placeholder="서비스 시작일" value="${m.clientStartDate || (state.clients.find(c => c.name === m.clientName)?.serviceStartDate) || ''}" readonly tabindex="-1">
                                 </div>
                             </div>
 
