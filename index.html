@@ -986,10 +986,6 @@
                                                 <i data-lucide="file-spreadsheet" size="14" class="text-green-600"></i> 
                                                 <span>명부 엑셀 저장</span>
                                             </button>
-                                            <button onclick="app.openCasePdfSelector(); app.toggleClientExportDropdown()" class="text-left px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 rounded flex items-center gap-2 transition-colors border-t border-slate-50">
-                                                <i data-lucide="file-text" size="14" class="text-red-500"></i> 
-                                                <span>사례관리 PDF 저장</span>
-                                            </button>
                                         </div>
                                     ` : ''}
                                 </div>
@@ -4929,9 +4925,6 @@
                                                     ${cmYearOptionsHTML}
                                                 </select>
                                             </div>
-                                            <button type="button" onclick="app.printCaseManagement('${c.id}', 'pdf')" class="bg-slate-100 text-slate-600 p-1 rounded-md hover:bg-slate-200 transition-colors" title="PDF 파일로 저장">
-                                                <i data-lucide="file-down" size="14"></i>
-                                            </button>
                                             <button type="button" onclick="app.printCaseManagement('${c.id}')" class="bg-slate-100 text-slate-600 p-1 rounded-md hover:bg-slate-200 transition-colors" title="현재 탭 인쇄">
                                                 <i data-lucide="printer" size="14"></i>
                                             </button>
