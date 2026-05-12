@@ -10509,7 +10509,6 @@
             downloadStatsExcel: () => {
                 const { start, end, type, region, name, months } = state.filters.stats;
                 const selectedMonths = (months && months.length > 0) ? months.sort((a, b) => a - b) : [];
-             const selectedMonths = (months && months.length > 0) ? months.sort((a, b) => a - b) : [];
                 const sYear = start.split('-')[0];
                 const eYear = end.split('-')[0];
                 const fullYearStart = `${sYear}-01-01`;
