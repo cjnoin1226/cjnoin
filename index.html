@@ -1825,7 +1825,8 @@
         }
         
         function renderStatistics() {
-             const { start, end, type, region, name } = state.filters.stats;
+             const { start, end, type, region, name, months } = state.filters.stats;
+             const selectedMonths = (months && months.length > 0) ? months.sort((a, b) => a - b) : [];
             // [수정] 날짜 필터가 비어있을 경우를 대비한 방어 코드 추가
             const sYear = start ? start.split('-')[0] : '0000';
             const eYear = end ? end.split('-')[0] : '9999';
