@@ -3235,8 +3235,18 @@
             // [신규] 통계 연도 필터 간편 설정 함수
             setStatsYear: (year) => {
                 if (year) {
-                    state.filters.stats.start = `${year}-01-01`;
-                    state.filters.stats.end = `${year}-12-31`;
+                    // [수정] 연도 변경 시, 이미 선택된 월이 있다면 해당 월에 맞게 날짜 범위 유지!
+                    const m = state.filters.stats.months;
+                    if (m && m.length > 0) {
+                        const minM = m[0];
+                        const maxM = m[m.length - 1];
+                        state.filters.stats.start = `${year}-${String(minM).padStart(2, '0')}-01`;
+                        const lastDay = new Date(year, maxM, 0).getDate();
+                        state.filters.stats.end = `${year}-${String(maxM).padStart(2, '0')}-${lastDay}`;
+                    } else {
+                        state.filters.stats.start = `${year}-01-01`;
+                        state.filters.stats.end = `${year}-12-31`;
+                    }
                 } else {
                     state.filters.stats.start = '';
                     state.filters.stats.end = '';
@@ -3282,12 +3292,36 @@
                 if (idx > -1) m.splice(idx, 1);
                 else m.push(month);
                 m.sort((a,b) => a-b);
+
+                // [추가] 월 선택에 따라 시작/종료일 자동 변경
+                let year = new Date().getFullYear();
+                if (state.filters.stats.start) year = parseInt(state.filters.stats.start.split('-')[0], 10) || year;
+                
+                if (m.length > 0) {
+                    const minM = m[0]; // 가장 빠른 달
+                    const maxM = m[m.length - 1]; // 가장 늦은 달
+                    state.filters.stats.start = `${year}-${String(minM).padStart(2, '0')}-01`;
+                    const lastDay = new Date(year, maxM, 0).getDate(); // 가장 늦은 달의 마지막 날짜
+                    state.filters.stats.end = `${year}-${String(maxM).padStart(2, '0')}-${lastDay}`;
+                } else {
+                    state.filters.stats.start = `${year}-01-01`;
+                    state.filters.stats.end = `${year}-12-31`;
+                }
+
                 if(state.viewMode==='single') updateTabContent('statistics'); else render();
             },
             toggleAllStatsMonths: () => {
                 const currentLen = state.filters.stats.months.length;
                 if (currentLen === 12) { state.filters.stats.months = []; } 
                 else { state.filters.stats.months = Array.from({length: 12}, (_, i) => i + 1); }
+                
+                // [추가] 전체 선택/해제 시 시작/종료일 1월 1일 ~ 12월 31일로 갱신
+                let year = new Date().getFullYear();
+                if (state.filters.stats.start) year = parseInt(state.filters.stats.start.split('-')[0], 10) || year;
+                
+                state.filters.stats.start = `${year}-01-01`;
+                state.filters.stats.end = `${year}-12-31`;
+
                 if(state.viewMode==='single') updateTabContent('statistics'); else render();
             },
 
