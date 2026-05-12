@@ -485,7 +485,7 @@
                 stats: { 
                     start: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; })(),
                     end: (() => { const d = new Date(); const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${lastDay}`; })(),
-                    type: 'detail', region: [], name: '', months: [] 
+                    type: 'detail', region: [], name: '', months: [], targetYear: ''
                 },
                 performance: { year: new Date().getFullYear(), months: Array.from({length: 12}, (_, i) => i + 1), viewMode: 'monthRows' }
             }
@@ -2005,7 +2005,8 @@
             const currentYear = new Date().getFullYear();
             const statsYearOptions = [];
             for (let y = 2020; y <= currentYear + 1; y++) {
-                const isSelected = start === `${y}-01-01` && end === `${y}-12-31`;
+                // [수정] 드롭다운 선택 여부를 날짜가 아닌 targetYear 상태로 판별
+                const isSelected = state.filters.stats.targetYear === String(y);
                 statsYearOptions.push(`<option value="${y}" ${isSelected ? 'selected' : ''}>${y}년</option>`);
             }
             statsYearOptions.reverse();
@@ -3234,8 +3235,8 @@
 
             // [신규] 통계 연도 필터 간편 설정 함수
             setStatsYear: (year) => {
+                state.filters.stats.targetYear = year; // [신규] 선택한 연도 기억하기
                 if (year) {
-                    // [수정] 연도 변경 시, 이미 선택된 월이 있다면 해당 월에 맞게 날짜 범위 유지!
                     const m = state.filters.stats.months;
                     if (m && m.length > 0) {
                         const minM = m[0];
@@ -3248,8 +3249,22 @@
                         state.filters.stats.end = `${year}-12-31`;
                     }
                 } else {
-                    state.filters.stats.start = '';
-                    state.filters.stats.end = '';
+                    // 연도를 '선택 안함'으로 바꿨을 때
+                    const m = state.filters.stats.months;
+                    if (m && m.length > 0) {
+                        let y = new Date().getFullYear();
+                        const minM = m[0];
+                        const maxM = m[m.length - 1];
+                        state.filters.stats.start = `${y}-${String(minM).padStart(2, '0')}-01`;
+                        const lastDay = new Date(y, maxM, 0).getDate();
+                        state.filters.stats.end = `${y}-${String(maxM).padStart(2, '0')}-${lastDay}`;
+                    } else {
+                        // 아무것도 없으면 당해연도 당해월(초기화)
+                        const d = new Date(); 
+                        state.filters.stats.start = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; 
+                        const l = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); 
+                        state.filters.stats.end = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${l}`;
+                    }
                 }
                 // [추가] 통계에서도 연도 선택 시 데이터 로딩 체크
                 if (year && !state.loadedYears.has(parseInt(year))) {
@@ -3294,18 +3309,26 @@
                 m.sort((a,b) => a-b);
 
                 // [추가] 월 선택에 따라 시작/종료일 자동 변경
-                let year = new Date().getFullYear();
-                if (state.filters.stats.start) year = parseInt(state.filters.stats.start.split('-')[0], 10) || year;
+                let year = state.filters.stats.targetYear || new Date().getFullYear(); // [수정] 고정된 연도가 있으면 그걸 사용
                 
                 if (m.length > 0) {
-                    const minM = m[0]; // 가장 빠른 달
-                    const maxM = m[m.length - 1]; // 가장 늦은 달
+                    const minM = m[0];
+                    const maxM = m[m.length - 1];
                     state.filters.stats.start = `${year}-${String(minM).padStart(2, '0')}-01`;
-                    const lastDay = new Date(year, maxM, 0).getDate(); // 가장 늦은 달의 마지막 날짜
+                    const lastDay = new Date(year, maxM, 0).getDate();
                     state.filters.stats.end = `${year}-${String(maxM).padStart(2, '0')}-${lastDay}`;
                 } else {
-                    state.filters.stats.start = `${year}-01-01`;
-                    state.filters.stats.end = `${year}-12-31`;
+                    // [핵심] 월을 다 해제했을 때 연도 선택 여부에 따라 분기
+                    if (state.filters.stats.targetYear) {
+                        state.filters.stats.start = `${year}-01-01`;
+                        state.filters.stats.end = `${year}-12-31`;
+                    } else {
+                        // 연도 선택을 안 한 상태면 초기화(당해연도 당해월)
+                        const d = new Date(); 
+                        state.filters.stats.start = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; 
+                        const l = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); 
+                        state.filters.stats.end = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${l}`;
+                    }
                 }
 
                 if(state.viewMode==='single') updateTabContent('statistics'); else render();
@@ -3315,12 +3338,25 @@
                 if (currentLen === 12) { state.filters.stats.months = []; } 
                 else { state.filters.stats.months = Array.from({length: 12}, (_, i) => i + 1); }
                 
-                // [추가] 전체 선택/해제 시 시작/종료일 1월 1일 ~ 12월 31일로 갱신
-                let year = new Date().getFullYear();
-                if (state.filters.stats.start) year = parseInt(state.filters.stats.start.split('-')[0], 10) || year;
+                let year = state.filters.stats.targetYear || new Date().getFullYear();
                 
-                state.filters.stats.start = `${year}-01-01`;
-                state.filters.stats.end = `${year}-12-31`;
+                if (state.filters.stats.months.length === 0) {
+                    // 전체 해제 시
+                    if (state.filters.stats.targetYear) {
+                        state.filters.stats.start = `${year}-01-01`;
+                        state.filters.stats.end = `${year}-12-31`;
+                    } else {
+                        // 연도 선택 안 한 상태면 초기화(당해연도 당해월)
+                        const d = new Date(); 
+                        state.filters.stats.start = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; 
+                        const l = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); 
+                        state.filters.stats.end = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${l}`;
+                    }
+                } else {
+                    // 전체 선택 시 -> 1월~12월
+                    state.filters.stats.start = `${year}-01-01`;
+                    state.filters.stats.end = `${year}-12-31`;
+                }
 
                 if(state.viewMode==='single') updateTabContent('statistics'); else render();
             },
@@ -3392,7 +3428,7 @@
                     if(state.viewMode==='single') updateTabContent('meeting');
                 } else if (section === 'stats') {
                     const d = new Date(); const s = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`; const l = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); const e = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${l}`;
-                    state.filters.stats = { start: s, end: e, type: 'detail', region: [], name: '', months: [] };
+                    state.filters.stats = { start: s, end: e, type: 'detail', region: [], name: '', months: [], targetYear: '' };
                     state.ui.statsRegionDropdownOpen = false;
                     state.ui.statsMonthDropdownOpen = false;
                     if(state.viewMode==='single') updateTabContent('statistics');
