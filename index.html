@@ -10831,7 +10831,7 @@
                                                     <td class="p-3 font-bold text-slate-700 border-r border-slate-100">${item.serviceName || '-'}</td>
                                                     <!-- [수정] 내용(l.content) 제거하고 메모만 표시 -->
                                                     <td class="p-3 text-slate-600 text-sm border-r border-slate-100 leading-relaxed">
-                                                        ${item.detailNote ? `<span class="text-emerald-600 font-bold mr-1">[메모]</span>${item.detailNote}` : '-'}
+                                                        ${item.detailNote || '-'}
                                                     </td>
                                                     ${idx === 0 ? `<td class="p-3 text-center text-slate-500 text-xs" rowspan="${items.length}">${l.provider || '-'}</td>` : ''}
                                                 </tr>
