@@ -2282,8 +2282,8 @@
                         </select>
                     </td>
                     <td class="p-0 border-b border-slate-200 last:border-b-0 relative">
-                        <input type="text" class="r-note w-full p-1.5 text-center outline-none bg-transparent focus:bg-white transition-colors pr-6" value="" oninput="${updateScript}">
-                        <button type="button" onclick="this.closest('tr').remove(); ${updateScript}" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500" title="행 삭제"><i data-lucide="minus-circle" size="14"></i></button>
+                        <input type="text" class="med-contact w-full p-1 text-center outline-none bg-transparent focus:bg-white pr-7" value="${m.contact || ''}">
+                        <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 transition-all shadow-sm" title="행 삭제"><i data-lucide="minus" size="12"></i></button>
                     </td>
                 `;
                 
@@ -2310,8 +2310,8 @@
                     <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-freq w-full p-1 text-center outline-none bg-transparent focus:bg-white" value=""></td>
                     <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-drug w-full p-1 text-center outline-none bg-transparent focus:bg-white" value=""></td>
                     <td class="p-0 border-b border-slate-200 last:border-b-0 relative">
-                        <input type="text" class="med-contact w-full p-1 text-center outline-none bg-transparent focus:bg-white pr-6" value="">
-                        <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500" title="행 삭제"><i data-lucide="minus-circle" size="14"></i></button>
+                        <input type="text" class="med-contact w-full p-1 text-center outline-none bg-transparent focus:bg-white pr-7" value="${m.contact || ''}">
+                        <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 transition-all shadow-sm" title="행 삭제"><i data-lucide="minus" size="12"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -6300,6 +6300,13 @@
                                                                                 <label class="flex items-center gap-1.5 cursor-pointer whitespace-nowrap hover:bg-slate-50 px-1 py-0.5 rounded transition-colors"><input type="checkbox" name="cm-assess-housing" value="무상거주" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" ${isChecked} onchange="app.toggleDisplay(this, 'cm-assess-housing-free')"><span class="text-xs text-slate-700">무상거주</span></label>
                                                                                 <input type="text" id="cm-assess-housing-free" class="input-field py-0.5 px-1 text-xs w-24 border-slate-300 ${isChecked ? '' : 'hidden'}" placeholder="내용 입력" value="${fHouse}">
                                                                             </div>`;
+                                                                        } else if (h === '기타') {
+                                                                            const hOther = getVal(cm, 'assessment.data.housingDetail.other') || getVal(cm, 'initial.living.housingDetail.other') || '';
+                                                                            return `
+                                                                            <div class="flex items-center gap-1 transition-all">
+                                                                                <label class="flex items-center gap-1.5 cursor-pointer whitespace-nowrap hover:bg-slate-50 px-1 py-0.5 rounded transition-colors"><input type="checkbox" name="cm-assess-housing" value="기타" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" ${isChecked} onchange="app.toggleDisplay(this, 'cm-assess-housing-other')"><span class="text-xs text-slate-700">기타</span></label>
+                                                                                <input type="text" id="cm-assess-housing-other" class="input-field py-0.5 px-1 text-xs w-24 border-slate-300 ${isChecked ? '' : 'hidden'}" placeholder="내용 입력" value="${hOther}">
+                                                                            </div>`;
                                                                         } else {
                                                                             return `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition-colors"><input type="checkbox" name="cm-assess-housing" value="${h}" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" ${isChecked}><span class="text-xs text-slate-700">${h}</span></label>`;
                                                                         }
@@ -7918,7 +7925,8 @@
                             jeonseDeposit: getEl('cm-assess-house-j-dep'),
                             wolseDeposit: getEl('cm-assess-house-w-dep'),
                             wolseRent: getEl('cm-assess-house-w-rent'),
-                            freeHousing: getEl('cm-assess-housing-free') // 무상거주
+                            freeHousing: getEl('cm-assess-housing-free'), // 무상거주
+                            other: getEl('cm-assess-housing-other')
                         },
                         dwellingType: getCheckedValues('cm-assess-dwelling'),
                         dwellingDetail: { other: getEl('cm-assess-dwelling-other') },
@@ -8532,6 +8540,7 @@
                         if(h === '전세' && aData.housingDetail?.jeonseDeposit) label += `(${aData.housingDetail.jeonseDeposit})`;
                         if(h === '월세' && (aData.housingDetail?.wolseDeposit || aData.housingDetail?.wolseRent)) label += `(${aData.housingDetail.wolseDeposit}/${aData.housingDetail.wolseRent})`;
                         if(h === '무상거주' && aData.housingDetail?.freeHousing) label += `(${aData.housingDetail.freeHousing})`;
+                        if(h === '기타' && aData.housingDetail?.other) label += `(${aData.housingDetail.other})`;
                         return renderChkBox(label, housing.includes(h));
                     }).join('');
 
