@@ -6754,7 +6754,7 @@
                                                                             if (rows.length < 2) {
                                                                                 while (rows.length < 2) rows.push({});
                                                                             }
-                                                                            return rows.map((m) => `
+                                                                            return rows.map((m, i) => `
                                                                                 <tr class="hover:bg-slate-50 assess-med-row relative">
                                                                                     <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-inst w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${m.institution || ''}"></td>
                                                                                     <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-dis w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${m.disease || ''}"></td>
@@ -6762,7 +6762,7 @@
                                                                                     <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-freq w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${m.frequency || ''}"></td>
                                                                                     <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-drug w-full p-1 text-center outline-none bg-transparent focus:bg-white" value="${m.medication || ''}"></td>
                                                                                     <td class="p-0 border-b border-slate-200 last:border-b-0 relative">
-                                                                                        <input type="text" id="cm-assess-med-contact-${i}" class="w-full p-1 text-center outline-none bg-transparent focus:bg-white pr-7" value="${getVal(cm, `assessment.data.medicalHistory.${i}.contact`) || ''}">
+                                                                                        <input type="text" id="cm-assess-med-contact-${i}" class="med-contact w-full p-1 text-center outline-none bg-transparent focus:bg-white pr-7" value="${m.contact || ''}">
                                                                                         <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 transition-all shadow-sm" title="행 삭제"><i data-lucide="minus" size="12"></i></button>
                                                                                     </td>
                                                                                 </tr>
