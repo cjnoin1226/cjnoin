@@ -1188,8 +1188,8 @@
             const visibleLogs = filteredFull.slice(startIndex, endIndex);
 
             const categories = [...new Set(state.services.map(s => s.category))];
-            // [수정] 정렬 기능 변수 추가
-            const { category, service, detailNote, start, end, search, contentSearch, provider, region, sortKey, sortOrder } = state.filters.log; 
+            // [수정] 다중 정렬 기능 변수 추가
+            const { category, service, detailNote, start, end, search, contentSearch, provider, region, sortArray } = state.filters.log; 
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
             const allSelected = visibleLogs.length > 0 && visibleLogs.every(l => state.ui.selectedLogIds.has(l.id));
 
@@ -1333,17 +1333,26 @@
                                         </div>
                                     </div>
                                 </div>
-                                <!-- [신규] 가로형 정렬 버튼 바 -->
+                                <!-- [신규] 가로형 다중 정렬 버튼 바 -->
                                 <div class="flex flex-wrap items-center gap-1 px-1.5 py-0 bg-slate-100/70 border border-slate-200 rounded">
-                                    <span class="text-[10px] font-bold text-slate-500 ml-1 mr-1"><i data-lucide="arrow-up-down" size="10" class="inline"></i> 정렬:</span>
-                                    ${['date', 'clientName', 'provideMethod', 'provider'].map(key => {
+                                    <span class="text-[10px] font-bold text-slate-500 ml-1 mr-1"><i data-lucide="arrow-up-down" size="10" class="inline"></i> 다중 정렬:</span>
+                                    ${['date', 'provider', 'clientName', 'provideMethod'].map(key => {
                                         const labels = { date: '날짜', clientName: '대상자명', provideMethod: '제공방법', provider: '제공자' };
-                                        const isActive = sortKey === key;
+                                        
+                                        // 현재 다중 정렬 배열에 포함되어 있는지, 몇 번째(순위)인지 확인
+                                        const sortIdx = sortArray ? sortArray.findIndex(item => item.key === key) : -1;
+                                        const isActive = sortIdx > -1;
+                                        const sortOrder = isActive ? sortArray[sortIdx].order : null;
+                                        
+                                        // 활성화 시 우선순위 번호 뱃지와 화살표 방향 설정
+                                        const badge = isActive ? `<span class="bg-emerald-500 text-white rounded-full w-[14px] h-[14px] flex items-center justify-center text-[9px] font-bold -ml-0.5 mr-0.5 shadow-sm">${sortIdx + 1}</span>` : '';
                                         const icon = isActive ? (sortOrder === 'asc' ? '<i data-lucide="arrow-up" size="10"></i>' : '<i data-lucide="arrow-down" size="10"></i>') : '<i data-lucide="minus" size="10" class="opacity-30"></i>';
-                                        const colorClass = isActive ? 'bg-white text-emerald-700 font-bold border-emerald-200 shadow-sm' : 'bg-transparent text-slate-600 border-transparent hover:bg-slate-200 hover:text-slate-800';
+                                        
+                                        const colorClass = isActive ? 'bg-white text-emerald-700 font-bold border-emerald-300 shadow-sm' : 'bg-transparent text-slate-600 border-transparent hover:bg-slate-200 hover:text-slate-800';
+                                        
                                         return `
                                         <button onmousedown="event.stopPropagation()" onclick="app.toggleLogSort('${key}')" class="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-all ${colorClass}">
-                                            ${labels[key]} ${icon}
+                                            ${badge} ${labels[key]} ${icon}
                                         </button>`;
                                     }).join('')}
                                     
@@ -3060,17 +3069,33 @@
                 if(doRender) { if (state.viewMode === 'single') updateTabContent(state.activeTab); else render(); }
             },
 
-            // [수정] 일지 정렬 기준 토글 함수 (가로 버튼용)
+            // [신규] 일지 정렬 기준 리셋 함수
+            setLogSort: (val) => {
+                const parts = val.split('_');
+                state.filters.log.sortArray = [{ key: parts[0], order: parts[1] }];
+                state.ui.logPage = 1;
+                if(state.viewMode === 'single') updateTabContent('logs'); else render();
+            },
+
+            // [수정] 일지 다중 정렬 토글 함수 (가로 버튼용)
             toggleLogSort: (key) => {
-                if (state.filters.log.sortKey === key) {
-                    // 이미 같은 버튼을 눌렀다면 위아래 방향(순서)만 반대로!
-                    state.filters.log.sortOrder = state.filters.log.sortOrder === 'desc' ? 'asc' : 'desc';
+                let sortArr = state.filters.log.sortArray || [];
+                const existIdx = sortArr.findIndex(item => item.key === key);
+
+                if (existIdx > -1) {
+                    // 1. 이미 선택된 기준을 다시 누르면 위아래 순서(asc/desc)를 바꿈
+                    if (sortArr[existIdx].order === 'desc') sortArr[existIdx].order = 'asc';
+                    else sortArr.splice(existIdx, 1); // 2. 세 번 누르면 정렬 기준에서 아예 제거!
                 } else {
-                    // 다른 버튼을 눌렀다면 그 기준으로 바꾸고 기본은 내림차순(desc) 또는 오름차순 적용
-                    state.filters.log.sortKey = key;
-                    state.filters.log.sortOrder = key === 'date' ? 'desc' : 'asc';
+                    // 새로운 기준을 누르면 이어서 맨 뒤에 추가 (2순위, 3순위로 쌓임)
+                    sortArr.push({ key: key, order: key === 'date' ? 'desc' : 'asc' });
                 }
-                state.ui.logPage = 1; // 정렬이 바뀌면 1페이지로 돌아감
+                
+                // 모두 제거해서 기준이 비어버렸다면 가장 기본인 날짜 최신순으로 원상복구
+                if (sortArr.length === 0) sortArr = [{ key: 'date', order: 'desc' }];
+
+                state.filters.log.sortArray = sortArr;
+                state.ui.logPage = 1; 
                 if(state.viewMode === 'single') updateTabContent('logs'); else render();
             },
 
