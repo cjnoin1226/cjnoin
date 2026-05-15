@@ -1308,15 +1308,6 @@
                                     ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
                                 </div>
                                 <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
-                                    <!-- [신규] 정렬 옵션 드롭다운 -->
-                                    <select class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1 bg-slate-50 font-medium" onchange="app.setLogSort(this.value)">
-                                        <option value="date_desc" ${sortKey==='date' && sortOrder==='desc'?'selected':''}>최신순(기본)</option>
-                                        <option value="date_asc" ${sortKey==='date' && sortOrder==='asc'?'selected':''}>과거순</option>
-                                        <option value="clientName_asc" ${sortKey==='clientName' && sortOrder==='asc'?'selected':''}>대상자 (가~하)</option>
-                                        <option value="clientName_desc" ${sortKey==='clientName' && sortOrder==='desc'?'selected':''}>대상자 (하~가)</option>
-                                        <option value="provideMethod_asc" ${sortKey==='provideMethod' && sortOrder==='asc'?'selected':''}>방법 (가~하)</option>
-                                        <option value="provider_asc" ${sortKey==='provider' && sortOrder==='asc'?'selected':''}>제공자 (가~하)</option>
-                                    </select>
                                     <select class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
                                     <select class="input-field h-9 py-1 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
                                     <input id="log-search-detailnote" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1" placeholder="메모 (Enter)" value="${detailNote || ''}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','detailNote',this.value)" oninput="if(this.value === '') app.setFilter('log','detailNote','')">
@@ -1325,22 +1316,36 @@
                                 <button onmousedown="event.stopPropagation()" onclick="app.resetFilters('log'); app.render()" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 flex-shrink-0 h-9 px-2 hover:bg-slate-50 rounded transition-colors" title="초기화"><i data-lucide="refresh-cw" size="14"></i></button>
                             </div>
 
-                            <div class="flex items-center justify-between px-1 h-8">
-                                <div class="flex items-center gap-3">
-                                    <div class="text-sm text-slate-500">
-                                        총 <span class="font-bold text-slate-800">${totalLogs}</span>건
-                                        <span class="text-xs text-slate-400 font-normal ml-1">(${state.ui.logPage} / ${totalPages} 페이지)</span>
+                            <div class="flex items-center gap-3">
+                                        <div class="text-sm text-slate-500">
+                                            총 <span class="font-bold text-slate-800">${totalLogs}</span>건
+                                            <span class="text-xs text-slate-400 font-normal ml-1">(${state.ui.logPage} / ${totalPages} 페이지)</span>
+                                        </div>
+                                        <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors" onmousedown="event.stopPropagation()">
+                                            <input type="checkbox" id="log-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${visibleLogs.length === 0 ? 'disabled' : ''}>
+                                            <span class="text-sm font-medium text-slate-600">전체선택 (현재 페이지)</span>
+                                        </label>
+                                        <div class="flex items-center gap-2" id="log-batch-actions">
+                                            ${state.ui.selectedLogIds.size > 0 ? `
+                                                <button onmousedown="event.stopPropagation()" onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors animate-fade-in">일괄수정(${state.ui.selectedLogIds.size})</button>
+                                                <button onmousedown="event.stopPropagation()" onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors animate-fade-in">선택삭제</button>
+                                            ` : ''}
+                                        </div>
                                     </div>
-                                    <label class="flex items-center gap-2 cursor-pointer select-none hover:bg-slate-100 px-2 py-1 rounded transition-colors" onmousedown="event.stopPropagation()">
-                                        <input type="checkbox" id="log-select-all" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" onchange="app.toggleAllLogs(this.checked)" ${allSelected ? 'checked' : ''} ${visibleLogs.length === 0 ? 'disabled' : ''}>
-                                        <span class="text-sm font-medium text-slate-600">전체선택 (현재 페이지)</span>
-                                    </label>
-                                    <div class="flex items-center gap-2" id="log-batch-actions">
-                                        ${state.ui.selectedLogIds.size > 0 ? `
-                                            <button onmousedown="event.stopPropagation()" onclick="app.openBatchEditLogModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors animate-fade-in">일괄수정(${state.ui.selectedLogIds.size})</button>
-                                            <button onmousedown="event.stopPropagation()" onclick="app.deleteSelectedLogs()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors animate-fade-in">선택삭제</button>
-                                        ` : ''}
-                                    </div>
+                                </div>
+                                <!-- [신규] 가로형 정렬 버튼 바 -->
+                                <div class="flex flex-wrap items-center gap-2 px-2 py-1.5 bg-slate-100/70 border border-slate-200 rounded-lg">
+                                    <span class="text-xs font-bold text-slate-500 ml-1 mr-2"><i data-lucide="arrow-up-down" size="14" class="inline"></i> 정렬 기준:</span>
+                                    ${['date', 'clientName', 'provideMethod', 'provider'].map(key => {
+                                        const labels = { date: '날짜', clientName: '대상자명', provideMethod: '제공방법', provider: '제공자' };
+                                        const isActive = sortKey === key;
+                                        const icon = isActive ? (sortOrder === 'asc' ? '<i data-lucide="arrow-up" size="12"></i>' : '<i data-lucide="arrow-down" size="12"></i>') : '<i data-lucide="minus" size="12" class="opacity-30"></i>';
+                                        const colorClass = isActive ? 'bg-white text-emerald-700 font-bold border-emerald-200 shadow-sm' : 'bg-transparent text-slate-600 border-transparent hover:bg-slate-200 hover:text-slate-800';
+                                        return `
+                                        <button onmousedown="event.stopPropagation()" onclick="app.toggleLogSort('${key}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs border transition-all ${colorClass}">
+                                            ${labels[key]} ${icon}
+                                        </button>`;
+                                    }).join('')}
                                 </div>
                             </div>
                         </div>
@@ -3049,15 +3054,20 @@
                 if(doRender) { if (state.viewMode === 'single') updateTabContent(state.activeTab); else render(); }
             },
 
-            // [신규] 일지 정렬 기준 변경 함수
-            setLogSort: (val) => {
-                const parts = val.split('_');
-                state.filters.log.sortKey = parts[0];
-                state.filters.log.sortOrder = parts[1];
-                state.ui.logPage = 1; // 정렬이 바뀌면 1페이지로 이동
+            // [수정] 일지 정렬 기준 토글 함수 (가로 버튼용)
+            toggleLogSort: (key) => {
+                if (state.filters.log.sortKey === key) {
+                    // 이미 같은 버튼을 눌렀다면 위아래 방향(순서)만 반대로!
+                    state.filters.log.sortOrder = state.filters.log.sortOrder === 'desc' ? 'asc' : 'desc';
+                } else {
+                    // 다른 버튼을 눌렀다면 그 기준으로 바꾸고 기본은 내림차순(desc) 또는 오름차순 적용
+                    state.filters.log.sortKey = key;
+                    state.filters.log.sortOrder = key === 'date' ? 'desc' : 'asc';
+                }
+                state.ui.logPage = 1; // 정렬이 바뀌면 1페이지로 돌아감
                 if(state.viewMode === 'single') updateTabContent('logs'); else render();
             },
-            
+
             // [수정] 일지 연도 필터 간편 설정 함수 (데이터 재로딩 로직 개선)
             setLogYear: async (year) => {
                 const currentYear = new Date().getFullYear();
