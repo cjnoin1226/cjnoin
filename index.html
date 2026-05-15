@@ -1334,7 +1334,7 @@
                                 </div>
                                 <!-- [신규] 가로형 다중 정렬 버튼 바 -->
                                 <div class="flex flex-wrap items-center gap-1 px-1.5 py-0 bg-slate-100/70 border border-slate-200 rounded">
-                                    <span class="text-[10px] font-bold text-slate-500 ml-1 mr-1"><i data-lucide="arrow-up-down" size="5" class="inline"></i> 다중 정렬:</span>
+                                    <span class="text-[10px] font-bold text-slate-500 ml-1 mr-1"><i data-lucide="arrow-up-down" width="12" height="12" class="inline"></i> 다중 정렬:</span>
                                     ${['date', 'provider', 'clientName', 'provideMethod'].map(key => {
                                         const labels = { date: '날짜', clientName: '대상자명', provideMethod: '제공방법', provider: '제공자' };
                                         
@@ -1345,7 +1345,7 @@
                                         
                                         // 활성화 시 우선순위 번호 뱃지와 화살표 방향 설정
                                         const badge = isActive ? `<span class="bg-emerald-500 text-white rounded-full w-[14px] h-[14px] flex items-center justify-center text-[9px] font-bold -ml-0.5 mr-0.5 shadow-sm">${sortIdx + 1}</span>` : '';
-                                        const icon = isActive ? (sortOrder === 'asc' ? '<i data-lucide="arrow-up" size="10"></i>' : '<i data-lucide="arrow-down" size="10"></i>') : '<i data-lucide="minus" size="5" class="opacity-30"></i>';
+                                        const icon = isActive ? (sortOrder === 'asc' ? '<i data-lucide="arrow-up" size="10"></i>' : '<i data-lucide="arrow-up" width="12" height="12"></i>') : '<i data-lucide="minus" size="5" class="opacity-30"></i>';
                                         
                                         const colorClass = isActive ? 'bg-white text-emerald-700 font-bold border-emerald-300 shadow-sm' : 'bg-transparent text-slate-600 border-transparent hover:bg-slate-200 hover:text-slate-800';
                                         
@@ -1358,7 +1358,7 @@
                                     <!-- [신규] 정렬 초기화 버튼 -->
                                     <div class="w-px h-2.5 bg-slate-300 mx-0.5"></div>
                                     <button onmousedown="event.stopPropagation()" onclick="app.setLogSort()" class="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-all">
-                                        <i data-lucide="rotate-ccw" size="4"></i> 초기화
+                                        <i data-lucide="rotate-ccw" width="10" height="10"></i> 초기화
                                     </button>
                                 </div>
                             </div>
