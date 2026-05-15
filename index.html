@@ -472,7 +472,7 @@
                     region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' 
                 },
                 // [수정] log 필터에 contentSearch(내용 검색) 추가
-                log: { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', detailNote: '', region: [] },
+                log: { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', detailNote: '', region: [], sortKey: 'date', sortOrder: 'desc' },
                 // [수정] 회의록 필터 확장 (구분, 대상자, 작성자 추가)
                 meeting: {
                     start: (() => { const d = new Date(); return `${d.getFullYear()}-01-01`; })(),
@@ -540,9 +540,24 @@
                        (region.length === 0 || region.includes(clientRegion));
             });
             return filtered.sort((a, b) => {
-                if (a.date !== b.date) return b.date.localeCompare(a.date);
-                const providerA = a.provider || '', providerB = b.provider || '';
-                if (providerA !== providerB) return providerA.localeCompare(providerB);
+                const sortKey = state.filters.log.sortKey || 'date';
+                const sortOrder = state.filters.log.sortOrder || 'desc';
+                
+                let valA = '', valB = '';
+                if (sortKey === 'date') { valA = a.date || ''; valB = b.date || ''; }
+                else if (sortKey === 'clientName') { valA = a.clientName || ''; valB = b.clientName || ''; }
+                else if (sortKey === 'provideMethod') { valA = a.provideMethod || ''; valB = b.provideMethod || ''; }
+                else if (sortKey === 'provider') { valA = a.provider || ''; valB = b.provider || ''; }
+                
+                // 지정된 키로 정렬
+                if (valA !== valB) {
+                    return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+
+                // 값이 동률일 경우의 기본 정렬 (최신순 유지)
+                if (a.date !== b.date) return b.date.localeCompare(a.date); 
+                const timeA = a.createdAt || ''; const timeB = b.createdAt || '';
+                if (timeA !== timeB) return timeB.localeCompare(timeA);
                 return (a.clientName || '').localeCompare(b.clientName || '');
             });
         }
@@ -579,11 +594,14 @@
             // 2. 새 데이터로 덮어쓰기 (업데이트) 또는 추가
             newLogs.forEach(l => logMap.set(l.id, l));
             
-            // 3. 배열로 변환 및 정렬 (날짜 내림차순)
+            // 3. 배열로 변환 및 정렬 (날짜 내림차순 -> 생성시간 내림차순)
             state.logs = Array.from(logMap.values()).sort((a, b) => {
-                if (a.date !== b.date) return b.date.localeCompare(a.date);
-                const providerA = a.provider || '', providerB = b.provider || '';
-                if (providerA !== providerB) return providerA.localeCompare(providerB);
+                if (a.date !== b.date) return b.date.localeCompare(a.date); // 1순위: 날짜
+                // 2순위: 등록(생성)된 시간 순서 (최신 등록이 위로)
+                const timeA = a.createdAt || '';
+                const timeB = b.createdAt || '';
+                if (timeA !== timeB) return timeB.localeCompare(timeA);
+                // 3순위: 대상자 이름 (시간까지 완벽히 똑같을 경우)
                 return (a.clientName || '').localeCompare(b.clientName || '');
             });
         }
@@ -1170,8 +1188,8 @@
             const visibleLogs = filteredFull.slice(startIndex, endIndex);
 
             const categories = [...new Set(state.services.map(s => s.category))];
-            // [수정] contentSearch 변수 추가
-            const { category, service, detailNote, start, end, search, contentSearch, provider, region } = state.filters.log; 
+            // [수정] 정렬 기능 변수 추가
+            const { category, service, detailNote, start, end, search, contentSearch, provider, region, sortKey, sortOrder } = state.filters.log; 
             const filteredServices = category ? state.services.filter(s => s.category === category) : state.services;
             const allSelected = visibleLogs.length > 0 && visibleLogs.every(l => state.ui.selectedLogIds.has(l.id));
 
@@ -1290,6 +1308,15 @@
                                     ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
                                 </div>
                                 <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
+                                    <!-- [신규] 정렬 옵션 드롭다운 -->
+                                    <select class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1 bg-slate-50 font-medium" onchange="app.setLogSort(this.value)">
+                                        <option value="date_desc" ${sortKey==='date' && sortOrder==='desc'?'selected':''}>최신순(기본)</option>
+                                        <option value="date_asc" ${sortKey==='date' && sortOrder==='asc'?'selected':''}>과거순</option>
+                                        <option value="clientName_asc" ${sortKey==='clientName' && sortOrder==='asc'?'selected':''}>대상자 (가~하)</option>
+                                        <option value="clientName_desc" ${sortKey==='clientName' && sortOrder==='desc'?'selected':''}>대상자 (하~가)</option>
+                                        <option value="provideMethod_asc" ${sortKey==='provideMethod' && sortOrder==='asc'?'selected':''}>방법 (가~하)</option>
+                                        <option value="provider_asc" ${sortKey==='provider' && sortOrder==='asc'?'selected':''}>제공자 (가~하)</option>
+                                    </select>
                                     <select class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스(전체)</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
                                     <select class="input-field h-9 py-1 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용(전체)</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
                                     <input id="log-search-detailnote" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1" placeholder="메모 (Enter)" value="${detailNote || ''}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','detailNote',this.value)" oninput="if(this.value === '') app.setFilter('log','detailNote','')">
@@ -3021,6 +3048,16 @@
                 if (s === 'log') state.ui.logPage = 1;
                 if(doRender) { if (state.viewMode === 'single') updateTabContent(state.activeTab); else render(); }
             },
+
+            // [신규] 일지 정렬 기준 변경 함수
+            setLogSort: (val) => {
+                const parts = val.split('_');
+                state.filters.log.sortKey = parts[0];
+                state.filters.log.sortOrder = parts[1];
+                state.ui.logPage = 1; // 정렬이 바뀌면 1페이지로 이동
+                if(state.viewMode === 'single') updateTabContent('logs'); else render();
+            },
+            
             // [수정] 일지 연도 필터 간편 설정 함수 (데이터 재로딩 로직 개선)
             setLogYear: async (year) => {
                 const currentYear = new Date().getFullYear();
@@ -3426,7 +3463,7 @@
                     if(state.viewMode==='single') updateTabContent('performance');
                 } else if (section === 'log') {
                     // [수정] contentSearch 초기화 추가
-                    state.filters.log = { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', detailNote: '', region: [] };
+                    state.filters.log = { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', detailNote: '', region: [], sortKey: 'date', sortOrder: 'desc' };
                     state.ui.logRegionDropdownOpen = false;
                     // [신규] 일지 필터 초기화 시 페이지 1로 설정
                     state.ui.logPage = 1;
