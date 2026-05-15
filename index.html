@@ -1398,11 +1398,11 @@
                                             <div class="w-px h-3 bg-slate-300"></div>
                                             <div class="flex items-center gap-2"><span class="text-sm bg-slate-100 text-slate-900 px-2 py-0.5 rounded whitespace-nowrap border border-slate-200">${l.provideMethod || '방문'}</span><span class="text-sm text-slate-900 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">${l.provider || '미지정'}</span></div>
                                         </div>
-                                        <div class="flex gap-1 md:absolute md:top-0 md:right-0">
+                                        <div class="flex gap-1.5 md:absolute md:top-0 md:right-0">
                                             <!-- [분할화면 수정] 버튼 클릭 시 창 포커스 이벤트와 충돌하지 않도록 onmousedown="event.stopPropagation()" 추가 -->
-                                            <button onmousedown="event.stopPropagation()" onclick="app.duplicateLog('${l.id}')" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="복사"><i data-lucide="copy" size="14"></i></button>
-                                            <button onmousedown="event.stopPropagation()" onclick="app.openLogModal('${l.id}')" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="수정"><i data-lucide="edit" size="14"></i></button>
-                                            <button onmousedown="event.stopPropagation()" onclick="app.deleteData('logs','${l.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
+                                            <button onmousedown="event.stopPropagation()" onclick="app.duplicateLog('${l.id}')" class="text-xs bg-white text-slate-600 border border-slate-200 px-2 py-1 rounded hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors shadow-sm whitespace-nowrap">복사</button>
+                                            <button onmousedown="event.stopPropagation()" onclick="app.openLogModal('${l.id}')" class="text-xs bg-white text-slate-600 border border-slate-200 px-2 py-1 rounded hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-colors shadow-sm whitespace-nowrap">수정</button>
+                                            <button onmousedown="event.stopPropagation()" onclick="app.deleteData('logs','${l.id}')" class="text-xs bg-white text-slate-600 border border-slate-200 px-2 py-1 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors shadow-sm whitespace-nowrap">삭제</button>
                                         </div>
                                     </div>
                                     <div class="flex-1 mt-1"><p class="text-slate-800 text-base leading-relaxed whitespace-pre-wrap cursor-pointer p-2 -ml-2 rounded hover:bg-slate-50 hover:text-blue-800 transition-colors mt-0" title="클릭하여 수정하기" onclick="app.openLogModal('${l.id}')">${l.content}</p></div>
