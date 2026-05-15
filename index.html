@@ -3081,9 +3081,15 @@
                 const existIdx = sortArr.findIndex(item => item.key === key);
 
                 if (existIdx > -1) {
-                    if (sortArr[existIdx].order === 'desc') sortArr[existIdx].order = 'asc';
-                    else sortArr.splice(existIdx, 1); 
+                    // 처음 누른 상태(기본 방향)이면 반대로 뒤집고, 이미 뒤집혔다면 끕니다(제거)
+                    const initialOrder = key === 'date' ? 'desc' : 'asc';
+                    if (sortArr[existIdx].order === initialOrder) {
+                        sortArr[existIdx].order = initialOrder === 'desc' ? 'asc' : 'desc';
+                    } else {
+                        sortArr.splice(existIdx, 1); 
+                    }
                 } else {
+                    // 날짜는 최신순(desc)이 기본, 나머지는 가나다순(asc)이 기본
                     sortArr.push({ key: key, order: key === 'date' ? 'desc' : 'asc' });
                 }
                 
