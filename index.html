@@ -1334,18 +1334,24 @@
                                     </div>
                                 </div>
                                 <!-- [신규] 가로형 정렬 버튼 바 -->
-                                <div class="flex flex-wrap items-center gap-2 px-2 py-1.5 bg-slate-100/70 border border-slate-200 rounded-lg">
-                                    <span class="text-xs font-bold text-slate-500 ml-1 mr-2"><i data-lucide="arrow-up-down" size="14" class="inline"></i> 정렬 기준:</span>
+                                <div class="flex flex-wrap items-center gap-1.5 px-2 py-0.5 bg-slate-100/70 border border-slate-200 rounded">
+                                    <span class="text-[11px] font-bold text-slate-500 ml-1 mr-1"><i data-lucide="arrow-up-down" size="12" class="inline"></i> 정렬:</span>
                                     ${['date', 'clientName', 'provideMethod', 'provider'].map(key => {
                                         const labels = { date: '날짜', clientName: '대상자명', provideMethod: '제공방법', provider: '제공자' };
                                         const isActive = sortKey === key;
-                                        const icon = isActive ? (sortOrder === 'asc' ? '<i data-lucide="arrow-up" size="12"></i>' : '<i data-lucide="arrow-down" size="12"></i>') : '<i data-lucide="minus" size="12" class="opacity-30"></i>';
+                                        const icon = isActive ? (sortOrder === 'asc' ? '<i data-lucide="arrow-up" size="10"></i>' : '<i data-lucide="arrow-down" size="10"></i>') : '<i data-lucide="minus" size="10" class="opacity-30"></i>';
                                         const colorClass = isActive ? 'bg-white text-emerald-700 font-bold border-emerald-200 shadow-sm' : 'bg-transparent text-slate-600 border-transparent hover:bg-slate-200 hover:text-slate-800';
                                         return `
-                                        <button onmousedown="event.stopPropagation()" onclick="app.toggleLogSort('${key}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs border transition-all ${colorClass}">
+                                        <button onmousedown="event.stopPropagation()" onclick="app.toggleLogSort('${key}')" class="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] border transition-all ${colorClass}">
                                             ${labels[key]} ${icon}
                                         </button>`;
                                     }).join('')}
+                                    
+                                    <!-- [신규] 정렬 초기화 버튼 -->
+                                    <div class="w-px h-3 bg-slate-300 mx-0.5"></div>
+                                    <button onmousedown="event.stopPropagation()" onclick="app.setLogSort('date_desc')" class="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-all">
+                                        <i data-lucide="rotate-ccw" size="10"></i> 초기화
+                                    </button>
                                 </div>
                             </div>
                         </div>
