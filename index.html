@@ -9858,16 +9858,15 @@
             addSvcRow: () => renderSvcRow({}),
             removeSvcRow: (id) => { const el = document.getElementById(`row-${id}`); if(el) el.remove(); },
             
+            // [수정] 서비스 일지 저장 시작 함수 (중복 감지 후 팝업 분기 추가)
             saveLog: async (e, id) => {
                 e.preventDefault();
                 
-                // [수정] 중복 저장 방지
                 if (state.isSaving) return;
 
                 const fd = new FormData(e.target);
                 const commonData = Object.fromEntries(fd.entries());
                 
-                // 서비스 항목 수집
                 const rows = document.querySelectorAll('.svc-row');
                 const items = [];
                 rows.forEach(row => {
@@ -9883,7 +9882,6 @@
                 commonData.serviceCategory = items[0].category;
                 commonData.serviceName = items.map(i => i.serviceName).join(', ');
 
-                // [신규] 중복 일지 체크: 수정이 아닌(신규 작성) 경우에만 확인
                 if (!id) {
                     if (window.currentLogClients.length === 0) return alert("대상자를 최소 1명 이상 선택해주세요.");
 
@@ -9893,18 +9891,69 @@
                     );
 
                     if (duplicates.length > 0) {
-                        const msg = `[중복 알림] 다음 대상자는 해당 날짜(${targetDate})에 이미 일지가 존재합니다.\n\n대상자: ${duplicates.join(', ')}\n\n그래도 계속 저장하시겠습니까?`;
-                        if (!confirm(msg)) return; 
+                        const normals = window.currentLogClients.filter(name => !duplicates.includes(name));
+                        state.pendingLogData = { commonData, id, normals, duplicates };
+
+                        const dupHtml = duplicates.map(name => `
+                            <label class="flex items-center gap-2 p-2 border border-orange-200 bg-orange-50 hover:bg-orange-100 rounded-lg cursor-pointer transition-colors shadow-sm">
+                                <input type="checkbox" value="${name}" class="dup-client-chk w-4 h-4 text-orange-600 focus:ring-orange-500 border-orange-300 rounded cursor-pointer" checked>
+                                <span class="text-sm font-bold text-orange-900">${name}</span>
+                            </label>
+                        `).join('');
+
+                        const html = `
+                            <div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl mx-4">
+                                <div class="flex items-center gap-2 mb-4">
+                                    <div class="p-2 bg-orange-100 text-orange-600 rounded-full"><i data-lucide="alert-triangle" size="20"></i></div>
+                                    <h3 class="font-bold text-lg text-slate-900">중복 일지 확인</h3>
+                                </div>
+                                <p class="text-sm text-slate-600 mb-2"><strong>${targetDate}</strong>에 이미 일지가 등록된 대상자가 있습니다.<br>아래에서 <strong>중복 저장할 대상자만 체크</strong>해 주세요.</p>
+                                <p class="text-xs text-slate-500 mb-4 bg-slate-50 p-2 rounded border border-slate-100">
+                                    체크 해제 시 해당 대상자는 이번 저장에서 제외됩니다.<br>
+                                    ${normals.length > 0 ? `<span class="text-emerald-600 font-bold">※ 중복이 없는 정상 대상자 ${normals.length}명은 무조건 저장됩니다.</span>` : `<span class="text-red-500 font-bold">※ 선택하신 대상자가 모두 중복 건입니다.</span>`}
+                                </p>
+                                <div class="max-h-[200px] overflow-y-auto custom-scrollbar flex flex-col gap-2 mb-6 p-1">
+                                    ${dupHtml}
+                                </div>
+                                <div class="flex justify-end gap-2">
+                                    <button onclick="app.closeDialog()" class="flex-1 px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-sm font-bold">취소 (전체 중단)</button>
+                                    <button onclick="app.confirmDuplicateLogSave()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-bold shadow-sm transition-colors text-sm">확인 후 저장</button>
+                                </div>
+                            </div>
+                        `;
+                        showDialog(html);
+                        if(window.lucide) lucide.createIcons();
+                        return; // 모달을 띄우고 대기
                     }
                 }
 
-                // [수정] 저장 시작 플래그 설정
+                // 중복이 없거나 수정 모드일 때
+                app.executeSaveLog(commonData, window.currentLogClients, id);
+            },
+
+            // [신규] 중복 일지 팝업에서 '확인 후 저장' 클릭 시 실행
+            confirmDuplicateLogSave: () => {
+                const checkedDups = Array.from(document.querySelectorAll('.dup-client-chk:checked')).map(el => el.value);
+                const { commonData, id, normals } = state.pendingLogData;
+                const finalClients = [...normals, ...checkedDups];
+
+                if (finalClients.length === 0) {
+                    alert("선택된 대상자가 없어 저장을 취소합니다.");
+                    app.closeDialog();
+                    return;
+                }
+
+                app.closeDialog();
+                app.executeSaveLog(commonData, finalClients, id);
+            },
+
+            // [신규] 실제 DB 저장 로직을 분리한 함수
+            executeSaveLog: async (commonData, clientsToSave, id) => {
                 state.isSaving = true;
 
-                const isBatchCreate = !id && window.currentLogClients.length > 1;
+                const isBatchCreate = !id && clientsToSave.length > 1;
                 if (isBatchCreate) state.isBatching = true;
 
-                // [신규] 갱신 대상 연도 추적
                 const affectedYears = new Set();
                 const getYear = (dateStr) => dateStr ? parseInt(dateStr.split('-')[0]) : null;
                 if (commonData.date) affectedYears.add(getYear(commonData.date));
@@ -9913,10 +9962,7 @@
                     const currentYear = new Date().getFullYear();
 
                     if (id) {
-                        // [수정] 수정 모드 (단일 건)
-                        
-                        // 1. 대상자 이름 안전하게 가져오기 (누락 시 기존 로그에서 복구)
-                        let clientName = window.currentLogClients[0];
+                        let clientName = clientsToSave[0];
                         if (!clientName) {
                             const original = state.logs.find(l => l.id === id);
                             if (original) clientName = original.clientName;
@@ -9927,27 +9973,20 @@
                         if (client) commonData.clientId = client.id;
                         commonData.clientName = clientName;
 
-                        // 2. 수정 전 원래 연도도 갱신 대상에 포함 (날짜 변경 대비)
                         const originalLog = state.logs.find(l => l.id === id);
                         if (originalLog && originalLog.date) affectedYears.add(getYear(originalLog.date));
 
-                        // 3. 서버 저장
                         await updateDoc(doc(db, "logs", id), commonData);
                         
-                        // 4. 로컬 상태 즉시 업데이트 (화면 반영용 - 낙관적 업데이트)
                         const existingIndex = state.logs.findIndex(l => l.id === id);
                         if (existingIndex !== -1) {
                             state.logs[existingIndex] = { ...state.logs[existingIndex], ...commonData };
                         }
                         
-                        // 5. 서버 데이터 동기화 (비동기 전환 - await 제거)
-                        // 사용자를 기다리게 하지 않고 백그라운드에서 처리합니다.
                         app.refreshYears(Array.from(affectedYears)).catch(e => console.error(e));
-
                         app.showToast("일지가 수정되었습니다.");
                     } else {
-                        // 작성 모드 (다중 건 생성 가능)
-                        const batchPromises = window.currentLogClients.map(async (clientName) => {
+                        const batchPromises = clientsToSave.map(async (clientName) => {
                             const data = { ...commonData, clientName };
                             const client = state.clients.find(c => c.name === clientName);
                             if (client) data.clientId = client.id;
@@ -9955,24 +9994,18 @@
                             
                             const docRef = await addDoc(collection(db, "logs"), data);
                             
-                            // 현재 연도가 아니면 수동으로 로컬 목록에 추가 (즉시 반영용)
                             const logYear = parseInt(data.date.split('-')[0]);
                             if (logYear !== currentYear) {
                                 state.logs.push({ id: docRef.id, ...data });
                             }
-                            
                             return docRef;
                         });
                         
                         await Promise.all(batchPromises);
-                        
-                        // 서버 데이터 동기화 (비동기 전환 - await 제거)
                         app.refreshYears(Array.from(affectedYears)).catch(e => console.error(e));
-                        
-                        app.showToast(`${window.currentLogClients.length}건의 일지가 저장되었습니다.`);
+                        app.showToast(`${clientsToSave.length}건의 일지가 저장되었습니다.`);
                     }
                     
-                    // 6. 목록 재정렬 (날짜순) - 로컬 데이터 기반으로 즉시 정렬
                     state.logs.sort((a, b) => {
                         if (a.date !== b.date) return b.date.localeCompare(a.date);
                         const providerA = a.provider || '', providerB = b.provider || '';
@@ -9986,15 +10019,12 @@
                     console.error(err);
                     alert("저장 실패: " + err.message); 
                 } finally {
-                    state.isSaving = false; // [수정] 저장 종료 플래그 해제
-                    if (isBatchCreate) {
-                        state.isBatching = false;
-                    }
-                    // [수정] 뷰 모드에 따라 적절한 갱신 수행 (화면 즉시 반영)
+                    state.isSaving = false; 
+                    if (isBatchCreate) state.isBatching = false;
+                    
                     if(state.viewMode==='single') {
-                        // 현재 보고 있는 탭이 로그나 클라이언트 상세라면 갱신
                         if(state.activeTab === 'logs') updateTabContent('logs');
-                        else if(state.activeTab === 'clients') updateTabContent('clients'); // 상세 모달 내부 갱신용
+                        else if(state.activeTab === 'clients') updateTabContent('clients');
                     } else {
                         render();
                     }
