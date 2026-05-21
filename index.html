@@ -471,8 +471,8 @@
                     status: '이용', level: '', economicStatus: '', duplicateService: '', ictStatus: '', 
                     region: [], gender: '', search: '', searchPhone: '', targetYear: '', targetMonth: '' 
                 },
-                // [수정] log 필터에 contentSearch(내용 검색) 추가
-                log: { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', detailNote: '', region: [], sortKey: 'date', sortOrder: 'desc' },
+                // [수정] log 필터에 provideMethod(제공방법) 추가
+                log: { start: '', end: '', search: '', contentSearch: '', provider: '', provideMethod: '', category: '', service: '', detailNote: '', region: [], sortKey: 'date', sortOrder: 'desc' },
                 // [수정] 회의록 필터 확장 (구분, 대상자, 작성자 추가)
                 meeting: {
                     start: (() => { const d = new Date(); return `${d.getFullYear()}-01-01`; })(),
@@ -511,29 +511,28 @@
         }
 
         function getFilteredLogs() {
-            // [수정] contentSearch 구조 분해 할당 추가
-            const { start, end, search, contentSearch, provider, category, service, detailNote, region } = state.filters.log;
+            // [수정] provideMethod 구조 분해 할당 추가
+            const { start, end, search, contentSearch, provider, provideMethod, category, service, detailNote, region } = state.filters.log;
             
-            // [수정] 사용자가 설정한 필터가 하나라도 있는지 확인 (contentSearch 포함)
-            // start, end, search, contentSearch, provider, category, service는 문자열, region은 배열
-            const hasActiveFilter = start || end || search || contentSearch || provider || category || service || detailNote || region.length > 0;
+            // [수정] provideMethod를 조건에 추가
+            const hasActiveFilter = start || end || search || contentSearch || provider || provideMethod || category || service || detailNote || region.length > 0;
             const currentYearStr = String(new Date().getFullYear());
 
             const filtered = state.logs.filter(l => {
                 const client = state.clients.find(c => c.id === l.clientId);
                 const clientRegion = client ? client.region : '미지정';
 
-                // [수정] 아무런 필터도 걸지 않았다면(기본 상태), 현재 연도의 데이터만 보여줌
                 if (!hasActiveFilter) {
                     if (!l.date.startsWith(currentYearStr)) return false;
                 }
 
-                // [수정] contentSearch 필터링 조건 추가 (일지 내용에 검색어 포함 여부 확인)
+                // [수정] provideMethod 필터링 조건 추가
                 return (!start || l.date >= start) && 
                        (!end || l.date <= end) && 
                        (!search || l.clientName.includes(search)) && 
                        (!contentSearch || (l.content && l.content.includes(contentSearch))) &&
                        (!provider || (l.provider && l.provider.includes(provider))) && 
+                       (!provideMethod || l.provideMethod === provideMethod) &&
                        (!category || (l.serviceItems && l.serviceItems.some(i => i.category === category))) &&
                        (!service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === service))) &&
                        (!detailNote || (l.serviceItems && l.serviceItems.some(i => i.detailNote && i.detailNote.includes(detailNote)))) &&
@@ -1297,11 +1296,14 @@
                                     <button onmousedown="event.stopPropagation()" onclick="app.searchLogsByDateRange()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
                                 </div>
                                 <input id="log-search-name" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
-                                
-                                <!-- [신규] 내용 검색 필터 추가 -->
-                                <input id="log-search-content" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-32 text-sm" placeholder="내용 검색 (Enter)" value="${contentSearch}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','contentSearch',this.value)" oninput="if(this.value === '') app.setFilter('log','contentSearch','')">
-
                                 <input id="log-search-provider" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
+                                
+                                <!-- [신규] 제공방법 필터 추가 (행정동 필터 왼쪽) -->
+                                <select class="input-field h-9 py-1 px-2 text-sm w-full sm:w-24 font-medium border-slate-200 bg-white" onchange="app.setFilter('log','provideMethod',this.value)">
+                                    <option value="">방법(전체)</option>
+                                    ${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${state.filters.log.provideMethod === m ? 'selected' : ''}>${m}</option>`).join('')}
+                                </select>
+
                                 <div class="relative z-30 w-full sm:w-auto">
                                     <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-28"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
                                     ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
@@ -3505,8 +3507,8 @@
                     state.ui.perfMonthDropdownOpen = false;
                     if(state.viewMode==='single') updateTabContent('performance');
                 } else if (section === 'log') {
-                    // [수정] contentSearch 초기화 추가
-                    state.filters.log = { start: '', end: '', search: '', contentSearch: '', provider: '', category: '', service: '', detailNote: '', region: [], sortKey: 'date', sortOrder: 'desc' };
+                    // [수정] provideMethod 초기화 추가
+                    state.filters.log = { start: '', end: '', search: '', contentSearch: '', provider: '', provideMethod: '', category: '', service: '', detailNote: '', region: [], sortKey: 'date', sortOrder: 'desc' };
                     state.ui.logRegionDropdownOpen = false;
                     // [신규] 일지 필터 초기화 시 페이지 1로 설정
                     state.ui.logPage = 1;
@@ -10559,167 +10561,253 @@
                 XLSX.utils.book_append_sheet(wb, ws, "Template");
                 XLSX.writeFile(wb, "일지_업로드_양식.xlsx");
             },
+
+            // [수정] 엑셀 업로드 시 중복 데이터 감지 및 모달 팝업 추가
             uploadLogExcel: (input) => {
                 const file = input.files[0];
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = async (e) => {
                     const data = new Uint8Array(e.target.result);
-                    // [수정] cellDates: false로 설정하여 날짜를 숫자(Serial)나 문자열 그대로 읽음 (자동 변환 끔)
                     const workbook = XLSX.read(data, { type: 'array', cellDates: false });
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                     
-                    if (confirm(`총 ${json.length}건의 데이터를 읽었습니다.\n\n[업로드 규칙]\n- 날짜와 대상자명이 모두 동일한 경우: 하나의 일지로 자동 병합\n- 그 외의 경우: 개별 일지로 등록\n\n업로드하시겠습니까?`)) {
-                        state.isBatching = true; // [일괄작업] 렌더링 중지
-                        let logsToSave = []; // 저장할 데이터 미리 준비
-                        const affectedYears = new Set(); // [신규] 갱신할 연도 추적
-
-                        // [수정] 날짜 포맷팅 헬퍼 함수 (엑셀 숫자 코드 -> YYYY-MM-DD 변환)
-                        const formatExcelDate = (val) => {
-                            if (!val) return new Date().toISOString().split('T')[0];
-                            
-                            // 1. 숫자인 경우 (엑셀 날짜 코드) -> 수학적 계산으로 날짜 추출 (가장 정확함)
-                            if (typeof val === 'number') {
-                                // 엑셀 기준일(1899-12-30)과 JS 기준일(1970-01-01) 차이: 25569일
-                                // 하루는 86400초 * 1000밀리초
-                                const dateObj = new Date(Math.round((val - 25569) * 86400 * 1000));
-                                const y = dateObj.getUTCFullYear();
-                                const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
-                                const d = String(dateObj.getUTCDate()).padStart(2, '0');
+                    // 날짜 포맷팅 헬퍼 함수
+                    const formatExcelDate = (val) => {
+                        if (!val) return new Date().toISOString().split('T')[0];
+                        if (typeof val === 'number') {
+                            const dateObj = new Date(Math.round((val - 25569) * 86400 * 1000));
+                            const y = dateObj.getUTCFullYear();
+                            const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+                            const d = String(dateObj.getUTCDate()).padStart(2, '0');
+                            return `${y}-${m}-${d}`;
+                        } 
+                        if (typeof val === 'string') {
+                            const str = val.trim();
+                            const match = str.match(/^(\d{4})[\.\-/년\s]+(\d{1,2})[\.\-/월\s]+(\d{1,2})/);
+                            if (match) {
+                                const y = match[1];
+                                const m = String(match[2]).padStart(2, '0');
+                                const d = String(match[3]).padStart(2, '0');
                                 return `${y}-${m}-${d}`;
-                            } 
+                            }
+                            const trimmed = str.replace(/[\.\/]/g, '-');
+                            if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+                        }
+                        try {
+                            const d = new Date(val);
+                            const offset = d.getTimezoneOffset() * 60000;
+                            const localDate = new Date(d.getTime() - offset);
+                            return localDate.toISOString().split('T')[0];
+                        } catch (e) {
+                            return new Date().toISOString().split('T')[0];
+                        }
+                    };
+
+                    const groupedLogs = {}; 
+
+                    // 1. 엑셀 데이터 그룹화 (병합 로직)
+                    for (const row of json) {
+                        let date = formatExcelDate(row['날짜']);
+                        const clientName = row['대상자'] || row['이름'];
+                        if (!clientName) continue; 
+
+                        const key = `${date}_${clientName}`;
+
+                        if (!groupedLogs[key]) {
+                            groupedLogs[key] = {
+                                date: date,
+                                clientName: clientName,
+                                provideMethod: row['제공방법'],
+                                provider: row['제공자'],
+                                content: (row['내용'] || row['진행내용']) || '', 
+                                serviceItems: []
+                            };
+
+                            const defaultSvcName = '정서지원서비스(안전안부확인)';
+                            const excelServiceName = row['서비스명'] || row['서비스 상세내용'] || '';
                             
-                            // 2. 문자열인 경우 (2026.09.01, 2026/9/1, 2026-09-01 등)
-                            if (typeof val === 'string') {
-                                const str = val.trim();
-                                // 다양한 구분자(., /, -)와 공백 처리
-                                // 정규식으로 숫자만 추출해서 YYYY-MM-DD로 재조립
-                                const match = str.match(/^(\d{4})[\.\-/년\s]+(\d{1,2})[\.\-/월\s]+(\d{1,2})/);
-                                if (match) {
-                                    const y = match[1];
-                                    const m = String(match[2]).padStart(2, '0');
-                                    const d = String(match[3]).padStart(2, '0');
-                                    return `${y}-${m}-${d}`;
-                                }
-                                // 정규식 매칭 안되면 기본 변환 시도
-                                const trimmed = str.replace(/[\.\/]/g, '-');
-                                if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-                            }
-
-                            // 3. 그 외 (Date 객체 등) - 안전장치
-                            try {
-                                const d = new Date(val);
-                                const offset = d.getTimezoneOffset() * 60000;
-                                const localDate = new Date(d.getTime() - offset);
-                                return localDate.toISOString().split('T')[0];
-                            } catch (e) {
-                                return new Date().toISOString().split('T')[0];
-                            }
-                        };
-
-                        const groupedLogs = {}; // 날짜_대상자이름을 키로 사용하여 데이터 그룹화
-
-                        // 1. 데이터 그룹화 (병합 로직)
-                        for (const row of json) {
-                            let date = formatExcelDate(row['날짜']);
-                            const clientName = row['대상자'] || row['이름'];
-                            if (!clientName) continue; 
-
-                            const key = `${date}_${clientName}`;
-
-                            if (!groupedLogs[key]) {
-                                groupedLogs[key] = {
-                                    date: date,
-                                    clientName: clientName,
-                                    provideMethod: row['제공방법'],
-                                    provider: row['제공자'],
-                                    content: (row['내용'] || row['진행내용']) || '', 
-                                    serviceItems: []
-                                };
-
-                                const defaultSvcName = '정서지원서비스(안전안부확인)';
-                                const excelServiceName = row['서비스명'] || row['서비스 상세내용'] || '';
-                                
-                                if (excelServiceName !== defaultSvcName) {
-                                    groupedLogs[key].serviceItems.push({ 
-                                        id: Date.now() + Math.random(),
-                                        category: '노인상담 및 정보제공', 
-                                        serviceName: defaultSvcName, 
-                                        detailNote: '' 
-                                    });
-                                }
-                            } else {
-                                const rowContent = row['내용'] || row['진행내용'] || '';
-                                if (rowContent && !groupedLogs[key].content.includes(rowContent)) {
-                                    groupedLogs[key].content += (groupedLogs[key].content ? '\n' : '') + rowContent;
-                                }
-                            }
-
-                            const excelServiceName = row['서비스명'] || row['서비스 상세내용'];
-                            if (excelServiceName) {
+                            if (excelServiceName !== defaultSvcName) {
                                 groupedLogs[key].serviceItems.push({ 
                                     id: Date.now() + Math.random(),
-                                    category: row['서비스분류'] || row['서비스'], 
-                                    serviceName: excelServiceName, 
-                                    detailNote: (row['메모'] || row['서비스 메모']) || '' 
+                                    category: '노인상담 및 정보제공', 
+                                    serviceName: defaultSvcName, 
+                                    detailNote: '' 
                                 });
+                            }
+                        } else {
+                            const rowContent = row['내용'] || row['진행내용'] || '';
+                            if (rowContent && !groupedLogs[key].content.includes(rowContent)) {
+                                groupedLogs[key].content += (groupedLogs[key].content ? '\n' : '') + rowContent;
                             }
                         }
 
-                        logsToSave = Object.values(groupedLogs);
-                        
-                        app.showProgress('일지 데이터 업로드 중...', logsToSave.length);
-                        
-                        let processedCount = 0;
-                        let success = 0;
-
-                        // 비동기 루프로 저장 실행
-                        (async () => {
-                            try {
-                                for (const logData of logsToSave) {
-                                    const matchedClient = state.clients.find(c => c.name === logData.clientName);
-                                    if (matchedClient) {
-                                        logData.clientId = matchedClient.id;
-                                    }
-
-                                    try {
-                                        await addDoc(collection(db, "logs"), {
-                                            ...logData,
-                                            serviceName: logData.serviceItems.map(i => i.serviceName).join(', '), 
-                                            createdAt: new Date().toISOString()
-                                        });
-                                        success++;
-                                        // [신규] 업로드된 데이터의 연도 수집
-                                        if (logData.date) affectedYears.add(parseInt(logData.date.split('-')[0]));
-                                    } catch(e) { console.error(e); }
-                                    
-                                    processedCount++;
-                                    app.updateProgress(processedCount);
-                                }
-                            } finally {
-                                state.isBatching = false; // [일괄작업 완료] 렌더링 재개
-                                app.hideProgress();
-                                
-                                // [신규] 업로드된 연도 데이터 강제 재로딩 (화면 갱신)
-                                if (affectedYears.size > 0) {
-                                    await app.refreshYears(Array.from(affectedYears));
-                                }
-
-                                setTimeout(() => {
-                                    alert(`총 ${success}건의 일지로 정리되어 업로드 완료했습니다.`);
-                                    // [수정] 뷰 모드에 따라 적절한 갱신 수행
-                                    if(state.viewMode==='single') {
-                                        if(state.activeTab === 'logs') updateTabContent('logs');
-                                    } else {
-                                        render();
-                                    }
-                                }, 500);
-                            }
-                        })();
+                        const excelServiceName = row['서비스명'] || row['서비스 상세내용'];
+                        if (excelServiceName) {
+                            groupedLogs[key].serviceItems.push({ 
+                                id: Date.now() + Math.random(),
+                                category: row['서비스분류'] || row['서비스'], 
+                                serviceName: excelServiceName, 
+                                detailNote: (row['메모'] || row['서비스 메모']) || '' 
+                            });
+                        }
                     }
+
+                    const logsToSave = Object.values(groupedLogs);
+                    
+                    // 2. 중복 데이터 검사
+                    const normalLogs = [];
+                    const duplicateLogs = [];
+
+                    logsToSave.forEach(logData => {
+                        const isDup = state.logs.some(l => l.date === logData.date && l.clientName === logData.clientName);
+                        if (isDup) duplicateLogs.push(logData);
+                        else normalLogs.push(logData);
+                    });
+
+                    // 3. 중복 팝업 표시 또는 즉시 저장
+                    if (duplicateLogs.length > 0) {
+                        state.pendingExcelLogs = { normalLogs, duplicateLogs };
+
+                        const dupHtml = duplicateLogs.map(log => `
+                            <label class="flex items-center gap-2 p-2 border border-orange-200 bg-orange-50 hover:bg-orange-100 rounded-lg cursor-pointer transition-colors shadow-sm">
+                                <input type="checkbox" value="${log.date}|${log.clientName}" class="dup-excel-chk w-4 h-4 text-orange-600 focus:ring-orange-500 border-orange-300 rounded cursor-pointer" checked>
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-orange-900">${log.clientName} <span class="text-xs font-normal text-orange-700">(${log.date})</span></span>
+                                    <span class="text-xs text-orange-600 truncate w-64">${log.serviceItems.map(i=>i.serviceName).join(', ')}</span>
+                                </div>
+                            </label>
+                        `).join('');
+
+                        const html = `
+                            <div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl mx-4">
+                                <div class="flex items-center gap-2 mb-4">
+                                    <div class="p-2 bg-orange-100 text-orange-600 rounded-full"><i data-lucide="alert-triangle" size="20"></i></div>
+                                    <h3 class="font-bold text-lg text-slate-900">엑셀 업로드 중복 확인</h3>
+                                </div>
+                                <p class="text-sm text-slate-600 mb-2">업로드 데이터 중 <strong>이미 일지가 등록된 대상자</strong>가 있습니다.<br>아래에서 <strong>기존 일지를 덮어쓸 항목만 체크</strong>해 주세요.</p>
+                                <p class="text-xs text-slate-500 mb-4 bg-slate-50 p-2 rounded border border-slate-100">
+                                    체크 해제 시 해당 데이터는 이번 업로드에서 제외됩니다.<br>
+                                    ${normalLogs.length > 0 ? `<span class="text-emerald-600 font-bold">※ 중복이 없는 정상 데이터 ${normalLogs.length}건은 무조건 새로 저장됩니다.</span>` : `<span class="text-red-500 font-bold">※ 업로드할 데이터가 모두 기존 일지와 중복됩니다.</span>`}
+                                </p>
+                                <div class="max-h-[200px] overflow-y-auto custom-scrollbar flex flex-col gap-2 mb-6 p-1">
+                                    ${dupHtml}
+                                </div>
+                                <div class="flex justify-end gap-2">
+                                    <button onclick="app.closeDialog()" class="flex-1 px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-sm font-bold">취소 (전체 중단)</button>
+                                    <button onclick="app.confirmDuplicateExcelSave()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-bold shadow-sm transition-colors text-sm">확인 후 업로드</button>
+                                </div>
+                            </div>
+                        `;
+                        showDialog(html);
+                        if(window.lucide) lucide.createIcons();
+                    } else {
+                        if (confirm(`총 ${logsToSave.length}건의 데이터를 읽었습니다.\n중복된 데이터가 없습니다.\n\n업로드하시겠습니까?`)) {
+                            app.executeExcelUpload(logsToSave);
+                        }
+                    }
+                    
                     input.value = '';
                 };
                 reader.readAsArrayBuffer(file);
+            },
+
+            // [신규] 중복 확인 후 엑셀 데이터 저장 함수
+            confirmDuplicateExcelSave: () => {
+                const checkedDups = Array.from(document.querySelectorAll('.dup-excel-chk:checked')).map(el => {
+                    const [date, clientName] = el.value.split('|');
+                    return { date, clientName };
+                });
+                
+                const { normalLogs, duplicateLogs } = state.pendingExcelLogs;
+                
+                const selectedDuplicateLogs = duplicateLogs.filter(dup => 
+                    checkedDups.some(c => c.date === dup.date && c.clientName === dup.clientName)
+                );
+
+                const finalLogsToSave = [...normalLogs, ...selectedDuplicateLogs];
+
+                if (finalLogsToSave.length === 0) {
+                    alert("선택된 데이터가 없어 업로드를 취소합니다.");
+                    app.closeDialog();
+                    return;
+                }
+
+                app.closeDialog();
+                app.executeExcelUpload(finalLogsToSave);
+            },
+
+            // [신규] 엑셀 데이터 실제 DB 업로드 (덮어쓰기 로직 포함)
+            executeExcelUpload: (logsToSave) => {
+                state.isBatching = true;
+                app.showProgress('일지 데이터 업로드 중...', logsToSave.length);
+                
+                let processedCount = 0;
+                let success = 0;
+                const affectedYears = new Set();
+
+                (async () => {
+                    try {
+                        for (const logData of logsToSave) {
+                            const matchedClient = state.clients.find(c => c.name === logData.clientName);
+                            if (matchedClient) {
+                                logData.clientId = matchedClient.id;
+                            }
+
+                            // 기존 DB에 일치하는 데이터(날짜+이름)가 있는지 확인
+                            const existingLog = state.logs.find(l => l.date === logData.date && l.clientName === logData.clientName);
+
+                            try {
+                                if (existingLog) {
+                                    // 덮어쓰기 (Update)
+                                    const updateData = {
+                                        ...logData,
+                                        serviceName: logData.serviceItems.map(i => i.serviceName).join(', ')
+                                    };
+                                    await updateDoc(doc(db, "logs", existingLog.id), updateData);
+                                    
+                                    // 로컬 상태 동기화
+                                    const idx = state.logs.findIndex(l => l.id === existingLog.id);
+                                    if(idx > -1) state.logs[idx] = { ...state.logs[idx], ...updateData };
+                                } else {
+                                    // 새로 생성 (Add)
+                                    const newData = {
+                                        ...logData,
+                                        serviceName: logData.serviceItems.map(i => i.serviceName).join(', '), 
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    const docRef = await addDoc(collection(db, "logs"), newData);
+                                    const currentYear = new Date().getFullYear();
+                                    const logYear = parseInt(newData.date.split('-')[0]);
+                                    if (logYear === currentYear) {
+                                        state.logs.push({ id: docRef.id, ...newData });
+                                    }
+                                }
+                                success++;
+                                if (logData.date) affectedYears.add(parseInt(logData.date.split('-')[0]));
+                            } catch(e) { console.error(e); }
+                            
+                            processedCount++;
+                            app.updateProgress(processedCount);
+                        }
+                    } finally {
+                        state.isBatching = false; 
+                        app.hideProgress();
+                        
+                        if (affectedYears.size > 0) {
+                            await app.refreshYears(Array.from(affectedYears));
+                        }
+
+                        setTimeout(() => {
+                            alert(`총 ${success}건의 일지가 성공적으로 업로드(및 덮어쓰기) 되었습니다.`);
+                            if(state.viewMode==='single') {
+                                if(state.activeTab === 'logs') updateTabContent('logs');
+                            } else {
+                                render();
+                            }
+                        }, 500);
+                    }
+                })();
             },
 
             // [신규] 대상자 엑셀 업로드 함수 추가 (진행률 표시 포함)
