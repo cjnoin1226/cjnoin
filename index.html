@@ -1297,6 +1297,7 @@
                                 </div>
                                 <input id="log-search-name" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="이름 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
                                 <input id="log-search-provider" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="제공자 (Enter)" value="${provider || ''}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
+                                <input id="log-search-content" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-28 text-sm" placeholder="내용검색 (Enter)" value="${state.filters.log.contentSearch || ''}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','contentSearch',this.value)" oninput="if(this.value === '') app.setFilter('log','contentSearch','')">
                                 
                                 <!-- [신규] 제공방법 필터 추가 (행정동 필터 왼쪽) -->
                                 <select class="input-field h-9 py-1 px-2 text-sm w-full sm:w-24 font-medium border-slate-200 bg-white" onchange="app.setFilter('log','provideMethod',this.value)">
