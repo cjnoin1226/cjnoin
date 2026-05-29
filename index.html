@@ -276,6 +276,8 @@
             <button onclick="app.setTab('meeting')" class="nav-link" data-tab="meeting">사례회의</button>
             <button onclick="app.setTab('statistics')" class="nav-link" data-tab="statistics">통계</button>
             <button onclick="app.setTab('performance')" class="nav-link" data-tab="performance">실적 관리</button>
+            <!-- 통합돌봄 추가 -->
+            <button onclick="app.setTab('integratedCare')" class="nav-link" data-tab="integratedCare">통합돌봄</button>
             <button onclick="app.setTab('services')" class="nav-link" data-tab="services">서비스 설정</button>
         </nav>
 
@@ -301,6 +303,8 @@
             <button onclick="app.setTab('meeting')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="meeting">사례회의</button>
             <button onclick="app.setTab('statistics')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="statistics">통계</button>
             <button onclick="app.setTab('performance')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="performance">실적 관리</button>
+            <!-- 통합돌봄 추가 -->
+            <button onclick="app.setTab('integratedCare')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="integratedCare">통합돌봄</button>
             <button onclick="app.setTab('services')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="services">서비스 설정</button>
             <div class="border-t border-slate-700 my-2 pt-2">
                  <button onclick="app.toggleSplitView()" class="nav-link w-full justify-start text-slate-400 py-2.5">화면 분할 토글</button>
@@ -408,6 +412,7 @@
             logs: '서비스 일지',
             meeting: '사례회의',
             performance: '실적 관리',
+            integratedCare: '통합돌봄', // 추가됨
             statistics: '통계',
             services: '서비스 설정'
         };
@@ -428,6 +433,7 @@
             services: [],
             logs: [],
             meetings: [], 
+            integratedCares: [], // <-- 통합돌봄 데이터를 담을 배열 추가
             editingServiceId: null,
             // [신규] 일괄 작업 중 화면 갱신 방지 플래그 (true면 render() 스킵)
             isBatching: false,
@@ -487,7 +493,8 @@
                     end: (() => { const d = new Date(); const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${lastDay}`; })(),
                     type: 'detail', region: [], name: '', months: [], targetYear: ''
                 },
-                performance: { year: new Date().getFullYear(), months: Array.from({length: 12}, (_, i) => i + 1), viewMode: 'monthRows' }
+               performance: { year: new Date().getFullYear(), months: Array.from({length: 12}, (_, i) => i + 1), viewMode: 'monthRows' },
+                integratedCare: { start: '', end: '', searchName: '', status: '' }
             }
         };
 
@@ -647,6 +654,12 @@
                 }, handleErr);
             }, 4000);
 
+            // [신규] 통합돌봄 데이터 실시간 로딩
+            onSnapshot(query(collection(db, "integratedCares"), orderBy("createdAt", "desc")), (snap) => {
+                state.integratedCares = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                if (!state.isBatching) render();
+            }, handleErr);
+
             // [복구] 서비스 목록 데이터 리스너 및 정렬 로직 (누락된 부분 복원)
             onSnapshot(collection(db, "services"), (snap) => {
                 let loaded = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -758,6 +771,7 @@
             if (tabName === 'logs') return renderLogManager();
             if (tabName === 'meeting') return renderMeetingManager(); // [신규] 회의록 화면 연결
             if (tabName === 'performance') return renderPerformance();
+            if (tabName === 'integratedCare') return renderIntegratedCare();
             if (tabName === 'statistics') return renderStatistics();
             if (tabName === 'services') return renderServiceManager();
             return '';
@@ -777,7 +791,8 @@
                 'logs': 'log-list-container',
                 'meeting': 'meeting-list-container', // [신규] 회의록 스크롤 유지
                 'statistics': 'stats-list-container',
-                'performance': 'perf-table-container'
+                'performance': 'perf-table-container',
+                'integratedCare': 'ic-list-container'
             };
             let lastScrollTop = 0;
             const scrollId = scrollMap[tabName];
@@ -2234,6 +2249,83 @@
             `;
         }
 
+        function renderIntegratedCare() {
+            const { start, end, searchName, status } = state.filters.integratedCare;
+            
+            const filtered = state.integratedCares.filter(ic => {
+                return (!start || ic.date >= start) &&
+                       (!end || ic.date <= end) &&
+                       (!searchName || (ic.clientName && ic.clientName.includes(searchName))) &&
+                       (!status || ic.status === status);
+            });
+
+            return `
+                <div class="flex flex-col animate-fade-in h-[calc(100vh-9rem)]">
+                    <div class="space-y-4 pb-2 pr-1 transition-all flex-shrink-0">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
+                            <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">통합돌봄 연계관리 ${getLoadingTag()}</h2>
+                            <div class="flex items-center gap-2 w-full sm:w-auto">
+                                <button onclick="app.openIntegratedCareModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm">
+                                    <i data-lucide="plus" size="16"></i> 연계결과지 등록
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
+                            <div class="flex items-center gap-2 p-1 bg-slate-50 rounded-lg border border-slate-200">
+                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('integratedCare','start',this.value)">
+                                <span class="text-slate-400">~</span>
+                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('integratedCare','end',this.value)">
+                            </div>
+                            
+                            <select class="input-field h-9 py-1 px-2 text-sm w-32 font-medium" onchange="app.setFilter('integratedCare','status',this.value)">
+                                <option value="">상태(전체)</option>
+                                <option value="접수" ${status==='접수'?'selected':''}>접수</option>
+                                <option value="진행중" ${status==='진행중'?'selected':''}>진행중</option>
+                                <option value="완료" ${status==='완료'?'selected':''}>완료</option>
+                            </select>
+
+                            <input class="input-field h-9 py-1 w-32 text-sm" enterkeyhint="search" placeholder="대상자 (Enter)" value="${searchName}" onkeydown="if(event.key === 'Enter') app.setFilter('integratedCare','searchName',this.value)" oninput="if(this.value === '') app.setFilter('integratedCare','searchName','')">
+
+                            <button onclick="app.resetFilters('integratedCare'); app.render()" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 h-9 px-2 hover:bg-slate-50 rounded transition-colors"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                        </div>
+                    </div>
+
+                    <div id="ic-list-container" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-[400px]">
+                        <div class="flex items-center bg-slate-50 border-b border-slate-200 font-bold text-xs text-slate-500 sticky top-0 z-10">
+                            <div class="w-[10%] text-center py-3">접수/의뢰일</div>
+                            <div class="w-[10%] text-center py-3">대상자명</div>
+                            <div class="w-[16%] text-center py-3">의뢰기관(부서)</div>
+                            <div class="w-[28%] text-center py-3 px-2">의뢰사유 및 요청서비스</div>
+                            <div class="w-[10%] text-center py-3">상태</div>
+                            <div class="w-[18%] text-center py-3 px-2">연계결과 및 조치내역</div>
+                            <div class="w-[8%] text-center py-3">관리</div>
+                        </div>
+                        
+                        <div class="overflow-y-auto flex-1 custom-scrollbar">
+                            ${filtered.length === 0 ? 
+                                '<div class="text-center py-12 text-slate-400">등록된 내역이 없습니다.</div>' : 
+                                '<div class="divide-y divide-slate-100">' + filtered.map(ic => {
+                                    const statusColor = ic.status === '완료' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : (ic.status === '진행중' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600 border-slate-200');
+                                    return `
+                                <div class="flex items-center hover:bg-slate-50 transition-colors py-2 group cursor-pointer" onclick="app.openIntegratedCareModal('${ic.id}')">
+                                    <div class="w-[10%] text-center text-xs font-bold text-slate-700">${ic.date}</div>
+                                    <div class="w-[10%] text-center text-sm font-bold text-slate-800">${ic.clientName}</div>
+                                    <div class="w-[16%] text-center text-xs text-slate-600 truncate px-2">${ic.referrer || '-'}</div>
+                                    <div class="w-[28%] text-sm text-slate-800 font-medium truncate px-3">${ic.reason || '-'}</div>
+                                    <div class="w-[10%] text-center"><span class="px-2 py-0.5 rounded border text-xs font-bold ${statusColor}">${ic.status || '접수'}</span></div>
+                                    <div class="w-[18%] text-xs text-slate-600 truncate px-2">${ic.result || '-'}</div>
+                                    <div class="w-[8%] flex justify-center gap-1">
+                                        <button onclick="event.stopPropagation(); app.deleteData('integratedCares', '${ic.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
+                                    </div>
+                                </div>
+                            `}).join('') + '</div>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         window.app = {
         addSatGoalRow: () => {
                 const tbody = document.querySelector('#sec-sat-1 tbody');
@@ -3536,6 +3628,9 @@
                     state.ui.statsRegionDropdownOpen = false;
                     state.ui.statsMonthDropdownOpen = false;
                     if(state.viewMode==='single') updateTabContent('statistics');
+                } else if (section === 'integratedCare') {
+                    state.filters.integratedCare = { start: '', end: '', searchName: '', status: '' };
+                    if(state.viewMode==='single') updateTabContent('integratedCare');
                 }
                 if (state.viewMode !== 'single') render();
             },
@@ -3691,15 +3786,99 @@
                 if (state.viewMode === 'single') updateTabContent('services'); else render();
             },
 
-            // [신규] 사례회의 조회 대상 월 변경 함수
-            setMeetingTargetMonth: (val) => {
-                state.ui.meetingTargetMonth = parseInt(val);
+            // [신규] 사례회의 조회 대상 월 초기화 함수 (현재 월로 복귀 및 기준 초기화)
+            resetMeetingTargetMonth: () => {
+                state.ui.meetingTargetMonth = new Date().getMonth() + 1;
+                state.ui.meetingCandidateType = 'regular'; // 조회 기준도 기본값(정기)으로 초기화
                 if(state.viewMode === 'single') updateTabContent('meeting'); else render();
             },
-            // [신규] 사례회의 조회 기준 변경 함수 (정기/신규/종결)
-            setMeetingCandidateType: (val) => {
-                state.ui.meetingCandidateType = val;
-                if(state.viewMode === 'single') updateTabContent('meeting'); else render();
+            
+            // [신규] 통합돌봄 연계결과지 모달창
+            openIntegratedCareModal: (id = null) => {
+                const ic = id ? state.integratedCares.find(x => x.id === id) : {};
+                const today = new Date().toISOString().split('T')[0];
+                const targetContainerId = !document.getElementById('modal-container').classList.contains('hidden') ? 'sub-modal-container' : 'modal-container';
+
+                const html = `
+                    <div class="bg-white w-full max-w-2xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto flex flex-col">
+                        <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                            <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
+                                <i data-lucide="network" class="text-emerald-600"></i> ${id ? '통합돌봄 연계결과지 수정' : '통합돌봄 연계결과지 작성'}
+                            </h3>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="app.closeModal()" class="px-3 py-1.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium">취소</button>
+                                <button type="button" onclick="document.getElementById('ic-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-700 text-sm font-bold shadow-sm">저장</button>
+                                <div class="w-px h-4 bg-slate-300 mx-1"></div>
+                                <button type="button" onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                            </div>
+                        </div>
+                        <form id="ic-form" onsubmit="app.saveIntegratedCare(event, '${id || ''}')" class="space-y-5 flex-1 overflow-y-auto p-1">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">접수/의뢰 일자</label><input type="date" name="date" class="input-field" value="${ic.date || today}" required></div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">진행 상태</label>
+                                    <select name="status" class="input-field">
+                                        <option value="접수" ${ic.status === '접수' ? 'selected' : ''}>접수</option>
+                                        <option value="진행중" ${ic.status === '진행중' ? 'selected' : ''}>진행중</option>
+                                        <option value="완료" ${ic.status === '완료' ? 'selected' : ''}>완료</option>
+                                    </select>
+                                </div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">담당자</label><input type="text" name="manager" class="input-field" value="${ic.manager || ''}" placeholder="담당자 성명"></div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">대상자 이름</label>
+                                    <input name="clientName" class="input-field" list="ic-client-list" value="${ic.clientName || ''}" placeholder="이름 검색 또는 직접 입력" required autocomplete="off">
+                                    <datalist id="ic-client-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist>
+                                </div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">의뢰기관(부서)</label><input type="text" name="referrer" class="input-field" value="${ic.referrer || ''}" placeholder="예: 구청 복지과, 보건소 등"></div>
+                            </div>
+                            
+                            <div><label class="block text-sm font-bold text-slate-700 mb-1">의뢰사유 및 요청서비스</label><textarea name="reason" class="input-field h-24" placeholder="어떤 사유로 연계가 요청되었는지 기재">${ic.reason || ''}</textarea></div>
+                            
+                            <div><label class="block text-sm font-bold text-slate-700 mb-1">서비스 연계결과 및 조치내역</label><textarea name="result" class="input-field h-32" placeholder="제공된 서비스 내용 및 결과, 모니터링 내용 기재">${ic.result || ''}</textarea></div>
+
+                            <div><label class="block text-sm font-bold text-slate-700 mb-1">향후 계획 / 비고</label><input type="text" name="note" class="input-field" value="${ic.note || ''}" placeholder="추가 메모"></div>
+                        </form>
+                    </div>
+                `;
+                showModal(html, false, targetContainerId);
+                if(window.lucide) lucide.createIcons();
+            },
+
+            // [신규] 통합돌봄 데이터 저장 함수
+            saveIntegratedCare: async (e, id) => {
+                e.preventDefault();
+                if (state.isSaving) return;
+
+                const fd = new FormData(e.target);
+                const data = Object.fromEntries(fd.entries());
+                state.isSaving = true;
+
+                try {
+                    if (id) {
+                        await updateDoc(doc(db, "integratedCares", id), data);
+                        app.showToast("연계결과지가 수정되었습니다.");
+                    } else {
+                        data.createdAt = new Date().toISOString();
+                        await addDoc(collection(db, "integratedCares"), data);
+                        app.showToast("연계결과지가 등록되었습니다.");
+                    }
+                    app.closeModal();
+                    if (state.viewMode === 'single') updateTabContent('integratedCare'); else render();
+                } catch (err) {
+                    alert("저장 실패: " + err.message);
+                } finally {
+                    state.isSaving = false;
+                }
+            },
+
+            // [신규] 회의록 모달 열기 함수 추가 (prefillData 파라미터 추가)
+            openMeetingModal: (id = null, prefillData = null) => {
+                const m = id ? state.meetings.find(x => x.id === id) : (prefillData || {});
+                const today = new Date().toISOString().split('T')[0];
+                const targetContainerId = !document.getElementById('modal-container').classList.contains('hidden') ? 'sub-modal-container' : 'modal-container';
             },
             // [신규] 사례회의 조회 대상 월 초기화 함수 (현재 월로 복귀 및 기준 초기화)
             resetMeetingTargetMonth: () => {
@@ -10061,7 +10240,7 @@
             },
 
             deleteData: (collectionName, id) => {
-                const names = { 'logs': '일지', 'clients': '대상자', 'services': '서비스', 'meetings': '회의록' };
+                const names = { 'logs': '일지', 'clients': '대상자', 'services': '서비스', 'meetings': '회의록', 'integratedCares': '통합돌봄 연계' };
                 const name = names[collectionName] || '데이터';
                 const html = `<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">${name} 삭제</h3><p class="text-sm text-slate-500 mb-6">정말 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDeleteData('${collectionName}', '${id}')" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">취소</button></div></div></div>`;
                 showDialog(html);
@@ -10083,6 +10262,8 @@
                         state.ui.selectedClientIds.delete(id);
                     } else if (collectionName === 'services') {
                         state.services = state.services.filter(s => s.id !== id);
+                    } else if (collectionName === 'integratedCares') {
+                        state.integratedCares = state.integratedCares.filter(ic => ic.id !== id);
                     }
                     
                     app.closeDialog();
@@ -10094,6 +10275,7 @@
                         else if(collectionName === 'clients') updateTabContent('clients');
                         else if(collectionName === 'services') updateTabContent('services');
                         else if(collectionName === 'meetings') updateTabContent('meeting');
+                        else if(collectionName === 'integratedCares') updateTabContent('integratedCare');
                     } else {
                         render();
                     }
