@@ -434,6 +434,8 @@
             logs: [],
             meetings: [], 
             integratedCares: [], // <-- 통합돌봄 데이터를 담을 배열 추가
+            icRecords: [],       // [신규] 통합돌봄 연계결과지 내역을 따로 담을 배열 추가
+            icModalTab: 'basic', // [신규] 통합돌봄 모달창 내부 탭 상태
             editingServiceId: null,
             // [신규] 일괄 작업 중 화면 갱신 방지 플래그 (true면 render() 스킵)
             isBatching: false,
@@ -654,9 +656,15 @@
                 }, handleErr);
             }, 4000);
 
-            // [신규] 통합돌봄 데이터 실시간 로딩
+            // [신규] 통합돌봄 대상자 실시간 로딩
             onSnapshot(query(collection(db, "integratedCares"), orderBy("createdAt", "desc")), (snap) => {
                 state.integratedCares = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                if (!state.isBatching) render();
+            }, handleErr);
+
+            // [신규] 통합돌봄 연계결과지 내역 실시간 로딩
+            onSnapshot(query(collection(db, "icRecords"), orderBy("createdAt", "desc")), (snap) => {
+                state.icRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (!state.isBatching) render();
             }, handleErr);
 
@@ -2250,76 +2258,59 @@
         }
 
         function renderIntegratedCare() {
-            const { start, end, searchName, status } = state.filters.integratedCare;
+            const { searchName } = state.filters.integratedCare;
             
             const filtered = state.integratedCares.filter(ic => {
-                return (!start || ic.date >= start) &&
-                       (!end || ic.date <= end) &&
-                       (!searchName || (ic.clientName && ic.clientName.includes(searchName))) &&
-                       (!status || ic.status === status);
+                return (!searchName || (ic.name && ic.name.includes(searchName)));
             });
 
             return `
                 <div class="flex flex-col animate-fade-in h-[calc(100vh-9rem)]">
                     <div class="space-y-4 pb-2 pr-1 transition-all flex-shrink-0">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
-                            <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">통합돌봄 연계관리 ${getLoadingTag()}</h2>
+                            <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">통합돌봄 대상자 관리 ${getLoadingTag()}</h2>
                             <div class="flex items-center gap-2 w-full sm:w-auto">
                                 <button onclick="app.openIntegratedCareModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm">
-                                    <i data-lucide="plus" size="16"></i> 연계결과지 등록
+                                    <i data-lucide="plus" size="16"></i> 대상자 등록
                                 </button>
                             </div>
                         </div>
 
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
-                            <div class="flex items-center gap-2 p-1 bg-slate-50 rounded-lg border border-slate-200">
-                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${start}" onchange="app.setFilter('integratedCare','start',this.value)">
-                                <span class="text-slate-400">~</span>
-                                <input type="date" class="bg-transparent border-0 text-sm focus:ring-0 px-1 py-1 w-[110px]" value="${end}" onchange="app.setFilter('integratedCare','end',this.value)">
-                            </div>
+                            <input class="input-field h-9 py-1 w-48 text-sm" enterkeyhint="search" placeholder="대상자 이름 검색 (Enter)" value="${searchName || ''}" onkeydown="if(event.key === 'Enter') app.setFilter('integratedCare','searchName',this.value)" oninput="if(this.value === '') app.setFilter('integratedCare','searchName','')">
+                            <button onclick="app.resetFilters('integratedCare'); app.render()" class="text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 h-9 px-2 hover:bg-slate-50 rounded transition-colors"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                             
-                            <select class="input-field h-9 py-1 px-2 text-sm w-32 font-medium" onchange="app.setFilter('integratedCare','status',this.value)">
-                                <option value="">상태(전체)</option>
-                                <option value="접수" ${status==='접수'?'selected':''}>접수</option>
-                                <option value="진행중" ${status==='진행중'?'selected':''}>진행중</option>
-                                <option value="완료" ${status==='완료'?'selected':''}>완료</option>
-                            </select>
-
-                            <input class="input-field h-9 py-1 w-32 text-sm" enterkeyhint="search" placeholder="대상자 (Enter)" value="${searchName}" onkeydown="if(event.key === 'Enter') app.setFilter('integratedCare','searchName',this.value)" oninput="if(this.value === '') app.setFilter('integratedCare','searchName','')">
-
-                            <button onclick="app.resetFilters('integratedCare'); app.render()" class="ml-auto text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 h-9 px-2 hover:bg-slate-50 rounded transition-colors"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
+                            <div class="ml-auto text-sm font-medium text-slate-600">
+                                총 <span class="text-slate-800 font-bold">${filtered.length}</span>명
+                            </div>
                         </div>
                     </div>
 
                     <div id="ic-list-container" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-[400px]">
                         <div class="flex items-center bg-slate-50 border-b border-slate-200 font-bold text-xs text-slate-500 sticky top-0 z-10">
-                            <div class="w-[10%] text-center py-3">접수/의뢰일</div>
-                            <div class="w-[10%] text-center py-3">대상자명</div>
-                            <div class="w-[16%] text-center py-3">의뢰기관(부서)</div>
-                            <div class="w-[28%] text-center py-3 px-2">의뢰사유 및 요청서비스</div>
-                            <div class="w-[10%] text-center py-3">상태</div>
-                            <div class="w-[18%] text-center py-3 px-2">연계결과 및 조치내역</div>
-                            <div class="w-[8%] text-center py-3">관리</div>
+                            <div class="w-[15%] text-center py-3">이름</div>
+                            <div class="w-[15%] text-center py-3">생년월일</div>
+                            <div class="w-[30%] text-center py-3 px-2">주소</div>
+                            <div class="w-[15%] text-center py-3">연락처</div>
+                            <div class="w-[15%] text-center py-3">소득기준</div>
+                            <div class="w-[10%] text-center py-3">관리</div>
                         </div>
                         
                         <div class="overflow-y-auto flex-1 custom-scrollbar">
                             ${filtered.length === 0 ? 
-                                '<div class="text-center py-12 text-slate-400">등록된 내역이 없습니다.</div>' : 
-                                '<div class="divide-y divide-slate-100">' + filtered.map(ic => {
-                                    const statusColor = ic.status === '완료' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : (ic.status === '진행중' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600 border-slate-200');
-                                    return `
+                                '<div class="text-center py-12 text-slate-400">등록된 대상자가 없습니다.</div>' : 
+                                '<div class="divide-y divide-slate-100">' + filtered.map(ic => `
                                 <div class="flex items-center hover:bg-slate-50 transition-colors py-2 group cursor-pointer" onclick="app.openIntegratedCareModal('${ic.id}')">
-                                    <div class="w-[10%] text-center text-xs font-bold text-slate-700">${ic.date}</div>
-                                    <div class="w-[10%] text-center text-sm font-bold text-slate-800">${ic.clientName}</div>
-                                    <div class="w-[16%] text-center text-xs text-slate-600 truncate px-2">${ic.referrer || '-'}</div>
-                                    <div class="w-[28%] text-sm text-slate-800 font-medium truncate px-3">${ic.reason || '-'}</div>
-                                    <div class="w-[10%] text-center"><span class="px-2 py-0.5 rounded border text-xs font-bold ${statusColor}">${ic.status || '접수'}</span></div>
-                                    <div class="w-[18%] text-xs text-slate-600 truncate px-2">${ic.result || '-'}</div>
-                                    <div class="w-[8%] flex justify-center gap-1">
+                                    <div class="w-[15%] text-center text-sm font-bold text-slate-800">${ic.name}</div>
+                                    <div class="w-[15%] text-center text-xs text-slate-600">${ic.birthDate || '-'}</div>
+                                    <div class="w-[30%] text-xs text-slate-700 truncate px-3">${ic.address || '-'}</div>
+                                    <div class="w-[15%] text-center text-xs text-slate-600">${ic.phone || '-'}</div>
+                                    <div class="w-[15%] text-center"><span class="px-2 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700 text-[11px] font-bold">${ic.economicStatus || '미지정'}</span></div>
+                                    <div class="w-[10%] flex justify-center gap-1">
                                         <button onclick="event.stopPropagation(); app.deleteData('integratedCares', '${ic.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
                                     </div>
                                 </div>
-                            `}).join('') + '</div>'}
+                            `).join('') + '</div>'}
                         </div>
                     </div>
                 </div>
@@ -3793,53 +3784,175 @@
                 if(state.viewMode === 'single') updateTabContent('meeting'); else render();
             },
             
-            // [신규] 통합돌봄 연계결과지 모달창
+            // [신규] 통합돌봄 모달 내부 탭 전환 함수
+            setIcModalTab: (tabName) => {
+                state.icModalTab = tabName;
+                document.querySelectorAll('.ic-tab-btn').forEach(btn => { if (btn.dataset.tab === tabName) btn.classList.add('active'); else btn.classList.remove('active'); });
+                document.querySelectorAll('.ic-tab-content').forEach(content => { if (content.id === `ic-tab-${tabName}`) content.classList.add('active'); else content.classList.remove('active'); });
+            },
+
+            // [신규] 통합돌봄 대상자 모달창 (세부 탭 포함)
             openIntegratedCareModal: (id = null) => {
                 const ic = id ? state.integratedCares.find(x => x.id === id) : {};
-                const today = new Date().toISOString().split('T')[0];
                 const targetContainerId = !document.getElementById('modal-container').classList.contains('hidden') ? 'sub-modal-container' : 'modal-container';
+                
+                state.icModalTab = 'basic'; // 기본 탭으로 초기화
+
+                // 해당 대상자에게 귀속된 연계결과지 목록 불러오기
+                const records = id ? state.icRecords.filter(r => r.icClientId === id).sort((a,b) => b.date.localeCompare(a.date)) : [];
 
                 const html = `
-                    <div class="bg-white w-full max-w-2xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto flex flex-col">
-                        <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                    <div class="bg-white w-full max-w-4xl p-0 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+                        <div class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-white z-10 shrink-0">
                             <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
-                                <i data-lucide="network" class="text-emerald-600"></i> ${id ? '통합돌봄 연계결과지 수정' : '통합돌봄 연계결과지 작성'}
+                                <i data-lucide="network" class="text-emerald-600"></i> ${id ? '통합돌봄 대상자 상세' : '통합돌봄 대상자 등록'}
                             </h3>
                             <div class="flex items-center gap-2">
-                                <button type="button" onclick="app.closeModal()" class="px-3 py-1.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium">취소</button>
-                                <button type="button" onclick="document.getElementById('ic-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-700 text-sm font-bold shadow-sm">저장</button>
-                                <div class="w-px h-4 bg-slate-300 mx-1"></div>
-                                <button type="button" onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                                <button type="button" onclick="app.closeModal()" class="px-3 py-1.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium">닫기</button>
+                                <button type="button" onclick="document.getElementById('ic-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-700 text-sm font-bold shadow-sm">대상자 정보 저장</button>
                             </div>
                         </div>
-                        <form id="ic-form" onsubmit="app.saveIntegratedCare(event, '${id || ''}')" class="space-y-5 flex-1 overflow-y-auto p-1">
+                        
+                        ${id ? `
+                        <div class="flex border-b border-slate-100 bg-slate-50 sticky top-0 z-10 shrink-0">
+                            <button type="button" class="ic-tab-btn modal-tab-btn active" data-tab="basic" onclick="app.setIcModalTab('basic')">기본 정보</button>
+                            <button type="button" class="ic-tab-btn modal-tab-btn" data-tab="records" onclick="app.setIcModalTab('records')">연계결과지 내역 (${records.length})</button>
+                        </div>
+                        ` : ''}
+
+                        <div class="px-4 sm:px-6 pb-4 sm:pb-6 overflow-y-auto flex-1 bg-white pt-4">
+                            <!-- 대상자 기본정보 탭 -->
+                            <div id="ic-tab-basic" class="ic-tab-content active space-y-4">
+                                <form id="ic-form" onsubmit="app.saveIntegratedCare(event, '${id || ''}')">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                        <div><label class="block text-sm font-bold text-slate-700 mb-1">이름</label><input name="name" class="input-field" value="${ic.name || ''}" required></div>
+                                        <div><label class="block text-sm font-bold text-slate-700 mb-1">생년월일</label><input type="text" name="birthDate" class="input-field" value="${ic.birthDate || ''}" placeholder="YYYY-MM-DD"></div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                        <div><label class="block text-sm font-bold text-slate-700 mb-1">연락처</label><input type="text" name="phone" class="input-field" value="${ic.phone || ''}" placeholder="010-0000-0000"></div>
+                                        <div>
+                                            <label class="block text-sm font-bold text-slate-700 mb-1">소득기준</label>
+                                            <select name="economicStatus" class="input-field">
+                                                <option value="">선택</option>
+                                                ${CONSTANTS.ECONOMIC_LIST.map(e => `<option value="${e}" ${ic.economicStatus === e ? 'selected' : ''}>${e}</option>`).join('')}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-bold text-slate-700 mb-1">주소</label>
+                                        <input type="text" name="address" class="input-field" value="${ic.address || ''}" placeholder="상세 주소 입력">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-700 mb-1">비고</label>
+                                        <textarea name="note" class="input-field h-20" placeholder="기타 특이사항">${ic.note || ''}</textarea>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <!-- 연계결과지 내역 탭 -->
+                            ${id ? `
+                            <div id="ic-tab-records" class="ic-tab-content space-y-4 hidden">
+                                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                    <span class="text-sm font-bold text-slate-700">등록된 연계결과지</span>
+                                    <button type="button" onclick="app.openIcRecordModal(null, '${id}')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm flex items-center gap-1"><i data-lucide="plus" size="14"></i> 새 결과지 작성</button>
+                                </div>
+                                <div class="border border-slate-200 rounded-lg overflow-hidden bg-white">
+                                    <table class="w-full text-sm text-left border-collapse">
+                                        <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                            <tr>
+                                                <th class="p-3 text-center border-r border-slate-100">의뢰일자</th>
+                                                <th class="p-3 text-center border-r border-slate-100">진행상태</th>
+                                                <th class="p-3 border-r border-slate-100">의뢰기관 / 의뢰사유</th>
+                                                <th class="p-3 text-center border-r border-slate-100">담당자</th>
+                                                <th class="p-3 text-center">관리</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            ${records.length === 0 ? '<tr><td colspan="5" class="p-8 text-center text-slate-400">등록된 연계결과지가 없습니다.</td></tr>' : 
+                                            records.map(r => `
+                                                <tr class="hover:bg-slate-50 cursor-pointer transition-colors" onclick="app.openIcRecordModal('${r.id}', '${id}')">
+                                                    <td class="p-3 text-center font-bold text-slate-700 border-r border-slate-100">${r.date}</td>
+                                                    <td class="p-3 text-center border-r border-slate-100"><span class="px-2 py-0.5 rounded border text-xs font-bold ${r.status==='완료'?'bg-emerald-50 text-emerald-700 border-emerald-200':(r.status==='진행중'?'bg-blue-50 text-blue-700 border-blue-200':'bg-slate-100 text-slate-600 border-slate-200')}">${r.status||'접수'}</span></td>
+                                                    <td class="p-3 border-r border-slate-100">
+                                                        <div class="font-bold text-blue-600 mb-0.5">${r.referrer || '-'}</div>
+                                                        <div class="text-xs text-slate-600 truncate max-w-[250px]">${r.reason || '-'}</div>
+                                                    </td>
+                                                    <td class="p-3 text-center text-sm text-slate-600 border-r border-slate-100">${r.manager || '-'}</td>
+                                                    <td class="p-3 text-center">
+                                                        <button type="button" onclick="event.stopPropagation(); app.deleteData('icRecords', '${r.id}')" class="p-1.5 text-slate-400 hover:text-red-500 rounded transition-colors"><i data-lucide="trash-2" size="16"></i></button>
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                showModal(html, false, targetContainerId);
+                if(window.lucide) lucide.createIcons();
+            },
+
+            // 대상자 저장 함수
+            saveIntegratedCare: async (e, id) => {
+                e.preventDefault();
+                if (state.isSaving) return;
+                const fd = new FormData(e.target);
+                const data = Object.fromEntries(fd.entries());
+                state.isSaving = true;
+                try {
+                    if (id) {
+                        await updateDoc(doc(db, "integratedCares", id), data);
+                        app.showToast("대상자 정보가 수정되었습니다.");
+                        app.closeModal();
+                    } else {
+                        data.createdAt = new Date().toISOString();
+                        const docRef = await addDoc(collection(db, "integratedCares"), data);
+                        app.showToast("대상자가 등록되었습니다.");
+                        app.closeModal();
+                        // 등록 완료 시 탭 화면(연계결과지 메뉴 활성화)을 보기 위해 다시 엶
+                        app.openIntegratedCareModal(docRef.id);
+                        return;
+                    }
+                    if (state.viewMode === 'single') updateTabContent('integratedCare'); else render();
+                } catch (err) { alert("저장 실패: " + err.message); } finally { state.isSaving = false; }
+            },
+
+            // [신규] 세부 연계결과지 작성 모달창
+            openIcRecordModal: (recordId = null, clientId) => {
+                const r = recordId ? state.icRecords.find(x => x.id === recordId) : {};
+                const today = new Date().toISOString().split('T')[0];
+                const targetContainerId = 'sub-modal-container'; // 대상자 모달 위에 띄우기 위함
+
+                const html = `
+                    <div class="bg-white w-full max-w-2xl p-6 rounded-xl shadow-2xl mx-4 max-h-[90vh] overflow-y-auto flex flex-col">
+                        <div class="flex justify-between items-center mb-6 flex-shrink-0">
+                            <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
+                                <i data-lucide="file-text" class="text-blue-600"></i> ${recordId ? '연계결과지 수정' : '연계결과지 작성'}
+                            </h3>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="app.closeModal()" class="px-3 py-1.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium">취소</button>
+                                <button type="button" onclick="document.getElementById('ic-record-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 text-sm font-bold shadow-sm">저장</button>
+                            </div>
+                        </div>
+                        <form id="ic-record-form" onsubmit="app.saveIcRecord(event, '${recordId || ''}', '${clientId}')" class="space-y-4 flex-1 overflow-y-auto p-1">
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div><label class="block text-sm font-bold text-slate-700 mb-1">접수/의뢰 일자</label><input type="date" name="date" class="input-field" value="${ic.date || today}" required></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">접수/의뢰 일자</label><input type="date" name="date" class="input-field" value="${r.date || today}" required></div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">진행 상태</label>
                                     <select name="status" class="input-field">
-                                        <option value="접수" ${ic.status === '접수' ? 'selected' : ''}>접수</option>
-                                        <option value="진행중" ${ic.status === '진행중' ? 'selected' : ''}>진행중</option>
-                                        <option value="완료" ${ic.status === '완료' ? 'selected' : ''}>완료</option>
+                                        <option value="접수" ${r.status === '접수' ? 'selected' : ''}>접수</option>
+                                        <option value="진행중" ${r.status === '진행중' ? 'selected' : ''}>진행중</option>
+                                        <option value="완료" ${r.status === '완료' ? 'selected' : ''}>완료</option>
                                     </select>
                                 </div>
-                                <div><label class="block text-sm font-bold text-slate-700 mb-1">담당자</label><input type="text" name="manager" class="input-field" value="${ic.manager || ''}" placeholder="담당자 성명"></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">담당자</label><input type="text" name="manager" class="input-field" value="${r.manager || ''}" placeholder="성명"></div>
                             </div>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-1">대상자 이름</label>
-                                    <input name="clientName" class="input-field" list="ic-client-list" value="${ic.clientName || ''}" placeholder="이름 검색 또는 직접 입력" required autocomplete="off">
-                                    <datalist id="ic-client-list">${state.clients.map(c=>`<option value="${c.name}">`).join('')}</datalist>
-                                </div>
-                                <div><label class="block text-sm font-bold text-slate-700 mb-1">의뢰기관(부서)</label><input type="text" name="referrer" class="input-field" value="${ic.referrer || ''}" placeholder="예: 구청 복지과, 보건소 등"></div>
-                            </div>
-                            
-                            <div><label class="block text-sm font-bold text-slate-700 mb-1">의뢰사유 및 요청서비스</label><textarea name="reason" class="input-field h-24" placeholder="어떤 사유로 연계가 요청되었는지 기재">${ic.reason || ''}</textarea></div>
-                            
-                            <div><label class="block text-sm font-bold text-slate-700 mb-1">서비스 연계결과 및 조치내역</label><textarea name="result" class="input-field h-32" placeholder="제공된 서비스 내용 및 결과, 모니터링 내용 기재">${ic.result || ''}</textarea></div>
-
-                            <div><label class="block text-sm font-bold text-slate-700 mb-1">향후 계획 / 비고</label><input type="text" name="note" class="input-field" value="${ic.note || ''}" placeholder="추가 메모"></div>
+                            <div><label class="block text-sm font-bold text-slate-700 mb-1">의뢰기관(부서)</label><input type="text" name="referrer" class="input-field" value="${r.referrer || ''}" placeholder="예: 구청 복지과, 보건소 등"></div>
+                            <div><label class="block text-sm font-bold text-slate-700 mb-1">의뢰사유 및 요청서비스</label><textarea name="reason" class="input-field h-24" placeholder="어떤 사유로 연계가 요청되었는지 기재">${r.reason || ''}</textarea></div>
+                            <div><label class="block text-sm font-bold text-slate-700 mb-1">서비스 연계결과 및 조치내역</label><textarea name="result" class="input-field h-32" placeholder="제공된 서비스 내용 및 결과, 모니터링 내용 기재">${r.result || ''}</textarea></div>
                         </form>
                     </div>
                 `;
@@ -3847,31 +3960,32 @@
                 if(window.lucide) lucide.createIcons();
             },
 
-            // [신규] 통합돌봄 데이터 저장 함수
-            saveIntegratedCare: async (e, id) => {
+            // 연계결과지 저장 함수
+            saveIcRecord: async (e, recordId, clientId) => {
                 e.preventDefault();
                 if (state.isSaving) return;
-
                 const fd = new FormData(e.target);
                 const data = Object.fromEntries(fd.entries());
+                data.icClientId = clientId; // 대상자와 결과지를 연결하는 핵심 KEY
+                
                 state.isSaving = true;
-
                 try {
-                    if (id) {
-                        await updateDoc(doc(db, "integratedCares", id), data);
+                    if (recordId) {
+                        await updateDoc(doc(db, "icRecords", recordId), data);
                         app.showToast("연계결과지가 수정되었습니다.");
                     } else {
                         data.createdAt = new Date().toISOString();
-                        await addDoc(collection(db, "integratedCares"), data);
+                        await addDoc(collection(db, "icRecords"), data);
                         app.showToast("연계결과지가 등록되었습니다.");
                     }
-                    app.closeModal();
-                    if (state.viewMode === 'single') updateTabContent('integratedCare'); else render();
-                } catch (err) {
-                    alert("저장 실패: " + err.message);
-                } finally {
-                    state.isSaving = false;
-                }
+                    app.closeModal(); // 결과지(서브) 모달 닫기
+                    
+                    // 서브 모달 닫힌 후, 대상자 상세(메인) 모달 새로고침 및 "연계결과지 내역" 탭 활성화 유지
+                    setTimeout(() => {
+                        app.openIntegratedCareModal(clientId);
+                        app.setIcModalTab('records');
+                    }, 100);
+                } catch (err) { alert("저장 실패: " + err.message); } finally { state.isSaving = false; }
             },
 
             // [신규] 회의록 모달 열기 함수 추가 (prefillData 파라미터 추가)
@@ -10240,7 +10354,7 @@
             },
 
             deleteData: (collectionName, id) => {
-                const names = { 'logs': '일지', 'clients': '대상자', 'services': '서비스', 'meetings': '회의록', 'integratedCares': '통합돌봄 연계' };
+                const names = { 'logs': '일지', 'clients': '대상자', 'services': '서비스', 'meetings': '회의록', 'integratedCares': '통합돌봄 대상자', 'icRecords': '연계결과지' };
                 const name = names[collectionName] || '데이터';
                 const html = `<div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl transform transition-all scale-100"><div class="text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4"><i data-lucide="alert-triangle" class="text-red-600" size="24"></i></div><h3 class="text-lg font-bold text-slate-900 mb-2">${name} 삭제</h3><p class="text-sm text-slate-500 mb-6">정말 삭제하시겠습니까?<br>이 작업은 되돌릴 수 없습니다.</p><div class="flex gap-3 justify-center"><button onclick="app.executeDeleteData('${collectionName}', '${id}')" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium shadow-sm transition-colors">삭제</button><button onclick="app.closeDialog()" class="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors">취소</button></div></div></div>`;
                 showDialog(html);
@@ -10264,6 +10378,8 @@
                         state.services = state.services.filter(s => s.id !== id);
                     } else if (collectionName === 'integratedCares') {
                         state.integratedCares = state.integratedCares.filter(ic => ic.id !== id);
+                    } else if (collectionName === 'icRecords') {
+                        state.icRecords = state.icRecords.filter(r => r.id !== id);
                     }
                     
                     app.closeDialog();
