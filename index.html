@@ -3921,15 +3921,17 @@
                 // 모달을 열 때 기본 정보 탭을 먼저 보여줍니다.
                 state.icModalTab = 'basic'; 
 
-                // [신규] 동적 행 생성을 위한 인덱스 추출 (최소 2줄 보장)
-                let spIndices = Object.keys(ic).filter(k => k.startsWith('sp_name_')).map(k => k.replace('sp_name_', ''));
-                if (spIndices.length === 0) spIndices = ['1', '2'];
-                else if (spIndices.length === 1) spIndices.push(Date.now().toString() + '1');
+                // [신규] 동적 행 생성을 위한 인덱스 추출 (빈 데이터 무시, 최소 2줄 보장)
+                let spIndices = Object.keys(ic).filter(k => k.startsWith('sp_name_')).map(k => k.replace('sp_name_', ''))
+                    .filter(i => ic['sp_cat1_'+i] || ic['sp_cat2_'+i] || ic['sp_name_'+i] || ic['sp_content_'+i] || ic['sp_cycle_'+i] || ic['sp_org_'+i] || ic['sp_note_'+i]);
+                if (!spIndices.includes('1')) spIndices.push('1');
+                if (!spIndices.includes('2')) spIndices.push('2');
                 spIndices = [...new Set(spIndices)].sort((a, b) => parseInt(a) - parseInt(b));
 
-                let lrIndices = Object.keys(ic).filter(k => k.startsWith('lr_name_')).map(k => k.replace('lr_name_', ''));
-                if (lrIndices.length === 0) lrIndices = ['1', '2'];
-                else if (lrIndices.length === 1) lrIndices.push(Date.now().toString() + '2');
+                let lrIndices = Object.keys(ic).filter(k => k.startsWith('lr_name_')).map(k => k.replace('lr_name_', ''))
+                    .filter(i => ic['lr_cat1_'+i] || ic['lr_cat2_'+i] || ic['lr_name_'+i] || ic['lr_content_'+i] || ic['lr_org_'+i] || ic['lr_use_'+i] || ic['lr_support_'+i]);
+                if (!lrIndices.includes('1')) lrIndices.push('1');
+                if (!lrIndices.includes('2')) lrIndices.push('2');
                 lrIndices = [...new Set(lrIndices)].sort((a, b) => parseInt(a) - parseInt(b));
 
                 const html = `
@@ -4040,7 +4042,7 @@
                                         </table>
 
                                         <!-- 2. 개인별 서비스 지원계획 -->
-                                        <table class="w-full border-collapse border-b border-slate-700">
+                                        <table class="w-full border-collapse border-2 border-slate-700 mb-6">
                                             <tr>
                                                 <th colspan="7" class="bg-slate-200 p-2 text-left border-y border-slate-700 font-bold text-base">
                                                     <div class="flex justify-between items-center">
@@ -4080,7 +4082,7 @@
                                         </table>
 
                                         <!-- 3. 서비스 연계 결과 -->
-                                        <table class="w-full border-collapse border-b border-slate-700">
+                                        <table class="w-full border-collapse border-2 border-slate-700 mb-6">
                                             <tr>
                                                 <th colspan="7" class="bg-slate-200 p-2 text-left border-y border-slate-700 font-bold text-base">
                                                     <div class="flex justify-between items-center">
@@ -9910,14 +9912,16 @@
                 if (!ic) return alert("데이터를 찾을 수 없습니다.");
 
                 // [신규] 인쇄 시에도 작성된 줄 수를 똑같이 계산합니다.
-                let spIndices = Object.keys(ic).filter(k => k.startsWith('sp_name_')).map(k => k.replace('sp_name_', ''));
-                if (spIndices.length === 0) spIndices = ['1', '2'];
-                else if (spIndices.length === 1) spIndices.push(Date.now().toString() + '1');
+                let spIndices = Object.keys(ic).filter(k => k.startsWith('sp_name_')).map(k => k.replace('sp_name_', ''))
+                    .filter(i => ic['sp_cat1_'+i] || ic['sp_cat2_'+i] || ic['sp_name_'+i] || ic['sp_content_'+i] || ic['sp_cycle_'+i] || ic['sp_org_'+i] || ic['sp_note_'+i]);
+                if (!spIndices.includes('1')) spIndices.push('1');
+                if (!spIndices.includes('2')) spIndices.push('2');
                 spIndices = [...new Set(spIndices)].sort((a, b) => parseInt(a) - parseInt(b));
 
-                let lrIndices = Object.keys(ic).filter(k => k.startsWith('lr_name_')).map(k => k.replace('lr_name_', ''));
-                if (lrIndices.length === 0) lrIndices = ['1', '2'];
-                else if (lrIndices.length === 1) lrIndices.push(Date.now().toString() + '2');
+                let lrIndices = Object.keys(ic).filter(k => k.startsWith('lr_name_')).map(k => k.replace('lr_name_', ''))
+                    .filter(i => ic['lr_cat1_'+i] || ic['lr_cat2_'+i] || ic['lr_name_'+i] || ic['lr_content_'+i] || ic['lr_org_'+i] || ic['lr_use_'+i] || ic['lr_support_'+i]);
+                if (!lrIndices.includes('1')) lrIndices.push('1');
+                if (!lrIndices.includes('2')) lrIndices.push('2');
                 lrIndices = [...new Set(lrIndices)].sort((a, b) => parseInt(a) - parseInt(b));
 
                 const renderChk = (val, target) => {
