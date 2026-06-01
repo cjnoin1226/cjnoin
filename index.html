@@ -4093,30 +4093,30 @@
                                             </tr>
                                             <tr class="bg-slate-100 text-center text-xs">
                                                 <th colspan="2" class="border-r border-b border-slate-400 p-1 font-bold">구분</th>
-                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[18%] font-bold">서비스명</th>
-                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[20%] font-bold">서비스내용</th>
+                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[20%] font-bold">서비스명</th>
+                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[25%] font-bold">서비스내용</th>
                                                 <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[15%] font-bold">제공기관</th>
-                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[12%] font-bold">이용여부</th>
-                                                <th rowspan="2" class="border-b border-slate-400 p-1 w-[17%] font-bold">연계지원</th>
+                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[10%] font-bold">이용여부</th>
+                                                <th rowspan="2" class="border-b border-slate-400 p-1 w-[12%] font-bold">연계지원</th>
                                             </tr>
                                             <tr class="bg-slate-100 text-center text-xs">
                                                 <th class="border-r border-b border-slate-400 p-1 font-bold">대분류</th>
                                                 <th class="border-r border-b border-slate-400 p-1 font-bold">중분류</th>
                                             </tr>
-                                            <!-- 동적 입력 줄 (기본 2줄) -->
+                                            <!-- 동적 입력 줄 -->
                                             <tbody id="ic-lr-tbody">
-                                            ${lrIndices.map(i => {
-                                                // [수정] 체크된 값이 하나라도 있는지 확인하여 빈칸은 체크박스를 숨김 처리
-                                                const hasUseValue = !!ic['lr_use_'+i];
-                                                const hasSupportValue = !!ic['lr_support_'+i];
-
-                                                return `
-                                                <tr class="hover:bg-slate-50">
-                                                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_cat1_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['lr_cat1_'+i]||''}"></td>
-                                                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_cat2_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['lr_cat2_'+i]||''}"></td>
-                                                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_name_${i}" class="w-full bg-transparent px-1 outline-none text-sm text-center" value="${ic['lr_name_'+i]||''}"></td>
-                                                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_content_${i}" class="w-full bg-transparent px-1 outline-none text-sm text-center" value="${ic['lr_content_'+i]||''}"></td>
-                                                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_org_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value="${ic['lr_org_'+i]||''}"></td>
+                                            ${lrIndices.map(i => `
+                                            <tr class="hover:bg-slate-50">
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_cat1_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['lr_cat1_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_cat2_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['lr_cat2_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_name_${i}" class="w-full bg-transparent px-1 outline-none text-sm text-center" value="${ic['lr_name_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_content_${i}" class="w-full bg-transparent px-1 outline-none text-sm text-center" value="${ic['lr_content_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_org_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value="${ic['lr_org_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1 text-[11px]">
+                                                    <div class="flex flex-col gap-1 items-start pl-1">
+                                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="lr_use_${i}" value="이용" class="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded cursor-pointer focus:ring-emerald-500" ${ic['lr_use_'+i]==='이용'?'checked':''} onclick="app.checkExclusive(this)"> 이용</label>
+                                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="lr_use_${i}" value="미이용" class="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded cursor-pointer focus:ring-emerald-500" ${ic['lr_use_'+i]==='미이용'?'checked':''} onclick="app.checkExclusive(this)"> 미이용</label>
+                                                    </div>
                                                 </td>
                                                 <td class="border-b border-slate-200 p-1 text-[11px] relative">
                                                     <div class="flex flex-col gap-1 items-start pl-1 pr-6">
@@ -4125,8 +4125,7 @@
                                                     </div>
                                                     <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 transition-all shadow-sm" title="행 삭제"><i data-lucide="minus" size="12"></i></button>
                                                 </td>
-                                            </tr>`;
-                                            }).join('')}
+                                            </tr>`).join('')}
                                             </tbody>
                                         </table>
 
