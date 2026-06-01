@@ -2325,14 +2325,22 @@
         }
 
         window.app = {
-            // [신규] 입력 폼 자동 포맷팅 (생년월일, 연락처)
-            formatDateInput: (el) => {
+            // [수정] 입력 폼 자동 포맷팅 (생년월일용과 연계일자용 분리)
+            formatShortDateInput: (el) => {
                 let v = el.value.replace(/[^0-9]/g, '');
                 let res = '';
                 if (v.length > 4) res = v.substring(0,2) + '-' + v.substring(2,4) + '-' + v.substring(4,6);
                 else if (v.length > 2) res = v.substring(0,2) + '-' + v.substring(2);
                 else res = v;
-                el.value = res.slice(0, 8);
+                el.value = res.slice(0, 8); // 생년월일 (YY-MM-DD)
+            },
+            formatFullDateInput: (el) => {
+                let v = el.value.replace(/[^0-9]/g, '');
+                let res = '';
+                if (v.length > 6) res = v.substring(0,4) + '-' + v.substring(4,6) + '-' + v.substring(6,8);
+                else if (v.length > 4) res = v.substring(0,4) + '-' + v.substring(4);
+                else res = v;
+                el.value = res.slice(0, 10); // 연계일자 (YYYY-MM-DD)
             },
             formatPhoneInput: (el) => {
                 let v = el.value.replace(/[^0-9]/g, '');
@@ -3882,6 +3890,10 @@
                                         <div><label class="block text-sm font-bold text-slate-700 mb-1">생년월일</label><input type="text" name="birthDate" class="input-field" value="${ic.birthDate || ''}" placeholder="YY-MM-DD" oninput="app.formatDateInput(this)"></div>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                        <div><label class="block text-sm font-bold text-slate-700 mb-1">이름</label><input name="name" class="input-field" value="${ic.name || ''}" required></div>
+                                        <div><label class="block text-sm font-bold text-slate-700 mb-1">생년월일</label><input type="text" name="birthDate" class="input-field" value="${ic.birthDate || ''}" placeholder="YY-MM-DD" oninput="app.formatShortDateInput(this)"></div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                         <div><label class="block text-sm font-bold text-slate-700 mb-1">연락처</label><input type="text" name="phone" class="input-field" value="${ic.phone || ''}" placeholder="연락처" oninput="app.formatPhoneInput(this)"></div>
                                         <div>
                                             <label class="block text-sm font-bold text-slate-700 mb-1">소득기준</label>
@@ -3896,11 +3908,11 @@
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                         <div>
                                             <label class="block text-sm font-bold text-slate-700 mb-1">연계시작일</label>
-                                            <input type="text" id="ic-start-date" name="startDate" class="input-field" value="${ic.startDate || ''}" placeholder="YYYY-MM-DD" oninput="app.formatDateInput(this); app.setIcEndDate(this.value)">
+                                            <input type="text" id="ic-start-date" name="startDate" class="input-field" value="${ic.startDate || ''}" placeholder="YYYY-MM-DD" oninput="app.formatFullDateInput(this); app.setIcEndDate(this.value)">
                                         </div>
                                         <div>
                                             <label class="block text-sm font-bold text-slate-700 mb-1">연계종료일</label>
-                                            <input type="text" id="ic-end-date" name="endDate" class="input-field" value="${ic.endDate || ''}" placeholder="YYYY-MM-DD" oninput="app.formatDateInput(this)">
+                                            <input type="text" id="ic-end-date" name="endDate" class="input-field" value="${ic.endDate || ''}" placeholder="YYYY-MM-DD" oninput="app.formatFullDateInput(this)">
                                         </div>
                                     </div>
                                     
