@@ -2329,10 +2329,11 @@
             formatDateInput: (el) => {
                 let v = el.value.replace(/[^0-9]/g, '');
                 let res = '';
-                if (v.length > 4) res = v.substring(0,2) + '-' + v.substring(2,4) + '-' + v.substring(4,6);
-                else if (v.length > 2) res = v.substring(0,2) + '-' + v.substring(2);
+                // 4자리(연도)-2자리(월)-2자리(일) 로 정확하게 끊어줍니다.
+                if (v.length > 6) res = v.substring(0,4) + '-' + v.substring(4,6) + '-' + v.substring(6,8);
+                else if (v.length > 4) res = v.substring(0,4) + '-' + v.substring(4);
                 else res = v;
-                el.value = res.slice(0, 8);
+                el.value = res.slice(0, 10); // 최대 10글자 (YYYY-MM-DD) 까지만 입력되게 제한
             },
             formatPhoneInput: (el) => {
                 let v = el.value.replace(/[^0-9]/g, '');
