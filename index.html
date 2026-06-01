@@ -3933,13 +3933,15 @@
                                     </div>
                                 </div>
                             
-                                <!-- 탭 2. 서비스 연계 결과지 서식 탭 (ic-tab-content 클래스 적용, 초기엔 안 보임) -->
+                                <!-- 탭 2. 서비스 연계 결과지 서식 탭 -->
                                 ${id ? `
-                                <div id="ic-tab-records" class="modal-tab-content ic-tab-content space-y-4">
-                                    <div class="border-2 border-slate-700 text-sm bg-white overflow-hidden">
+                                <div id="ic-tab-records" class="modal-tab-content ic-tab-content space-y-4 hidden">
+                                    <!-- [수정] 전체를 감싸던 큰 테두리를 제거했습니다. -->
+                                    <div class="text-sm bg-white pb-6">
                                         
                                         <!-- 1. 인적사항 테이블 -->
-                                        <table class="w-full border-collapse border-b border-slate-700 mb-6">
+                                        <!-- [수정] 각 표마다 테두리(border-2)와 여백(mb-6)을 별도로 주어 분리했습니다. -->
+                                        <table class="w-full border-collapse border-2 border-slate-700 mb-6">
                                             <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
                                             <tr>
                                                 <th colspan="4" class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">■ 인적사항</th>
@@ -3974,8 +3976,8 @@
                                         </table>
 
                                         <!-- 2. 개인별 서비스 지원계획 -->
-                                        <table class="w-full border-collapse border-b border-slate-700 mb-6">
-                                            <tr><th colspan="7" class="bg-slate-200 p-2 text-left border-y border-slate-700 font-bold text-base">■ 개인별 서비스 지원계획</th></tr>
+                                        <table class="w-full border-collapse border-2 border-slate-700 mb-6">
+                                            <tr><th colspan="7" class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">■ 개인별 서비스 지원계획</th></tr>
                                             <tr class="bg-slate-100 text-center">
                                                 <th colspan="2" class="border-r border-b border-slate-400 p-1 font-bold">구분</th>
                                                 <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[20%] font-bold">서비스명</th>
@@ -4002,8 +4004,8 @@
                                         </table>
 
                                         <!-- 3. 서비스 연계 결과 -->
-                                        <table class="w-full border-collapse border-b border-slate-700 mb-6">
-                                            <tr><th colspan="7" class="bg-slate-200 p-2 text-left border-y border-slate-700 font-bold text-base">■ 서비스 연계 결과 <span class="text-sm font-normal">(재가노인지원서비스센터에서 외부기관으로 연계한 서비스)</span></th></tr>
+                                        <table class="w-full border-collapse border-2 border-slate-700 mb-6">
+                                            <tr><th colspan="7" class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">■ 서비스 연계 결과 <span class="text-sm font-normal">(재가노인지원서비스센터에서 외부기관으로 연계한 서비스)</span></th></tr>
                                             <tr class="bg-slate-100 text-center text-xs">
                                                 <th colspan="2" class="border-r border-b border-slate-400 p-1 font-bold">구분</th>
                                                 <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[20%] font-bold">서비스명</th>
@@ -4040,10 +4042,10 @@
                                         </table>
 
                                         <!-- 4. 종합 의견 -->
-                                        <table class="w-full border-collapse border-b border-slate-700">
-                                            <tr><th class="bg-slate-200 p-2 text-left border-y border-slate-700 font-bold text-base">■ 종합 의견</th></tr>
+                                        <table class="w-full border-collapse border-2 border-slate-700 mb-6">
+                                            <tr><th class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">■ 종합 의견</th></tr>
                                             <tr>
-                                                <td class="p-3 border-b border-slate-400">
+                                                <td class="p-3">
                                                     <textarea name="comprehensiveOpinion" class="w-full min-h-[160px] outline-none resize-none bg-transparent leading-relaxed text-sm" placeholder="※ 구·군과 공유사항 기재\n○ 서비스 연계 상세 내용\n○ 대상자 특이사항\n○ 기타 사항 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${ic.comprehensiveOpinion || ''}</textarea>
                                                 </td>
                                             </tr>
