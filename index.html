@@ -3877,6 +3877,7 @@
                             </h3>
                             <div class="flex items-center gap-2">
                                 <button type="button" onclick="app.closeModal()" class="px-3 py-1.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium">닫기</button>
+                                ${id ? `<button type="button" onclick="app.printIntegratedCare('${id}')" class="px-3 py-1.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-bold shadow-sm flex items-center gap-1"><i data-lucide="printer" size="14"></i> 인쇄</button>` : ''}
                                 <!-- 대상자 정보와 결과지 탭의 모든 내용을 한 번에 저장하는 버튼 -->
                                 <button type="button" onclick="document.getElementById('ic-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-700 text-sm font-bold shadow-sm">전체 정보 저장</button>
                             </div>
@@ -9804,6 +9805,237 @@
                 } else if (mode === 'html') {
                     // [신규] 다중 인쇄를 위해 HTML과 CSS만 따로 반환
                     return { html: htmlContent, css: commonCss }; 
+                }
+            },
+
+            // [신규] 통합돌봄 연계결과지 인쇄 기능
+            printIntegratedCare: (id) => {
+                const ic = state.integratedCares.find(x => x.id === id);
+                if (!ic) return alert("데이터를 찾을 수 없습니다.");
+
+                const renderChk = (val, target) => {
+                    const isChecked = val === target;
+                    // 체크되지 않은 항목은 하얀 네모, 체크된 항목은 까만 네모(☑ 느낌)로 인쇄
+                    return `<span style="display:inline-block; width:12px; height:12px; border:1px solid #333; margin-right:4px; vertical-align:middle; text-align:center; line-height:12px; font-size:10px; background-color:${isChecked ? '#333' : '#fff'}; color:${isChecked ? '#fff' : 'transparent'}; font-weight:bold;">${isChecked ? 'V' : ''}</span>${target}`;
+                };
+
+                const html = `
+                <html>
+                <head>
+                    <title>통합돌봄 연계결과지 인쇄</title>
+                    <style>
+                        /* A4 용지에 꽉 차게 인쇄 (여백 최소화) */
+                        @page { size: A4 portrait; margin: 15mm 15mm 15mm 15mm; }
+                        body { 
+                            font-family: 'Malgun Gothic', 'Dotum', sans-serif; 
+                            color: #000; 
+                            font-size: 13px; /* 글씨를 시원하게 키움 */
+                            -webkit-print-color-adjust: exact; 
+                            print-color-adjust: exact; 
+                        }
+                        
+                        /* 상단 소속 및 제목 */
+                        .header-top { font-size: 13px; margin-bottom: 5px; }
+                        h1 { 
+                            text-align: center; 
+                            font-size: 28px; 
+                            font-weight: 900; 
+                            margin: 0 0 20px 0; 
+                            letter-spacing: 2px;
+                            border-bottom: 2px solid #000;
+                            padding-bottom: 5px;
+                            display: inline-block; /* 텍스트 너비만큼만 밑줄 긋기 */
+                        }
+                        .title-wrapper { text-align: center; margin-bottom: 20px; }
+
+                        /* 테이블 전역 스타일 */
+                        table { 
+                            width: 100%; 
+                            border-collapse: collapse; 
+                            margin-bottom: 20px; 
+                            table-layout: fixed; 
+                            border: 2px solid #333; /* 겉 테두리는 두껍게 */
+                        }
+                        th, td { 
+                            border: 1px solid #333; 
+                            padding: 8px 5px; 
+                            word-break: break-all; 
+                            vertical-align: middle; 
+                        }
+                        th { background-color: #e5e7eb; text-align: center; font-weight: bold; } /* 회색 배경 진하게 */
+                        
+                        /* 표 제목행 스타일 */
+                        .tbl-title-row th { 
+                            text-align: left; 
+                            font-size: 14px; 
+                            padding-left: 10px;
+                            background-color: #d1d5db; /* 더 진한 회색 */
+                            border-bottom: 2px solid #333;
+                        }
+
+                        /* 하단 서명란 */
+                        .footer-area { margin-top: 40px; text-align: center; font-size: 15px; font-weight: bold; line-height: 2; }
+                        .footer-note { text-align: left; font-size: 11px; color: #555; font-weight: normal; margin-bottom: 30px; line-height: 1.5; }
+                        
+                        .sign-line { display: inline-block; width: 150px; border-bottom: 1px solid #000; text-align: center; margin-left: 10px; font-weight: normal; }
+                    </style>
+                </head>
+                <body onload="window.print();">
+                    <div class="header-top">&lt;서식&gt; 재가노인지원서비스센터 → 구·군</div>
+                    
+                    <div class="title-wrapper">
+                        <h1>통합돌봄대상자 서비스 연계 결과</h1>
+                    </div>
+
+                    <!-- 1. 인적사항 -->
+                    <table>
+                        <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
+                        <tr class="tbl-title-row"><th colspan="4">■ 인적사항</th></tr>
+                        <tr>
+                            <th>성명<br>(성별)</th>
+                            <td style="text-align: center;">${ic.name || ''} <span style="font-size: 11px;">(${ic.gender || '남/여'})</span></td>
+                            <th>생년월일</th>
+                            <td style="text-align: center;">${ic.birthDate || ''}</td>
+                        </tr>
+                        <tr>
+                            <th>주 소</th>
+                            <td colspan="3">${ic.address || ''}</td>
+                        </tr>
+                        <tr>
+                            <th>연락처</th>
+                            <td colspan="3">${ic.phone || ''}</td>
+                        </tr>
+                        <tr>
+                            <th>유 형</th>
+                            <td colspan="3" style="padding-left: 10px;">
+                                <div style="display: flex; gap: 20px;">
+                                    ${renderChk(ic.icType, '65세 이상')}
+                                    ${renderChk(ic.icType, '65세 미만 장애인')} 
+                                    <span style="font-size: 12px; margin-left: -15px;">(65세 미만 지체·뇌병변 심한 장애인)</span>
+                                    ${renderChk(ic.icType, '기타')}
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- 2. 개인별 서비스 지원계획 -->
+                    <table>
+                        <colgroup>
+                            <col width="12%">
+                            <col width="13%">
+                            <col width="20%">
+                            <col width="25%">
+                            <col width="10%">
+                            <col width="12%">
+                            <col width="8%">
+                        </colgroup>
+                        <tr class="tbl-title-row"><th colspan="7">■ 개인별 서비스 지원계획</th></tr>
+                        <tr>
+                            <th colspan="2">구분</th>
+                            <th rowspan="2">서비스명</th>
+                            <th rowspan="2">서비스내용</th>
+                            <th rowspan="2">제공주기</th>
+                            <th rowspan="2">제공기관</th>
+                            <th rowspan="2">비고</th>
+                        </tr>
+                        <tr>
+                            <th style="font-size: 11px;">대분류</th>
+                            <th style="font-size: 11px;">중분류</th>
+                        </tr>
+                        ${[1, 2, 3, 4].map(i => `
+                            <tr>
+                                <td style="text-align: center; height: 26px;">${ic['sp_cat1_'+i] || ''}</td>
+                                <td style="text-align: center;">${ic['sp_cat2_'+i] || ''}</td>
+                                <td style="text-align: center;">${ic['sp_name_'+i] || ''}</td>
+                                <td style="text-align: center;">${ic['sp_content_'+i] || ''}</td>
+                                <td style="text-align: center;">${ic['sp_cycle_'+i] || ''}</td>
+                                <td style="text-align: center;">${ic['sp_org_'+i] || ''}</td>
+                                <td style="text-align: center;">${ic['sp_note_'+i] || ''}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+
+                    <!-- 3. 서비스 연계 결과 -->
+                    <table>
+                        <colgroup>
+                            <col width="12%">
+                            <col width="13%">
+                            <col width="20%">
+                            <col width="23%">
+                            <col width="12%">
+                            <col width="10%">
+                            <col width="10%">
+                        </colgroup>
+                        <tr class="tbl-title-row"><th colspan="7">■ 서비스 연계 결과 <span style="font-size: 12px; font-weight: normal;">(재가노인지원서비스센터에서 외부기관으로 연계한 서비스)</span></th></tr>
+                        <tr>
+                            <th colspan="2">구분</th>
+                            <th rowspan="2">서비스명</th>
+                            <th rowspan="2">서비스내용</th>
+                            <th rowspan="2">제공기관</th>
+                            <th rowspan="2">이용여부</th>
+                            <th rowspan="2">연계지원</th>
+                        </tr>
+                        <tr>
+                            <th style="font-size: 11px;">대분류</th>
+                            <th style="font-size: 11px;">중분류</th>
+                        </tr>
+                        ${[1, 2, 3, 4].map(i => `
+                            <tr>
+                                <td style="text-align: center; height: 35px;">${ic['lr_cat1_'+i] || ''}</td>
+                                <td style="text-align: center;">${ic['lr_cat2_'+i] || ''}</td>
+                                <td style="text-align: center;">${ic['lr_name_'+i] || ''}</td>
+                                <td style="text-align: center;">${ic['lr_content_'+i] || ''}</td>
+                                <td style="text-align: center;">${ic['lr_org_'+i] || ''}</td>
+                                <td style="padding: 2px 5px;">
+                                    <div style="margin-bottom: 3px;">${renderChk(ic['lr_use_'+i], '이용')}</div>
+                                    <div>${renderChk(ic['lr_use_'+i], '미이용')}</div>
+                                </td>
+                                <td style="padding: 2px 5px;">
+                                    <div style="margin-bottom: 3px;">${renderChk(ic['lr_support_'+i], '신청독려')}</div>
+                                    <div>${renderChk(ic['lr_support_'+i], '신청지원')}</div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </table>
+
+                    <!-- 4. 종합 의견 -->
+                    <table>
+                        <tr class="tbl-title-row"><th>■ 종합 의견</th></tr>
+                        <tr>
+                            <td style="height: 120px; vertical-align: top; padding: 15px; line-height: 1.6;">
+                                ${(ic.comprehensiveOpinion || '').replace(/\\n/g, '<br>')}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- 하단 서명란 -->
+                    <div class="footer-note">
+                        ※ 신청독려 : 서비스 신청 거부 시 최대 <b>1</b>개월간 서비스 이용 독려<br>
+                        ※ 신청지원 : 신청서 작성지원 등 신청과정 지원
+                    </div>
+
+                    <div class="footer-area">
+                        <div style="margin-bottom: 20px;">
+                            ${ic.recordYear || '202'}년 &nbsp;&nbsp;&nbsp; ${ic.recordMonth || '   '}월 &nbsp;&nbsp;&nbsp; ${ic.recordDay || '   '}일
+                        </div>
+                        <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 10px;">
+                            <div>소 속 기 관 : <span class="sign-line">${ic.organization || ''}</span></div>
+                        </div>
+                        <div style="display: flex; justify-content: center; gap: 30px;">
+                            <div>담 &nbsp;&nbsp;당 &nbsp;&nbsp;자 : <span class="sign-line">${ic.managerName || ''}</span> <span style="font-weight: normal; font-size: 13px;">(서명)</span></div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+                `;
+
+                const win = window.open('', '_blank', 'width=900,height=1000');
+                if (win) {
+                    win.document.write(html);
+                    win.document.close();
+                    win.focus();
+                } else {
+                    alert("팝업 차단을 해제해주세요.");
                 }
             },
 
