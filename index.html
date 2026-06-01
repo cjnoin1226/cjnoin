@@ -4040,9 +4040,9 @@
                                         </table>
 
                                         <!-- 2. 개인별 서비스 지원계획 -->
-                                        <table class="w-full border-collapse border-2 border-slate-700 mb-6">
+                                        <table class="w-full border-collapse border-b border-slate-700">
                                             <tr>
-                                                <th colspan="7" class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">
+                                                <th colspan="7" class="bg-slate-200 p-2 text-left border-y border-slate-700 font-bold text-base">
                                                     <div class="flex justify-between items-center">
                                                         <span>■ 개인별 서비스 지원계획</span>
                                                         <button type="button" onclick="app.addIcSpRow()" class="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded hover:bg-emerald-100 font-bold transition-colors shadow-sm">+ 행 추가</button>
@@ -4061,7 +4061,7 @@
                                                 <th class="border-r border-b border-slate-400 p-1 font-bold text-xs">대분류</th>
                                                 <th class="border-r border-b border-slate-400 p-1 font-bold text-xs">중분류</th>
                                             </tr>
-                                            <!-- 동적 입력 줄 -->
+                                            <!-- 동적 입력 줄 (기본 2줄) -->
                                             <tbody id="ic-sp-tbody">
                                             ${spIndices.map(i => `
                                             <tr class="hover:bg-slate-50">
@@ -4080,9 +4080,9 @@
                                         </table>
 
                                         <!-- 3. 서비스 연계 결과 -->
-                                        <table class="w-full border-collapse border-2 border-slate-700 mb-6">
+                                        <table class="w-full border-collapse border-b border-slate-700">
                                             <tr>
-                                                <th colspan="7" class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">
+                                                <th colspan="7" class="bg-slate-200 p-2 text-left border-y border-slate-700 font-bold text-base">
                                                     <div class="flex justify-between items-center">
                                                         <span>■ 서비스 연계 결과 <span class="text-sm font-normal">(재가노인지원서비스센터에서 외부기관으로 연계한 서비스)</span></span>
                                                         <button type="button" onclick="app.addIcLrRow()" class="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded hover:bg-emerald-100 font-bold transition-colors shadow-sm">+ 행 추가</button>
@@ -4101,7 +4101,7 @@
                                                 <th class="border-r border-b border-slate-400 p-1 font-bold">대분류</th>
                                                 <th class="border-r border-b border-slate-400 p-1 font-bold">중분류</th>
                                             </tr>
-                                            <!-- 동적 입력 줄 -->
+                                            <!-- 동적 입력 줄 (기본 2줄) -->
                                             <tbody id="ic-lr-tbody">
                                             ${lrIndices.map(i => `
                                             <tr class="hover:bg-slate-50">
