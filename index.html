@@ -2329,11 +2329,10 @@
             formatDateInput: (el) => {
                 let v = el.value.replace(/[^0-9]/g, '');
                 let res = '';
-                // 4자리(연도)-2자리(월)-2자리(일) 로 정확하게 끊어줍니다.
-                if (v.length > 6) res = v.substring(0,4) + '-' + v.substring(4,6) + '-' + v.substring(6,8);
-                else if (v.length > 4) res = v.substring(0,4) + '-' + v.substring(4);
+                if (v.length > 4) res = v.substring(0,2) + '-' + v.substring(2,4) + '-' + v.substring(4,6);
+                else if (v.length > 2) res = v.substring(0,2) + '-' + v.substring(2);
                 else res = v;
-                el.value = res.slice(0, 10); // 최대 10글자 (YYYY-MM-DD) 까지만 입력되게 제한
+                el.value = res.slice(0, 8);
             },
             formatPhoneInput: (el) => {
                 let v = el.value.replace(/[^0-9]/g, '');
@@ -3827,9 +3826,12 @@
             
             // [신규] 연계종료일 자동 계산 (시작일 + 1달)
             setIcEndDate: (startDateStr) => {
-                if (!startDateStr) return;
+                // 정확히 10글자 (YYYY-MM-DD) 일 때만 계산하여 오류 방지
+                if (!startDateStr || startDateStr.length !== 10) return;
                 
                 const startDate = new Date(startDateStr);
+                if (isNaN(startDate.getTime())) return; // 유효한 날짜인지 검사
+
                 startDate.setMonth(startDate.getMonth() + 1); // 1달 더하기
                 
                 const yyyy = startDate.getFullYear();
@@ -3894,11 +3896,11 @@
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                         <div>
                                             <label class="block text-sm font-bold text-slate-700 mb-1">연계시작일</label>
-                                            <input type="date" id="ic-start-date" name="startDate" class="input-field" value="${ic.startDate || ''}" onchange="app.setIcEndDate(this.value)">
+                                            <input type="text" id="ic-start-date" name="startDate" class="input-field" value="${ic.startDate || ''}" placeholder="YYYY-MM-DD" oninput="app.formatDateInput(this); app.setIcEndDate(this.value)">
                                         </div>
                                         <div>
                                             <label class="block text-sm font-bold text-slate-700 mb-1">연계종료일</label>
-                                            <input type="date" id="ic-end-date" name="endDate" class="input-field" value="${ic.endDate || ''}">
+                                            <input type="text" id="ic-end-date" name="endDate" class="input-field" value="${ic.endDate || ''}" placeholder="YYYY-MM-DD" oninput="app.formatDateInput(this)">
                                         </div>
                                     </div>
                                     
