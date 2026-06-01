@@ -2264,20 +2264,27 @@
                 return (!searchName || (ic.name && ic.name.includes(searchName)));
             });
 
-            // [에러 수정] 기호가 겹치지 않도록 리스트 HTML을 밖에서 미리 조립합니다.
+            // 기호가 겹치지 않도록 리스트 HTML을 밖에서 미리 조립합니다.
             let listHTML = '';
             if (filtered.length === 0) {
                 listHTML = '<div class="text-center py-12 text-slate-400">등록된 대상자가 없습니다.</div>';
             } else {
                 let rows = '';
                 filtered.forEach(ic => {
+                    // [신규] 연계기간 텍스트 조립 (시작일 ~ 종료일)
+                    const period = (ic.startDate || ic.endDate) ? (ic.startDate || '-') + ' ~ ' + (ic.endDate || '-') : '-';
+
                     rows += '<div class="flex items-center hover:bg-slate-50 transition-colors py-2 group cursor-pointer" onclick="app.openIntegratedCareModal(\'' + ic.id + '\')">';
-                    rows += '<div class="w-[15%] text-center text-sm font-bold text-slate-800">' + (ic.name || '') + '</div>';
-                    rows += '<div class="w-[15%] text-center text-xs text-slate-600">' + (ic.birthDate || '-') + '</div>';
-                    rows += '<div class="w-[30%] text-xs text-slate-700 truncate px-3">' + (ic.address || '-') + '</div>';
-                    rows += '<div class="w-[15%] text-center text-xs text-slate-600">' + (ic.phone || '-') + '</div>';
-                    rows += '<div class="w-[15%] text-center"><span class="px-2 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700 text-[11px] font-bold">' + (ic.economicStatus || '미지정') + '</span></div>';
-                    rows += '<div class="w-[10%] flex justify-center gap-1">';
+                    rows += '<div class="w-[12%] text-center text-sm font-bold text-slate-800">' + (ic.name || '') + '</div>';
+                    rows += '<div class="w-[12%] text-center text-xs text-slate-600">' + (ic.birthDate || '-') + '</div>';
+                    rows += '<div class="w-[24%] text-xs text-slate-700 truncate px-3">' + (ic.address || '-') + '</div>';
+                    rows += '<div class="w-[14%] text-center text-xs text-slate-600">' + (ic.phone || '-') + '</div>';
+                    rows += '<div class="w-[12%] text-center"><span class="px-2 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700 text-[11px] font-bold">' + (ic.economicStatus || '미지정') + '</span></div>';
+                    
+                    // [신규] 연계기간 셀 추가
+                    rows += '<div class="w-[18%] text-center text-xs text-slate-500 font-medium tracking-tight">' + period + '</div>';
+                    
+                    rows += '<div class="w-[8%] flex justify-center gap-1">';
                     rows += '<button onclick="event.stopPropagation(); app.deleteData(\'integratedCares\', \'' + ic.id + '\')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>';
                     rows += '</div></div>';
                 });
@@ -2307,13 +2314,15 @@
                     </div>
 
                     <div id="ic-list-container" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-[400px]">
+                        <!-- [수정] 항목 추가에 따른 가로 비율 재조정 -->
                         <div class="flex items-center bg-slate-50 border-b border-slate-200 font-bold text-xs text-slate-500 sticky top-0 z-10">
-                            <div class="w-[15%] text-center py-3">이름</div>
-                            <div class="w-[15%] text-center py-3">생년월일</div>
-                            <div class="w-[30%] text-center py-3 px-2">주소</div>
-                            <div class="w-[15%] text-center py-3">연락처</div>
-                            <div class="w-[15%] text-center py-3">소득기준</div>
-                            <div class="w-[10%] text-center py-3">관리</div>
+                            <div class="w-[12%] text-center py-3">이름</div>
+                            <div class="w-[12%] text-center py-3">생년월일</div>
+                            <div class="w-[24%] text-center py-3 px-2">주소</div>
+                            <div class="w-[14%] text-center py-3">연락처</div>
+                            <div class="w-[12%] text-center py-3">소득기준</div>
+                            <div class="w-[18%] text-center py-3">연계기간</div>
+                            <div class="w-[8%] text-center py-3">관리</div>
                         </div>
                         
                         <div class="overflow-y-auto flex-1 custom-scrollbar">
