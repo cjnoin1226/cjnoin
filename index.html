@@ -4134,7 +4134,7 @@
                                             <tr><th class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">■ 종합 의견</th></tr>
                                             <tr>
                                                 <td class="p-3">
-                                                    <textarea name="comprehensiveOpinion" class="w-full min-h-[160px] outline-none resize-none bg-transparent leading-relaxed text-sm" placeholder="※ 구·군과 공유사항 기재\n○ 서비스 연계 상세 내용\n○ 대상자 특이사항\n○ 기타 사항 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${ic.comprehensiveOpinion || ''}</textarea>
+                                                    <textarea name="comprehensiveOpinion" class="w-full min-h-[80px] outline-none resize-none bg-transparent leading-relaxed text-sm" placeholder="※ 구·군과 공유사항 기재\n○ 서비스 연계 상세 내용\n○ 대상자 특이사항\n○ 기타 사항 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${ic.comprehensiveOpinion || ''}</textarea>
                                                 </td>
                                             </tr>
                                         </table>
@@ -10123,7 +10123,7 @@
                     <table>
                         <tr class="tbl-title-row"><th>■ 종합 의견</th></tr>
                         <tr>
-                            <td style="height: 120px; vertical-align: top; padding: 15px; line-height: 1.6;">
+                            <td style="height: 50px; vertical-align: top; padding: 15px; line-height: 1.6;">
                                 ${(ic.comprehensiveOpinion || '').replace(/\\n/g, '<br>')}
                             </td>
                         </tr>
