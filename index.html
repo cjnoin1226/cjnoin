@@ -9957,7 +9957,7 @@
                             padding-bottom: 5px;
                             display: inline-block; /* 텍스트 너비만큼만 밑줄 긋기 */
                         }
-                        .title-wrapper { text-align: center; margin-bottom: 20px; }
+                        .title-wrapper { text-align: center; margin-bottom: 8px; }
 
                         /* 테이블 전역 스타일 */
                         table { 
@@ -10123,8 +10123,8 @@
                     <table>
                         <tr class="tbl-title-row"><th>■ 종합 의견</th></tr>
                         <tr>
-                            <td style="height: 50px; vertical-align: top; padding: 15px; line-height: 1.6;">
-                                ${(ic.comprehensiveOpinion || '').replace(/\\n/g, '<br>')}
+                            <td style="height: 50px; vertical-align: top; padding: 15px; line-height: 1.6; white-space: pre-wrap;">
+                                ${ic.comprehensiveOpinion || ''}
                             </td>
                         </tr>
                     </table>
