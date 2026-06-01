@@ -3861,6 +3861,58 @@
                 }
             },
 
+            // [신규] 통합돌봄 행 추가 함수들
+            addIcSpRow: () => {
+                const tbody = document.getElementById('ic-sp-tbody');
+                if (!tbody) return;
+                const i = Date.now();
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50';
+                tr.innerHTML = `
+                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_cat1_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value=""></td>
+                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_cat2_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value=""></td>
+                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_name_${i}" class="w-full bg-transparent px-1 outline-none text-sm" value=""></td>
+                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_content_${i}" class="w-full bg-transparent px-1 outline-none text-sm" value=""></td>
+                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_cycle_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value=""></td>
+                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_org_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value=""></td>
+                    <td class="border-b border-slate-200 p-1 relative">
+                        <input type="text" name="sp_note_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm pr-6" value="">
+                        <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 transition-all shadow-sm" title="행 삭제"><i data-lucide="minus" size="12"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                if(window.lucide) lucide.createIcons();
+            },
+            addIcLrRow: () => {
+                const tbody = document.getElementById('ic-lr-tbody');
+                if (!tbody) return;
+                const i = Date.now();
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50';
+                tr.innerHTML = `
+                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_cat1_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value=""></td>
+                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_cat2_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value=""></td>
+                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_name_${i}" class="w-full bg-transparent px-1 outline-none text-sm" value=""></td>
+                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_content_${i}" class="w-full bg-transparent px-1 outline-none text-sm" value=""></td>
+                    <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_org_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value=""></td>
+                    <td class="border-r border-b border-slate-200 p-1 text-[11px]">
+                        <div class="flex flex-col gap-1 items-start pl-1">
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="lr_use_${i}" value="이용" class="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded cursor-pointer focus:ring-emerald-500" onclick="app.checkExclusive(this)"> 이용</label>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="lr_use_${i}" value="미이용" class="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded cursor-pointer focus:ring-emerald-500" onclick="app.checkExclusive(this)"> 미이용</label>
+                        </div>
+                    </td>
+                    <td class="border-b border-slate-200 p-1 text-[11px] relative">
+                        <div class="flex flex-col gap-1 items-start pl-1 pr-6">
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="lr_support_${i}" value="신청독려" class="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded cursor-pointer focus:ring-emerald-500" onclick="app.checkExclusive(this)"> 신청독려</label>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="lr_support_${i}" value="신청지원" class="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded cursor-pointer focus:ring-emerald-500" onclick="app.checkExclusive(this)"> 신청지원</label>
+                        </div>
+                        <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 transition-all shadow-sm" title="행 삭제"><i data-lucide="minus" size="12"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+                if(window.lucide) lucide.createIcons();
+            },
+
             // [신규] 통합돌봄 대상자 모달창 (세부 탭 포함)
             openIntegratedCareModal: (id = null) => {
                 const ic = id ? state.integratedCares.find(x => x.id === id) : {};
@@ -3978,7 +4030,14 @@
 
                                         <!-- 2. 개인별 서비스 지원계획 -->
                                         <table class="w-full border-collapse border-2 border-slate-700 mb-6">
-                                            <tr><th colspan="7" class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">■ 개인별 서비스 지원계획</th></tr>
+                                            <tr>
+                                                <th colspan="7" class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">
+                                                    <div class="flex justify-between items-center">
+                                                        <span>■ 개인별 서비스 지원계획</span>
+                                                        <button type="button" onclick="app.addIcSpRow()" class="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded hover:bg-emerald-100 font-bold transition-colors shadow-sm">+ 행 추가</button>
+                                                    </div>
+                                                </th>
+                                            </tr>
                                             <tr class="bg-slate-100 text-center">
                                                 <th colspan="2" class="border-r border-b border-slate-400 p-1 font-bold">구분</th>
                                                 <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[20%] font-bold">서비스명</th>
@@ -3991,8 +4050,9 @@
                                                 <th class="border-r border-b border-slate-400 p-1 font-bold text-xs">대분류</th>
                                                 <th class="border-r border-b border-slate-400 p-1 font-bold text-xs">중분류</th>
                                             </tr>
-                                            <!-- 4개 입력 줄 -->
-                                            ${[1,2,3,4].map(i => `
+                                            <!-- 동적 입력 줄 -->
+                                            <tbody id="ic-sp-tbody">
+                                            ${spIndices.map(i => `
                                             <tr class="hover:bg-slate-50">
                                                 <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_cat1_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['sp_cat1_'+i]||''}"></td>
                                                 <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_cat2_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['sp_cat2_'+i]||''}"></td>
@@ -4000,13 +4060,24 @@
                                                 <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_content_${i}" class="w-full bg-transparent px-1 outline-none text-sm" value="${ic['sp_content_'+i]||''}"></td>
                                                 <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_cycle_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value="${ic['sp_cycle_'+i]||''}"></td>
                                                 <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_org_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value="${ic['sp_org_'+i]||''}"></td>
-                                                <td class="border-b border-slate-200 p-1"><input type="text" name="sp_note_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value="${ic['sp_note_'+i]||''}"></td>
+                                                <td class="border-b border-slate-200 p-1 relative">
+                                                    <input type="text" name="sp_note_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm pr-6" value="${ic['sp_note_'+i]||''}">
+                                                    <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 transition-all shadow-sm" title="행 삭제"><i data-lucide="minus" size="12"></i></button>
+                                                </td>
                                             </tr>`).join('')}
+                                            </tbody>
                                         </table>
 
                                         <!-- 3. 서비스 연계 결과 -->
                                         <table class="w-full border-collapse border-2 border-slate-700 mb-6">
-                                            <tr><th colspan="7" class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">■ 서비스 연계 결과 <span class="text-sm font-normal">(재가노인지원서비스센터에서 외부기관으로 연계한 서비스)</span></th></tr>
+                                            <tr>
+                                                <th colspan="7" class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">
+                                                    <div class="flex justify-between items-center">
+                                                        <span>■ 서비스 연계 결과 <span class="text-sm font-normal">(재가노인지원서비스센터에서 외부기관으로 연계한 서비스)</span></span>
+                                                        <button type="button" onclick="app.addIcLrRow()" class="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded hover:bg-emerald-100 font-bold transition-colors shadow-sm">+ 행 추가</button>
+                                                    </div>
+                                                </th>
+                                            </tr>
                                             <tr class="bg-slate-100 text-center text-xs">
                                                 <th colspan="2" class="border-r border-b border-slate-400 p-1 font-bold">구분</th>
                                                 <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[20%] font-bold">서비스명</th>
@@ -4019,8 +4090,9 @@
                                                 <th class="border-r border-b border-slate-400 p-1 font-bold">대분류</th>
                                                 <th class="border-r border-b border-slate-400 p-1 font-bold">중분류</th>
                                             </tr>
-                                            <!-- 4개 입력 줄 -->
-                                            ${[1,2,3,4].map(i => `
+                                            <!-- 동적 입력 줄 -->
+                                            <tbody id="ic-lr-tbody">
+                                            ${lrIndices.map(i => `
                                             <tr class="hover:bg-slate-50">
                                                 <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_cat1_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['lr_cat1_'+i]||''}"></td>
                                                 <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_cat2_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['lr_cat2_'+i]||''}"></td>
@@ -4033,13 +4105,15 @@
                                                         <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="lr_use_${i}" value="미이용" class="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded cursor-pointer focus:ring-emerald-500" ${ic['lr_use_'+i]==='미이용'?'checked':''} onclick="app.checkExclusive(this)"> 미이용</label>
                                                     </div>
                                                 </td>
-                                                <td class="border-b border-slate-200 p-1 text-[11px]">
-                                                    <div class="flex flex-col gap-1 items-start pl-1">
+                                                <td class="border-b border-slate-200 p-1 text-[11px] relative">
+                                                    <div class="flex flex-col gap-1 items-start pl-1 pr-6">
                                                         <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="lr_support_${i}" value="신청독려" class="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded cursor-pointer focus:ring-emerald-500" ${ic['lr_support_'+i]==='신청독려'?'checked':''} onclick="app.checkExclusive(this)"> 신청독려</label>
                                                         <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="lr_support_${i}" value="신청지원" class="w-3.5 h-3.5 text-emerald-600 border-slate-300 rounded cursor-pointer focus:ring-emerald-500" ${ic['lr_support_'+i]==='신청지원'?'checked':''} onclick="app.checkExclusive(this)"> 신청지원</label>
                                                     </div>
+                                                    <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 transition-all shadow-sm" title="행 삭제"><i data-lucide="minus" size="12"></i></button>
                                                 </td>
                                             </tr>`).join('')}
+                                            </tbody>
                                         </table>
 
                                         <!-- 4. 종합 의견 -->
@@ -4098,6 +4172,17 @@
                 if (state.isSaving) return;
                 const fd = new FormData(e.target);
                 const data = Object.fromEntries(fd.entries());
+                
+                // [신규] 삭제버튼(-)을 눌러서 지워진 행의 데이터가 DB에 남지 않게 깔끔하게 지워주는 로직
+                if (id) {
+                    const existingIc = state.integratedCares.find(x => x.id === id) || {};
+                    Object.keys(existingIc).forEach(k => {
+                        if ((k.startsWith('sp_') || k.startsWith('lr_')) && data[k] === undefined) {
+                            data[k] = ''; // 폼(화면)에 없으면 빈칸으로 만들어서 덮어씌움
+                        }
+                    });
+                }
+
                 state.isSaving = true;
                 try {
                     if (id) {
@@ -9813,6 +9898,17 @@
                 const ic = state.integratedCares.find(x => x.id === id);
                 if (!ic) return alert("데이터를 찾을 수 없습니다.");
 
+                // [신규] 인쇄 시에도 작성된 줄 수를 똑같이 계산합니다.
+                let spIndices = Object.keys(ic).filter(k => k.startsWith('sp_name_')).map(k => k.replace('sp_name_', ''));
+                if (spIndices.length === 0) spIndices = ['1', '2'];
+                else if (spIndices.length === 1) spIndices.push(Date.now().toString() + '1');
+                spIndices = [...new Set(spIndices)].sort((a, b) => parseInt(a) - parseInt(b));
+
+                let lrIndices = Object.keys(ic).filter(k => k.startsWith('lr_name_')).map(k => k.replace('lr_name_', ''));
+                if (lrIndices.length === 0) lrIndices = ['1', '2'];
+                else if (lrIndices.length === 1) lrIndices.push(Date.now().toString() + '2');
+                lrIndices = [...new Set(lrIndices)].sort((a, b) => parseInt(a) - parseInt(b));
+
                 const renderChk = (val, target) => {
                     const isChecked = val === target;
                     // 체크되지 않은 항목은 하얀 네모, 체크된 항목은 까만 네모(☑ 느낌)로 인쇄
@@ -9942,7 +10038,7 @@
                             <th style="font-size: 11px;">대분류</th>
                             <th style="font-size: 11px;">중분류</th>
                         </tr>
-                        ${[1, 2, 3, 4].map(i => `
+                        ${spIndices.map(i => `
                             <tr>
                                 <td style="text-align: center; height: 26px;">${ic['sp_cat1_'+i] || ''}</td>
                                 <td style="text-align: center;">${ic['sp_cat2_'+i] || ''}</td>
@@ -9979,7 +10075,12 @@
                             <th style="font-size: 11px;">대분류</th>
                             <th style="font-size: 11px;">중분류</th>
                         </tr>
-                        ${[1, 2, 3, 4].map(i => `
+                        ${lrIndices.map(i => {
+                            // [수정] 체크된 값이 하나라도 있는지 확인하여 빈칸은 체크박스를 숨김 처리
+                            const hasUseValue = !!ic['lr_use_'+i];
+                            const hasSupportValue = !!ic['lr_support_'+i];
+
+                            return `
                             <tr>
                                 <td style="text-align: center; height: 35px;">${ic['lr_cat1_'+i] || ''}</td>
                                 <td style="text-align: center;">${ic['lr_cat2_'+i] || ''}</td>
@@ -9987,15 +10088,20 @@
                                 <td style="text-align: center;">${ic['lr_content_'+i] || ''}</td>
                                 <td style="text-align: center;">${ic['lr_org_'+i] || ''}</td>
                                 <td style="padding: 2px 5px;">
-                                    <div style="margin-bottom: 3px;">${renderChk(ic['lr_use_'+i], '이용')}</div>
-                                    <div>${renderChk(ic['lr_use_'+i], '미이용')}</div>
+                                    ${hasUseValue ? `
+                                        <div style="margin-bottom: 3px;">${renderChk(ic['lr_use_'+i], '이용')}</div>
+                                        <div>${renderChk(ic['lr_use_'+i], '미이용')}</div>
+                                    ` : ''}
                                 </td>
                                 <td style="padding: 2px 5px;">
-                                    <div style="margin-bottom: 3px;">${renderChk(ic['lr_support_'+i], '신청독려')}</div>
-                                    <div>${renderChk(ic['lr_support_'+i], '신청지원')}</div>
+                                    ${hasSupportValue ? `
+                                        <div style="margin-bottom: 3px;">${renderChk(ic['lr_support_'+i], '신청독려')}</div>
+                                        <div>${renderChk(ic['lr_support_'+i], '신청지원')}</div>
+                                    ` : ''}
                                 </td>
                             </tr>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </table>
 
                     <!-- 4. 종합 의견 -->
