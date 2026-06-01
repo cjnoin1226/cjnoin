@@ -3866,10 +3866,8 @@
                 const ic = id ? state.integratedCares.find(x => x.id === id) : {};
                 const targetContainerId = !document.getElementById('modal-container').classList.contains('hidden') ? 'sub-modal-container' : 'modal-container';
                 
-                state.icModalTab = 'basic'; // 기본 탭으로 초기화
-
-                // 해당 대상자에게 귀속된 연계결과지 목록 불러오기
-                const records = id ? state.icRecords.filter(r => r.icClientId === id).sort((a,b) => b.date.localeCompare(a.date)) : [];
+                // 모달을 열 때 기본 정보 탭을 먼저 보여줍니다.
+                state.icModalTab = 'basic'; 
 
                 const html = `
                     <div class="bg-white w-full max-w-4xl p-0 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
@@ -3879,21 +3877,25 @@
                             </h3>
                             <div class="flex items-center gap-2">
                                 <button type="button" onclick="app.closeModal()" class="px-3 py-1.5 text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium">닫기</button>
-                                <button type="button" onclick="document.getElementById('ic-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-700 text-sm font-bold shadow-sm">대상자 정보 저장</button>
+                                <!-- 대상자 정보와 결과지 탭의 모든 내용을 한 번에 저장하는 버튼 -->
+                                <button type="button" onclick="document.getElementById('ic-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}))" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg hover:bg-emerald-700 text-sm font-bold shadow-sm">전체 정보 저장</button>
                             </div>
                         </div>
                         
                         ${id ? `
                         <div class="flex border-b border-slate-100 bg-slate-50 sticky top-0 z-10 shrink-0">
                             <button type="button" class="ic-tab-btn modal-tab-btn active" data-tab="basic" onclick="app.setIcModalTab('basic')">기본 정보</button>
-                            <button type="button" class="ic-tab-btn modal-tab-btn" data-tab="records" onclick="app.setIcModalTab('records')">연계결과지 내역 (${records.length})</button>
+                            <!-- [수정] 탭 이름 변경 -->
+                            <button type="button" class="ic-tab-btn modal-tab-btn" data-tab="records" onclick="app.setIcModalTab('records')">서비스 연계 결과지</button>
                         </div>
                         ` : ''}
 
                         <div class="px-4 sm:px-6 pb-4 sm:pb-6 overflow-y-auto flex-1 bg-white pt-4">
-                            <!-- 대상자 기본정보 탭 -->
-                            <div id="ic-tab-basic" class="ic-tab-content active space-y-4">
-                                <form id="ic-form" onsubmit="app.saveIntegratedCare(event, '${id || ''}')">
+                            <!-- [수정] 폼이 탭 전체를 감싸도록 위치 변경 (한 번에 저장 가능하도록) -->
+                            <form id="ic-form" onsubmit="app.saveIntegratedCare(event, '${id || ''}')">
+                                
+                                <!-- 탭 1. 대상자 기본정보 탭 (기존에 수정한 구조 그대로 유지) -->
+                                <div id="ic-tab-basic" class="ic-tab-content active space-y-4">
                                    <!-- 1번째 줄: 이름 - 생년월일 - 소득기준 -->
                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                                         <div><label class="block text-sm font-bold text-slate-700 mb-1">이름</label><input name="name" class="input-field" value="${ic.name || ''}" required></div>
@@ -3907,7 +3909,7 @@
                                        </div>
                                     </div>
     
-                                    <!-- 2번째 줄: 연락처 - 주소 (주소가 기니까 칸을 좀 더 넓게 배정했습니다) -->
+                                    <!-- 2번째 줄: 연락처 - 주소 -->
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                                        <div class="sm:col-span-1"><label class="block text-sm font-bold text-slate-700 mb-1">연락처</label><input type="text" name="phone" class="input-field" value="${ic.phone || ''}" placeholder="연락처" oninput="app.formatPhoneInput(this)"></div>
                                        <div class="sm:col-span-2"><label class="block text-sm font-bold text-slate-700 mb-1">주소</label><input type="text" name="address" class="input-field" value="${ic.address || ''}" placeholder="상세 주소 입력"></div>
@@ -3930,50 +3932,160 @@
                                          <label class="block text-sm font-bold text-slate-700 mb-1">비고</label>
                                          <textarea name="note" class="input-field h-20" placeholder="기타 특이사항">${ic.note || ''}</textarea>
                                     </div>
-                                </form>
+                                </div>
                             
-                            <!-- 연계결과지 내역 탭 -->
-                            ${id ? `
-                            <div id="ic-tab-records" class="ic-tab-content space-y-4 hidden">
-                                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                    <span class="text-sm font-bold text-slate-700">등록된 연계결과지</span>
-                                    <button type="button" onclick="app.openIcRecordModal(null, '${id}')" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm flex items-center gap-1"><i data-lucide="plus" size="14"></i> 새 결과지 작성</button>
-                                </div>
-                                <div class="border border-slate-200 rounded-lg overflow-hidden bg-white">
-                                    <table class="w-full text-sm text-left border-collapse">
-                                        <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                <!-- 탭 2. 서비스 연계 결과지 서식 탭 (사진 양식 구현) -->
+                                ${id ? `
+                                <div id="ic-tab-records" class="ic-tab-content space-y-4 hidden">
+                                    <div class="border-2 border-slate-700 text-sm bg-white overflow-hidden">
+                                        
+                                        <!-- 1. 인적사항 테이블 -->
+                                        <table class="w-full border-collapse border-b border-slate-700">
+                                            <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
                                             <tr>
-                                                <th class="p-3 text-center border-r border-slate-100">의뢰일자</th>
-                                                <th class="p-3 text-center border-r border-slate-100">진행상태</th>
-                                                <th class="p-3 border-r border-slate-100">의뢰기관 / 의뢰사유</th>
-                                                <th class="p-3 text-center border-r border-slate-100">담당자</th>
-                                                <th class="p-3 text-center">관리</th>
+                                                <th colspan="4" class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">■ 인적사항</th>
                                             </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-slate-100">
-                                            ${records.length === 0 ? '<tr><td colspan="5" class="p-8 text-center text-slate-400">등록된 연계결과지가 없습니다.</td></tr>' : 
-                                            records.map(r => `
-                                                <tr class="hover:bg-slate-50 cursor-pointer transition-colors" onclick="app.openIcRecordModal('${r.id}', '${id}')">
-                                                    <td class="p-3 text-center font-bold text-slate-700 border-r border-slate-100">${r.date}</td>
-                                                    <td class="p-3 text-center border-r border-slate-100"><span class="px-2 py-0.5 rounded border text-xs font-bold ${r.status==='완료'?'bg-emerald-50 text-emerald-700 border-emerald-200':(r.status==='진행중'?'bg-blue-50 text-blue-700 border-blue-200':'bg-slate-100 text-slate-600 border-slate-200')}">${r.status||'접수'}</span></td>
-                                                    <td class="p-3 border-r border-slate-100">
-                                                        <div class="font-bold text-blue-600 mb-0.5">${r.referrer || '-'}</div>
-                                                        <div class="text-xs text-slate-600 truncate max-w-[250px]">${r.reason || '-'}</div>
-                                                    </td>
-                                                    <td class="p-3 text-center text-sm text-slate-600 border-r border-slate-100">${r.manager || '-'}</td>
-                                                    <td class="p-3 text-center">
-                                                        <button type="button" onclick="event.stopPropagation(); app.deleteData('icRecords', '${r.id}')" class="p-1.5 text-slate-400 hover:text-red-500 rounded transition-colors"><i data-lucide="trash-2" size="16"></i></button>
-                                                    </td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
+                                            <tr>
+                                                <th class="bg-slate-100 p-2 border-r border-b border-slate-400 text-center font-bold">성명<br>(성별)</th>
+                                                <td class="p-2 border-r border-b border-slate-400">
+                                                    <div class="flex items-center gap-2">
+                                                        <input type="text" class="w-full bg-transparent outline-none" value="${ic.name || ''}" readonly>
+                                                        <span class="text-xs text-slate-500 whitespace-nowrap">(${ic.gender || '남/여'})</span>
+                                                    </div>
+                                                </td>
+                                                <th class="bg-slate-100 p-2 border-r border-b border-slate-400 text-center font-bold">생년월일</th>
+                                                <td class="p-2 border-b border-slate-400"><input type="text" class="w-full bg-transparent outline-none" value="${ic.birthDate || ''}" readonly></td>
+                                            </tr>
+                                            <tr>
+                                                <th class="bg-slate-100 p-2 border-r border-b border-slate-400 text-center font-bold">주 소</th>
+                                                <td colspan="3" class="p-2 border-b border-slate-400"><input type="text" class="w-full bg-transparent outline-none" value="${ic.address || ''}" readonly></td>
+                                            </tr>
+                                            <tr>
+                                                <th class="bg-slate-100 p-2 border-r border-b border-slate-400 text-center font-bold">연락처</th>
+                                                <td colspan="3" class="p-2 border-b border-slate-400"><input type="text" class="w-full bg-transparent outline-none" value="${ic.phone || ''}" readonly></td>
+                                            </tr>
+                                            <tr>
+                                                <th class="bg-slate-100 p-2 border-r border-slate-400 text-center font-bold">유 형</th>
+                                                <td colspan="3" class="p-2 flex flex-wrap gap-4 items-center">
+                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="icType" value="65세 이상" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" ${ic.icType==='65세 이상'?'checked':''}> 65세 이상</label>
+                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="icType" value="65세 미만 장애인" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" ${ic.icType==='65세 미만 장애인'?'checked':''}> 65세 미만 지체·뇌병변 심한 장애인</label>
+                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="icType" value="기타" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" ${ic.icType==='기타'?'checked':''}> 기타</label>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        <!-- 2. 개인별 서비스 지원계획 -->
+                                        <table class="w-full border-collapse border-b border-slate-700">
+                                            <tr><th colspan="7" class="bg-slate-200 p-2 text-left border-y border-slate-700 font-bold text-base">■ 개인별 서비스 지원계획</th></tr>
+                                            <tr class="bg-slate-100 text-center">
+                                                <th colspan="2" class="border-r border-b border-slate-400 p-1 font-bold">구분</th>
+                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[20%] font-bold">서비스명</th>
+                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[25%] font-bold">서비스내용</th>
+                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[12%] font-bold">제공주기</th>
+                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[15%] font-bold">제공기관</th>
+                                                <th rowspan="2" class="border-b border-slate-400 p-1 w-[10%] font-bold">비고</th>
+                                            </tr>
+                                            <tr class="bg-slate-100 text-center">
+                                                <th class="border-r border-b border-slate-400 p-1 font-bold text-xs">대분류</th>
+                                                <th class="border-r border-b border-slate-400 p-1 font-bold text-xs">중분류</th>
+                                            </tr>
+                                            <!-- 4개 입력 줄 -->
+                                            ${[1,2,3,4].map(i => `
+                                            <tr class="hover:bg-slate-50">
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_cat1_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['sp_cat1_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_cat2_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['sp_cat2_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_name_${i}" class="w-full bg-transparent px-1 outline-none text-sm" value="${ic['sp_name_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_content_${i}" class="w-full bg-transparent px-1 outline-none text-sm" value="${ic['sp_content_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_cycle_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value="${ic['sp_cycle_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="sp_org_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value="${ic['sp_org_'+i]||''}"></td>
+                                                <td class="border-b border-slate-200 p-1"><input type="text" name="sp_note_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value="${ic['sp_note_'+i]||''}"></td>
+                                            </tr>`).join('')}
+                                        </table>
+
+                                        <!-- 3. 서비스 연계 결과 -->
+                                        <table class="w-full border-collapse border-b border-slate-700">
+                                            <tr><th colspan="7" class="bg-slate-200 p-2 text-left border-y border-slate-700 font-bold text-base">■ 서비스 연계 결과 <span class="text-sm font-normal">(재가노인지원서비스센터에서 외부기관으로 연계한 서비스)</span></th></tr>
+                                            <tr class="bg-slate-100 text-center text-xs">
+                                                <th colspan="2" class="border-r border-b border-slate-400 p-1 font-bold">구분</th>
+                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[20%] font-bold">서비스명</th>
+                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[25%] font-bold">서비스내용</th>
+                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[15%] font-bold">제공기관</th>
+                                                <th rowspan="2" class="border-r border-b border-slate-400 p-1 w-[10%] font-bold">이용여부</th>
+                                                <th rowspan="2" class="border-b border-slate-400 p-1 w-[12%] font-bold">연계지원</th>
+                                            </tr>
+                                            <tr class="bg-slate-100 text-center text-xs">
+                                                <th class="border-r border-b border-slate-400 p-1 font-bold">대분류</th>
+                                                <th class="border-r border-b border-slate-400 p-1 font-bold">중분류</th>
+                                            </tr>
+                                            <!-- 4개 입력 줄 -->
+                                            ${[1,2,3,4].map(i => `
+                                            <tr class="hover:bg-slate-50">
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_cat1_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['lr_cat1_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_cat2_${i}" class="w-full bg-transparent px-1 outline-none text-center text-xs" value="${ic['lr_cat2_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_name_${i}" class="w-full bg-transparent px-1 outline-none text-sm" value="${ic['lr_name_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_content_${i}" class="w-full bg-transparent px-1 outline-none text-sm" value="${ic['lr_content_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1"><input type="text" name="lr_org_${i}" class="w-full bg-transparent px-1 outline-none text-center text-sm" value="${ic['lr_org_'+i]||''}"></td>
+                                                <td class="border-r border-b border-slate-200 p-1 text-[11px]">
+                                                    <div class="flex flex-col gap-1 items-start pl-1">
+                                                        <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="lr_use_${i}" value="이용" class="w-3.5 h-3.5 text-emerald-600" ${ic['lr_use_'+i]==='이용'?'checked':''}> 이용</label>
+                                                        <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="lr_use_${i}" value="미이용" class="w-3.5 h-3.5 text-emerald-600" ${ic['lr_use_'+i]==='미이용'?'checked':''}> 미이용</label>
+                                                    </div>
+                                                </td>
+                                                <td class="border-b border-slate-200 p-1 text-[11px]">
+                                                    <div class="flex flex-col gap-1 items-start pl-1">
+                                                        <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="lr_support_${i}" value="신청독려" class="w-3.5 h-3.5 text-emerald-600" ${ic['lr_support_'+i]==='신청독려'?'checked':''}> 신청독려</label>
+                                                        <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="lr_support_${i}" value="신청지원" class="w-3.5 h-3.5 text-emerald-600" ${ic['lr_support_'+i]==='신청지원'?'checked':''}> 신청지원</label>
+                                                    </div>
+                                                </td>
+                                            </tr>`).join('')}
+                                        </table>
+
+                                        <!-- 4. 종합 의견 -->
+                                        <table class="w-full border-collapse border-b border-slate-700">
+                                            <tr><th class="bg-slate-200 p-2 text-left border-y border-slate-700 font-bold text-base">■ 종합 의견</th></tr>
+                                            <tr>
+                                                <td class="p-3 border-b border-slate-400">
+                                                    <textarea name="comprehensiveOpinion" class="w-full min-h-[160px] outline-none resize-none bg-transparent leading-relaxed text-sm" placeholder="※ 구·군과 공유사항 기재\n○ 서비스 연계 상세 내용\n○ 대상자 특이사항\n○ 기타 사항 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${ic.comprehensiveOpinion || ''}</textarea>
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        <!-- 하단 범례 및 서명란 -->
+                                        <div class="mt-4 text-xs text-slate-600 px-4 space-y-1">
+                                            <p>※ <span class="font-bold">신청독려</span> : 서비스 신청 거부 시 최대 1개월간 서비스 이용 독려</p>
+                                            <p>※ <span class="font-bold">신청지원</span> : 신청서 작성지원 등 신청과정 지원</p>
+                                        </div>
+                                        
+                                        <div class="mt-8 flex flex-col items-center gap-5 pb-8 pt-4">
+                                            <!-- 날짜 영역 -->
+                                            <div class="flex items-center gap-3 text-base font-bold text-slate-800">
+                                                <input type="text" name="recordYear" class="w-16 text-center border-b border-slate-400 outline-none bg-transparent" value="${ic.recordYear || new Date().getFullYear()}"> 년
+                                                <input type="text" name="recordMonth" class="w-10 text-center border-b border-slate-400 outline-none bg-transparent" value="${ic.recordMonth || (new Date().getMonth()+1)}"> 월
+                                                <input type="text" name="recordDay" class="w-10 text-center border-b border-slate-400 outline-none bg-transparent" value="${ic.recordDay || new Date().getDate()}"> 일
+                                            </div>
+                                            <!-- 서명 영역 -->
+                                            <div class="w-full max-w-[280px] space-y-3">
+                                                <div class="flex justify-between items-center">
+                                                    <span class="font-bold text-base text-slate-800 w-24">소속기관 :</span>
+                                                    <input type="text" name="organization" class="flex-1 border-b border-slate-400 outline-none bg-transparent" value="${ic.organization || ''}">
+                                                </div>
+                                                <div class="flex justify-between items-center">
+                                                    <span class="font-bold text-base text-slate-800 w-24">담 당 자 :</span>
+                                                    <div class="flex items-center gap-2 flex-1">
+                                                        <input type="text" name="managerName" class="flex-1 border-b border-slate-400 outline-none text-center bg-transparent" value="${ic.managerName || ''}">
+                                                        <span class="text-sm font-bold text-slate-600">(서명)</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            ` : ''}
+                                ` : ''}
+                            </form>
                         </div>
                     </div>
                 `;
+                
                 showModal(html, false, targetContainerId);
                 if(window.lucide) lucide.createIcons();
             },
