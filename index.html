@@ -924,40 +924,40 @@
                     const sEnd = ev.endDate || ev.date || sStart;
                     
                     // 이어지는 느낌(Bar 형태)을 주기 위한 CSS 클래스 조립
-                    let radiusClass = 'rounded';
-                    let marginClass = 'mb-1 mx-0.5';
+                    let radiusClass = 'rounded-md';
+                    let marginClass = 'mx-1 sm:mx-2'; // 하루짜리 일정은 양옆 여백
                     let titleText = ev.title;
                     
                     if (sStart !== sEnd) {
                         if (dateStr === sStart) {
-                            radiusClass = 'rounded-l rounded-r-none border-r-0';
-                            marginClass = 'mb-1 ml-0.5 mr-0';
+                            radiusClass = 'rounded-l-md rounded-r-none border-r-0';
+                            marginClass = 'ml-1 sm:ml-2 mr-[-1px]'; // 오른쪽 셀과 딱 붙도록 여백 제거
                         } else if (dateStr === sEnd) {
-                            radiusClass = 'rounded-r rounded-l-none border-l-0';
-                            marginClass = 'mb-1 ml-0 mr-0.5';
+                            radiusClass = 'rounded-r-md rounded-l-none border-l-0';
+                            marginClass = 'ml-[-1px] mr-1 sm:mr-2'; // 왼쪽 셀과 딱 붙도록 여백 제거
                             titleText = '\u00A0'; // 중간이나 끝 부분은 제목 텍스트 투명 처리
                         } else {
                             radiusClass = 'rounded-none border-x-0';
-                            marginClass = 'mb-1 mx-0';
+                            marginClass = 'mx-[-1px]'; // 양쪽 다 딱 붙도록 여백 제거
                             titleText = '\u00A0'; 
                         }
                         
-                        // 단, 새로운 주(일요일)가 시작되거나 1일이면 끊기지 않게 제목 다시 표시
+                        // 단, 새로운 주(일요일)가 시작되거나 매월 1일이면 끊기지 않게 제목 다시 표시
                         if (dayOfWeek === 0 || d === 1) {
                             titleText = ev.title;
                         }
                     }
                     
-                    return `<div class="text-[10px] sm:text-xs p-1 border ${badgeColor} ${radiusClass} ${marginClass} truncate cursor-pointer transition-colors leading-tight" onclick="event.stopPropagation(); app.openScheduleModal('${ev.id}')" title="${ev.title}">${titleText}</div>`;
+                    return `<div class="text-[10px] sm:text-xs py-0.5 px-1.5 border ${badgeColor} ${radiusClass} ${marginClass} truncate cursor-pointer transition-colors leading-tight min-h-[22px]" onclick="event.stopPropagation(); app.openScheduleModal('${ev.id}')" title="${ev.title}">${titleText}</div>`;
                 }).join('');
 
                 cellsHTML += `
-                    <div class="p-1 sm:p-2 border-b border-r border-slate-200 bg-white min-h-[100px] md:min-h-[120px] cursor-pointer hover:bg-blue-50/30 transition-colors flex flex-col group relative" onclick="app.openScheduleModal(null, '${dateStr}')">
-                        <div class="flex justify-between items-start mb-1 px-1">
+                    <div class="py-1 sm:py-2 border-b border-r border-slate-200 bg-white min-h-[100px] md:min-h-[120px] cursor-pointer hover:bg-blue-50/30 transition-colors flex flex-col group relative overflow-x-hidden" onclick="app.openScheduleModal(null, '${dateStr}')">
+                        <div class="flex justify-between items-start mb-1 px-1 sm:px-2">
                             <span class="text-sm font-bold ${todayCircle}">${d}</span>
                             <span class="opacity-0 group-hover:opacity-100 text-slate-300 transition-opacity mt-0.5"><i data-lucide="plus" size="14"></i></span>
                         </div>
-                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                        <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-[2px]">
                             ${eventsHTML}
                         </div>
                     </div>
