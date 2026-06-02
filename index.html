@@ -864,11 +864,35 @@
             const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
             const currentDay = today.getDate();
 
+            const monthStartStr = `${year}-${String(month).padStart(2, '0')}-01`;
+            const monthEndStr = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+            
             const monthEvents = state.schedules.filter(s => {
-                if (!s.date || !s.date.startsWith(`${year}-${String(month).padStart(2, '0')}`)) return false;
+                const sStart = s.startDate || s.date;
+                const sEnd = s.endDate || s.date || sStart;
+                if (!sStart || !sEnd) return false;
+                if (sStart > monthEndStr || sEnd < monthStartStr) return false; // 이달을 벗어나는 일정 제외
                 if (category && s.category !== category) return false;
                 return true;
             });
+
+            // 알록달록한 동적 색상 팔레트 (분류에 맞춰 자동 배정)
+            const colorPalettes = [
+                'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-300',
+                'bg-purple-50 text-purple-700 border-purple-200 hover:border-purple-300',
+                'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-300',
+                'bg-orange-50 text-orange-700 border-orange-200 hover:border-orange-300',
+                'bg-rose-50 text-rose-700 border-rose-200 hover:border-rose-300',
+                'bg-teal-50 text-teal-700 border-teal-200 hover:border-teal-300',
+                'bg-indigo-50 text-indigo-700 border-indigo-200 hover:border-indigo-300',
+                'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-300'
+            ];
+            const getBadgeColor = (catName) => {
+                if (!catName) return 'bg-slate-100 text-slate-700 border-slate-200';
+                let hash = 0;
+                for (let i = 0; i < catName.length; i++) hash = catName.charCodeAt(i) + ((hash << 5) - hash);
+                return colorPalettes[Math.abs(hash) % colorPalettes.length];
+            };
 
             let cellsHTML = '';
             const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
@@ -881,7 +905,13 @@
             
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const dayEvents = monthEvents.filter(s => s.date === dateStr);
+                
+                const dayEvents = monthEvents.filter(s => {
+                    const sStart = s.startDate || s.date;
+                    const sEnd = s.endDate || s.date || sStart;
+                    return dateStr >= sStart && dateStr <= sEnd;
+                });
+                
                 const isToday = isCurrentMonth && d === currentDay;
                 const dayOfWeek = (firstDay + d - 1) % 7;
                 
@@ -889,12 +919,36 @@
                 const todayCircle = isToday ? `bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm` : colorClass;
                 
                 let eventsHTML = dayEvents.map(ev => {
-                    let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200 hover:border-slate-300';
-                    if (ev.category === '정기방문') badgeColor = 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-300';
-                    else if (ev.category === '사례회의') badgeColor = 'bg-purple-50 text-purple-700 border-purple-200 hover:border-purple-300';
-                    else if (ev.category === '행사/교육') badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-300';
+                    const badgeColor = getBadgeColor(ev.category);
+                    const sStart = ev.startDate || ev.date;
+                    const sEnd = ev.endDate || ev.date || sStart;
                     
-                    return `<div class="text-[10px] sm:text-xs mb-1 p-1 rounded border ${badgeColor} truncate cursor-pointer transition-colors" onclick="event.stopPropagation(); app.openScheduleModal('${ev.id}')" title="${ev.title}">${ev.title}</div>`;
+                    // 이어지는 느낌(Bar 형태)을 주기 위한 CSS 클래스 조립
+                    let radiusClass = 'rounded';
+                    let marginClass = 'mb-1 mx-0.5';
+                    let titleText = ev.title;
+                    
+                    if (sStart !== sEnd) {
+                        if (dateStr === sStart) {
+                            radiusClass = 'rounded-l rounded-r-none border-r-0';
+                            marginClass = 'mb-1 ml-0.5 mr-0';
+                        } else if (dateStr === sEnd) {
+                            radiusClass = 'rounded-r rounded-l-none border-l-0';
+                            marginClass = 'mb-1 ml-0 mr-0.5';
+                            titleText = '\u00A0'; // 중간이나 끝 부분은 제목 텍스트 투명 처리
+                        } else {
+                            radiusClass = 'rounded-none border-x-0';
+                            marginClass = 'mb-1 mx-0';
+                            titleText = '\u00A0'; 
+                        }
+                        
+                        // 단, 새로운 주(일요일)가 시작되거나 1일이면 끊기지 않게 제목 다시 표시
+                        if (dayOfWeek === 0 || d === 1) {
+                            titleText = ev.title;
+                        }
+                    }
+                    
+                    return `<div class="text-[10px] sm:text-xs p-1 border ${badgeColor} ${radiusClass} ${marginClass} truncate cursor-pointer transition-colors leading-tight" onclick="event.stopPropagation(); app.openScheduleModal('${ev.id}')" title="${ev.title}">${titleText}</div>`;
                 }).join('');
 
                 cellsHTML += `
@@ -2475,8 +2529,9 @@
                             <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
                         <form onsubmit="app.saveSchedule(event, '${id || ''}')" class="space-y-5">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div><label class="block text-sm font-bold text-slate-700 mb-1">일자</label><input type="date" name="date" class="input-field" value="${dateVal}" required></div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">시작 일자</label><input type="date" name="startDate" class="input-field" value="${s.startDate || s.date || today}" required></div>
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">종료 일자</label><input type="date" name="endDate" class="input-field" value="${s.endDate || s.date || today}" required></div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">분류</label>
                                     <select name="category" class="input-field" required>
