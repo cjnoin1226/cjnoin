@@ -927,10 +927,7 @@
                         <div class="flex items-center gap-2 w-full sm:w-auto">
                             <select class="input-field py-1.5 px-2 text-sm w-32 font-medium" onchange="app.setFilter('schedule', 'category', this.value)">
                                 <option value="">모든 일정</option>
-                                <option value="정기방문" ${category==='정기방문'?'selected':''}>정기방문</option>
-                                <option value="사례회의" ${category==='사례회의'?'selected':''}>사례회의</option>
-                                <option value="행사/교육" ${category==='행사/교육'?'selected':''}>행사/교육</option>
-                                <option value="기타" ${category==='기타'?'selected':''}>기타</option>
+                                ${[...new Set(state.services.map(srv => srv.name))].map(name => `<option value="${name}" ${category === name ? 'selected' : ''}>${name}</option>`).join('')}
                             </select>
                             <button onclick="app.openScheduleModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm whitespace-nowrap">
                                 <i data-lucide="plus" size="16"></i> 새 일정
@@ -2483,10 +2480,8 @@
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-1">분류</label>
                                     <select name="category" class="input-field" required>
-                                        <option value="정기방문" ${s.category === '정기방문' ? 'selected' : ''}>정기방문</option>
-                                        <option value="사례회의" ${s.category === '사례회의' ? 'selected' : ''}>사례회의</option>
-                                        <option value="행사/교육" ${s.category === '행사/교육' ? 'selected' : ''}>행사/교육</option>
-                                        <option value="기타" ${s.category === '기타' || !s.category ? 'selected' : ''}>기타</option>
+                                        <option value="">선택 (서비스 상세내용)</option>
+                                        ${[...new Set(state.services.map(srv => srv.name))].map(name => `<option value="${name}" ${s.category === name ? 'selected' : ''}>${name}</option>`).join('')}
                                     </select>
                                 </div>
                             </div>
