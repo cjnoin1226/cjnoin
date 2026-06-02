@@ -276,7 +276,7 @@
             <button onclick="app.setTab('meeting')" class="nav-link" data-tab="meeting">사례회의</button>
             <button onclick="app.setTab('statistics')" class="nav-link" data-tab="statistics">통계</button>
             <button onclick="app.setTab('performance')" class="nav-link" data-tab="performance">실적 관리</button>
-            <!-- 통합돌봄 추가 -->
+            <button onclick="app.setTab('schedule')" class="nav-link" data-tab="schedule">사업일정</button>
             <button onclick="app.setTab('integratedCare')" class="nav-link" data-tab="integratedCare">통합돌봄</button>
             <button onclick="app.setTab('services')" class="nav-link" data-tab="services">서비스 설정</button>
         </nav>
@@ -303,7 +303,7 @@
             <button onclick="app.setTab('meeting')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="meeting">사례회의</button>
             <button onclick="app.setTab('statistics')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="statistics">통계</button>
             <button onclick="app.setTab('performance')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="performance">실적 관리</button>
-            <!-- 통합돌봄 추가 -->
+            <button onclick="app.setTab('schedule')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="schedule">사업일정</button>
             <button onclick="app.setTab('integratedCare')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="integratedCare">통합돌봄</button>
             <button onclick="app.setTab('services')" class="nav-link w-full justify-start py-2.5" data-tab-mobile="services">서비스 설정</button>
             <div class="border-t border-slate-700 my-2 pt-2">
@@ -412,7 +412,8 @@
             logs: '서비스 일지',
             meeting: '사례회의',
             performance: '실적 관리',
-            integratedCare: '통합돌봄', // 추가됨
+            schedule: '사업일정',
+            integratedCare: '통합돌봄',
             statistics: '통계',
             services: '서비스 설정'
         };
@@ -433,6 +434,7 @@
             services: [],
             logs: [],
             meetings: [], 
+            schedules: [],
             integratedCares: [], // <-- 통합돌봄 데이터를 담을 배열 추가
             icRecords: [],       // [신규] 통합돌봄 연계결과지 내역을 따로 담을 배열 추가
             icModalTab: 'basic', // [신규] 통합돌봄 모달창 내부 탭 상태
@@ -496,6 +498,7 @@
                     type: 'detail', region: [], name: '', months: [], targetYear: ''
                 },
                performance: { year: new Date().getFullYear(), months: Array.from({length: 12}, (_, i) => i + 1), viewMode: 'monthRows' },
+               schedule: { year: new Date().getFullYear(), month: new Date().getMonth() + 1, category: '' },
                 integratedCare: { start: '', end: '', searchName: '', status: '' }
             }
         };
@@ -656,9 +659,18 @@
                 }, handleErr);
             }, 4000);
 
+            // 사업일정 실시간 리스너 추가
+            onSnapshot(query(collection(db, "schedules"), orderBy("date", "asc")), (snap) => {
+                state.schedules = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                if (!state.isBatching) render();
+            }, handleErr);
+
             // [신규] 통합돌봄 대상자 실시간 로딩
             onSnapshot(query(collection(db, "integratedCares"), orderBy("createdAt", "desc")), (snap) => {
-                state.integratedCares = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            // 사업일정 실시간 리스너 추가
+            onSnapshot(query(collection(db, "schedules"), orderBy("date", "asc")), (snap) => {
+                state.schedules = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (!state.isBatching) render();
             }, handleErr);
 
@@ -779,6 +791,7 @@
             if (tabName === 'logs') return renderLogManager();
             if (tabName === 'meeting') return renderMeetingManager(); // [신규] 회의록 화면 연결
             if (tabName === 'performance') return renderPerformance();
+            if (tabName === 'schedule') return renderScheduleManager();
             if (tabName === 'integratedCare') return renderIntegratedCare();
             if (tabName === 'statistics') return renderStatistics();
             if (tabName === 'services') return renderServiceManager();
@@ -842,6 +855,108 @@
                 }
             }
             // [포커스 복구 끝]
+        }
+
+        function renderScheduleManager() {
+            const { year, month, category } = state.filters.schedule;
+            
+            const firstDay = new Date(year, month - 1, 1).getDay();
+            const daysInMonth = new Date(year, month, 0).getDate();
+            
+            const today = new Date();
+            const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
+            const currentDay = today.getDate();
+
+            const monthEvents = state.schedules.filter(s => {
+                if (!s.date || !s.date.startsWith(`${year}-${String(month).padStart(2, '0')}`)) return false;
+                if (category && s.category !== category) return false;
+                return true;
+            });
+
+            let cellsHTML = '';
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+            
+            cellsHTML += dayNames.map((d, i) => `<div class="p-2 text-center font-bold text-sm border-b border-slate-200 ${i===0?'text-red-500':(i===6?'text-blue-500':'text-slate-600')} bg-slate-50">${d}</div>`).join('');
+            
+            for (let i = 0; i < firstDay; i++) {
+                cellsHTML += `<div class="p-2 border-b border-r border-slate-200 bg-slate-50/50 min-h-[100px] md:min-h-[120px]"></div>`;
+            }
+            
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const dayEvents = monthEvents.filter(s => s.date === dateStr);
+                const isToday = isCurrentMonth && d === currentDay;
+                const dayOfWeek = (firstDay + d - 1) % 7;
+                
+                const colorClass = dayOfWeek === 0 ? 'text-red-500' : (dayOfWeek === 6 ? 'text-blue-500' : 'text-slate-700');
+                const todayCircle = isToday ? `bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm` : colorClass;
+                
+                let eventsHTML = dayEvents.map(ev => {
+                    let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200 hover:border-slate-300';
+                    if (ev.category === '정기방문') badgeColor = 'bg-blue-50 text-blue-700 border-blue-200 hover:border-blue-300';
+                    else if (ev.category === '사례회의') badgeColor = 'bg-purple-50 text-purple-700 border-purple-200 hover:border-purple-300';
+                    else if (ev.category === '행사/교육') badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:border-emerald-300';
+                    
+                    return `<div class="text-[10px] sm:text-xs mb-1 p-1 rounded border ${badgeColor} truncate cursor-pointer transition-colors" onclick="event.stopPropagation(); app.openScheduleModal('${ev.id}')" title="${ev.title}">${ev.title}</div>`;
+                }).join('');
+
+                cellsHTML += `
+                    <div class="p-1 sm:p-2 border-b border-r border-slate-200 bg-white min-h-[100px] md:min-h-[120px] cursor-pointer hover:bg-blue-50/30 transition-colors flex flex-col group relative" onclick="app.openScheduleModal(null, '${dateStr}')">
+                        <div class="flex justify-between items-start mb-1 px-1">
+                            <span class="text-sm font-bold ${todayCircle}">${d}</span>
+                            <span class="opacity-0 group-hover:opacity-100 text-slate-300 transition-opacity mt-0.5"><i data-lucide="plus" size="14"></i></span>
+                        </div>
+                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                            ${eventsHTML}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            const totalCells = firstDay + daysInMonth;
+            const remainder = totalCells % 7;
+            if (remainder !== 0) {
+                for (let i = 0; i < 7 - remainder; i++) {
+                    cellsHTML += `<div class="p-2 border-b border-r border-slate-200 bg-slate-50/50 min-h-[100px] md:min-h-[120px]"></div>`;
+                }
+            }
+
+            return `
+                <div class="flex flex-col animate-fade-in h-full">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1 mb-4 flex-shrink-0">
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">
+                            <i data-lucide="calendar-days" class="mr-2 text-emerald-600"></i> 사업일정 ${getLoadingTag()}
+                        </h2>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <select class="input-field py-1.5 px-2 text-sm w-32 font-medium" onchange="app.setFilter('schedule', 'category', this.value)">
+                                <option value="">모든 일정</option>
+                                <option value="정기방문" ${category==='정기방문'?'selected':''}>정기방문</option>
+                                <option value="사례회의" ${category==='사례회의'?'selected':''}>사례회의</option>
+                                <option value="행사/교육" ${category==='행사/교육'?'selected':''}>행사/교육</option>
+                                <option value="기타" ${category==='기타'?'selected':''}>기타</option>
+                            </select>
+                            <button onclick="app.openScheduleModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm whitespace-nowrap">
+                                <i data-lucide="plus" size="16"></i> 새 일정
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-t-xl border border-b-0 border-slate-200 flex justify-between items-center flex-shrink-0">
+                        <button onclick="app.changeScheduleMonth(-1)" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><i data-lucide="chevron-left"></i></button>
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-lg md:text-xl font-bold text-slate-800">${year}년 ${month}월</h3>
+                            <button onclick="app.changeScheduleMonth(0)" class="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded hover:bg-slate-200 font-bold transition-colors">오늘</button>
+                        </div>
+                        <button onclick="app.changeScheduleMonth(1)" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><i data-lucide="chevron-right"></i></button>
+                    </div>
+
+                    <div class="flex-1 bg-white rounded-b-xl border border-slate-200 overflow-hidden flex flex-col mb-4 min-h-[500px]">
+                        <div class="grid grid-cols-7 flex-1 border-l border-t border-slate-200 [&>div:nth-child(7n)]:border-r-0">
+                            ${cellsHTML}
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function renderDashboard() {
@@ -2352,6 +2467,83 @@
         }
 
         window.app = {
+            openScheduleModal: (id = null, prefillDate = null) => {
+                const s = id ? state.schedules.find(x => x.id === id) : {};
+                const today = new Date().toISOString().split('T')[0];
+                const dateVal = s.date || prefillDate || today;
+
+                const html = `
+                    <div class="bg-white w-full max-w-lg p-6 rounded-xl shadow-2xl mx-4">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
+                                <i data-lucide="calendar" class="text-blue-600"></i> ${id ? '일정 수정' : '새 일정 등록'}
+                            </h3>
+                            <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                        </div>
+                        <form onsubmit="app.saveSchedule(event, '${id || ''}')" class="space-y-5">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="block text-sm font-bold text-slate-700 mb-1">일자</label><input type="date" name="date" class="input-field" value="${dateVal}" required></div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-1">분류</label>
+                                    <select name="category" class="input-field" required>
+                                        <option value="정기방문" ${s.category === '정기방문' ? 'selected' : ''}>정기방문</option>
+                                        <option value="사례회의" ${s.category === '사례회의' ? 'selected' : ''}>사례회의</option>
+                                        <option value="행사/교육" ${s.category === '행사/교육' ? 'selected' : ''}>행사/교육</option>
+                                        <option value="기타" ${s.category === '기타' || !s.category ? 'selected' : ''}>기타</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div><label class="block text-sm font-bold text-slate-700 mb-1">일정 제목</label><input type="text" name="title" class="input-field" value="${s.title || ''}" placeholder="일정 제목을 입력하세요" required></div>
+                            <div><label class="block text-sm font-bold text-slate-700 mb-1">담당자 (참석자)</label><input type="text" name="writer" class="input-field" value="${s.writer || ''}" placeholder="담당자 또는 참석자 이름"></div>
+                            <div><label class="block text-sm font-bold text-slate-700 mb-1">상세 내용</label><textarea name="content" class="input-field h-24" placeholder="장소, 시간 등 상세한 내용을 적어주세요.">${s.content || ''}</textarea></div>
+                            <div class="flex justify-between pt-4 border-t border-slate-100 mt-6">
+                                <div>${id ? `<button type="button" onclick="app.deleteData('schedules', '${id}')" class="px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 font-bold transition-colors">삭제</button>` : '<div></div>'}</div>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-medium">취소</button>
+                                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold shadow-sm transition-colors">저장</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                `;
+                showModal(html);
+                if(window.lucide) lucide.createIcons();
+            },
+            saveSchedule: async (e, id) => {
+                e.preventDefault();
+                if (state.isSaving) return;
+                const fd = new FormData(e.target);
+                const data = Object.fromEntries(fd.entries());
+                state.isSaving = true;
+                try {
+                    if (id) {
+                        await updateDoc(doc(db, "schedules", id), data);
+                        app.showToast("일정이 수정되었습니다.");
+                    } else {
+                        data.createdAt = new Date().toISOString();
+                        await addDoc(collection(db, "schedules"), data);
+                        app.showToast("새 일정이 등록되었습니다.");
+                    }
+                    app.closeModal();
+                    if (state.viewMode === 'single') updateTabContent('schedule'); else render();
+                } catch (err) { alert("저장 실패: " + err.message); } finally { state.isSaving = false; }
+            },
+            changeScheduleMonth: (offset) => {
+                if (offset === 0) {
+                    const now = new Date();
+                    state.filters.schedule.year = now.getFullYear();
+                    state.filters.schedule.month = now.getMonth() + 1;
+                } else {
+                    let y = state.filters.schedule.year;
+                    let m = state.filters.schedule.month;
+                    m += offset;
+                    if (m > 12) { m = 1; y++; }
+                    if (m < 1) { m = 12; y--; }
+                    state.filters.schedule.year = y;
+                    state.filters.schedule.month = m;
+                }
+                if (state.viewMode === 'single') updateTabContent('schedule'); else render();
+            },
             // [수정] 입력 폼 자동 포맷팅 (생년월일용과 연계일자용 분리)
             formatShortDateInput: (el) => {
                 let v = el.value.replace(/[^0-9]/g, '');
@@ -3690,6 +3882,9 @@
                 } else if (section === 'integratedCare') {
                     state.filters.integratedCare = { start: '', end: '', searchName: '', status: '' };
                     if(state.viewMode==='single') updateTabContent('integratedCare');
+                } else if (section === 'schedule') {
+                    state.filters.schedule = { year: new Date().getFullYear(), month: new Date().getMonth() + 1, category: '' };
+                    if(state.viewMode==='single') updateTabContent('schedule');
                 }
                 if (state.viewMode !== 'single') render();
             },
