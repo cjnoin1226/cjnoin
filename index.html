@@ -1035,7 +1035,14 @@
                                         <div class="space-y-1.5 flex-1">
                                             ${mEvents.map(ev => {
                                                 const badgeColor = getBadgeColor(ev.category);
-                                                return `<div class="text-[10px] sm:text-xs py-0.5 px-1.5 border ${badgeColor} rounded truncate transition-colors leading-tight" title="${ev.title}">${ev.title}</div>`;
+                                                const sDate = ev.startDate || ev.date || '';
+                                                const eDate = ev.endDate || ev.date || sDate;
+                                                const dateStr = sDate === eDate ? sDate.substring(8) + '일' : sDate.substring(8) + '일~' + eDate.substring(8) + '일';
+                                                
+                                                return `<div class="text-[10px] sm:text-xs py-0.5 px-1.5 border ${badgeColor} rounded transition-colors leading-tight flex items-start gap-1" title="[${sDate} ~ ${eDate}] ${ev.title}">
+                                                    <span class="font-bold opacity-60 shrink-0 mt-[1px]">${dateStr}</span>
+                                                    <span class="truncate leading-snug">${ev.title}</span>
+                                                </div>`;
                                             }).join('')}
                                         </div>
                                     </div>`;
