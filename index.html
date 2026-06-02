@@ -2295,11 +2295,11 @@
                     rows += '<div class="w-[14%] text-center text-xs text-slate-600">' + (ic.phone || '-') + '</div>';
                     rows += '<div class="w-[10%] text-center"><span class="px-2 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700 text-[11px] font-bold">' + (ic.economicStatus || '미지정') + '</span></div>';
                     
-                    // [신규] 상태 셀 추가
-                    rows += '<div class="w-[8%] text-center"><span class="px-1.5 py-0.5 rounded border ' + statusClass + ' text-[11px] font-bold whitespace-nowrap">' + statusText + '</span></div>';
-
-                    // [수정] 연계기간 셀 (너비 축소)
+                    // [수정] 연계기간 셀을 먼저 배치 (상태 배지 왼쪽)
                     rows += '<div class="w-[16%] text-center text-xs text-slate-500 font-medium tracking-tight">' + period + '</div>';
+
+                    // [신규] 상태 셀을 연계기간 뒤(오른쪽)에 배치
+                    rows += '<div class="w-[8%] text-center"><span class="px-1.5 py-0.5 rounded border ' + statusClass + ' text-[11px] font-bold whitespace-nowrap">' + statusText + '</span></div>';
                     
                     rows += '<div class="w-[8%] flex justify-center gap-1">';
                     rows += '<button onclick="event.stopPropagation(); app.deleteData(\'integratedCares\', \'' + ic.id + '\')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>';
