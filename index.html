@@ -1039,10 +1039,10 @@
                                                 const eDate = ev.endDate || ev.date || sDate;
                                                 const dateStr = sDate === eDate ? sDate.substring(8) + '일' : sDate.substring(8) + '일~' + eDate.substring(8) + '일';
                                                 
-                                                // [수정] 날짜는 회색 네모칸, 제목은 알록달록하게 디자인 분리
-                                                return `<div class="text-[10px] sm:text-xs border ${badgeColor} rounded overflow-hidden transition-colors leading-tight flex items-center" title="[${sDate} ~ ${eDate}] ${ev.title}">
-                                                    <div class="bg-slate-100 text-slate-600 font-bold px-1.5 py-1 border-r border-slate-200 shrink-0 h-full flex items-center justify-center">${dateStr}</div>
-                                                    <div class="px-1.5 py-1 truncate leading-snug font-medium flex-1">${ev.title}</div>
+                                                // [수정] 날짜 배지와 제목 배지를 별도의 네모 칸으로 완전 분리, 제목은 글자 길이에 맞춰 조절
+                                                return `<div class="text-[10px] sm:text-xs transition-colors leading-tight flex items-center gap-1.5" title="[${sDate} ~ ${eDate}] ${ev.title}">
+                                                    <div class="bg-slate-100 text-slate-600 font-bold px-1.5 py-1 rounded border border-slate-200 shrink-0 flex items-center justify-center">${dateStr}</div>
+                                                    <div class="px-1.5 py-1 rounded border ${badgeColor} font-medium truncate shrink min-w-0">${ev.title}</div>
                                                 </div>`;
                                             }).join('')}
                                         </div>
