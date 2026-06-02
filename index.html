@@ -915,8 +915,18 @@
                 const isToday = isCurrentMonth && d === currentDay;
                 const dayOfWeek = (firstDay + d - 1) % 7;
                 
-                const colorClass = dayOfWeek === 0 ? 'text-red-500' : (dayOfWeek === 6 ? 'text-blue-500' : 'text-slate-700');
+                // [신규] 공휴일 데이터 (24년~26년 기본 세팅)
+                const KOR_HOLIDAYS = {
+                    '2024-01-01': '신정', '2024-02-09': '설연휴', '2024-02-10': '설날', '2024-02-11': '설연휴', '2024-02-12': '대체휴일', '2024-03-01': '삼일절', '2024-04-10': '선거일', '2024-05-05': '어린이날', '2024-05-06': '대체휴일', '2024-05-15': '부처님오신날', '2024-06-06': '현충일', '2024-08-15': '광복절', '2024-09-16': '추석연휴', '2024-09-17': '추석', '2024-09-18': '추석연휴', '2024-10-01': '국군의날', '2024-10-03': '개천절', '2024-10-09': '한글날', '2024-12-25': '성탄절',
+                    '2025-01-01': '신정', '2025-01-28': '설연휴', '2025-01-29': '설날', '2025-01-30': '설연휴', '2025-03-03': '대체휴일', '2025-05-05': '어린이날', '2025-05-06': '대체휴일', '2025-06-06': '현충일', '2025-08-15': '광복절', '2025-10-03': '개천절', '2025-10-05': '추석연휴', '2025-10-06': '추석', '2025-10-07': '추석연휴', '2025-10-08': '대체휴일', '2025-10-09': '한글날', '2025-12-25': '성탄절',
+                    '2026-01-01': '신정', '2026-02-16': '설연휴', '2026-02-17': '설날', '2026-02-18': '설연휴', '2026-03-02': '대체휴일', '2026-05-05': '어린이날', '2026-05-24': '부처님오신날', '2026-05-25': '대체휴일', '2026-06-06': '현충일', '2026-08-15': '광복절', '2026-08-17': '대체휴일', '2026-09-24': '추석연휴', '2026-09-25': '추석', '2026-09-26': '추석연휴', '2026-10-03': '개천절', '2026-10-09': '한글날', '2026-12-25': '성탄절'
+                };
+                const holidayName = KOR_HOLIDAYS[dateStr];
+
+                // [수정] 일요일이거나 공휴일 목록에 있으면 빨간색 적용
+                const colorClass = (dayOfWeek === 0 || holidayName) ? 'text-red-500' : (dayOfWeek === 6 ? 'text-blue-500' : 'text-slate-700');
                 const todayCircle = isToday ? `bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm` : colorClass;
+                const holidayLabel = holidayName ? `<span class="text-[10px] text-red-400 font-bold ml-1">${holidayName}</span>` : '';
                 
                 let eventsHTML = dayEvents.map(ev => {
                     const badgeColor = getBadgeColor(ev.category);
@@ -954,7 +964,10 @@
                 cellsHTML += `
                     <div class="py-1 sm:py-2 border-b border-r border-slate-200 bg-white min-h-[100px] md:min-h-[120px] cursor-pointer hover:bg-blue-50/30 transition-colors flex flex-col group relative overflow-x-hidden" onclick="app.openScheduleModal(null, '${dateStr}')">
                         <div class="flex justify-between items-start mb-1 px-1 sm:px-2">
-                            <span class="text-sm font-bold ${todayCircle}">${d}</span>
+                            <div class="flex items-center">
+                                <span class="text-sm font-bold ${todayCircle}">${d}</span>
+                                ${holidayLabel}
+                            </div>
                             <span class="opacity-0 group-hover:opacity-100 text-slate-300 transition-opacity mt-0.5"><i data-lucide="plus" size="14"></i></span>
                         </div>
                         <div class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col gap-[2px]">
