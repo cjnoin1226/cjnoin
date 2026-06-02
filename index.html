@@ -997,14 +997,13 @@
                         </div>
                     </div>
 
-                    <div class="bg-white p-3 rounded-t-xl border border-b-0 border-slate-200 flex justify-between items-center flex-shrink-0">
-                        <button onclick="app.changeScheduleMonth(-1)" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><i data-lucide="chevron-left"></i></button>
-                        <div class="flex items-center gap-3">
-                            <!-- [수정] 텍스트 대신 연/월을 직접 타이핑하거나 선택할 수 있는 input으로 변경 -->
+                    <div class="bg-white p-3 rounded-t-xl border border-b-0 border-slate-200 flex justify-center items-center flex-shrink-0 relative">
+                        <div class="flex items-center gap-2">
+                            <button onclick="app.changeScheduleMonth(-1)" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><i data-lucide="chevron-left"></i></button>
                             <input type="month" value="${year}-${String(month).padStart(2, '0')}" onchange="app.setScheduleMonth(this.value)" class="text-lg md:text-xl font-bold text-slate-800 bg-transparent border-0 cursor-pointer outline-none hover:bg-slate-100 rounded px-2 py-1 transition-colors">
-                            <button onclick="app.changeScheduleMonth(0)" class="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded hover:bg-slate-200 font-bold transition-colors">오늘</button>
+                            <button onclick="app.changeScheduleMonth(1)" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><i data-lucide="chevron-right"></i></button>
+                            <button onclick="app.changeScheduleMonth(0)" class="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded hover:bg-slate-200 font-bold transition-colors ml-2">오늘</button>
                         </div>
-                        <button onclick="app.changeScheduleMonth(1)" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><i data-lucide="chevron-right"></i></button>
                     </div>
 
                     <div class="flex-1 bg-white rounded-b-xl border border-slate-200 overflow-hidden flex flex-col mb-4 min-h-[500px]">
