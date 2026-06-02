@@ -667,10 +667,7 @@
 
             // [신규] 통합돌봄 대상자 실시간 로딩
             onSnapshot(query(collection(db, "integratedCares"), orderBy("createdAt", "desc")), (snap) => {
-
-            // 사업일정 실시간 리스너 추가
-            onSnapshot(query(collection(db, "schedules"), orderBy("date", "asc")), (snap) => {
-                state.schedules = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                state.integratedCares = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (!state.isBatching) render();
             }, handleErr);
 
