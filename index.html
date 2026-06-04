@@ -1034,10 +1034,6 @@
                             <button onclick="app.openScheduleListModal()" class="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg flex items-center gap-1 text-sm font-bold hover:bg-blue-100 transition-colors shadow-sm whitespace-nowrap">
                                 <i data-lucide="list" size="14"></i> 등록된 일정
                             </button>
-                            <!-- [신규] 공휴일 직접 지정 버튼 -->
-                            <button onclick="app.openHolidayModal()" class="bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg flex items-center gap-1 text-sm font-bold hover:bg-rose-100 transition-colors shadow-sm whitespace-nowrap">
-                                <i data-lucide="calendar-heart" size="14"></i> 공휴일 관리
-                            </button>
                             <select class="input-field py-1.5 px-2 text-sm w-32 font-medium" onchange="app.setFilter('schedule', 'category', this.value)">
                                 <option value="">모든 일정</option>
                                 ${[...new Set(state.services.map(srv => srv.name))].map(name => `<option value="${name}" ${category === name ? 'selected' : ''}>${name}</option>`).join('')}
@@ -1055,6 +1051,7 @@
                             <button onclick="app.changeScheduleMonth(1)" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"><i data-lucide="chevron-right"></i></button>
                             <button onclick="app.changeScheduleMonth(0)" class="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded hover:bg-slate-200 font-bold transition-colors ml-2">오늘</button>
                         </div>
+                        <button onclick="app.openHolidayModal()" class="absolute right-3 text-xs text-rose-500 font-bold hover:text-rose-700 hover:bg-rose-50 px-2 py-1 rounded transition-colors cursor-pointer">공휴일</button>
                     </div>
 
                     <div class="flex-1 bg-white rounded-b-xl border border-slate-200 overflow-hidden flex flex-col mb-4 min-h-[500px]">
