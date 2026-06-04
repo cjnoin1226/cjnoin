@@ -4071,7 +4071,23 @@
                     }
                 });
 
-                targetLogs.sort((a, b) => a.date.localeCompare(b.date));
+                // [신규] 다중 정렬 로직 적용
+                if (!state.ui.perfDetailSortArray) state.ui.perfDetailSortArray = [{ key: 'date', order: 'desc' }];
+                const sortArr = state.ui.perfDetailSortArray;
+
+                targetLogs.sort((a, b) => {
+                    for (let i = 0; i < sortArr.length; i++) {
+                        const { key, order } = sortArr[i];
+                        let valA = a[key] || '';
+                        let valB = b[key] || '';
+                        if (valA !== valB) {
+                            return order === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                        }
+                    }
+                    // 동률일 경우 기본 정렬 (최신 날짜 > 이름순)
+                    if (a.date !== b.date) return b.date.localeCompare(a.date);
+                    return (a.clientName || '').localeCompare(b.clientName || '');
+                });
 
                 // 엑셀 복붙이 쉽도록 table 구성
                 const trs = targetLogs.map((l, idx) => `
@@ -4084,7 +4100,22 @@
                     </tr>
                 `).join('');
 
-                // [수정] 모달 넓이 확보 (max-w-lg -> max-w-2xl)
+                // [신규] 클릭 가능한 정렬 헤더 생성기
+                const renderTh = (key, label, widthClass) => {
+                    const sortIdx = sortArr.findIndex(item => item.key === key);
+                    const isActive = sortIdx > -1;
+                    const sortOrder = isActive ? sortArr[sortIdx].order : null;
+                    
+                    const badge = isActive ? `<span class="bg-emerald-500 text-white rounded-full w-[14px] h-[14px] inline-flex items-center justify-center text-[9px] font-bold ml-1 align-middle">${sortIdx + 1}</span>` : '';
+                    const icon = isActive ? (sortOrder === 'asc' ? '<i data-lucide="arrow-up" class="inline w-3 h-3 ml-0.5"></i>' : '<i data-lucide="arrow-down" class="inline w-3 h-3 ml-0.5"></i>') : '<i data-lucide="minus" class="inline w-3 h-3 ml-0.5 opacity-30"></i>';
+                    const colorClass = isActive ? 'text-emerald-700 bg-emerald-50' : 'text-slate-700 hover:bg-slate-200';
+                    
+                    return `<th class="p-2 border-r border-b border-slate-300 ${widthClass} ${colorClass} cursor-pointer transition-colors select-none" onclick="app.togglePerfDetailSort('${key}', '${year}', ${month}, '${category}', '${serviceName}')">
+                        <div class="flex items-center justify-center">${label} ${badge} ${icon}</div>
+                    </th>`;
+                };
+
+                // [수정] 모달 넓이 확보 및 정렬 초기화 버튼 추가
                 const html = `
                     <div class="bg-white w-full max-w-2xl p-6 rounded-xl shadow-2xl mx-4 max-h-[85vh] flex flex-col">
                         <div class="flex justify-between items-center mb-4 flex-shrink-0">
@@ -4097,19 +4128,25 @@
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
                         
-                        <div class="bg-blue-50 p-2 rounded text-xs text-blue-700 mb-3 border border-blue-100 flex-shrink-0 flex items-center gap-1.5">
-                            <i data-lucide="info" size="14"></i> 표를 마우스로 드래그해서 복사(Ctrl+C) 후 엑셀에 붙여넣기(Ctrl+V) 하세요.
+                        <div class="flex justify-between items-center bg-blue-50 p-2 rounded text-xs text-blue-700 mb-3 border border-blue-100 flex-shrink-0 gap-1.5">
+                            <div class="flex items-center gap-1.5">
+                                <i data-lucide="info" size="14"></i> 표를 마우스로 드래그해서 복사(Ctrl+C) 후 엑셀에 붙여넣기 하세요.
+                            </div>
+                            <!-- [신규] 정렬 초기화 버튼 -->
+                            <button onclick="state.ui.perfDetailSortArray = []; app.showPerformanceDetail('${year}', ${month}, '${category}', '${serviceName}');" class="flex items-center gap-1 px-2 py-1 bg-white border border-blue-200 text-blue-600 rounded hover:bg-blue-100 transition-colors font-bold shadow-sm">
+                                <i data-lucide="rotate-ccw" size="12"></i> 정렬 초기화
+                            </button>
                         </div>
 
                         <div class="overflow-y-auto flex-1 border border-slate-300 rounded custom-scrollbar bg-white">
                             <table class="w-full text-sm text-left border-collapse" style="border-collapse: collapse;">
-                                <thead class="bg-slate-100 text-slate-700 font-bold sticky top-0 shadow-sm">
+                                <thead class="bg-slate-100 text-slate-700 font-bold sticky top-0 shadow-sm z-10">
                                     <tr>
                                         <th class="p-2 text-center border-r border-b border-slate-300 w-[8%]">No</th>
-                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[18%]">날짜</th>
-                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[18%]">대상자</th>
-                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[41%]">서비스 메모</th>
-                                        <th class="p-2 text-center border-b border-slate-300 w-[15%]">제공자</th>
+                                        ${renderTh('date', '날짜', 'w-[18%]')}
+                                        ${renderTh('clientName', '대상자', 'w-[18%]')}
+                                        ${renderTh('extractedMemo', '서비스 메모', 'w-[41%]')}
+                                        ${renderTh('provider', '제공자', 'w-[15%] border-r-0')}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -4125,6 +4162,30 @@
                 
                 showDialog(html);
                 if(window.lucide) lucide.createIcons();
+            },
+
+            // [신규] 실적 관리 상세 내역 다중 정렬 토글 함수
+            togglePerfDetailSort: (key, year, month, category, serviceName) => {
+                if (!state.ui.perfDetailSortArray) state.ui.perfDetailSortArray = [];
+                let sortArr = state.ui.perfDetailSortArray;
+                const existIdx = sortArr.findIndex(item => item.key === key);
+
+                if (existIdx > -1) {
+                    // 처음 누른 상태(기본 방향)이면 반대로 뒤집고, 이미 뒤집혔다면 끕니다(제거)
+                    const initialOrder = (key === 'date') ? 'desc' : 'asc';
+                    if (sortArr[existIdx].order === initialOrder) {
+                        sortArr[existIdx].order = initialOrder === 'desc' ? 'asc' : 'desc';
+                    } else {
+                        sortArr.splice(existIdx, 1); 
+                    }
+                } else {
+                    // 날짜는 최신순(desc)이 기본, 나머지는 가나다순(asc)이 기본
+                    sortArr.push({ key: key, order: (key === 'date') ? 'desc' : 'asc' });
+                }
+                
+                state.ui.perfDetailSortArray = sortArr;
+                // 정렬 후 모달창을 부드럽게 다시 그려줍니다.
+                app.showPerformanceDetail(year, month, category, serviceName);
             },
 
             // [신규] 통계 연도 필터 간편 설정 함수
