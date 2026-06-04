@@ -1598,9 +1598,9 @@
                                 </select>
 
                                 <div class="flex items-center gap-2 w-full sm:w-auto px-2 bg-slate-50 rounded-lg border border-slate-200 h-9">
-                                    <input type="date" id="log-filter-start" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${start}" max="9999-12-31">
+                                    <input type="date" id="log-filter-start" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${start}" onchange="app.setFilter('log','start',this.value, false)" max="9999-12-31">
                                     <span class="text-slate-400">~</span>
-                                    <input type="date" id="log-filter-end" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${end}" max="9999-12-31">
+                                    <input type="date" id="log-filter-end" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
                                     <!-- [수정] 조회 버튼에 새로운 검색 함수 연결 -->
                                     <button onmousedown="event.stopPropagation()" onclick="app.searchLogsByDateRange()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
                                 </div>
