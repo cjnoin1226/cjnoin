@@ -4071,8 +4071,8 @@
                     }
                 });
 
-                // [신규] 다중 정렬 로직 적용
-                if (!state.ui.perfDetailSortArray) state.ui.perfDetailSortArray = [{ key: 'date', order: 'desc' }];
+                // [신규] 다중 정렬 로직 적용 (기본 표시는 숨김)
+                if (!state.ui.perfDetailSortArray) state.ui.perfDetailSortArray = [];
                 const sortArr = state.ui.perfDetailSortArray;
 
                 targetLogs.sort((a, b) => {
@@ -4132,8 +4132,8 @@
                             <div class="flex items-center gap-1.5">
                                 <i data-lucide="info" size="14"></i> 표를 마우스로 드래그해서 복사(Ctrl+C) 후 엑셀에 붙여넣기 하세요.
                             </div>
-                            <!-- [신규] 정렬 초기화 버튼 -->
-                            <button onclick="state.ui.perfDetailSortArray = []; app.showPerformanceDetail('${year}', ${month}, '${category}', '${serviceName}');" class="flex items-center gap-1 px-2 py-1 bg-white border border-blue-200 text-blue-600 rounded hover:bg-blue-100 transition-colors font-bold shadow-sm">
+                            <!-- [수정] 작동하지 않던 정렬 초기화 버튼 수정 -->
+                            <button onclick="app.resetPerfDetailSort('${year}', ${month}, '${category}', '${serviceName}')" class="flex items-center gap-1 px-2 py-1 bg-white border border-blue-200 text-blue-600 rounded hover:bg-blue-100 transition-colors font-bold shadow-sm">
                                 <i data-lucide="rotate-ccw" size="12"></i> 정렬 초기화
                             </button>
                         </div>
@@ -4185,6 +4185,12 @@
                 
                 state.ui.perfDetailSortArray = sortArr;
                 // 정렬 후 모달창을 부드럽게 다시 그려줍니다.
+                app.showPerformanceDetail(year, month, category, serviceName);
+            },
+
+            // [신규] 실적 관리 상세 내역 정렬 초기화 함수
+            resetPerfDetailSort: (year, month, category, serviceName) => {
+                state.ui.perfDetailSortArray = [];
                 app.showPerformanceDetail(year, month, category, serviceName);
             },
 
