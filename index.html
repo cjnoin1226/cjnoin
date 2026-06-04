@@ -10651,17 +10651,22 @@
                 const ic = state.integratedCares.find(x => x.id === id);
                 if (!ic) return alert("데이터를 찾을 수 없습니다.");
 
-                // [신규] 인쇄 시에도 작성된 줄 수를 똑같이 계산합니다.
-                let spIndices = Object.keys(ic).filter(k => k.startsWith('sp_name_')).map(k => k.replace('sp_name_', ''))
-                    .filter(i => ic['sp_cat1_'+i] || ic['sp_cat2_'+i] || ic['sp_name_'+i] || ic['sp_content_'+i] || ic['sp_cycle_'+i] || ic['sp_org_'+i] || ic['sp_note_'+i]);
-                if (!spIndices.includes('1')) spIndices.push('1');
-                if (!spIndices.includes('2')) spIndices.push('2');
+                // [수정] 화면에 보여주는 방식과 완벽하게 동일하게, 저장된 "유효한 줄 번호 목록"을 가져와서 인쇄!
+                // 이렇게 하면 인쇄창에서도 추가/삭제한 폼 그대로 나옵니다.
+                let spIndices = ic.spIndices;
+                if (!spIndices) {
+                    spIndices = Object.keys(ic).filter(k => k.startsWith('sp_name_')).map(k => k.replace('sp_name_', ''))
+                        .filter(i => ic['sp_cat1_'+i] || ic['sp_cat2_'+i] || ic['sp_name_'+i] || ic['sp_content_'+i] || ic['sp_cycle_'+i] || ic['sp_org_'+i] || ic['sp_note_'+i]);
+                    if (!id || spIndices.length === 0) spIndices = ['1', '2'];
+                }
                 spIndices = [...new Set(spIndices)].sort((a, b) => parseInt(a) - parseInt(b));
 
-                let lrIndices = Object.keys(ic).filter(k => k.startsWith('lr_name_')).map(k => k.replace('lr_name_', ''))
-                    .filter(i => ic['lr_cat1_'+i] || ic['lr_cat2_'+i] || ic['lr_name_'+i] || ic['lr_content_'+i] || ic['lr_org_'+i] || ic['lr_use_'+i] || ic['lr_support_'+i]);
-                if (!lrIndices.includes('1')) lrIndices.push('1');
-                if (!lrIndices.includes('2')) lrIndices.push('2');
+                let lrIndices = ic.lrIndices;
+                if (!lrIndices) {
+                    lrIndices = Object.keys(ic).filter(k => k.startsWith('lr_name_')).map(k => k.replace('lr_name_', ''))
+                        .filter(i => ic['lr_cat1_'+i] || ic['lr_cat2_'+i] || ic['lr_name_'+i] || ic['lr_content_'+i] || ic['lr_org_'+i] || ic['lr_use_'+i] || ic['lr_support_'+i]);
+                    if (!id || lrIndices.length === 0) lrIndices = ['1', '2'];
+                }
                 lrIndices = [...new Set(lrIndices)].sort((a, b) => parseInt(a) - parseInt(b));
 
                 const renderChk = (val, target) => {
