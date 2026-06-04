@@ -947,14 +947,24 @@
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 
+                // 요일 계산을 위로 올려서 필터에서 쓸 수 있게 합니다
+                const dayOfWeek = (firstDay + d - 1) % 7; 
+
                 const dayEvents = monthEvents.filter(s => {
                     const sStart = s.startDate || s.date;
                     const sEnd = s.endDate || s.date || sStart;
-                    return dateStr >= sStart && dateStr <= sEnd;
+                    
+                    // 기간 내에 포함되지 않으면 제외
+                    if (!(dateStr >= sStart && dateStr <= sEnd)) return false;
+                    
+                    // [핵심] 여러 날 이어지는 일정일 경우 주말(토, 일)에는 그리지 않음!
+                    if (sStart !== sEnd && (dayOfWeek === 0 || dayOfWeek === 6)) {
+                        return false;
+                    }
+                    return true;
                 });
                 
                 const isToday = isCurrentMonth && d === currentDay;
-                const dayOfWeek = (firstDay + d - 1) % 7;
                 
                 // [수정] 사용자가 등록한 공휴일 목록에서 찾습니다.
                 const holidayObj = state.holidays.find(h => h.date === dateStr);
@@ -978,10 +988,19 @@
                     let titleText = ev.title;
                     
                     if (sStart !== sEnd) {
-                        if (dateStr === sStart) {
+                        // 주말을 건너뛰기 위해 시작점과 끝점 시각 효과 재계산
+                        // 시작일이거나, 월요일(1)이거나, 1일이면 왼쪽 모서리 닫기
+                        const isStartVisual = (dateStr === sStart) || (dayOfWeek === 1 && sStart < dateStr) || (d === 1 && sStart < dateStr);
+                        // 종료일이거나, 금요일(5)이거나, 말일이면 오른쪽 모서리 닫기
+                        const isEndVisual = (dateStr === sEnd) || (dayOfWeek === 5 && sEnd > dateStr) || (d === daysInMonth && sEnd > dateStr);
+
+                        if (isStartVisual && isEndVisual) {
+                            radiusClass = 'rounded-md';
+                            marginClass = 'mx-1 sm:mx-2';
+                        } else if (isStartVisual) {
                             radiusClass = 'rounded-l-md rounded-r-none border-r-0';
                             marginClass = 'ml-1 sm:ml-2 mr-[-1px]';
-                        } else if (dateStr === sEnd) {
+                        } else if (isEndVisual) {
                             radiusClass = 'rounded-r-md rounded-l-none border-l-0';
                             marginClass = 'ml-[-1px] mr-1 sm:mr-2';
                             titleText = '\u00A0'; 
@@ -990,7 +1009,11 @@
                             marginClass = 'mx-[-1px]';
                             titleText = '\u00A0'; 
                         }
-                        if (dayOfWeek === 0 || d === 1) { titleText = ev.title; }
+                        
+                        // 월요일, 1일, 혹은 진짜 시작일이면 사업 제목 다시 적어주기
+                        if (dayOfWeek === 1 || d === 1 || dateStr === sStart) { 
+                            titleText = ev.title; 
+                        }
                     }
                     return `<div class="text-[10px] sm:text-xs py-0.5 px-1.5 border ${badgeColor} ${radiusClass} ${marginClass} truncate cursor-pointer transition-colors leading-tight min-h-[22px]" onclick="event.stopPropagation(); app.openScheduleModal('${ev.id}')" title="${ev.title}">${titleText}</div>`;
                 }).join('');
