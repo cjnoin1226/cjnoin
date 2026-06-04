@@ -2759,7 +2759,7 @@
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="20"></i></button>
                         </div>
                         <form onsubmit="app.saveHoliday(event)" class="flex gap-2 mb-4 p-2 bg-slate-50 rounded border border-slate-200">
-                            <input type="date" name="date" class="input-field !py-1.5 px-2 text-sm" required>
+                            <input type="text" name="date" class="input-field !py-1.5 px-2 text-sm" placeholder="YYYY-MM-DD" oninput="app.formatFullDateInput(this)" required>
                             <input type="text" name="name" class="input-field !py-1.5 px-2 text-sm" placeholder="공휴일명 (예: 추석)" required>
                             <button type="submit" class="bg-rose-500 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-rose-600 whitespace-nowrap">추가</button>
                         </form>
