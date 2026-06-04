@@ -885,13 +885,31 @@
                 'bg-rose-50 text-rose-700 border-rose-200 hover:border-rose-300',
                 'bg-teal-50 text-teal-700 border-teal-200 hover:border-teal-300',
                 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:border-indigo-300',
-                'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-300'
+                'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-300',
+                'bg-cyan-50 text-cyan-700 border-cyan-200 hover:border-cyan-300',
+                'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 hover:border-fuchsia-300',
+                'bg-lime-50 text-lime-700 border-lime-200 hover:border-lime-300',
+                'bg-sky-50 text-sky-700 border-sky-200 hover:border-sky-300',
+                'bg-pink-50 text-pink-700 border-pink-200 hover:border-pink-300',
+                'bg-violet-50 text-violet-700 border-violet-200 hover:border-violet-300',
+                'bg-red-50 text-red-700 border-red-200 hover:border-red-300'
             ];
+            
+            // 고유한 분류(서비스 설정 이름) 목록을 미리 추출
+            const uniqueCategories = [...new Set(state.services.map(srv => srv.name))];
+            
             const getBadgeColor = (catName) => {
                 if (!catName) return 'bg-slate-100 text-slate-700 border-slate-200';
-                let hash = 0;
-                for (let i = 0; i < catName.length; i++) hash = catName.charCodeAt(i) + ((hash << 5) - hash);
-                return colorPalettes[Math.abs(hash) % colorPalettes.length];
+                
+                // 서비스 설정에 등록된 순서 번호를 가져와서 순서대로 색상을 배정 (겹침 방지)
+                let idx = uniqueCategories.indexOf(catName);
+                if (idx === -1) {
+                    // 서비스 목록에 없는 임의의 글자라면 임의 배정
+                    let hash = 0;
+                    for (let i = 0; i < catName.length; i++) hash = catName.charCodeAt(i) + ((hash << 5) - hash);
+                    idx = Math.abs(hash);
+                }
+                return colorPalettes[idx % colorPalettes.length];
             };
 
             let cellsHTML = '';
