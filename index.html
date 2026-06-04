@@ -2628,11 +2628,29 @@
         }
 
         window.app = {
-            openScheduleModal: (id = null, prefillDate = null) => {
-                const s = id ? state.schedules.find(x => x.id === id) : {};
-                const today = new Date().toISOString().split('T')[0];
+            // [신규] 일정 복사 함수
+            duplicateSchedule: (id) => {
+                const s = state.schedules.find(x => x.id === id);
+                if (!s) return;
+                const data = { ...s };
+                delete data.id;
+                delete data.createdAt;
+                app.openScheduleModal(null, data);
+            },
+
+            openScheduleModal: (id = null, arg = null) => {
+                let s = {};
+                let prefillDate = null;
                 
-                // [수정] 누른 날짜(prefillDate)가 있으면 시작/종료일에 모두 적용합니다.
+                if (id) {
+                    s = state.schedules.find(x => x.id === id) || {};
+                } else if (arg && typeof arg === 'object') {
+                    s = arg; // 복사 버튼을 눌러서 넘어온 데이터 적용
+                } else if (arg && typeof arg === 'string') {
+                    prefillDate = arg; // 달력 날짜를 눌렀을 때
+                }
+                
+                const today = new Date().toISOString().split('T')[0];
                 const startVal = s.startDate || s.date || prefillDate || today;
                 const endVal = s.endDate || s.date || prefillDate || today;
 
@@ -2660,7 +2678,10 @@
                             <div><label class="block text-sm font-bold text-slate-700 mb-1">담당자 (참석자)</label><input type="text" name="writer" class="input-field" value="${s.writer || ''}" placeholder="담당자 또는 참석자 이름"></div>
                             <div><label class="block text-sm font-bold text-slate-700 mb-1">상세 내용</label><textarea name="content" class="input-field h-24" placeholder="장소, 시간 등 상세한 내용을 적어주세요.">${s.content || ''}</textarea></div>
                             <div class="flex justify-between pt-4 border-t border-slate-100 mt-6">
-                                <div>${id ? `<button type="button" onclick="app.deleteData('schedules', '${id}')" class="px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 font-bold transition-colors">삭제</button>` : '<div></div>'}</div>
+                                <div>
+                                    ${id ? `<button type="button" onclick="app.deleteData('schedules', '${id}')" class="px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 font-bold transition-colors">삭제</button>
+                                            <button type="button" onclick="app.duplicateSchedule('${id}')" class="ml-1 px-4 py-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 font-bold transition-colors">복사</button>` : '<div></div>'}
+                                </div>
                                 <div class="flex gap-2">
                                     <button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors font-medium">취소</button>
                                     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold shadow-sm transition-colors">저장</button>
@@ -2758,29 +2779,61 @@
                 if (state.viewMode === 'single') updateTabContent('schedule'); else render();
             },
             
-            // [신규] 등록된 일정 (1년치) 리스트 띄우는 모달 함수
-            openScheduleListModal: () => {
+            // [수정] 필터링과 월별 그룹 기능이 추가된 등록된 일정 리스트 모달
+            openScheduleListModal: (filterCat = '') => {
                 const { year } = state.filters.schedule;
-                // 해당 연도의 일정만 추려내서 시작일 순으로 정렬
+                // 해당 연도의 일정 중, 필터 선택 시 해당 서비스만 추출
                 const yearEvents = state.schedules.filter(s => {
                     const sS = s.startDate || s.date;
                     const sE = s.endDate || s.date || sS;
                     if (!sS || !sE) return false;
-                    return sS.startsWith(String(year)) || sE.startsWith(String(year)); // 올해가 포함되면 표출
+                    if (filterCat && s.category !== filterCat) return false;
+                    return sS.startsWith(String(year)) || sE.startsWith(String(year));
                 }).sort((a, b) => (a.startDate || a.date).localeCompare(b.startDate || b.date));
 
-                const listHtml = yearEvents.map(ev => {
-                    const startD = ev.startDate || ev.date;
-                    const endD = ev.endDate || ev.date || startD;
-                    const displayDate = startD === endD ? startD : `${startD} ~ ${endD}`;
-                    return `
-                    <tr class="hover:bg-slate-50 transition-colors cursor-pointer group" onclick="app.closeDialog(); app.openScheduleModal('${ev.id}')">
-                        <td class="p-3 text-center text-slate-600 font-medium whitespace-nowrap text-xs border-r border-slate-100 group-hover:text-blue-600">${displayDate}</td>
-                        <td class="p-3 text-center border-r border-slate-100"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded text-xs font-bold whitespace-nowrap">${ev.category || '기타'}</span></td>
-                        <td class="p-3 font-bold text-slate-800 group-hover:text-blue-600">${ev.title}</td>
-                    </tr>
-                    `;
-                }).join('');
+                // 1월부터 12월까지 월별로 데이터를 담을 상자(그룹) 만들기
+                const grouped = {};
+                yearEvents.forEach(ev => {
+                    const sS = ev.startDate || ev.date;
+                    const m = parseInt(sS.split('-')[1], 10);
+                    if (!grouped[m]) grouped[m] = [];
+                    grouped[m].push(ev);
+                });
+
+                let listHtml = '';
+                if (Object.keys(grouped).length === 0) {
+                    listHtml = '<tr><td colspan="3" class="p-8 text-center text-slate-400">등록된 일정이 없습니다.</td></tr>';
+                } else {
+                    // 1월부터 12월까지 순서대로 그려주기 (헤더 추가)
+                    for (let m = 1; m <= 12; m++) {
+                        if (grouped[m]) {
+                            // 월 구분 헤더 줄
+                            listHtml += `
+                            <tr class="bg-slate-100/60 border-t border-slate-200">
+                                <td colspan="3" class="px-4 py-2 font-bold text-slate-700 text-sm">
+                                    <div class="flex items-center gap-2"><i data-lucide="calendar-check-2" size="16" class="text-blue-500"></i> ${m}월</div>
+                                </td>
+                            </tr>`;
+                            // 진짜 일정 내용
+                            listHtml += grouped[m].map(ev => {
+                                const startD = ev.startDate || ev.date;
+                                const endD = ev.endDate || ev.date || startD;
+                                const displayDate = startD === endD ? startD : `${startD} ~ ${endD}`;
+                                return `
+                                <tr class="hover:bg-slate-50 transition-colors cursor-pointer group" onclick="app.closeDialog(); app.openScheduleModal('${ev.id}')">
+                                    <td class="p-3 text-center text-slate-600 font-medium whitespace-nowrap text-xs border-r border-slate-100 group-hover:text-blue-600 pl-6">${displayDate}</td>
+                                    <td class="p-3 text-center border-r border-slate-100"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded text-xs font-bold whitespace-nowrap">${ev.category || '기타'}</span></td>
+                                    <td class="p-3 font-bold text-slate-800 group-hover:text-blue-600">${ev.title}</td>
+                                </tr>
+                                `;
+                            }).join('');
+                        }
+                    }
+                }
+
+                // 등록된 서비스 카테고리 추출 (필터 드롭다운용)
+                const uniqueCategories = [...new Set(state.services.map(srv => srv.name))];
+                const catOptions = uniqueCategories.map(c => `<option value="${c}" ${filterCat === c ? 'selected' : ''}>${c}</option>`).join('');
 
                 const html = `
                     <div class="bg-white w-full max-w-3xl p-6 rounded-xl shadow-2xl mx-4 flex flex-col max-h-[85vh]">
@@ -2790,10 +2843,17 @@
                             </h3>
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="20"></i></button>
                         </div>
-                        <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-4 flex-shrink-0 flex items-center gap-2">
-                            <span class="text-sm font-bold text-slate-700">총 조회건수: <span class="text-blue-600">${yearEvents.length}</span>건</span>
-                            <div class="w-px h-3 bg-blue-200 mx-1"></div>
-                            <span class="text-xs text-slate-500">* 클릭 시 해당 일정의 상세 수정 창이 열립니다.</span>
+                        <div class="bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-4 flex-shrink-0 flex flex-wrap justify-between items-center gap-2">
+                            <div class="flex items-center gap-2 text-sm">
+                                <span class="font-bold text-slate-700">총 일정: <span class="text-blue-600">${yearEvents.length}</span>건</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-slate-500">분류 필터:</span>
+                                <select class="input-field py-1 px-2 text-xs w-32" onchange="app.openScheduleListModal(this.value)">
+                                    <option value="">전체 보기</option>
+                                    ${catOptions}
+                                </select>
+                            </div>
                         </div>
                         <div class="flex-1 overflow-y-auto border border-slate-200 rounded-lg custom-scrollbar">
                             <table class="w-full text-sm text-left border-collapse">
@@ -2805,7 +2865,7 @@
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
-                                    ${yearEvents.length > 0 ? listHtml : '<tr><td colspan="3" class="p-8 text-center text-slate-400">등록된 일정이 없습니다.</td></tr>'}
+                                    ${listHtml}
                                 </tbody>
                             </table>
                         </div>
