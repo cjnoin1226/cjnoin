@@ -2062,7 +2062,9 @@
                         let rowHTML = `<td class="py-2 px-4 border-r font-bold text-slate-600 bg-white text-center sticky left-0 z-20">${m}월</td>`;
                         rows.forEach(r => {
                             const count = r.counts[monthIdx];
-                            rowHTML += `<td class="py-2 px-1 border-r text-center ${count > 0 ? 'text-blue-600 font-bold bg-blue-50/30' : 'text-slate-300'}">${count || '-'}</td>`;
+                            const clickAttr = count > 0 ? `onclick="app.showPerformanceDetail('${year}', ${m}, '${r.category}', '${r.serviceName}')"` : '';
+                            const cellClass = count > 0 ? 'text-blue-600 font-bold bg-blue-50/30 cursor-pointer hover:underline decoration-2 underline-offset-2' : 'text-slate-300';
+                            rowHTML += `<td class="py-2 px-1 border-r text-center ${cellClass}" ${clickAttr} title="${count > 0 ? '상세 내역 보기' : ''}">${count || '-'}</td>`;
                         });
                         rowHTML += `<td class="py-2 px-4 text-center font-bold text-emerald-600 bg-emerald-50/50">${monthlyTotals[monthIdx]}</td>`;
                         bodyRows += `<tr class="hover:bg-slate-50 group border-b border-slate-100">${rowHTML}</tr>`;
@@ -2097,7 +2099,9 @@
                             // 선택된 월 데이터만 렌더링
                             const cells = selectedMonths.map(m => {
                                 const count = r.counts[m - 1];
-                                return `<td class="py-2 px-2 border-r text-center ${count > 0 ? 'text-blue-600 font-bold bg-blue-50/30' : 'text-slate-300'}">${count || '-'}</td>`;
+                                const clickAttr = count > 0 ? `onclick="app.showPerformanceDetail('${year}', ${m}, '${r.category}', '${r.serviceName}')"` : '';
+                                const cellClass = count > 0 ? 'text-blue-600 font-bold bg-blue-50/30 cursor-pointer hover:underline decoration-2 underline-offset-2' : 'text-slate-300';
+                                return `<td class="py-2 px-2 border-r text-center ${cellClass}" ${clickAttr} title="${count > 0 ? '상세 내역 보기' : ''}">${count || '-'}</td>`;
                             }).join('');
                             
                             return `
@@ -4032,6 +4036,86 @@
                 }
                 
                 if (state.viewMode === 'single') updateTabContent('performance'); else render();
+            },
+
+            // [신규] 실적 관리 셀 클릭 시 상세 내역 표출 (엑셀 복붙 지원)
+            showPerformanceDetail: (year, month, category, serviceName) => {
+                const targetMonthStr = String(month).padStart(2, '0');
+                const prefix = `${year}-${targetMonthStr}`;
+                
+                // 대상 일지 필터링
+                const targetLogs = [];
+                state.logs.forEach(l => {
+                    if (!l.date.startsWith(prefix)) return;
+                    
+                    let hasService = false;
+                    if (l.serviceItems && l.serviceItems.length > 0) {
+                        hasService = l.serviceItems.some(item => {
+                            let sName = item.serviceName;
+                            // 과거 호환성 매핑
+                            if (sName === '정서지원서비스(안전안부확인)') sName = '정서지원서비스';
+                            else if (sName === '정서지원서비스') sName = '정서지원서비스(안전안부확인)';
+                            
+                            return (item.category === category && item.serviceName === serviceName) ||
+                                   (item.category === category && sName === serviceName);
+                        });
+                    }
+                    if (hasService) {
+                        targetLogs.push(l);
+                    }
+                });
+
+                targetLogs.sort((a, b) => a.date.localeCompare(b.date));
+
+                // 엑셀 복붙이 쉽도록 table 구성
+                const trs = targetLogs.map((l, idx) => `
+                    <tr class="hover:bg-slate-50 border-b border-slate-200">
+                        <td class="p-2 text-center border-r border-slate-200">${idx + 1}</td>
+                        <td class="p-2 text-center border-r border-slate-200" style="mso-number-format:'\\@'">${l.date}</td>
+                        <td class="p-2 text-center border-r border-slate-200">${l.clientName}</td>
+                        <td class="p-2 text-center text-slate-500 text-xs truncate max-w-[150px]">${l.provider || '-'}</td>
+                    </tr>
+                `).join('');
+
+                const html = `
+                    <div class="bg-white w-full max-w-lg p-6 rounded-xl shadow-2xl mx-4 max-h-[85vh] flex flex-col">
+                        <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                            <div>
+                                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                    <i data-lucide="list-checks" class="text-blue-600"></i> ${year}년 ${month}월 상세 실적
+                                </h3>
+                                <p class="text-sm text-slate-500 mt-1">${category} &gt; <span class="font-bold text-slate-700">${serviceName}</span> <span class="font-bold text-blue-600 ml-1">(${targetLogs.length}건)</span></p>
+                            </div>
+                            <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                        </div>
+                        
+                        <div class="bg-blue-50 p-2 rounded text-xs text-blue-700 mb-3 border border-blue-100 flex-shrink-0 flex items-center gap-1.5">
+                            <i data-lucide="info" size="14"></i> 표를 마우스로 드래그해서 복사(Ctrl+C) 후 엑셀에 붙여넣기(Ctrl+V) 하세요.
+                        </div>
+
+                        <div class="overflow-y-auto flex-1 border border-slate-300 rounded custom-scrollbar bg-white">
+                            <table class="w-full text-sm text-left border-collapse" style="border-collapse: collapse;">
+                                <thead class="bg-slate-100 text-slate-700 font-bold sticky top-0 shadow-sm">
+                                    <tr>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[15%]">No</th>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[30%]">날짜</th>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[30%]">대상자</th>
+                                        <th class="p-2 text-center border-b border-slate-300 w-[25%]">제공자</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${trs.length > 0 ? trs : '<tr><td colspan="4" class="p-4 text-center text-slate-500">데이터가 없습니다.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4 text-right flex-shrink-0 pt-2 border-t border-slate-100">
+                            <button onclick="app.closeDialog()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button>
+                        </div>
+                    </div>
+                `;
+                
+                showDialog(html);
+                if(window.lucide) lucide.createIcons();
             },
 
             // [신규] 통계 연도 필터 간편 설정 함수
