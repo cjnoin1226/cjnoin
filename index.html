@@ -4641,7 +4641,12 @@
                 if(window.lucide) lucide.createIcons();
             },
 
-            // 모달을 열 때 기본 정보 탭을 먼저 보여줍니다.
+            // [신규] 통합돌봄 대상자 모달창 (세부 탭 포함)
+            openIntegratedCareModal: (id = null) => {
+                const ic = id ? state.integratedCares.find(x => x.id === id) : {};
+                const targetContainerId = !document.getElementById('modal-container').classList.contains('hidden') ? 'sub-modal-container' : 'modal-container';
+                
+                // 모달을 열 때 기본 정보 탭을 먼저 보여줍니다.
                 state.icModalTab = 'basic'; 
 
                 // [완벽 수정] DB에 저장된 "유효한 줄 번호 목록(spIndices)"을 바로 불러와서 사용!
