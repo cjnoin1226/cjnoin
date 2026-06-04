@@ -4641,28 +4641,26 @@
                 if(window.lucide) lucide.createIcons();
             },
 
-            // [신규] 통합돌봄 대상자 모달창 (세부 탭 포함)
-            openIntegratedCareModal: (id = null) => {
-                const ic = id ? state.integratedCares.find(x => x.id === id) : {};
-                const targetContainerId = !document.getElementById('modal-container').classList.contains('hidden') ? 'sub-modal-container' : 'modal-container';
-                
-                // 모달을 열 때 기본 정보 탭을 먼저 보여줍니다.
+            // 모달을 열 때 기본 정보 탭을 먼저 보여줍니다.
                 state.icModalTab = 'basic'; 
 
-                // [수정] 동적 행 생성을 위한 인덱스 추출 (수정 모드일 때는 강제로 2줄을 부활시키지 않음)
-                let spIndices = Object.keys(ic).filter(k => k.startsWith('sp_name_')).map(k => k.replace('sp_name_', ''))
-                    .filter(i => ic['sp_cat1_'+i] || ic['sp_cat2_'+i] || ic['sp_name_'+i] || ic['sp_content_'+i] || ic['sp_cycle_'+i] || ic['sp_org_'+i] || ic['sp_note_'+i]);
-                if (!id) {
-                    if (!spIndices.includes('1')) spIndices.push('1');
-                    if (!spIndices.includes('2')) spIndices.push('2');
+                // [완벽 수정] DB에 저장된 "유효한 줄 번호 목록(spIndices)"을 바로 불러와서 사용!
+                // 이렇게 하면 내가 빈 줄을 추가하든, 0줄로 다 지우든 그 상태 그대로 완벽히 유지됨.
+                let spIndices = ic.spIndices;
+                if (!spIndices) {
+                    // 과거 데이터 호환용 (옛날에 작성한 사람들을 위해)
+                    spIndices = Object.keys(ic).filter(k => k.startsWith('sp_name_')).map(k => k.replace('sp_name_', ''))
+                        .filter(i => ic['sp_cat1_'+i] || ic['sp_cat2_'+i] || ic['sp_name_'+i] || ic['sp_content_'+i] || ic['sp_cycle_'+i] || ic['sp_org_'+i] || ic['sp_note_'+i]);
+                    // 신규 등록이거나, 옛날에 등록만 하고 아무 내용 안 적은 사람(B대상자 등)은 기본 2줄 챙겨줌!
+                    if (!id || spIndices.length === 0) spIndices = ['1', '2'];
                 }
                 spIndices = [...new Set(spIndices)].sort((a, b) => parseInt(a) - parseInt(b));
 
-                let lrIndices = Object.keys(ic).filter(k => k.startsWith('lr_name_')).map(k => k.replace('lr_name_', ''))
-                    .filter(i => ic['lr_cat1_'+i] || ic['lr_cat2_'+i] || ic['lr_name_'+i] || ic['lr_content_'+i] || ic['lr_org_'+i] || ic['lr_use_'+i] || ic['lr_support_'+i]);
-                if (!id) {
-                    if (!lrIndices.includes('1')) lrIndices.push('1');
-                    if (!lrIndices.includes('2')) lrIndices.push('2');
+                let lrIndices = ic.lrIndices;
+                if (!lrIndices) {
+                    lrIndices = Object.keys(ic).filter(k => k.startsWith('lr_name_')).map(k => k.replace('lr_name_', ''))
+                        .filter(i => ic['lr_cat1_'+i] || ic['lr_cat2_'+i] || ic['lr_name_'+i] || ic['lr_content_'+i] || ic['lr_org_'+i] || ic['lr_use_'+i] || ic['lr_support_'+i]);
+                    if (!id || lrIndices.length === 0) lrIndices = ['1', '2'];
                 }
                 lrIndices = [...new Set(lrIndices)].sort((a, b) => parseInt(a) - parseInt(b));
 
@@ -4917,6 +4915,11 @@
                 if (state.isSaving) return;
                 const fd = new FormData(e.target);
                 const data = Object.fromEntries(fd.entries());
+                
+                // [신규] 현재 화면(폼)에 존재하는 행의 고유 번호를 수집하여 배열로 저장!
+                // 이렇게 해야 빈 줄을 추가하든, 있던 줄을 지우든 정확히 화면과 똑같이 저장됨
+                data.spIndices = Object.keys(data).filter(k => k.startsWith('sp_name_')).map(k => k.replace('sp_name_', ''));
+                data.lrIndices = Object.keys(data).filter(k => k.startsWith('lr_name_')).map(k => k.replace('lr_name_', ''));
                 
                 // [신규] 삭제버튼(-)을 눌러서 지워진 행의 데이터가 DB에 남지 않게 깔끔하게 지워주는 로직
                 if (id) {
