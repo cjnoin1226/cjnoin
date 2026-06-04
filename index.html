@@ -4043,12 +4043,14 @@
                 const targetMonthStr = String(month).padStart(2, '0');
                 const prefix = `${year}-${targetMonthStr}`;
                 
-                // 대상 일지 필터링
+                // 대상 일지 필터링 및 메모 추출
                 const targetLogs = [];
                 state.logs.forEach(l => {
                     if (!l.date.startsWith(prefix)) return;
                     
                     let hasService = false;
+                    let memoText = ''; // 추출할 메모
+                    
                     if (l.serviceItems && l.serviceItems.length > 0) {
                         hasService = l.serviceItems.some(item => {
                             let sName = item.serviceName;
@@ -4056,12 +4058,16 @@
                             if (sName === '정서지원서비스(안전안부확인)') sName = '정서지원서비스';
                             else if (sName === '정서지원서비스') sName = '정서지원서비스(안전안부확인)';
                             
-                            return (item.category === category && item.serviceName === serviceName) ||
-                                   (item.category === category && sName === serviceName);
+                            const isMatch = (item.category === category && item.serviceName === serviceName) ||
+                                            (item.category === category && sName === serviceName);
+                            
+                            if (isMatch) memoText = item.detailNote || '';
+                            return isMatch;
                         });
                     }
                     if (hasService) {
-                        targetLogs.push(l);
+                        // 기존 일지 데이터 복사본에 메모 속성 추가
+                        targetLogs.push({ ...l, extractedMemo: memoText });
                     }
                 });
 
@@ -4072,13 +4078,15 @@
                     <tr class="hover:bg-slate-50 border-b border-slate-200">
                         <td class="p-2 text-center border-r border-slate-200">${idx + 1}</td>
                         <td class="p-2 text-center border-r border-slate-200" style="mso-number-format:'\\@'">${l.date}</td>
-                        <td class="p-2 text-center border-r border-slate-200">${l.clientName}</td>
-                        <td class="p-2 text-center text-slate-500 text-xs truncate max-w-[150px]">${l.provider || '-'}</td>
+                        <td class="p-2 text-center border-r border-slate-200 font-bold">${l.clientName}</td>
+                        <td class="p-2 border-r border-slate-200 text-slate-600 text-xs">${l.extractedMemo || '-'}</td>
+                        <td class="p-2 text-center text-slate-500 text-xs truncate max-w-[100px]">${l.provider || '-'}</td>
                     </tr>
                 `).join('');
 
+                // [수정] 모달 넓이 확보 (max-w-lg -> max-w-2xl)
                 const html = `
-                    <div class="bg-white w-full max-w-lg p-6 rounded-xl shadow-2xl mx-4 max-h-[85vh] flex flex-col">
+                    <div class="bg-white w-full max-w-2xl p-6 rounded-xl shadow-2xl mx-4 max-h-[85vh] flex flex-col">
                         <div class="flex justify-between items-center mb-4 flex-shrink-0">
                             <div>
                                 <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
@@ -4097,14 +4105,15 @@
                             <table class="w-full text-sm text-left border-collapse" style="border-collapse: collapse;">
                                 <thead class="bg-slate-100 text-slate-700 font-bold sticky top-0 shadow-sm">
                                     <tr>
-                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[15%]">No</th>
-                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[30%]">날짜</th>
-                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[30%]">대상자</th>
-                                        <th class="p-2 text-center border-b border-slate-300 w-[25%]">제공자</th>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[8%]">No</th>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[18%]">날짜</th>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[18%]">대상자</th>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[41%]">서비스 메모</th>
+                                        <th class="p-2 text-center border-b border-slate-300 w-[15%]">제공자</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${trs.length > 0 ? trs : '<tr><td colspan="4" class="p-4 text-center text-slate-500">데이터가 없습니다.</td></tr>'}
+                                    ${trs.length > 0 ? trs : '<tr><td colspan="5" class="p-4 text-center text-slate-500">데이터가 없습니다.</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
