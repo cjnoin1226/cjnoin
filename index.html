@@ -4649,17 +4649,21 @@
                 // 모달을 열 때 기본 정보 탭을 먼저 보여줍니다.
                 state.icModalTab = 'basic'; 
 
-                // [신규] 동적 행 생성을 위한 인덱스 추출 (빈 데이터 무시, 최소 2줄 보장)
+                // [수정] 동적 행 생성을 위한 인덱스 추출 (수정 모드일 때는 강제로 2줄을 부활시키지 않음)
                 let spIndices = Object.keys(ic).filter(k => k.startsWith('sp_name_')).map(k => k.replace('sp_name_', ''))
                     .filter(i => ic['sp_cat1_'+i] || ic['sp_cat2_'+i] || ic['sp_name_'+i] || ic['sp_content_'+i] || ic['sp_cycle_'+i] || ic['sp_org_'+i] || ic['sp_note_'+i]);
-                if (!spIndices.includes('1')) spIndices.push('1');
-                if (!spIndices.includes('2')) spIndices.push('2');
+                if (!id) {
+                    if (!spIndices.includes('1')) spIndices.push('1');
+                    if (!spIndices.includes('2')) spIndices.push('2');
+                }
                 spIndices = [...new Set(spIndices)].sort((a, b) => parseInt(a) - parseInt(b));
 
                 let lrIndices = Object.keys(ic).filter(k => k.startsWith('lr_name_')).map(k => k.replace('lr_name_', ''))
                     .filter(i => ic['lr_cat1_'+i] || ic['lr_cat2_'+i] || ic['lr_name_'+i] || ic['lr_content_'+i] || ic['lr_org_'+i] || ic['lr_use_'+i] || ic['lr_support_'+i]);
-                if (!lrIndices.includes('1')) lrIndices.push('1');
-                if (!lrIndices.includes('2')) lrIndices.push('2');
+                if (!id) {
+                    if (!lrIndices.includes('1')) lrIndices.push('1');
+                    if (!lrIndices.includes('2')) lrIndices.push('2');
+                }
                 lrIndices = [...new Set(lrIndices)].sort((a, b) => parseInt(a) - parseInt(b));
 
                 const html = `
@@ -4928,8 +4932,8 @@
                 try {
                     if (id) {
                         await updateDoc(doc(db, "integratedCares", id), data);
-                        app.showToast("대상자 정보가 수정되었습니다.");
-                        app.closeModal();
+                        app.showToast("대상자 정보가 정상적으로 저장되었습니다.");
+                        // [수정] 모달창이 꺼지지 않도록 닫기 함수(app.closeModal)를 제거했습니다!
                     } else {
                         data.createdAt = new Date().toISOString();
                         const docRef = await addDoc(collection(db, "integratedCares"), data);
