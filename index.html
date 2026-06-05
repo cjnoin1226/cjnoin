@@ -4504,6 +4504,15 @@
                     colorTheme: fd.get('colorTheme')
                 };
 
+                // [신규] 색상 중복 검사 로직 추가
+                if (data.colorTheme) {
+                    const isDuplicate = state.services.some(s => s.colorTheme === data.colorTheme);
+                    if (isDuplicate) {
+                        alert("선택하신 달력 배경색은 이미 다른 서비스에서 사용 중입니다. 중복을 피하기 위해 다른 색상을 선택해 주세요.");
+                        return; // 중복이면 여기서 저장을 멈춤
+                    }
+                }
+
                 try {
                     await addDoc(collection(db, "services"), data);
                     app.showToast("새로운 서비스가 추가되었습니다.");
@@ -4526,6 +4535,15 @@
                     example: fd.get('example'),
                     colorTheme: fd.get('colorTheme')
                 };
+
+                // [신규] 색상 중복 검사 로직 추가 (자신의 원래 색상은 제외)
+                if (data.colorTheme) {
+                    const isDuplicate = state.services.some(s => s.id !== id && s.colorTheme === data.colorTheme);
+                    if (isDuplicate) {
+                        alert("선택하신 달력 배경색은 이미 다른 서비스에서 사용 중입니다. 중복을 피하기 위해 다른 색상을 선택해 주세요.");
+                        return; // 중복이면 여기서 저장을 멈춤
+                    }
+                }
 
                 try {
                     await updateDoc(doc(db, "services", id), data);
