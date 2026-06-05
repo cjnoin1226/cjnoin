@@ -950,6 +950,10 @@
                 // 요일 계산을 위로 올려서 필터에서 쓸 수 있게 합니다
                 const dayOfWeek = (firstDay + d - 1) % 7; 
 
+                // [수정] 사용자가 등록한 공휴일 목록에서 찾습니다. (필터보다 먼저 계산하도록 위로 올림)
+                const holidayObj = state.holidays.find(h => h.date === dateStr);
+                const holidayName = holidayObj ? holidayObj.name : null;
+
                 const dayEvents = monthEvents.filter(s => {
                     const sStart = s.startDate || s.date;
                     const sEnd = s.endDate || s.date || sStart;
@@ -957,8 +961,8 @@
                     // 기간 내에 포함되지 않으면 제외
                     if (!(dateStr >= sStart && dateStr <= sEnd)) return false;
                     
-                    // [핵심] 여러 날 이어지는 일정일 경우 주말(토, 일)에는 그리지 않음!
-                    if (sStart !== sEnd && (dayOfWeek === 0 || dayOfWeek === 6)) {
+                    // [핵심] 여러 날 이어지는 일정일 경우 주말(토, 일) 및 '공휴일'에는 그리지 않음!
+                    if (sStart !== sEnd && (dayOfWeek === 0 || dayOfWeek === 6 || holidayName)) {
                         return false;
                     }
                     return true;
@@ -966,10 +970,6 @@
                 
                 const isToday = isCurrentMonth && d === currentDay;
                 
-                // [수정] 사용자가 등록한 공휴일 목록에서 찾습니다.
-                const holidayObj = state.holidays.find(h => h.date === dateStr);
-                const holidayName = holidayObj ? holidayObj.name : null;
-
                 // 글자 색상 (일/공휴일 빨강, 토 파랑)
                 const colorClass = (dayOfWeek === 0 || holidayName) ? 'text-rose-500' : (dayOfWeek === 6 ? 'text-blue-500' : 'text-slate-700');
                 const todayCircle = isToday ? `bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm` : colorClass;
@@ -988,11 +988,18 @@
                     let titleText = ev.title;
                     
                     if (sStart !== sEnd) {
-                        // 주말을 건너뛰기 위해 시작점과 끝점 시각 효과 재계산
-                        // 시작일이거나, 월요일(1)이거나, 1일이면 왼쪽 모서리 닫기
-                        const isStartVisual = (dateStr === sStart) || (dayOfWeek === 1 && sStart < dateStr) || (d === 1 && sStart < dateStr);
-                        // 종료일이거나, 금요일(5)이거나, 말일이면 오른쪽 모서리 닫기
-                        const isEndVisual = (dateStr === sEnd) || (dayOfWeek === 5 && sEnd > dateStr) || (d === daysInMonth && sEnd > dateStr);
+                        // 어제와 내일 날짜 구하기 (공휴일 연속성 체크용)
+                        const yestStr = `${year}-${String(month).padStart(2, '0')}-${String(d - 1).padStart(2, '0')}`;
+                        const tomStr = `${year}-${String(month).padStart(2, '0')}-${String(d + 1).padStart(2, '0')}`;
+                        
+                        // 어제나 내일이 쉬는 날(주말 혹은 공휴일)인지 판단
+                        const isYestOff = (dayOfWeek === 1) || state.holidays.some(h => h.date === yestStr);
+                        const isTomOff = (dayOfWeek === 5) || state.holidays.some(h => h.date === tomStr);
+
+                        // 시작일이거나, 1일이거나, 어제가 쉬는 날이었으면 모서리 닫기
+                        const isStartVisual = (dateStr === sStart) || (d === 1 && sStart < dateStr) || (isYestOff && sStart < dateStr);
+                        // 종료일이거나, 말일이거나, 내일이 쉬는 날이면 모서리 닫기
+                        const isEndVisual = (dateStr === sEnd) || (d === daysInMonth && sEnd > dateStr) || (isTomOff && sEnd > dateStr);
 
                         if (isStartVisual && isEndVisual) {
                             radiusClass = 'rounded-md';
@@ -1010,8 +1017,8 @@
                             titleText = '\u00A0'; 
                         }
                         
-                        // 월요일, 1일, 혹은 진짜 시작일이면 사업 제목 다시 적어주기
-                        if (dayOfWeek === 1 || d === 1 || dateStr === sStart) { 
+                        // 쉬는 날 다음날이면 사업 제목 다시 적어주기
+                        if (isStartVisual) { 
                             titleText = ev.title; 
                         }
                     }
