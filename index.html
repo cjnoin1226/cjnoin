@@ -1439,7 +1439,7 @@
                                 <div class="flex items-center gap-2 w-full overflow-hidden">
                                     <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer flex-shrink-0" onchange="app.toggleClientSelection('${c.id}')" ${state.ui.selectedClientIds.has(c.id) ? 'checked' : ''}>
                                     <div class="flex items-center gap-1 overflow-hidden">
-                                        <span class="font-bold text-xl text-slate-800 cursor-pointer hover:text-blue-600 truncate flex-shrink-0" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
+                                        <span class="font-bold text-base text-slate-800 cursor-pointer hover:text-blue-600 truncate flex-shrink-0" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
                                         ${nameDetail}
                                     </div>
                                 </div>
