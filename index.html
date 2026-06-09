@@ -397,7 +397,7 @@
 
         const CONSTANTS = {
             DONG_LIST: ['대연동', '감만동', '우암동', '문현동', '용호동', '용당동'],
-            STATUS_LIST: ['이용', '장기부재', '종결'],
+            STATUS_LIST: ['이용', '장기부재', '종결', '대기'],
             CARE_LEVEL_LIST: ['일반', '중점'],
             ECONOMIC_LIST: ['일반(저소득)', '기초수급', '조건부 기초수급', '차상위'],
             HOUSEHOLD_LIST: ['독거세대', '부부세대', '동거', '자녀동거세대', '조손동거세대'],
@@ -623,8 +623,8 @@
 
             // [수정] 모든 리스너에 (!state.isBatching) 조건 추가하여 일괄 작업 중 렌더링 방지
 
-            // [최적화 1단계] 대상자: '이용' 및 '장기부재' 상태인 대상자만 우선 로딩
-            let initialClientUnsub = onSnapshot(query(collection(db, "clients"), where("status", "in", ["이용", "장기부재"])), (snap) => {
+            // [최적화 1단계] 대상자: '이용', '장기부재', '대기' 상태인 대상자만 우선 로딩
+            let initialClientUnsub = onSnapshot(query(collection(db, "clients"), where("status", "in", ["이용", "장기부재", "대기"])), (snap) => {
                 const activeClients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 const clientMap = new Map(state.clients.map(c => [c.id, c]));
                 activeClients.forEach(c => clientMap.set(c.id, c));
@@ -1411,7 +1411,7 @@
 
                             const isLogicallyTerminated = c.status === '종결' || (c.endDate && c.endDate <= filterEnd);
                             const displayStatus = isLogicallyTerminated ? '종결' : c.status;
-                            const statusColor = displayStatus === '종결' ? 'bg-slate-100 text-slate-500' : (displayStatus === '이용' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500');
+                            const statusColor = displayStatus === '종결' ? 'bg-slate-100 text-slate-500' : (displayStatus === '이용' ? 'bg-green-100 text-green-700' : (displayStatus === '대기' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'));
                             const eDate = c.endDate || '9999-12-31';
                             const wasActiveInPeriod = eDate >= filterStart;
                             const getEconomicDisplay = (status) => {
