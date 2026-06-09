@@ -1439,7 +1439,7 @@
                                 <div class="flex items-center gap-2 w-full overflow-hidden">
                                     <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer flex-shrink-0" onchange="app.toggleClientSelection('${c.id}')" ${state.ui.selectedClientIds.has(c.id) ? 'checked' : ''}>
                                     <div class="flex items-center gap-1 overflow-hidden">
-                                        <span class="font-bold text-base text-slate-800 cursor-pointer hover:text-blue-600 truncate flex-shrink-0" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
+                                        <span class="font-bold text-lg text-slate-800 cursor-pointer hover:text-blue-600 truncate flex-shrink-0" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
                                         ${nameDetail}
                                     </div>
                                 </div>
@@ -1450,8 +1450,8 @@
                                     ${statusBadge}
                                     ${activeDot}
                                 </div>
-                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.phone||''}${c.phone2 ? ' / ' + c.phone2 : ''}"><span class="truncate text-lg text-slate-900">${isEtcClient ? '' : (c.phone||'-')}${!isEtcClient && c.phone2 ? ' / ' + c.phone2 : ''}</span></div>
-                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.address||''}"><span class="truncate text-lg text-slate-900">${isEtcClient ? '' : (c.address||'-')}</span></div>
+                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.phone||''}${c.phone2 ? ' / ' + c.phone2 : ''}"><span class="truncate text-base text-slate-900">${isEtcClient ? '' : (c.phone||'-')}${!isEtcClient && c.phone2 ? ' / ' + c.phone2 : ''}</span></div>
+                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.address||''}"><span class="truncate text-base text-slate-900">${isEtcClient ? '' : (c.address||'-')}</span></div>
                                 <div class="flex items-center justify-end gap-1 w-full">
                                     <button onclick="app.openClientModal('${c.id}')" class="text-slate-400 hover:text-blue-500 p-1 rounded" title="수정"><i data-lucide="edit" size="12"></i></button>
                                     <button onclick="app.deleteData('clients','${c.id}')" class="text-slate-400 hover:text-red-500 p-1 rounded" title="삭제"><i data-lucide="trash-2" size="12"></i></button>
