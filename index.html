@@ -6538,7 +6538,7 @@
                             <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" data-id="${c.id||''}">
                                 <div id="tab-basic" class="modal-tab-content ${state.ui.clientModalTab === 'basic' ? 'active' : ''} space-y-4 pt-4 sm:pt-6">
                                     <div class="sm:col-span-3">
-                         <div class="flex items-center gap-2 mb-1">
+    <div class="flex items-center gap-2 mb-1">
         <label class="text-sm block font-bold text-slate-700">주소</label>
         <button type="button" onclick="const addr = document.querySelector('#client-form input[name=\\'address\\']').value; if(addr) window.open('https://map.kakao.com/?q=' + addr); else alert('주소를 먼저 입력해주세요.');" class="text-[10px] bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded hover:bg-blue-100 transition-colors shadow-sm font-bold flex items-center gap-1">📍 지도에서 보기</button>
     </div>
