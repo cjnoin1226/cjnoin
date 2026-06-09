@@ -6537,42 +6537,13 @@
                         <div class="px-4 sm:px-6 pb-4 sm:pb-6 overflow-y-auto flex-1 bg-white">
                             <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" data-id="${c.id||''}">
                                 <div id="tab-basic" class="modal-tab-content ${state.ui.clientModalTab === 'basic' ? 'active' : ''} space-y-4 pt-4 sm:pt-6">
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div>
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">생년월일</label><input name="birthDate" class="input-field" value="${c.birthDate||''}" placeholder="YY-MM-DD" oninput="app.formatShortDateInput(this)"></div>
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">성별</label><select name="gender" class="input-field"><option value="남성" ${c.gender==='남성'?'selected':''}>남성</option><option value="여성" ${c.gender==='여성'?'selected':''}>여성</option></select></div>
-                                        
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">연락처1</label><input name="phone" class="input-field" value="${c.phone||''}" placeholder="010-0000-0000" oninput="app.formatPhoneInput(this)"></div>
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">연락처2</label><input name="phone2" class="input-field" value="${c.phone2||''}" placeholder="010-0000-0000" oninput="app.formatPhoneInput(this)"></div>
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">주민번호</label><input name="residentNum" class="input-field" value="${c.residentNum||''}" placeholder="000000-0000000"></div>
-
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">행정동</label><select name="region" class="input-field">${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${c.region===d?'selected':''}>${d}</option>`).join('')}</select></div>
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">상태 (이용현황)</label><select name="status" class="input-field">${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">등급</label><select name="careLevel" class="input-field">${CONSTANTS.CARE_LEVEL_LIST.map(l=>`<option value="${l}" ${c.careLevel===l?'selected':''}>${l}</option>`).join('')}</select></div>
-
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">경제상황</label><select name="economicStatus" class="input-field">${CONSTANTS.ECONOMIC_LIST.map(e=>`<option value="${e}" ${c.economicStatus===e?'selected':''}>${e}</option>`).join('')}</select></div>
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">중복서비스</label><select name="duplicateService" class="input-field">${CONSTANTS.DUPLICATE_SERVICE_LIST.map(d=>`<option value="${d}" ${c.duplicateService===d?'selected':''}>${d}</option>`).join('')}</select></div>
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">ICT현황</label><select name="ictStatus" class="input-field">${CONSTANTS.ICT_STATUS_LIST.map(i=>`<option value="${i}" ${c.ictStatus===i?'selected':''}>${i}</option>`).join('')}</select></div>
-
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">서비스 시작일</label><input type="date" name="serviceStartDate" class="input-field" value="${c.serviceStartDate||''}" max="9999-12-31"></div>
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">종결일 (상태 종결 시)</label><input type="date" name="endDate" class="input-field" value="${c.endDate||''}" max="9999-12-31"></div>
-                                        <div class="flex gap-2">
-                                            <div class="flex-1"><label class="text-[10px] block font-bold text-slate-500 mb-1">장기부재 시작</label><input type="date" name="absStart" class="input-field px-1 py-1 text-xs" value="${c.absStart||''}" max="9999-12-31"></div>
-                                            <div class="flex-1"><label class="text-[10px] block font-bold text-slate-500 mb-1">장기부재 종료</label><input type="date" name="absEnd" class="input-field px-1 py-1 text-xs" value="${c.absEnd||''}" max="9999-12-31"></div>
-                                        </div>
-
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">보호자 성명/관계</label><input name="guardianRelation" class="input-field" value="${c.guardianRelation||''}" placeholder="예: 홍길동(자녀)"></div>
-                                        <div><label class="text-sm block font-bold text-slate-700 mb-1">보호자 연락처</label><input name="guardianPhone" class="input-field" value="${c.guardianPhone||''}" placeholder="010-0000-0000" oninput="app.formatPhoneInput(this)"></div>
-                                        <div></div> <!-- 빈칸 맞춤용 -->
-
-                                        <div class="sm:col-span-2 lg:col-span-3 mt-2">
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <label class="text-sm block font-bold text-slate-700">주소</label>
-                                                <button type="button" onclick="const addr = document.querySelector('#client-form input[name=\\'address\\']').value; if(addr) window.open('https://map.kakao.com/?q=' + addr); else alert('주소를 먼저 입력해주세요.');" class="text-[10px] bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded hover:bg-blue-100 transition-colors shadow-sm font-bold flex items-center gap-1">📍 지도에서 보기</button>
-                                            </div>
-                                            <input name="address" class="input-field" value="${c.address||''}" placeholder="상세 주소 입력">
-                                        </div>
-                                    </div>
+                                    <div class="sm:col-span-3">
+                         <div class="flex items-center gap-2 mb-1">
+        <label class="text-sm block font-bold text-slate-700">주소</label>
+        <button type="button" onclick="const addr = document.querySelector('#client-form input[name=\\'address\\']').value; if(addr) window.open('https://map.kakao.com/?q=' + addr); else alert('주소를 먼저 입력해주세요.');" class="text-[10px] bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded hover:bg-blue-100 transition-colors shadow-sm font-bold flex items-center gap-1">📍 지도에서 보기</button>
+    </div>
+    <input name="address" class="input-field" value="${c.address||''}" placeholder="상세 주소 입력">
+</div>
                                 </div>
                                 
                                 <div id="tab-case" class="modal-tab-content ${state.ui.clientModalTab === 'case' ? 'active' : ''} space-y-4">
