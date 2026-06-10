@@ -2804,16 +2804,18 @@
                 if (state.viewMode === 'single') updateTabContent('schedule'); else render();
             },
             
-            // [수정] 필터링과 월별 그룹 기능이 추가된 등록된 일정 리스트 모달
-            openScheduleListModal: (filterCat = '') => {
-                const { year } = state.filters.schedule;
+            // [수정] 연도 선택 및 필터링 기능이 추가된 등록된 일정 리스트 모달
+            openScheduleListModal: (filterCat = '', filterYear = null) => {
+                // 전달받은 연도가 없으면 현재 스케줄 필터의 연도 사용
+                const targetYear = filterYear ? parseInt(filterYear) : state.filters.schedule.year;
+
                 // 해당 연도의 일정 중, 필터 선택 시 해당 서비스만 추출
                 const yearEvents = state.schedules.filter(s => {
                     const sS = s.startDate || s.date;
                     const sE = s.endDate || s.date || sS;
                     if (!sS || !sE) return false;
                     if (filterCat && s.category !== filterCat) return false;
-                    return sS.startsWith(String(year)) || sE.startsWith(String(year));
+                    return sS.startsWith(String(targetYear)) || sE.startsWith(String(targetYear));
                 }).sort((a, b) => (a.startDate || a.date).localeCompare(b.startDate || b.date));
 
                 // 1월부터 12월까지 월별로 데이터를 담을 상자(그룹) 만들기
@@ -2860,11 +2862,19 @@
                 const uniqueCategories = [...new Set(state.services.map(srv => srv.name))];
                 const catOptions = uniqueCategories.map(c => `<option value="${c}" ${filterCat === c ? 'selected' : ''}>${c}</option>`).join('');
 
+                // [신규] 연도 옵션 생성 (2020년 ~ 내년)
+                const currentYear = new Date().getFullYear();
+                const yearOptions = [];
+                for (let y = 2020; y <= currentYear + 1; y++) {
+                    yearOptions.push(`<option value="${y}" ${targetYear == y ? 'selected' : ''}>${y}년</option>`);
+                }
+                yearOptions.reverse(); // 최신 연도가 맨 위로 오도록
+
                 const html = `
                     <div class="bg-white w-full max-w-3xl p-6 rounded-xl shadow-2xl mx-4 flex flex-col max-h-[85vh]">
                         <div class="flex justify-between items-center mb-4 flex-shrink-0">
                             <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                <i data-lucide="list-todo" size="20" class="text-blue-600"></i> ${year}년 등록된 일정 목록
+                                <i data-lucide="list-todo" size="20" class="text-blue-600"></i> ${targetYear}년 등록된 일정 목록
                             </h3>
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="20"></i></button>
                         </div>
@@ -2873,8 +2883,13 @@
                                 <span class="font-bold text-slate-700">총 일정: <span class="text-blue-600">${yearEvents.length}</span>건</span>
                             </div>
                             <div class="flex items-center gap-2">
+                                <!-- [신규] 연도 선택 드롭다운 -->
+                                <select id="modal-filter-year" class="input-field py-1 px-2 text-xs w-24 font-bold text-blue-700 border-blue-200" onchange="app.openScheduleListModal(document.getElementById('modal-filter-cat').value, this.value)">
+                                    ${yearOptions.join('')}
+                                </select>
                                 <span class="text-xs font-bold text-slate-500">분류 필터:</span>
-                                <select class="input-field py-1 px-2 text-xs w-32" onchange="app.openScheduleListModal(this.value)">
+                                <!-- [수정] 분류 변경 시 연도 값도 같이 넘기도록 수정 -->
+                                <select id="modal-filter-cat" class="input-field py-1 px-2 text-xs w-32" onchange="app.openScheduleListModal(this.value, document.getElementById('modal-filter-year').value)">
                                     <option value="">전체 보기</option>
                                     ${catOptions}
                                 </select>
