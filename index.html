@@ -1435,12 +1435,13 @@
                             const genderColorClass = c.gender === '남성' ? 'text-blue-600' : 'text-red-600';
 
                             // [수정] '-' 데이터인 경우 상세 정보(행정동, 경제, 등급, 상태) 숨김 처리
-                            const regionBadge = isEtcClient ? '' : `<span class="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium whitespace-nowrap border border-slate-200">${c.region}</span>`;
-                            const ecoBadge = isEtcClient ? '' : `<span class="text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100 font-medium whitespace-nowrap">${getEconomicDisplay(c.economicStatus)}</span>`;
-                            const levelBadge = isEtcClient ? '' : `<span class="text-xs px-1.5 py-0.5 rounded ${c.careLevel==='중점'?'bg-pink-50 text-pink-700 border border-pink-100':'bg-blue-50 text-blue-700 border border-blue-100'} font-medium whitespace-nowrap">${c.careLevel}</span>`;
-                            const statusBadge = isEtcClient ? '' : `<span class="text-xs px-1.5 py-0.5 rounded ${statusColor} font-medium whitespace-nowrap border border-slate-200">${displayStatus}</span>`;
-                            // 이름 옆 정보도 '-' 데이터면 숨김 (요청: "아무 정보가 없어도 돼")
-                            const nameDetail = isEtcClient ? '' : `<span class="text-sm font-bold text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">(${birthShort}/<span class="${genderColorClass}">${genderShort}</span>)</span>`;
+                            // [수정] 모바일에서는 배지 글씨 크기 축소 (text-[10px]), PC에서는 원래대로 (sm:text-xs)
+                            const regionBadge = isEtcClient ? '' : `<span class="text-[10px] sm:text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium whitespace-nowrap border border-slate-200">${c.region}</span>`;
+                            const ecoBadge = isEtcClient ? '' : `<span class="text-[10px] sm:text-xs px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100 font-medium whitespace-nowrap">${getEconomicDisplay(c.economicStatus)}</span>`;
+                            const levelBadge = isEtcClient ? '' : `<span class="text-[10px] sm:text-xs px-1.5 py-0.5 rounded ${c.careLevel==='중점'?'bg-pink-50 text-pink-700 border border-pink-100':'bg-blue-50 text-blue-700 border border-blue-100'} font-medium whitespace-nowrap">${c.careLevel}</span>`;
+                            const statusBadge = isEtcClient ? '' : `<span class="text-[10px] sm:text-xs px-1.5 py-0.5 rounded ${statusColor} font-medium whitespace-nowrap border border-slate-200">${displayStatus}</span>`;
+                            // 이름 옆 정보 (생년월일/성별) - 모바일(text-xs), PC(sm:text-sm)
+                            const nameDetail = isEtcClient ? '' : `<span class="text-xs sm:text-sm font-bold text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis">(${birthShort}/<span class="${genderColorClass}">${genderShort}</span>)</span>`;
                             const activeDot = (!isEtcClient && targetYear && wasActiveInPeriod) ? `<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 ml-0.5 shadow-sm" title="해당 기간 이용 이력 있음"></div>` : '';
 
                             return `
@@ -1448,7 +1449,8 @@
                                 <div class="flex items-center gap-2 w-full overflow-hidden">
                                     <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer flex-shrink-0" onchange="app.toggleClientSelection('${c.id}')" ${state.ui.selectedClientIds.has(c.id) ? 'checked' : ''}>
                                     <div class="flex items-center gap-1 overflow-hidden">
-                                        <span class="font-bold text-lg text-slate-800 cursor-pointer hover:text-blue-600 truncate flex-shrink-0" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
+                                        <!-- [수정] 대상자 이름 - 모바일(text-base), PC(sm:text-lg) -->
+                                        <span class="font-bold text-base sm:text-lg text-slate-800 cursor-pointer hover:text-blue-600 truncate flex-shrink-0" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
                                         ${nameDetail}
                                     </div>
                                 </div>
@@ -1459,8 +1461,10 @@
                                     ${statusBadge}
                                     ${activeDot}
                                 </div>
-                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.phone||''}${c.phone2 ? ' / ' + c.phone2 : ''}"><span class="truncate text-base text-slate-900">${isEtcClient ? '' : (c.phone||'-')}${!isEtcClient && c.phone2 ? ' / ' + c.phone2 : ''}</span></div>
-                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.address||''}"><span class="truncate text-base text-slate-900">${isEtcClient ? '' : (c.address||'-')}</span></div>
+                                <!-- [수정] 연락처 - 모바일(text-sm), PC(sm:text-base) -->
+                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.phone||''}${c.phone2 ? ' / ' + c.phone2 : ''}"><span class="truncate text-sm sm:text-base text-slate-900">${isEtcClient ? '' : (c.phone||'-')}${!isEtcClient && c.phone2 ? ' / ' + c.phone2 : ''}</span></div>
+                                <!-- [수정] 주소 - 모바일(text-sm), PC(sm:text-base) -->
+                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.address||''}"><span class="truncate text-sm sm:text-base text-slate-900">${isEtcClient ? '' : (c.address||'-')}</span></div>
                                 <div class="flex items-center justify-end gap-1 w-full">
                                     <button onclick="app.openClientModal('${c.id}')" class="text-slate-400 hover:text-blue-500 p-1 rounded" title="수정"><i data-lucide="edit" size="12"></i></button>
                                     <button onclick="app.deleteData('clients','${c.id}')" class="text-slate-400 hover:text-red-500 p-1 rounded" title="삭제"><i data-lucide="trash-2" size="12"></i></button>
