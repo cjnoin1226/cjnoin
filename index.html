@@ -2644,12 +2644,9 @@
         }
 
         window.app = {
-            // [신규] 구글 지도 모달창 띄우기 (상세주소 결합 및 괄호 제거 로직 적용)
+            // [신규] 구글 지도 모달창 띄우기 (상세주소 결합, 괄호 제거, z-index 우선순위 최상단 보장 적용)
             openMapModal: (address) => {
-                // 구글 지도가 헷갈려하는 괄호 안의 법정동/아파트이름 등을 제거합니다.
-                // 예: "청전로 10 (대연동) 104동 202호" -> "청전로 10  104동 202호"
                 let cleanAddr = address.replace(/\([^)]*\)/g, '').trim();
-                
                 const encodedAddr = encodeURIComponent(cleanAddr);
                 const iframeSrc = `https://maps.google.com/maps?q=${encodedAddr}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
                 
@@ -2659,6 +2656,7 @@
                             <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
                                 <i data-lucide="map" class="text-blue-500"></i> 위치 지도 보기
                             </h3>
+                            <!-- 닫기 버튼 클릭 시 지도만 닫히도록 closeDialog 호출 -->
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
                         
@@ -2675,6 +2673,10 @@
                         </div>
                     </div>
                 `;
+                
+                // [해결 핵심] 지도가 뜨는 dialog-container를 무조건 최상단(z-index 90)으로 끌어올림
+                const d = document.getElementById('dialog-container');
+                d.style.zIndex = "90"; 
                 showDialog(html);
                 if(window.lucide) lucide.createIcons();
             },
