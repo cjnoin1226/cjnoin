@@ -2644,9 +2644,13 @@
         }
 
         window.app = {
-            // [신규] 구글 지도 모달창 띄우기
+            // [신규] 구글 지도 모달창 띄우기 (상세주소 결합 및 괄호 제거 로직 적용)
             openMapModal: (address) => {
-                const encodedAddr = encodeURIComponent(address);
+                // 구글 지도가 헷갈려하는 괄호 안의 법정동/아파트이름 등을 제거합니다.
+                // 예: "청전로 10 (대연동) 104동 202호" -> "청전로 10  104동 202호"
+                let cleanAddr = address.replace(/\([^)]*\)/g, '').trim();
+                
+                const encodedAddr = encodeURIComponent(cleanAddr);
                 const iframeSrc = `https://maps.google.com/maps?q=${encodedAddr}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
                 
                 const html = `
@@ -2657,6 +2661,12 @@
                             </h3>
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
+                        
+                        <div class="bg-blue-50 border border-blue-100 px-3 py-2 rounded-lg mb-3 flex items-center gap-2 flex-shrink-0">
+                            <i data-lucide="info" size="16" class="text-blue-500 flex-shrink-0"></i>
+                            <span class="text-sm text-slate-700">검색 주소: <strong>${cleanAddr}</strong></span>
+                        </div>
+
                         <div class="flex-1 w-full bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
                             <iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="${iframeSrc}"></iframe>
                         </div>
@@ -4848,11 +4858,12 @@
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                                        <div class="sm:col-span-1"><label class="block text-sm font-bold text-slate-700 mb-1">연락처</label><input type="text" name="phone" class="input-field" value="${ic.phone || ''}" placeholder="연락처" oninput="app.formatPhoneInput(this)"></div>
                                        <div class="sm:col-span-2">
-                                           <label class="flex items-center gap-1 text-sm font-bold text-slate-700 mb-1">
-                                             주소
-                                             <button type="button" onclick="const addr = document.getElementById('ic-address').value; if(addr) app.openMapModal(addr); else alert('주소를 먼저 검색해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기">
-                                                 <i data-lucide="map-pin" class="w-4 h-4"></i>
-                                             </button>
+                                           <label class="flex items-center gap-1 text-sm mb-1">
+                                                주소
+                                                <!-- [수정] 도로명주소(addr1)와 상세주소(addr2)를 합쳐서(fullAddr) 구글 지도로 보내도록 개선 -->
+                                                <button type="button" onclick="const addr1 = document.getElementById('client-address').value; const addr2 = document.getElementById('client-address-detail').value; const fullAddr = addr1 + ' ' + addr2; if(addr1) app.openMapModal(fullAddr); else alert('주소를 먼저 검색해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기">
+                                                    <i data-lucide="map-pin" class="w-4 h-4"></i>
+                                                </button>
                                            </label>
                                            <!-- [수정] 모바일에서는 세로, PC/태블릿(md) 이상에서는 한 줄에 반반씩 차지하도록 변경 -->
                                            <div class="flex flex-col md:flex-row gap-2 w-full">
