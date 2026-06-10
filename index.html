@@ -2656,9 +2656,21 @@
                 const html = `
                     <div class="bg-white w-full max-w-3xl p-6 rounded-xl shadow-2xl mx-4 flex flex-col h-[80vh]">
                         <div class="flex justify-between items-center mb-4 flex-shrink-0">
-                            <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                <i data-lucide="map" class="text-blue-500"></i> 위치 지도 보기
-                            </h3>
+                            <div class="flex items-center gap-4">
+                                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                    <i data-lucide="map" class="text-blue-500"></i> 위치 지도 보기
+                                </h3>
+                                <!-- [신규] 카카오맵, 네이버맵 외부 링크 아이콘 버튼 -->
+                                <div class="flex items-center gap-2 border-l border-slate-200 pl-4">
+                                    <button type="button" onclick="window.open('https://map.kakao.com/?q=${encodedAddr}')" class="flex items-center justify-center w-7 h-7 bg-[#FAE100] text-[#371D1E] rounded-md shadow-sm hover:opacity-80 transition-opacity" title="카카오맵에서 열기">
+                                        <span class="font-black text-sm" style="font-family: Arial, sans-serif;">K</span>
+                                    </button>
+                                    <button type="button" onclick="window.open('https://map.naver.com/v5/search/${encodedAddr}')" class="flex items-center justify-center w-7 h-7 bg-[#03C75A] text-white rounded-md shadow-sm hover:opacity-80 transition-opacity" title="네이버 지도에서 열기">
+                                        <span class="font-black text-sm" style="font-family: Arial, sans-serif;">N</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- 닫기 버튼 -->
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
                         
