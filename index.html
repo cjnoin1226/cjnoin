@@ -2662,7 +2662,8 @@
                                 </h3>
                                 <!-- [신규] 카카오맵, 네이버맵 외부 링크 아이콘 버튼 -->
                                 <div class="flex items-center gap-2 border-l border-slate-200 pl-4">
-                                    <button type="button" onclick="window.open('https://map.kakao.com/?q=${encodedAddr}')" class="flex items-center justify-center w-7 h-7 bg-[#FAE100] text-[#371D1E] rounded-md shadow-sm hover:opacity-80 transition-opacity" title="카카오맵에서 열기">
+                                    <!-- [수정] 모바일 앱 연동 오류 개선을 위해 카카오맵 공식 외부 검색 포맷(link/search/) 적용 -->
+                                    <button type="button" onclick="window.open('https://map.kakao.com/link/search/${encodedAddr}')" class="flex items-center justify-center w-7 h-7 bg-[#FAE100] text-[#371D1E] rounded-md shadow-sm hover:opacity-80 transition-opacity" title="카카오맵에서 열기">
                                         <span class="font-black text-sm" style="font-family: Arial, sans-serif;">K</span>
                                     </button>
                                     <button type="button" onclick="window.open('https://map.naver.com/v5/search/${encodedAddr}')" class="flex items-center justify-center w-7 h-7 bg-[#03C75A] text-white rounded-md shadow-sm hover:opacity-80 transition-opacity" title="네이버 지도에서 열기">
