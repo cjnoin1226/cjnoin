@@ -22,6 +22,9 @@
     <!-- JSZip (ZIP 압축) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
+    <!-- Daum 우편번호 서비스 -->
+    <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
     <style>
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
         body { font-family: 'Pretendard', sans-serif; }
@@ -1449,7 +1452,7 @@
                                 <div class="flex items-center gap-2 w-full overflow-hidden">
                                     <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer flex-shrink-0" onchange="app.toggleClientSelection('${c.id}')" ${state.ui.selectedClientIds.has(c.id) ? 'checked' : ''}>
                                     <div class="flex items-center gap-1 overflow-hidden">
-                                        <!-- [수정] 대상자 이름 - 모바일(text-base), PC(sm:text-lg) -->
+                                        <!-- [수정] 대상자 이름 - 모바일(text-lg), PC(sm:text-lg) -->
                                         <span class="font-bold text-base sm:text-lg text-slate-800 cursor-pointer hover:text-blue-600 truncate flex-shrink-0" onclick="app.openClientModal('${c.id}')" title="상세 정보 보기/수정">${c.name}</span>
                                         ${nameDetail}
                                     </div>
@@ -1461,10 +1464,10 @@
                                     ${statusBadge}
                                     ${activeDot}
                                 </div>
-                                <!-- [수정] 연락처 - 모바일(text-sm), PC(sm:text-base) -->
+                                <!-- [수정] 연락처 - 모바일(text-base), PC(sm:text-base) -->
                                 <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.phone||''}${c.phone2 ? ' / ' + c.phone2 : ''}"><span class="truncate text-sm sm:text-base text-slate-900">${isEtcClient ? '' : (c.phone||'-')}${!isEtcClient && c.phone2 ? ' / ' + c.phone2 : ''}</span></div>
                                 <!-- [수정] 주소 - 모바일(text-sm), PC(sm:text-base) -->
-                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.address||''}"><span class="truncate text-sm sm:text-base text-slate-900">${isEtcClient ? '' : (c.address||'-')}</span></div>
+                                <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.address||''} ${c.addressDetail||''}"><span class="truncate text-sm sm:text-base text-slate-900">${isEtcClient ? '' : ((c.address||'-') + (c.addressDetail ? ' ' + c.addressDetail : ''))}</span></div>
                                 <div class="flex items-center justify-end gap-1 w-full">
                                     <button onclick="app.openClientModal('${c.id}')" class="text-slate-400 hover:text-blue-500 p-1 rounded" title="수정"><i data-lucide="edit" size="12"></i></button>
                                     <button onclick="app.deleteData('clients','${c.id}')" class="text-slate-400 hover:text-red-500 p-1 rounded" title="삭제"><i data-lucide="trash-2" size="12"></i></button>
@@ -2580,7 +2583,7 @@
                     rows += '<div class="flex items-center hover:bg-slate-50 transition-colors py-2 group cursor-pointer" onclick="app.openIntegratedCareModal(\'' + ic.id + '\')">';
                     rows += '<div class="w-[10%] text-center text-sm font-bold text-slate-800">' + (ic.name || '') + '</div>';
                     rows += '<div class="w-[12%] text-center text-xs text-slate-600">' + (ic.birthDate || '-') + '</div>';
-                    rows += '<div class="w-[22%] text-xs text-slate-700 truncate px-3">' + (ic.address || '-') + '</div>';
+                    rows += '<div class="w-[22%] text-xs text-slate-700 truncate px-3" title="' + (ic.address||'') + ' ' + (ic.addressDetail||'') + '">' + (ic.address || '-') + (ic.addressDetail ? ' ' + ic.addressDetail : '') + '</div>';
                     rows += '<div class="w-[14%] text-center text-xs text-slate-600">' + (ic.phone || '-') + '</div>';
                     rows += '<div class="w-[10%] text-center text-xs text-slate-600">' + (ic.economicStatus || '미지정') + '</div>';
                     
@@ -2664,6 +2667,28 @@
                 `;
                 showDialog(html);
                 if(window.lucide) lucide.createIcons();
+            },
+
+            // [신규] 다음 우편번호 검색 팝업 띄우기
+            execDaumPostcode: (baseAddressId, detailAddressId) => {
+                new daum.Postcode({
+                    oncomplete: function(data) {
+                        let addr = '';
+
+                        if (data.userSelectedType === 'R') {
+                            addr = data.roadAddress;
+                        } else {
+                            addr = data.jibunAddress;
+                        }
+
+                        document.getElementById(baseAddressId).value = addr;
+                        const detailInput = document.getElementById(detailAddressId);
+                        detailInput.value = '';
+                        detailInput.focus();
+                        
+                        state.ui.isDirty = true;
+                    }
+                }).open();
             },
 
             // [신규] 일정 복사 함수
@@ -4825,13 +4850,18 @@
                                        <div class="sm:col-span-2">
                                            <label class="flex items-center gap-1 text-sm font-bold text-slate-700 mb-1">
                                              주소
-                                             <button type="button" onclick="const addr = this.closest('div').querySelector('input').value; if(addr) app.openMapModal(addr); else alert('주소를 먼저 입력해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기">
+                                             <button type="button" onclick="const addr = document.getElementById('ic-address').value; if(addr) app.openMapModal(addr); else alert('주소를 먼저 검색해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기">
                                                  <i data-lucide="map-pin" class="w-4 h-4"></i>
                                              </button>
                                            </label>
-                                           <input type="text" name="address" class="input-field" value="${ic.address || ''}" placeholder="상세 주소 입력">
+                                           <div class="flex flex-col gap-2">
+                                               <div class="flex gap-2">
+                                                   <input type="text" id="ic-address" name="address" class="input-field flex-1 bg-slate-50 cursor-pointer" value="${ic.address || ''}" placeholder="도로명/지번 주소 (클릭하여 검색)" readonly onclick="app.execDaumPostcode('ic-address', 'ic-address-detail')">
+                                                   <button type="button" onclick="app.execDaumPostcode('ic-address', 'ic-address-detail')" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-slate-700 whitespace-nowrap shadow-sm">주소 검색</button>
+                                               </div>
+                                               <input type="text" id="ic-address-detail" name="addressDetail" class="input-field w-full" value="${ic.addressDetail || ''}" placeholder="상세 주소 (동, 호수 등 직접 입력)">
+                                           </div>
                                        </div>
-                                    </div>
     
                                     <!-- 3번째 줄: 연계시작일 - 연계종료일 -->
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -6593,7 +6623,136 @@
                         <div class="px-4 sm:px-6 pb-4 sm:pb-6 overflow-y-auto flex-1 bg-white">
                             <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" data-id="${c.id||''}">
                                 <div id="tab-basic" class="modal-tab-content ${state.ui.clientModalTab === 'basic' ? 'active' : ''} space-y-4 pt-4 sm:pt-6">
-                                    <div class="grid grid-cols-2 sm:grid-cols-12 gap-3"><div class="col-span-1 sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">이름</label><input name="name" class="input-field" value="${c.name||''}" required></div><div class="col-span-1 sm:col-span-6 md:col-span-2"><label class="text-sm block mb-1">성별</label><select name="gender" class="input-field" id="gender-select"><option value="남성">남성</option><option value="여성" ${c.gender==='여성'?'selected':''}>여성</option></select></div><div class="col-span-1 sm:col-span-6 md:col-span-3"><label class="text-sm block mb-1">주민등록번호</label><input name="residentNum" class="input-field" placeholder="YYMMDD-1..." value="${c.residentNum||''}" maxlength="14" oninput="app.calcBirthFromRR(this)"></div><div class="col-span-1 sm:col-span-6 md:col-span-4"><label class="text-sm block mb-1">생년월일</label><div class="flex items-center gap-2"><input type="text" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" placeholder="YYYY-MM-DD (연도만 가능)" oninput="app.updateAgeDisplay(this)"><input id="age-display" class="input-field !w-[25%] min-w-[60px] text-center bg-slate-100 text-slate-600 focus:outline-none cursor-default font-bold" readonly value="${initialAge}" placeholder="나이" tabindex="-1"></div></div></div><div class="grid grid-cols-2 md:grid-cols-3 gap-3"><div class="col-span-1"><label class="text-sm block mb-1">연락처 1</label><input name="phone" class="input-field" placeholder="본인 연락처" value="${c.phone||''}"></div><div class="col-span-1"><label class="text-sm block mb-1">연락처 2</label><input name="phone2" class="input-field" placeholder="비상/추가 연락처" value="${c.phone2||''}"></div><div class="col-span-2 md:col-span-1"><label class="text-sm block mb-1">보호자 연락처</label><div class="flex gap-2"><input name="guardianRelation" class="input-field w-20" placeholder="관계" value="${c.guardianRelation||''}"><input name="guardianPhone" class="input-field flex-1" placeholder="번호" value="${c.guardianPhone||''}"></div></div></div><div class="grid grid-cols-4 gap-3"><div class="col-span-1"><label class="text-sm block mb-1">행정동</label><select name="region" class="input-field">${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${c.region===d?'selected':''}>${d}</option>`).join('')}</select></div><div class="col-span-3"><label class="flex items-center gap-1 text-sm mb-1">주소<button type="button" onclick="const addr = this.closest('div').querySelector('input').value; if(addr) app.openMapModal(addr); else alert('주소를 먼저 입력해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기"><i data-lucide="map-pin" class="w-4 h-4"></i></button></label><input name="address" class="input-field" value="${c.address||''}" placeholder="상세 주소 입력"></div></div><div class="grid grid-cols-6 md:grid-cols-5 gap-3"><div class="col-span-2 md:col-span-1"><label class="text-sm block mb-1">등급</label><select name="careLevel" class="input-field">${CONSTANTS.CARE_LEVEL_LIST.map(v=>`<option value="${v}" ${c.careLevel===v?'selected':''}>${v}</option>`).join('')}</select></div><div class="col-span-2 md:col-span-1"><label class="text-sm block mb-1">경제상황</label><select name="economicStatus" class="input-field">${CONSTANTS.ECONOMIC_LIST.map(v=>`<option value="${v}" ${c.economicStatus===v?'selected':''}>${v}</option>`).join('')}</select></div><div class="col-span-2 md:col-span-1"><label class="text-sm block mb-1">세대유형</label><select name="householdType" class="input-field">${CONSTANTS.HOUSEHOLD_LIST.map(v=>`<option value="${v}" ${c.householdType===v?'selected':''}>${v}</option>`).join('')}</select></div><div class="col-span-3 md:col-span-1"><label class="text-sm block mb-1">중복서비스</label><select name="duplicateService" class="input-field">${CONSTANTS.DUPLICATE_SERVICE_LIST.map(v=>`<option value="${v}" ${c.duplicateService===v?'selected':''}>${v}</option>`).join('')}</select></div><div class="col-span-3 md:col-span-1"><label class="text-sm block mb-1">ICT 현황</label><select name="ictStatus" class="input-field">${CONSTANTS.ICT_STATUS_LIST.map(v=>`<option value="${v}" ${c.ictStatus===v?'selected':''}>${v}</option>`).join('')}</select></div></div><div class="grid grid-cols-2 sm:grid-cols-12 gap-3"><div class="col-span-1 sm:col-span-2"><label class="text-sm block mb-1">상태</label><select name="status" class="input-field">${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div><div class="col-span-1 sm:col-span-3"><label class="text-sm block mb-1">시작일</label><input type="text" name="serviceStartDate" class="input-field" value="${c.serviceStartDate||''}" placeholder="YYYY-MM-DD (연도만 입력 가능)"></div><div class="col-span-2 sm:col-span-4"><label class="text-sm block mb-1">장기부재기간</label><div class="flex items-center gap-1"><input type="date" name="absStart" class="input-field px-1 text-sm text-center" value="${absStart}" max="9999-12-31" style="font-size: 0.8rem;"><span class="text-slate-400">~</span><input type="date" name="absEnd" class="input-field px-1 text-sm text-center" value="${absEnd}" max="9999-12-31" style="font-size: 0.8rem;"></div></div><div class="col-span-2 sm:col-span-3"><label class="text-sm block mb-1">종결일</label><input type="text" name="endDate" class="input-field" value="${c.endDate||''}" placeholder="YYYY-MM-DD (연도만 입력 가능)"></div></div><div><label class="text-sm block mb-1">비고</label><textarea name="note" class="input-field" rows="2">${c.note||''}</textarea></div>
+                                    <div class="grid grid-cols-2 sm:grid-cols-12 gap-3">
+    <div class="col-span-1 sm:col-span-6 md:col-span-3">
+        <label class="text-sm block mb-1">이름</label>
+        <input name="name" class="input-field" value="${c.name||''}" required>
+    </div>
+    <div class="col-span-1 sm:col-span-6 md:col-span-2">
+        <label class="text-sm block mb-1">성별</label>
+        <select name="gender" class="input-field" id="gender-select">
+            <option value="남성">남성</option>
+            <option value="여성" ${c.gender==='여성'?'selected':''}>여성</option>
+        </select>
+    </div>
+    <div class="col-span-1 sm:col-span-6 md:col-span-3">
+        <label class="text-sm block mb-1">주민등록번호</label>
+        <input name="residentNum" class="input-field" placeholder="YYMMDD-1..." value="${c.residentNum||''}" maxlength="14" oninput="app.calcBirthFromRR(this)">
+    </div>
+    <div class="col-span-1 sm:col-span-6 md:col-span-4">
+        <label class="text-sm block mb-1">생년월일</label>
+        <div class="flex items-center gap-2">
+            <input type="text" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" placeholder="YYYY-MM-DD (연도만 가능)" oninput="app.updateAgeDisplay(this)">
+            <input id="age-display" class="input-field !w-[25%] min-w-[60px] text-center bg-slate-100 text-slate-600 focus:outline-none cursor-default font-bold" readonly value="${initialAge}" placeholder="나이" tabindex="-1">
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+    <div class="col-span-1">
+        <label class="text-sm block mb-1">연락처 1</label>
+        <input name="phone" class="input-field" placeholder="본인 연락처" value="${c.phone||''}">
+    </div>
+    <div class="col-span-1">
+        <label class="text-sm block mb-1">연락처 2</label>
+        <input name="phone2" class="input-field" placeholder="비상/추가 연락처" value="${c.phone2||''}">
+    </div>
+    <div class="col-span-2 md:col-span-1">
+        <label class="text-sm block mb-1">보호자 연락처</label>
+        <div class="flex gap-2">
+            <input name="guardianRelation" class="input-field w-20" placeholder="관계" value="${c.guardianRelation||''}">
+            <input name="guardianPhone" class="input-field flex-1" placeholder="번호" value="${c.guardianPhone||''}">
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-4 gap-3">
+    <div class="col-span-1">
+        <label class="text-sm block mb-1">행정동</label>
+        <select name="region" class="input-field">
+            ${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${c.region===d?'selected':''}>${d}</option>`).join('')}
+        </select>
+    </div>
+    <div class="col-span-3">
+    <label class="flex items-center gap-1 text-sm mb-1">
+        주소
+        <!-- 지도는 첫 번째 칸(도로명) 정보만 가져가서 검색하도록 수정됨 -->
+        <button type="button" onclick="const addr = document.getElementById('client-address').value; if(addr) app.openMapModal(addr); else alert('주소를 먼저 검색해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기"><i data-lucide="map-pin" class="w-4 h-4"></i></button>
+    </label>
+    <div class="flex flex-col gap-2">
+        <div class="flex gap-2">
+            <!-- 검색된 기본 주소가 들어가는 첫 번째 칸 (읽기 전용) -->
+            <input type="text" id="client-address" name="address" class="input-field flex-1 bg-slate-50 cursor-pointer" value="${c.address||''}" placeholder="도로명/지번 주소 (클릭하여 검색)" readonly onclick="app.execDaumPostcode('client-address', 'client-address-detail')">
+            <button type="button" onclick="app.execDaumPostcode('client-address', 'client-address-detail')" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-slate-700 whitespace-nowrap shadow-sm">주소 검색</button>
+        </div>
+        <!-- 직접 동, 호수를 입력하는 두 번째 칸 -->
+        <input type="text" id="client-address-detail" name="addressDetail" class="input-field w-full" value="${c.addressDetail||''}" placeholder="상세 주소 (동, 호수 등 직접 입력)">
+    </div>
+</div>
+</div>
+
+<div class="grid grid-cols-6 md:grid-cols-5 gap-3">
+    <div class="col-span-2 md:col-span-1">
+        <label class="text-sm block mb-1">등급</label>
+        <select name="careLevel" class="input-field">
+            ${CONSTANTS.CARE_LEVEL_LIST.map(v=>`<option value="${v}" ${c.careLevel===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+    </div>
+    <div class="col-span-2 md:col-span-1">
+        <label class="text-sm block mb-1">경제상황</label>
+        <select name="economicStatus" class="input-field">
+            ${CONSTANTS.ECONOMIC_LIST.map(v=>`<option value="${v}" ${c.economicStatus===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+    </div>
+    <div class="col-span-2 md:col-span-1">
+        <label class="text-sm block mb-1">세대유형</label>
+        <select name="householdType" class="input-field">
+            ${CONSTANTS.HOUSEHOLD_LIST.map(v=>`<option value="${v}" ${c.householdType===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+    </div>
+    <div class="col-span-3 md:col-span-1">
+        <label class="text-sm block mb-1">중복서비스</label>
+        <select name="duplicateService" class="input-field">
+            ${CONSTANTS.DUPLICATE_SERVICE_LIST.map(v=>`<option value="${v}" ${c.duplicateService===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+    </div>
+    <div class="col-span-3 md:col-span-1">
+        <label class="text-sm block mb-1">ICT 현황</label>
+        <select name="ictStatus" class="input-field">
+            ${CONSTANTS.ICT_STATUS_LIST.map(v=>`<option value="${v}" ${c.ictStatus===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+    </div>
+</div>
+
+<div class="grid grid-cols-2 sm:grid-cols-12 gap-3">
+    <div class="col-span-1 sm:col-span-2">
+        <label class="text-sm block mb-1">상태</label>
+        <select name="status" class="input-field">
+            ${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+    </div>
+    <div class="col-span-1 sm:col-span-3">
+        <label class="text-sm block mb-1">시작일</label>
+        <input type="text" name="serviceStartDate" class="input-field" value="${c.serviceStartDate||''}" placeholder="YYYY-MM-DD (연도만 입력 가능)">
+    </div>
+    <div class="col-span-2 sm:col-span-4">
+        <label class="text-sm block mb-1">장기부재기간</label>
+        <div class="flex items-center gap-1">
+            <input type="date" name="absStart" class="input-field px-1 text-sm text-center" value="${absStart}" max="9999-12-31" style="font-size: 0.8rem;">
+            <span class="text-slate-400">~</span>
+            <input type="date" name="absEnd" class="input-field px-1 text-sm text-center" value="${absEnd}" max="9999-12-31" style="font-size: 0.8rem;">
+        </div>
+    </div>
+    <div class="col-span-2 sm:col-span-3">
+        <label class="text-sm block mb-1">종결일</label>
+        <input type="text" name="endDate" class="input-field" value="${c.endDate||''}" placeholder="YYYY-MM-DD (연도만 입력 가능)">
+    </div>
+</div>
+
+<div>
+    <label class="text-sm block mb-1">비고</label>
+    <textarea name="note" class="input-field" rows="2">${c.note||''}</textarea>
+</div>
                                 </div>
                                 
                                 <div id="tab-case" class="modal-tab-content ${state.ui.clientModalTab === 'case' ? 'active' : ''} space-y-4">
