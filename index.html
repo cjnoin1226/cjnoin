@@ -4854,12 +4854,13 @@
                                                  <i data-lucide="map-pin" class="w-4 h-4"></i>
                                              </button>
                                            </label>
-                                           <div class="flex flex-col gap-2">
-                                               <div class="flex gap-2">
-                                                   <input type="text" id="ic-address" name="address" class="input-field flex-1 bg-slate-50 cursor-pointer" value="${ic.address || ''}" placeholder="도로명/지번 주소 (클릭하여 검색)" readonly onclick="app.execDaumPostcode('ic-address', 'ic-address-detail')">
-                                                   <button type="button" onclick="app.execDaumPostcode('ic-address', 'ic-address-detail')" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-slate-700 whitespace-nowrap shadow-sm">주소 검색</button>
+                                           <!-- [수정] 모바일에서는 세로, PC/태블릿(md) 이상에서는 한 줄에 반반씩 차지하도록 변경 -->
+                                           <div class="flex flex-col md:flex-row gap-2 w-full">
+                                               <div class="flex gap-2 flex-1">
+                                                   <input type="text" id="ic-address" name="address" class="input-field flex-1 bg-slate-50 cursor-pointer" value="${ic.address || ''}" placeholder="도로명/지번 주소" readonly onclick="app.execDaumPostcode('ic-address', 'ic-address-detail')">
+                                                   <button type="button" onclick="app.execDaumPostcode('ic-address', 'ic-address-detail')" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-slate-700 whitespace-nowrap shadow-sm flex-none">검색</button>
                                                </div>
-                                               <input type="text" id="ic-address-detail" name="addressDetail" class="input-field w-full" value="${ic.addressDetail || ''}" placeholder="상세 주소 (동, 호수 등 직접 입력)">
+                                               <input type="text" id="ic-address-detail" name="addressDetail" class="input-field flex-1" value="${ic.addressDetail || ''}" placeholder="상세 주소 입력">
                                            </div>
                                        </div>
     
@@ -6676,17 +6677,15 @@
     <div class="col-span-3">
     <label class="flex items-center gap-1 text-sm mb-1">
         주소
-        <!-- 지도는 첫 번째 칸(도로명) 정보만 가져가서 검색하도록 수정됨 -->
         <button type="button" onclick="const addr = document.getElementById('client-address').value; if(addr) app.openMapModal(addr); else alert('주소를 먼저 검색해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기"><i data-lucide="map-pin" class="w-4 h-4"></i></button>
     </label>
-    <div class="flex flex-col gap-2">
-        <div class="flex gap-2">
-            <!-- 검색된 기본 주소가 들어가는 첫 번째 칸 (읽기 전용) -->
-            <input type="text" id="client-address" name="address" class="input-field flex-1 bg-slate-50 cursor-pointer" value="${c.address||''}" placeholder="도로명/지번 주소 (클릭하여 검색)" readonly onclick="app.execDaumPostcode('client-address', 'client-address-detail')">
-            <button type="button" onclick="app.execDaumPostcode('client-address', 'client-address-detail')" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-slate-700 whitespace-nowrap shadow-sm">주소 검색</button>
+    <!-- [수정] 모바일에서는 세로, PC/태블릿(md) 이상에서는 한 줄에 반반씩 차지하도록 변경 -->
+    <div class="flex flex-col md:flex-row gap-2 w-full">
+        <div class="flex gap-2 flex-1">
+            <input type="text" id="client-address" name="address" class="input-field flex-1 bg-slate-50 cursor-pointer" value="${c.address||''}" placeholder="도로명/지번 주소" readonly onclick="app.execDaumPostcode('client-address', 'client-address-detail')">
+            <button type="button" onclick="app.execDaumPostcode('client-address', 'client-address-detail')" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-slate-700 whitespace-nowrap shadow-sm flex-none">검색</button>
         </div>
-        <!-- 직접 동, 호수를 입력하는 두 번째 칸 -->
-        <input type="text" id="client-address-detail" name="addressDetail" class="input-field w-full" value="${c.addressDetail||''}" placeholder="상세 주소 (동, 호수 등 직접 입력)">
+        <input type="text" id="client-address-detail" name="addressDetail" class="input-field flex-1" value="${c.addressDetail||''}" placeholder="상세 주소 입력">
     </div>
 </div>
 </div>
