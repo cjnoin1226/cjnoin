@@ -1571,14 +1571,15 @@
                                 <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">서비스 일지 ${getLoadingTag()}</h2>
                                 <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                                     <!-- [분할화면 수정] 상단 버튼들에도 event.stopPropagation 추가 -->
-                                    <button onmousedown="event.stopPropagation()" onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="file-spreadsheet" size="16"></i> 양식</button>
-                                    <label class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors" onmousedown="event.stopPropagation()">
-                                        <i data-lucide="upload" size="16"></i> 업로드
+                                    <!-- [수정] 모바일 텍스트(text-xs), 패딩 축소 / PC(sm) 텍스트 원래대로(sm:text-sm), 패딩 원래대로(sm:px-3 sm:py-2) -->
+                                    <button onmousedown="event.stopPropagation()" onclick="app.downloadLogTemplate()" class="bg-slate-100 text-slate-600 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors flex-1 sm:flex-none justify-center"><i data-lucide="file-spreadsheet" size="14" class="sm:w-4 sm:h-4"></i> 양식</button>
+                                    <label class="bg-slate-100 text-slate-600 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 cursor-pointer hover:bg-slate-200 transition-colors flex-1 sm:flex-none justify-center" onmousedown="event.stopPropagation()">
+                                        <i data-lucide="upload" size="14" class="sm:w-4 sm:h-4"></i> 업로드
                                         <input type="file" class="hidden" onchange="app.uploadLogExcel(this)" accept=".xlsx, .xls">
                                     </label>
-                                    <button onmousedown="event.stopPropagation()" onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="printer" size="16"></i> 인쇄</button>
-                                    <button onmousedown="event.stopPropagation()" onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors"><i data-lucide="download" size="16"></i> 엑셀 저장</button>
-                                    <button onmousedown="event.stopPropagation()" onclick="app.openLogModal()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-emerald-700 transition-colors"><i data-lucide="plus" size="16"></i> 작성</button>
+                                    <button onmousedown="event.stopPropagation()" onclick="app.printLogs()" class="bg-slate-100 text-slate-600 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors flex-1 sm:flex-none justify-center"><i data-lucide="printer" size="14" class="sm:w-4 sm:h-4"></i> 인쇄</button>
+                                    <button onmousedown="event.stopPropagation()" onclick="app.downloadLogsExcel()" class="bg-slate-100 text-slate-600 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 hover:bg-slate-200 transition-colors flex-1 sm:flex-none justify-center"><i data-lucide="download" size="14" class="sm:w-4 sm:h-4"></i> 엑셀 저장</button>
+                                    <button onmousedown="event.stopPropagation()" onclick="app.openLogModal()" class="bg-emerald-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg flex items-center gap-1.5 text-xs sm:text-sm font-medium hover:bg-emerald-700 transition-colors flex-1 sm:flex-none justify-center"><i data-lucide="plus" size="14" class="sm:w-4 sm:h-4"></i> 작성</button>
                                 </div>
                             </div>
 
