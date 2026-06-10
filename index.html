@@ -4862,7 +4862,7 @@
                                        <div class="sm:col-span-2">
                                            <label class="flex items-center gap-1 text-sm font-bold text-slate-700 mb-1">
                                              주소
-                                             <button type="button" onclick="const wrapper = this.closest('.sm\\:col-span-2'); const addr1 = wrapper.querySelector('[name=address]').value; const addr2 = wrapper.querySelector('[name=addressDetail]').value; const fullAddr = addr1 + ' ' + addr2; if(addr1) app.openMapModal(fullAddr); else alert('주소를 먼저 검색해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기">
+                                             <button type="button" onclick="const addr1 = document.getElementById('ic-address').value; const addr2 = document.getElementById('ic-address-detail').value; const fullAddr = addr1 + ' ' + addr2; if(addr1) app.openMapModal(fullAddr); else alert('주소를 먼저 검색해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기">
                                                  <i data-lucide="map-pin" class="w-4 h-4"></i>
                                              </button>
                                            </label>
