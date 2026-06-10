@@ -42,15 +42,25 @@
         .sticky-header { position: sticky; top: 0; z-index: 20; }
 
         .modal-tab-btn {
-            padding: 0.75rem 1.25rem;
+            padding: 0.5rem 0.5rem; /* 모바일에서 좌우 여백을 줄여 공간 확보 */
             border-bottom: 2px solid transparent;
             color: #64748b;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.75rem; /* 모바일용 작은 글자 크기 */
             transition: all 0.2s;
             cursor: pointer;
             flex: 1;
             text-align: center;
+            white-space: nowrap; /* 좁은 모바일에서 글자가 두 줄로 쪼개지는 것 방지 */
+            word-break: keep-all;
+        }
+
+        /* 화면이 넓은 태블릿/PC(가로 768px 이상)일 때 적용되는 설정 */
+        @media (min-width: 768px) {
+            .modal-tab-btn {
+                padding: 0.75rem 1.25rem; /* PC용 원래 여백 */
+                font-size: 0.95rem; /* PC용 원래 글자 크기 */
+            }
         }
         .modal-tab-btn:hover { color: #10b981; background-color: #f0fdf4; }
         .modal-tab-btn.active {
