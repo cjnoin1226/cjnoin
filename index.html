@@ -4809,12 +4809,15 @@
                                     <!-- 2번째 줄: 연락처 - 주소 -->
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                                        <div class="sm:col-span-1"><label class="block text-sm font-bold text-slate-700 mb-1">연락처</label><input type="text" name="phone" class="input-field" value="${ic.phone || ''}" placeholder="연락처" oninput="app.formatPhoneInput(this)"></div>
-                                       <label class="flex items-center gap-1 text-sm font-bold text-slate-700 mb-1">
-                                         주소
-                                         <button type="button" onclick="const addr = this.closest('div').querySelector('input').value; if(addr) app.openMapModal(addr); else alert('주소를 먼저 입력해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기">
-                                             <i data-lucide="map-pin" class="w-4 h-4"></i>
-                                         </button>
-                                       </label>
+                                       <div class="sm:col-span-2">
+                                           <label class="flex items-center gap-1 text-sm font-bold text-slate-700 mb-1">
+                                             주소
+                                             <button type="button" onclick="const addr = this.closest('div').querySelector('input').value; if(addr) app.openMapModal(addr); else alert('주소를 먼저 입력해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기">
+                                                 <i data-lucide="map-pin" class="w-4 h-4"></i>
+                                             </button>
+                                           </label>
+                                           <input type="text" name="address" class="input-field" value="${ic.address || ''}" placeholder="상세 주소 입력">
+                                       </div>
                                     </div>
     
                                     <!-- 3번째 줄: 연계시작일 - 연계종료일 -->
