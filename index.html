@@ -7545,15 +7545,15 @@
                                                             <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">가산</span>
                                                             <span class="text-xs text-slate-400">항목별 합산</span>
                                                         </div>
-                                                        <!-- [수정] 항목이 늘어났으므로 4칸(xl:grid-cols-4)으로 조정하고, 텍스트가 잘 보이도록 세로 배열(flex-col)로 바꿨습니다. -->
-                                                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                                                        <!-- [수정] 배열을 무조건 1x4 (md:grid-cols-4)로 고정하고, 2.5점 등이 줄바꿈되지 않게 w-9 속성을 적용했습니다. -->
+                                                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                                                             <div class="p-3 border border-slate-100 rounded-lg bg-slate-50/30">
                                                                 <div class="text-[11px] font-bold text-slate-500 mb-2 border-b border-slate-100 pb-1">경제활동 능력X 가구원수(본인제외)</div>
                                                                 <div class="flex flex-col gap-1.5">
                                                                     ${['2.5점(4인이상)', '2점(3인)', '1.5점(2인)', '1점(1인)'].map(opt => {
                                                                         const score = opt.split('(')[0];
                                                                         const label = opt.substring(opt.indexOf('(') + 1, opt.lastIndexOf(')'));
-                                                                        return `<label class="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 rounded border border-slate-200 hover:border-blue-300 transition-colors group"><input type="checkbox" name="sel-eco-bonus-family" value="${opt}" class="w-3.5 h-3.5 text-blue-500 rounded-full cursor-pointer" ${getVal(cm, 'selection.economic.bonus.family') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"><span class="text-xs font-bold text-blue-600 w-7">${score}</span><span class="text-[11px] text-slate-600 group-hover:text-slate-800">${label}</span></label>`;
+                                                                        return `<label class="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 rounded border border-slate-200 hover:border-blue-300 transition-colors group"><input type="checkbox" name="sel-eco-bonus-family" value="${opt}" class="w-3.5 h-3.5 text-blue-500 rounded-full cursor-pointer flex-shrink-0" ${getVal(cm, 'selection.economic.bonus.family') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"><span class="text-xs font-bold text-blue-600 w-9 whitespace-nowrap flex-shrink-0">${score}</span><span class="text-[11px] text-slate-600 group-hover:text-slate-800 leading-tight">${label}</span></label>`;
                                                                     }).join('')}
                                                                 </div>
                                                             </div>
@@ -7564,7 +7564,7 @@
                                                                     ${['2점(30만원 초과)', '1.5점(20~30만원)', '1점(20만원 미만)'].map(opt => {
                                                                         const score = opt.split('(')[0];
                                                                         const label = opt.substring(opt.indexOf('(') + 1, opt.lastIndexOf(')'));
-                                                                        return `<label class="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 rounded border border-slate-200 hover:border-blue-300 transition-colors group"><input type="checkbox" name="sel-eco-bonus-rent" value="${opt}" class="w-3.5 h-3.5 text-blue-500 rounded-full cursor-pointer" ${getVal(cm, 'selection.economic.bonus.rent') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"><span class="text-xs font-bold text-blue-600 w-7">${score}</span><span class="text-[11px] text-slate-600 group-hover:text-slate-800">${label}</span></label>`;
+                                                                        return `<label class="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 rounded border border-slate-200 hover:border-blue-300 transition-colors group"><input type="checkbox" name="sel-eco-bonus-rent" value="${opt}" class="w-3.5 h-3.5 text-blue-500 rounded-full cursor-pointer flex-shrink-0" ${getVal(cm, 'selection.economic.bonus.rent') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"><span class="text-xs font-bold text-blue-600 w-9 whitespace-nowrap flex-shrink-0">${score}</span><span class="text-[11px] text-slate-600 group-hover:text-slate-800 leading-tight">${label}</span></label>`;
                                                                     }).join('')}
                                                                 </div>
                                                             </div>
@@ -7576,7 +7576,7 @@
                                                                     ${['5점(공적부조 및 기타소득이 없음)', '2점(공적부조(국민연금포함) 외에 소득이 없음)'].map(opt => {
                                                                         const score = opt.split('(')[0];
                                                                         const label = opt.substring(opt.indexOf('(') + 1, opt.lastIndexOf(')'));
-                                                                        return `<label class="flex items-start gap-1.5 cursor-pointer bg-white px-2 py-1.5 rounded border border-slate-200 hover:border-blue-300 transition-colors group"><input type="checkbox" name="sel-eco-bonus-income" value="${opt}" class="w-3.5 h-3.5 text-blue-500 rounded-full mt-0.5 cursor-pointer" ${getVal(cm, 'selection.economic.bonus.income') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"><span class="text-xs font-bold text-blue-600 w-7 flex-shrink-0">${score}</span><span class="text-[11px] text-slate-600 group-hover:text-slate-800 leading-tight">${label}</span></label>`;
+                                                                        return `<label class="flex items-start gap-1.5 cursor-pointer bg-white px-2 py-1.5 rounded border border-slate-200 hover:border-blue-300 transition-colors group"><input type="checkbox" name="sel-eco-bonus-income" value="${opt}" class="w-3.5 h-3.5 text-blue-500 rounded-full mt-0.5 cursor-pointer flex-shrink-0" ${getVal(cm, 'selection.economic.bonus.income') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"><span class="text-xs font-bold text-blue-600 w-9 whitespace-nowrap flex-shrink-0">${score}</span><span class="text-[11px] text-slate-600 group-hover:text-slate-800 leading-tight">${label}</span></label>`;
                                                                     }).join('')}
                                                                 </div>
                                                             </div>
@@ -7584,7 +7584,7 @@
                                                             <div class="p-3 border border-slate-100 rounded-lg bg-slate-50/30">
                                                                 <div class="text-[11px] font-bold text-slate-500 mb-2 border-b border-slate-100 pb-1">주거 취약</div>
                                                                 <label class="flex items-start gap-2 cursor-pointer bg-white p-3 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors shadow-sm h-fit mt-1">
-                                                                    <input type="checkbox" name="sel-eco-bonus-jjokbang" value="2점" class="mt-0.5 w-4 h-4 text-blue-500 rounded focus:ring-blue-400" ${getVal(cm, 'selection.economic.bonus.jjokbang') ? 'checked' : ''}>
+                                                                    <input type="checkbox" name="sel-eco-bonus-jjokbang" value="2점" class="mt-0.5 w-4 h-4 text-blue-500 rounded focus:ring-blue-400 flex-shrink-0" ${getVal(cm, 'selection.economic.bonus.jjokbang') ? 'checked' : ''}>
                                                                     <div class="flex flex-col leading-none gap-1">
                                                                         <span class="text-sm font-bold text-slate-700">쪽방 거주 등</span>
                                                                         <span class="text-xs text-blue-500 font-bold">+2점 가산</span>
@@ -7592,7 +7592,6 @@
                                                                 </label>
                                                             </div>
                                                         </div>
-                                                    </div>
                                                 </div>
                                             </div>
 
