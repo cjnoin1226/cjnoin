@@ -3010,6 +3010,62 @@
                     el.value = res.slice(0, 13);
                 }
             },
+            // [신규] 생년월일과 성별을 조합하여 주민번호 앞/뒷자리(1자리) 자동 완성
+            autoFillResidentNum: () => {
+                const birthEl = document.getElementById('birth-date-input');
+                const genderEl = document.getElementById('gender-select');
+                const rrEl = document.getElementById('resident-num-input');
+                const ageEl = document.getElementById('age-display');
+                if (!birthEl || !genderEl || !rrEl) return;
+
+                let val = birthEl.value.replace(/[^0-9]/g, '');
+                
+                // 1. 생년월일 칸에 하이픈(-) 자동 추가 (YYYY-MM-DD 형태)
+                if(val.length > 4 && val.length <= 6) {
+                    birthEl.value = val.substring(0,4) + '-' + val.substring(4);
+                } else if(val.length > 6) {
+                    birthEl.value = val.substring(0,4) + '-' + val.substring(4,6) + '-' + val.substring(6,8);
+                }
+
+                // 2. 나이 자동 계산 기능
+                if (ageEl && val.length >= 4) {
+                    const year = parseInt(val.substring(0, 4));
+                    const currentYear = new Date().getFullYear();
+                    ageEl.value = `만 ${currentYear - year}세`;
+                } else if (ageEl) {
+                    ageEl.value = '';
+                }
+
+                // 3. 8자리가 꽉 채워졌을 때 주민번호 자동 조합!
+                if (val.length === 8) { 
+                    const year = parseInt(val.substring(0, 4));
+                    const yy = val.substring(2, 4);
+                    const month = val.substring(4, 6);
+                    const day = val.substring(6, 8);
+                    
+                    const gender = genderEl.value;
+                    let gNum = '1';
+                    
+                    // 2000년생 이후면 3(남), 4(여) / 1900년생이면 1(남), 2(여)
+                    if (year >= 2000) {
+                        gNum = gender === '여성' ? '4' : '3';
+                    } else {
+                        gNum = gender === '여성' ? '2' : '1';
+                    }
+
+                    const newPrefix = `${yy}${month}${day}-${gNum}`;
+                    
+                    // 기존에 주민번호 뒷자리까지 입력해둔 상태라면 앞부분(생년월일+성별)만 교체하고 뒷자리는 유지
+                    const currentRr = rrEl.value.replace(/[^0-9-]/g, '');
+                    if (currentRr.length > 8) {
+                        rrEl.value = newPrefix + currentRr.substring(8);
+                    } else {
+                        rrEl.value = newPrefix;
+                    }
+                    
+                    state.ui.isDirty = true; // 변경사항 자동 감지
+                }
+            },
         addSatGoalRow: () => {
                 const tbody = document.querySelector('#sec-sat-1 tbody');
                 if (!tbody) return;
@@ -6654,21 +6710,24 @@
     </div>
     <div class="col-span-1 sm:col-span-6 md:col-span-2">
         <label class="text-sm block mb-1">성별</label>
-        <select name="gender" class="input-field" id="gender-select">
+        <!-- [수정] 성별이 바뀔 때도 주민번호 자동 완성을 다시 계산하도록 추가 -->
+        <select name="gender" class="input-field" id="gender-select" onchange="app.autoFillResidentNum()">
             <option value="남성">남성</option>
             <option value="여성" ${c.gender==='여성'?'selected':''}>여성</option>
         </select>
     </div>
-    <div class="col-span-1 sm:col-span-6 md:col-span-3">
-        <label class="text-sm block mb-1">주민등록번호</label>
-        <input name="residentNum" class="input-field" placeholder="YYMMDD-1..." value="${c.residentNum||''}" maxlength="14" oninput="app.calcBirthFromRR(this)">
-    </div>
+    <!-- [수정] 생년월일 칸을 주민번호 앞으로 위치 이동 및 oninput 연결 -->
     <div class="col-span-1 sm:col-span-6 md:col-span-4">
         <label class="text-sm block mb-1">생년월일</label>
         <div class="flex items-center gap-2">
-            <input type="text" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" placeholder="YYYY-MM-DD (연도만 가능)" oninput="app.updateAgeDisplay(this)">
+            <input type="text" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" placeholder="YYYY-MM-DD" oninput="app.autoFillResidentNum()" maxlength="10">
             <input id="age-display" class="input-field !w-[25%] min-w-[60px] text-center bg-slate-100 text-slate-600 focus:outline-none cursor-default font-bold" readonly value="${initialAge}" placeholder="나이" tabindex="-1">
         </div>
+    </div>
+    <!-- [수정] 주민번호 칸을 생년월일 뒤로 이동, ID 추가 -->
+    <div class="col-span-1 sm:col-span-6 md:col-span-3">
+        <label class="text-sm block mb-1">주민등록번호</label>
+        <input type="text" name="residentNum" id="resident-num-input" class="input-field" placeholder="자동 생성됨..." value="${c.residentNum||''}" maxlength="14">
     </div>
 </div>
 
