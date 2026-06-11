@@ -7783,21 +7783,26 @@
                                                         <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
                                                     </div>
 
-                                                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                                    <!-- [수정] 무조건 1x4 형태 유지를 위해 md:grid-cols-4로 고정 및 간격(gap) 조정 -->
+                                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                                                         ${[
-                                                            { label: '① 세대형태', name: 'sel-soc-household', opts: ['독거노인', '노인부부', '자녀동거/기타'] },
-                                                            { label: '② 가족관계', name: 'sel-soc-family', opts: ['단절/갈등 심각', '소원함(왕래 없음)', '원만함/지지체계 있음'] },
-                                                            { label: '③ 이웃·친구관계', name: 'sel-soc-neighbor', opts: ['고립(왕래 없음)', '가끔 왕래', '자주 왕래(친밀)'] },
-                                                            { label: '④ 사회활동', name: 'sel-soc-activity', opts: ['참여 안함(두문불출)', '비정기적 참여', '적극적 참여(복지관 등)'] }
+                                                            { label: '① 세대형태', name: 'sel-soc-household', opts: ['7점(독거)', '7점(동거-취약)', '3점(동거-일반)'] },
+                                                            { label: '② 가족관계 <span class="font-normal text-[10px] text-slate-500 block sm:inline">(배우자와 연락)</span>', name: 'sel-soc-family', opts: ['5점(없음)', '4점(연 1~2회)', '3점(분기 1~2회)', '2점(월 1~2회)', '1점(주 1~2회)'] },
+                                                            { label: '③ 이웃·친구관계 <span class="font-normal text-[10px] text-slate-500 block sm:inline">(왕래빈도)</span>', name: 'sel-soc-neighbor', opts: ['5점(없음)', '4점(연 1~2회)', '3점(분기 1~2회)', '2점(월 1~2회)', '1점(주 1~2회)'] },
+                                                            { label: '④ 사회활동 <span class="font-normal text-[10px] text-slate-500 block sm:inline">(경로당, 복지관 등)</span>', name: 'sel-soc-activity', opts: ['3점(없음)', '2점(월 1~2회)', '1점(주 1회 이상)'] }
                                                         ].map(section => `
-                                                            <div class="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
-                                                                <label class="block text-sm font-bold text-slate-700 mb-2">${section.label}</label>
+                                                            <div class="bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
+                                                                <label class="block text-sm font-bold text-slate-700 mb-2 leading-tight">${section.label}</label>
                                                                 <div class="flex flex-col gap-1.5">
-                                                                    ${section.opts.map(opt => `
-                                                                    <label class="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-white rounded-lg transition-colors group">
-                                                                        <input type="checkbox" name="${section.name}" value="${opt}" class="w-4 h-4 text-purple-600 border-slate-300 focus:ring-purple-500 rounded-full cursor-pointer" ${getVal(cm, `selection.social.${section.name.split('-')[2]}`) === opt ? 'checked' : ''} onclick="app.checkExclusive(this)">
-                                                                        <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">${opt}</span>
-                                                                    </label>`).join('')}
+                                                                    ${section.opts.map(opt => {
+                                                                        const parts = opt.split('(');
+                                                                        return `
+                                                                        <label class="flex items-center gap-2 cursor-pointer p-1 hover:bg-white rounded-lg transition-colors group">
+                                                                            <input type="checkbox" name="${section.name}" value="${opt}" class="w-4 h-4 text-purple-600 border-slate-300 focus:ring-purple-500 rounded-full cursor-pointer flex-shrink-0" ${getVal(cm, `selection.social.${section.name.split('-')[2]}`) === opt ? 'checked' : ''} onclick="app.checkExclusive(this)">
+                                                                            <span class="text-sm font-bold text-purple-600 w-6 text-right tabular-nums group-hover:text-purple-700 flex-shrink-0">${parts[0]}</span>
+                                                                            <span class="text-sm text-slate-600 border-l-2 border-slate-200 pl-2 group-hover:text-slate-800 text-[11px] leading-tight break-keep">${parts[1] ? parts[1].replace(')', '') : ''}</span>
+                                                                        </label>`;
+                                                                    }).join('')}
                                                                 </div>
                                                             </div>
                                                         `).join('')}
