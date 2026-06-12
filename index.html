@@ -10139,7 +10139,7 @@
                         /* [수정] 페이지 여백 설정: 모든 페이지에 여백 적용 */
                         @page { 
                             size: A4 portrait; 
-                            margin: 15mm 15mm 15mm 20mm; /* 상 우 하 좌 */
+                            margin: 13mm 15mm 5mm 20mm; /* 상 우 하 좌 */
                         }
                         body { 
                             font-family: 'Malgun Gothic', 'Dotum', sans-serif; 
@@ -10154,7 +10154,7 @@
                         
                         /* 제목이 페이지 하단에 혼자 남지 않도록 설정 */
                         h2 { 
-                            font-size: 14px; font-weight: bold; margin-top: 10px; margin-bottom: 5px; 
+                            font-size: 14px; font-weight: bold; margin-top: 0px; margin-bottom: 0px; 
                             border-left: 4px solid #333; padding-left: 8px; background: #eee; padding: 1px 5px; 
                             break-after: avoid; page-break-after: avoid; 
                         }
@@ -10162,7 +10162,7 @@
                         h3 { break-after: avoid; page-break-after: avoid; }
                         
                         /* 테이블 스타일 */
-                        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 0px; table-layout: fixed; }
                         
                         /* 행 중간이 잘리지 않도록 보호 (페이지 넘김 시 통째로 이동) */
                         tr { break-inside: avoid; page-break-inside: avoid; }
