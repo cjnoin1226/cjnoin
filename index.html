@@ -10277,6 +10277,17 @@
                     const renderGrp = (list, selected) => list.map(opt => renderChkBox(opt, opt === selected)).join(' ');
 
                     htmlContent = `
+                        <style>
+                            /* 👇 선정기준표 세로 높이 조절용 스타일 👇 */
+                            .sel-main-table th, .sel-main-table td {
+                                padding: 6px 7px !important; 
+                            }
+                            .sel-main-table td > div {
+                                /* 표 안의 체크박스 줄 사이의 간격 조절 */
+                                margin-bottom: 7px !important; 
+                            }
+                        </style>
+
                         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
                             <div style="width: 40px; flex-shrink: 0;"></div>
                             <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">선 정 기 준 표</h1>
@@ -10298,7 +10309,8 @@
                             </tr>
                         </table>
 
-                        <table style="font-size: 10px;">
+                        <!-- 클래스 sel-main-table 추가됨 -->
+                        <table class="sel-main-table" style="font-size: 10px;">
                             <col width="13%"><col width="9%"><col width="78%">
                             <!-- 1. 경제영역 -->
                             <tr>
