@@ -7876,60 +7876,56 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Area 5: 사례관리자 평가 (UI 개선: 카드형 그리드) -->
+                                            <!-- Area 5: 사례관리자 평가 -->
                                             <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden group hover:border-orange-300 transition-colors">
-                                                <div class="px-5 py-3 border-b border-slate-100 bg-orange-50/50 flex justify-between items-center">
-                                                    <h4 class="font-bold text-slate-800 flex items-center gap-2 text-base">
-                                                        <span class="w-2.5 h-2.5 bg-orange-500 rounded-sm"></span> 5. 사례관리자 평가
-                                                    </h4>
+                                                <div class="px-5 py-3 border-b border-slate-100 bg-orange-50/50 flex flex-wrap gap-4 justify-between items-center">
+                                                    <div class="flex items-center gap-4">
+                                                        <h4 class="font-bold text-slate-800 flex items-center gap-2 text-base whitespace-nowrap">
+                                                            <span class="w-2.5 h-2.5 bg-orange-500 rounded-sm"></span> 5. 사례관리자 평가
+                                                        </h4>
+                                                        <!-- [수정] 점수 입력칸을 제목 옆으로 이동하고 크기 대폭 축소 -->
+                                                        <div class="flex items-center gap-2 bg-white border border-slate-300 rounded-lg px-2 py-1 w-32 shadow-inner">
+                                                            <input type="number" id="sel-man-score" name="sel-man-score" class="w-full bg-transparent text-lg font-bold text-orange-600 outline-none text-right" placeholder="0" value="${getVal(cm, 'selection.manager.score') || getVal(cm, 'selection.managerEval')}" min="0" max="15">
+                                                            <span class="text-sm font-bold text-slate-500 whitespace-nowrap pr-1">점</span>
+                                                        </div>
+                                                    </div>
                                                     <span class="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md border border-orange-100">배점 15점</span>
                                                 </div>
-                                                
-                                                <div class="p-5">
-                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                        <!-- Basic Score Card (점수 및 설명 영역) -->
-                                                        <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col justify-between">
-                                                            <div>
-                                                                <div class="flex items-center gap-2 mb-2">
-                                                                    <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
-                                                                    <span class="text-sm font-bold text-slate-700">평가 점수 (최대 15점)</span>
-                                                                </div>
-                                                                <div class="text-[11px] text-slate-500 mb-3 space-y-0.5">
-                                                                    <p>1~5점 : 단순 서비스가 필요한 대상자</p>
-                                                                    <p>6~10점 : 다중적 서비스가 필요한 대상자</p>
-                                                                    <p>11~15점 : 위기지원이 필요한 대상자</p>
-                                                                </div>
-                                                            </div>
-                                                            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 w-full mt-auto">
-                                                                <input type="number" id="sel-man-score" name="sel-man-score" class="w-full bg-transparent text-xl font-bold text-orange-600 outline-none text-center" placeholder="0" value="${getVal(cm, 'selection.manager.score') || getVal(cm, 'selection.managerEval')}" min="0" max="15">
-                                                                <span class="text-sm font-bold text-slate-500 whitespace-nowrap">점 / 15점</span>
-                                                            </div>
+                                                <!-- [수정] 안내 문구 가로 배치 -->
+                                                <div class="px-5 py-3 bg-slate-50/50">
+                                                    <div class="text-[11px] text-slate-600 font-medium flex flex-wrap gap-x-6 gap-y-1">
+                                                        <p><span class="font-bold text-orange-500">1~5점 :</span> 단순 서비스가 필요한 대상자</p>
+                                                        <p><span class="font-bold text-orange-500">6~10점 :</span> 다중적 서비스가 필요한 대상자</p>
+                                                        <p><span class="font-bold text-orange-500">11~15점 :</span> 위기지원이 필요한 대상자</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Area 6: 영역별 점수 집계 (신규 분리) -->
+                                            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden group hover:border-indigo-300 transition-colors">
+                                                <div class="px-5 py-3 border-b border-slate-100 bg-indigo-50/50 flex justify-between items-center">
+                                                    <h4 class="font-bold text-slate-800 flex items-center gap-2 text-base">
+                                                        <span class="w-2.5 h-2.5 bg-indigo-500 rounded-sm"></span> 영역별 점수
+                                                    </h4>
+                                                    <span class="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-md border border-indigo-100">자동 집계</span>
+                                                </div>
+                                                <div class="p-4 bg-slate-50/50">
+                                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 items-start">
+                                                        <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                                            <span class="text-xs font-bold text-slate-600">경제영역</span>
+                                                            <span class="text-base font-bold text-blue-600" id="score-eco">0점</span>
                                                         </div>
-                                                        
-                                                        <!-- 영역별 점수 Card (자동 집계) -->
-                                                        <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col">
-                                                            <div class="flex items-center gap-2 mb-3">
-                                                                <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">자동집계</span>
-                                                                <span class="text-xs text-slate-700 font-bold">영역별 점수</span>
-                                                            </div>
-                                                            <div class="grid grid-cols-2 gap-2 flex-1 items-start">
-                                                                <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-sm">
-                                                                    <span class="text-xs font-bold text-slate-600">경제영역</span>
-                                                                    <span class="text-sm font-bold text-blue-600" id="score-eco">0점</span>
-                                                                </div>
-                                                                <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-sm">
-                                                                    <span class="text-xs font-bold text-slate-600">정신영역</span>
-                                                                    <span class="text-sm font-bold text-pink-600" id="score-men">0점</span>
-                                                                </div>
-                                                                <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-sm">
-                                                                    <span class="text-xs font-bold text-slate-600">신체영역</span>
-                                                                    <span class="text-sm font-bold text-emerald-600" id="score-phy">0점</span>
-                                                                </div>
-                                                                <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-sm">
-                                                                    <span class="text-xs font-bold text-slate-600">사회영역</span>
-                                                                    <span class="text-sm font-bold text-purple-600" id="score-soc">0점</span>
-                                                                </div>
-                                                            </div>
+                                                        <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                                            <span class="text-xs font-bold text-slate-600">정신영역</span>
+                                                            <span class="text-base font-bold text-pink-600" id="score-men">0점</span>
+                                                        </div>
+                                                        <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                                            <span class="text-xs font-bold text-slate-600">신체영역</span>
+                                                            <span class="text-base font-bold text-emerald-600" id="score-phy">0점</span>
+                                                        </div>
+                                                        <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                                            <span class="text-xs font-bold text-slate-600">사회영역</span>
+                                                            <span class="text-base font-bold text-purple-600" id="score-soc">0점</span>
                                                         </div>
                                                     </div>
                                                 </div>
