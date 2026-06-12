@@ -6701,7 +6701,7 @@
                             <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'changes' ? 'active' : ''}" data-tab="changes" onclick="app.setClientModalTab('changes')">변경 이력</button>
                         </div>
                         <div class="px-4 sm:px-6 pb-4 sm:pb-6 overflow-y-auto flex-1 bg-white">
-                            <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" data-id="${c.id||''}">
+                            <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" data-id="${c.id||''}" onchange="app.updateTotalSelectionScore()" onkeyup="app.updateTotalSelectionScore()">
                                 <div id="tab-basic" class="modal-tab-content ${state.ui.clientModalTab === 'basic' ? 'active' : ''} space-y-4 pt-4 sm:pt-6">
                                     <div class="grid grid-cols-2 sm:grid-cols-12 gap-3">
     <div class="col-span-1 sm:col-span-6 md:col-span-3">
@@ -7818,39 +7818,54 @@
                                                     <h4 class="font-bold text-slate-800 flex items-center gap-2 text-base">
                                                         <span class="w-2.5 h-2.5 bg-orange-500 rounded-sm"></span> 5. 사례관리자 평가
                                                     </h4>
-                                                    <span class="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md border border-orange-100">배점 10점</span>
+                                                    <span class="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md border border-orange-100">배점 15점</span>
                                                 </div>
                                                 
                                                 <div class="p-5">
                                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                        <!-- Basic Score Card -->
+                                                        <!-- Basic Score Card (점수 및 설명 영역) -->
                                                         <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col justify-between">
                                                             <div>
                                                                 <div class="flex items-center gap-2 mb-2">
                                                                     <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
-                                                                    <span class="text-sm font-bold text-slate-700">평가 점수 (배점)</span>
+                                                                    <span class="text-sm font-bold text-slate-700">평가 점수 (최대 15점)</span>
                                                                 </div>
-                                                                <p class="text-[11px] text-slate-400 mb-3">* 담당자가 판단한 긴급성 및 필요도에 따른 점수</p>
+                                                                <div class="text-[11px] text-slate-500 mb-3 space-y-0.5">
+                                                                    <p>1~5점 : 단순 서비스가 필요한 대상자</p>
+                                                                    <p>6~10점 : 다중적 서비스가 필요한 대상자</p>
+                                                                    <p>11~15점 : 위기지원이 필요한 대상자</p>
+                                                                </div>
                                                             </div>
-                                                            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 w-full">
-                                                                <input type="number" id="sel-man-score" class="w-full bg-transparent text-xl font-bold text-orange-600 outline-none text-center" placeholder="0" value="${getVal(cm, 'selection.manager.score') || getVal(cm, 'selection.managerEval')}">
-                                                                <span class="text-sm font-bold text-slate-500">점</span>
+                                                            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 w-full mt-auto">
+                                                                <input type="number" id="sel-man-score" name="sel-man-score" class="w-full bg-transparent text-xl font-bold text-orange-600 outline-none text-center" placeholder="0" value="${getVal(cm, 'selection.manager.score') || getVal(cm, 'selection.managerEval')}" min="0" max="15">
+                                                                <span class="text-sm font-bold text-slate-500 whitespace-nowrap">점 / 15점</span>
                                                             </div>
                                                         </div>
                                                         
-                                                        <!-- Bonus Card -->
-                                                        <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                                                        <!-- 영역별 점수 Card (자동 집계) -->
+                                                        <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col">
                                                             <div class="flex items-center gap-2 mb-3">
-                                                                <span class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100">가산</span>
-                                                                <span class="text-xs text-slate-400">항목별 합산</span>
+                                                                <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">자동집계</span>
+                                                                <span class="text-xs text-slate-700 font-bold">영역별 점수</span>
                                                             </div>
-                                                            <label class="flex items-start gap-3 cursor-pointer bg-white p-3 rounded-lg border border-slate-200 hover:border-orange-300 transition-colors shadow-sm h-full items-center">
-                                                                <input type="checkbox" name="sel-man-bonus" value="urgent" class="w-5 h-5 text-orange-500 border-slate-300 rounded focus:ring-orange-400" ${(getVal(cm, 'selection.manager.bonus') || []).includes('urgent') ? 'checked' : ''}>
-                                                                <div class="flex flex-col">
-                                                                    <span class="text-sm font-bold text-slate-700">긴급 위기 상황</span>
-                                                                    <span class="text-xs text-orange-600 font-bold">+2점 <span class="font-normal text-slate-400">(위기상황 해당 시)</span></span>
+                                                            <div class="grid grid-cols-2 gap-2 flex-1 items-start">
+                                                                <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-sm">
+                                                                    <span class="text-xs font-bold text-slate-600">경제영역</span>
+                                                                    <span class="text-sm font-bold text-blue-600" id="score-eco">0점</span>
                                                                 </div>
-                                                            </label>
+                                                                <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-sm">
+                                                                    <span class="text-xs font-bold text-slate-600">정신영역</span>
+                                                                    <span class="text-sm font-bold text-pink-600" id="score-men">0점</span>
+                                                                </div>
+                                                                <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-sm">
+                                                                    <span class="text-xs font-bold text-slate-600">신체영역</span>
+                                                                    <span class="text-sm font-bold text-emerald-600" id="score-phy">0점</span>
+                                                                </div>
+                                                                <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200 shadow-sm">
+                                                                    <span class="text-xs font-bold text-slate-600">사회영역</span>
+                                                                    <span class="text-sm font-bold text-purple-600" id="score-soc">0점</span>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -9581,8 +9596,7 @@
                         household: getRadio('sel-soc-household'),
                         family: getRadio('sel-soc-family'),
                         neighbor: getRadio('sel-soc-neighbor'),
-                        activity: getRadio('sel-soc-activity'),
-                        bonus: getCheckedValues('sel-soc-bonus')
+                        activity: getRadio('sel-soc-activity')
                     },
                     manager: { 
                         score: getEl('sel-man-score'),
