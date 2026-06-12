@@ -10535,14 +10535,14 @@
 
                         <h2>2. 생활상태</h2>
                         <table>
-                            <tr><th width="20%">경제상황</th><td style="line-height:1.6;">${ecoHTML}<br>${ecoExtra}</td></tr>
+                            <tr><th width="15%">경제상황</th><td style="line-height:1.6;">${ecoHTML}<br>${ecoExtra}</td></tr>
                             <tr><th>세대유형</th><td style="line-height:1.6;">${houseHTML}</td></tr>
                             <tr><th>주거형태</th><td style="line-height:1.6;"><strong>[점유]</strong> ${housingHTML}<br><strong>[유형]</strong> ${dwellingHTML}</td></tr>
                         </table>
 
                         <h2>3. 신체상태</h2>
                         <table>
-                            <tr><th width="20%">건강상태</th><td style="line-height:1.6;">${healthHTML}</td></tr>
+                            <tr><th width="15%">건강상태</th><td style="line-height:1.6;">${healthHTML}</td></tr>
                             <tr><th>만성질환</th><td style="line-height:1.6;">${getVal(cm, 'initial.physical.chronic')}</td></tr>
                             <tr><th>장애여부</th><td style="line-height:1.6;">${disabHTML}</td></tr>
                             <tr><th>등급/보장구</th><td style="line-height:1.6;"><strong>[등급]</strong> ${gradeHTML}<br><strong>[보장구]</strong> ${deviceHTML}</td></tr>
@@ -10563,7 +10563,7 @@
 
                         <h2>6. 서비스 판정</h2>
                         <table>
-                            <tr><th width="20%">판정</th><td style="line-height:1.6;">${provHTML}</td></tr>
+                            <tr><th width="15%">판정</th><td style="line-height:1.6;">${provHTML}</td></tr>
                             <tr><th>사유</th><td style="line-height:1.6;">${reasonHTML}</td></tr>
                             <!-- [수정] 제공내용에 줄바꿈(\n) 기호를 <br> 태그로 변환해주는 코드 추가 -->
                             <tr><th>제공내용</th><td style="line-height: 1.6;">${(getVal(cm, 'initial.provision.content') || '').replace(/\n/g, '<br>')}</td></tr>
