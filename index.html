@@ -10230,8 +10230,8 @@
                 if (docType === 'selection') {
                     docTitle = '선정기준표';
 
-                    // 데이터 추출
-                    const sData = getVal(cm, 'selection') || {};
+                    // 데이터 추출 (getVal 함수 대신 직접 데이터를 참조하도록 딱 1줄 수정!)
+                    const sData = cm.selection || {};
                     const eco = sData.economic || {};
                     const phy = sData.physical || {};
                     const men = sData.mental || {};
