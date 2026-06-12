@@ -10154,7 +10154,7 @@
                         
                         /* 제목이 페이지 하단에 혼자 남지 않도록 설정 */
                         h2 { 
-                            font-size: 14px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; 
+                            font-size: 14px; font-weight: bold; margin-top: 10px; margin-bottom: 5px; 
                             border-left: 4px solid #333; padding-left: 8px; background: #eee; padding: 5px; 
                             break-after: avoid; page-break-after: avoid; 
                         }
@@ -10170,7 +10170,7 @@
                         thead { display: table-header-group; }
                         table { page-break-inside: auto; break-inside: auto; }
 
-                        th, td { border: 1px solid #000; padding: 5px; word-break: break-all; vertical-align: middle; }
+                        th, td { border: 1px solid #000; padding: 2px 5px; word-break: break-all; vertical-align: middle; }
                         th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
                         
                         /* 결재란 스타일 - 잘림 방지 */
@@ -10558,7 +10558,7 @@
 
                         <h2>5. 신청서비스</h2>
                         <table>
-                            <tr><td style="padding: 10px; line-height: 1.6;">${(getVal(cm, 'initial.requestedServices')||'').replace(/\n/g, '<br>')}</td></tr>
+                            <tr><td style="padding: 5px; line-height: 1.2;">${(getVal(cm, 'initial.requestedServices')||'').replace(/\n/g, '<br>')}</td></tr>
                         </table>
 
                         <h2>6. 서비스 판정</h2>
