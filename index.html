@@ -10278,9 +10278,9 @@
                     const renderGrp = (list, selected) => list.map(opt => renderChkBox(opt, opt === selected)).join(' ');
 
                     htmlContent = `
-                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3px; min-height: 90px;">
                             <div style="width: 40px; flex-shrink: 0;"></div>
-                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">선 정 기 준 표</h1>
+                            <h1 style="flex: 1; margin: 0; padding-bottom: 5px; text-align: center;">선 정 기 준 표</h1>
                             <div style="width: 180px; flex-shrink: 0;">
                                 ${signBoxHtml}
                             </div>
@@ -10516,15 +10516,24 @@
                         <table>
                             <colgroup>
                                 <col width="12%">
-                                <col width="21%">
-                                <col width="12%">
-                                <col width="21%">
+                                <col width="16%">
                                 <col width="12%">
                                 <col width="22%">
+                                <col width="10%">
+                                <col width="14%">
+                                <col width="6%">
+                                <col width="8%">
                             </colgroup>
-                            <tr><th>상담일시</th><td>${getVal(cm, 'initial.date')}</td><th>상담자</th><td>${getVal(cm, 'initial.interviewer')}</td><th>의뢰인</th><td>${getVal(cm, 'initial.referrer.name')} (${getVal(cm, 'initial.referrer.relation')})</td></tr>
-                            <tr><th>대상자명</th><td>${client.name}</td><th>주민번호</th><td>${client.residentNum || ''}</td><th>연락처</th><td>${getVal(cm, 'initial.snapPhone') || client.phone}</td></tr>
-                            <tr><th>주소</th><td colspan="3">${getVal(cm, 'initial.snapAddress') || client.address}</td><th>종교</th><td>${getVal(cm, 'initial.religion')}</td></tr>
+                            <tr>
+                                <th>대상자명</th><td class="text-center text-bold">${client.name}</td>
+                                <th>주민번호</th><td class="text-center">${client.residentNum || ''}</td>
+                                <th>학력</th><td></td> <!-- 입력 칸이 없어 출력 시 빈칸으로 렌더링됨 -->
+                                <th>종교</th><td class="text-center">${getVal(cm, 'initial.religion')}</td>
+                            </tr>
+                            <tr>
+                                <th>주소</th><td colspan="3">${getVal(cm, 'initial.snapAddress') || client.address}</td>
+                                <th>연락처</th><td colspan="3" class="text-center">${getVal(cm, 'initial.snapPhone') || client.phone}</td>
+                            </tr>
                         </table>
 
                         <h2>1. 가족사항</h2>
@@ -10580,10 +10589,17 @@
                         </table>
 
                         <h2>8. 비고</h2>
-                        <table>
+                        <table style="margin-bottom: 5px;">
                             <tr><td style="vertical-align: top; height: 100px; padding: 10px; line-height: 1.6;">${(getVal(cm, 'initial.conclusion')||'').replace(/\n/g, '<br>')}</td></tr>
                         </table>
+                        
+                        <!-- [추가] 삭제했던 상담일시와 상담자를 비고 아래에 우측 정렬로 배치 -->
+                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 5px; font-size: 13px; font-weight: bold;">
+                            <span style="margin-right: 25px;">상담일시 : ${getVal(cm, 'initial.date')}</span>
+                            <span>상담자 : ${getVal(cm, 'initial.interviewer')} (인)</span>
+                        </div>
                     `;
+                    
                 } else if (docType === 'assessment') {
                     docTitle = '사정기록지';
                     
