@@ -4858,14 +4858,12 @@
                                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                                        <div class="sm:col-span-1"><label class="block text-sm font-bold text-slate-700 mb-1">연락처</label><input type="text" name="phone" class="input-field" value="${ic.phone || ''}" placeholder="연락처" oninput="app.formatPhoneInput(this)"></div>
                                        <div class="sm:col-span-2">
-                                           <label class="flex items-center gap-1 text-sm mb-1">
-                                                주소
-                                                <!-- [수정] 도로명주소(addr1)와 상세주소(addr2)를 합쳐서(fullAddr) 구글 지도로 보내도록 개선 -->
-                                                <button type="button" onclick="const addr1 = document.getElementById('client-address').value; const addr2 = document.getElementById('client-address-detail').value; const fullAddr = addr1 + ' ' + addr2; if(addr1) app.openMapModal(fullAddr); else alert('주소를 먼저 검색해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기">
-                                                    <i data-lucide="map-pin" class="w-4 h-4"></i>
-                                                </button>
+                                           <label class="flex items-center gap-1 text-sm font-bold text-slate-700 mb-1">
+                                             주소
+                                             <button type="button" onclick="const addr1 = document.getElementById('ic-address').value; const addr2 = document.getElementById('ic-address-detail').value; const fullAddr = addr1 + ' ' + addr2; if(addr1) app.openMapModal(fullAddr); else alert('주소를 먼저 검색해주세요.');" class="text-blue-500 hover:text-blue-700 outline-none p-0.5 rounded transition-colors" title="지도로 보기">
+                                                 <i data-lucide="map-pin" class="w-4 h-4"></i>
+                                             </button>
                                            </label>
-                                           <!-- [수정] 모바일에서는 세로, PC/태블릿(md) 이상에서는 한 줄에 반반씩 차지하도록 변경 -->
                                            <div class="flex flex-col md:flex-row gap-2 w-full">
                                                <div class="flex gap-2 flex-1">
                                                    <input type="text" id="ic-address" name="address" class="input-field flex-1 bg-slate-50 cursor-pointer" value="${ic.address || ''}" placeholder="도로명/지번 주소" readonly onclick="app.execDaumPostcode('ic-address', 'ic-address-detail')">
@@ -4874,6 +4872,7 @@
                                                <input type="text" id="ic-address-detail" name="addressDetail" class="input-field flex-1" value="${ic.addressDetail || ''}" placeholder="상세 주소 입력">
                                            </div>
                                        </div>
+                                    </div>
     
                                     <!-- 3번째 줄: 연계시작일 - 연계종료일 -->
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
