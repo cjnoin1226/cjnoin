@@ -10278,9 +10278,9 @@
                     const renderGrp = (list, selected) => list.map(opt => renderChkBox(opt, opt === selected)).join(' ');
 
                     htmlContent = `
-                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3px; min-height: 90px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
                             <div style="width: 40px; flex-shrink: 0;"></div>
-                            <h1 style="flex: 1; margin: 0; padding-bottom: 5px; text-align: center;">선 정 기 준 표</h1>
+                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">선 정 기 준 표</h1>
                             <div style="width: 180px; flex-shrink: 0;">
                                 ${signBoxHtml}
                             </div>
@@ -10504,9 +10504,9 @@
 
                     htmlContent = `
                         <!-- [수정] 제목과 결재란 겹침 방지: 좌측 여백을 줄여 자연스럽게 왼쪽으로 당김 -->
-                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2px; min-height: 90px;">
                             <div style="width: 40px; flex-shrink: 0;"></div> <!-- 좌측 여백 축소 -->
-                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">초 기 면 접 지</h1>
+                            <h1 style="flex: 1; margin: 0; padding-bottom: 5px; text-align: center;">초 기 면 접 지</h1>
                             <div style="width: 180px; flex-shrink: 0;">
                                 ${signBoxHtml}
                             </div>
@@ -10599,7 +10599,7 @@
                             <span>상담자 : ${getVal(cm, 'initial.interviewer')} (인)</span>
                         </div>
                     `;
-                    
+
                 } else if (docType === 'assessment') {
                     docTitle = '사정기록지';
                     
