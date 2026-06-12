@@ -3139,6 +3139,70 @@
                 const tr = btn.closest('tr');
                 if (tr) tr.remove();
             },
+
+            // [신규] 선정기준표 자동 점수 합산 로직 (경제, 신체, 정신, 사회, 사례관리자 통합)
+            updateTotalSelectionScore: () => {
+                const form = document.getElementById('client-form');
+                if (!form) return;
+                
+                const getScore = (name) => {
+                    const el = form.querySelector(`input[name="${name}"]:checked`);
+                    if (!el) return 0;
+                    const match = el.value.match(/([\d.]+)점/);
+                    return match ? parseFloat(match[1]) : 0;
+                };
+
+                const getCustomScore = (name, scoreMap) => {
+                    const els = form.querySelectorAll(`input[name="${name}"]:checked`);
+                    let sum = 0;
+                    els.forEach(el => {
+                        if (scoreMap[el.value]) sum += scoreMap[el.value];
+                    });
+                    return sum;
+                };
+                
+                // 경제영역 점수 합산
+                let ecoScore = getScore('sel-eco-benefit') + getScore('sel-eco-housing') + getScore('sel-eco-income-score') +
+                               getScore('sel-eco-bonus-family') + getScore('sel-eco-bonus-rent') + getScore('sel-eco-bonus-income');
+                if (form.querySelector('input[name="sel-eco-bonus-jjokbang"]')?.checked) ecoScore += 2; // 쪽방 2점 고정
+
+                // 신체영역 점수 합산
+                let phyScore = getScore('sel-phy-disease') + getScore('sel-phy-disability') + getScore('sel-phy-iadl') + getScore('sel-phy-bonus-adl');
+                phyScore += getCustomScore('sel-phy-bonus-check', {
+                    'severe_patient': 3, 'household_severe': 3, 'multi_disability': 1, 'household_disabled': 2
+                });
+
+                // 정신영역 점수 합산
+                let menScore = getScore('sel-men-cognitive') + getScore('sel-men-depression') + getScore('sel-men-alcohol') + getScore('sel-men-abuse');
+                menScore += getCustomScore('sel-men-cognitive-detail', { 'memory_comm_mild': 1, 'calc_mild': 1 });
+                menScore += getCustomScore('sel-men-dep-bonus', { 'suicide_attempt': 3, 'suicide_thought': 2, 'sleep_disorder': 1 });
+                menScore += getCustomScore('sel-men-alc-bonus', { 'drug_use': 2 });
+                menScore += getCustomScore('sel-men-abuse-bonus', { 'family_death': 2, 'friend_death': 1, 'isolation': 1, 'etc': 1 });
+
+                // 사회영역 점수 합산
+                let socScore = getScore('sel-soc-household') + getScore('sel-soc-family') + getScore('sel-soc-neighbor') + getScore('sel-soc-activity');
+                
+                // 사례관리자 직접 입력 점수
+                const manEl = form.querySelector('#sel-man-score');
+                const manScore = manEl && manEl.value ? parseFloat(manEl.value) : 0;
+                
+                // 4. 화면 영역별 점수판 업데이트
+                const updateEl = (id, score) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = score + '점';
+                };
+                
+                updateEl('score-eco', ecoScore);
+                updateEl('score-phy', phyScore);
+                updateEl('score-men', menScore);
+                updateEl('score-soc', socScore);
+                
+                // 5. 맨 밑의 Total Score(총점)도 자동으로 입력
+                const totalScore = ecoScore + phyScore + menScore + socScore + manScore;
+                const totalEl = form.querySelector('#sel-total');
+                if (totalEl && totalScore > 0) totalEl.value = totalScore;
+                else if (totalEl) totalEl.value = '';
+            },
             // [신규] 재사정기록지 가족사항 행 추가 함수
             addReassessFamilyRow: () => {
                 const tbody = document.getElementById('cm-re-family-tbody');
@@ -9536,6 +9600,9 @@
                         el.style.height = 'auto';
                         el.style.height = (el.scrollHeight) + 'px';
                     });
+                    
+                    // [신규] 모달이 열리면 즉시 영역별 점수 자동계산 실행
+                    if(app.updateTotalSelectionScore) app.updateTotalSelectionScore();
                 }, 0);
             },
             
