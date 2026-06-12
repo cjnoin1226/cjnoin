@@ -7479,7 +7479,8 @@
                                                             <td colspan="9" class="border border-slate-300 p-2 bg-white border-t-0">
                                                                 <div class="flex items-start gap-2">
                                                                     <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">③ 내용</span>
-                                                                    <textarea id="cm-init-prov-content" class="input-field flex-1 h-14 border-slate-200 focus:ring-inset resize-none p-2 leading-relaxed text-xs" placeholder="제공할 서비스 내용 입력">${getVal(cm, 'initial.provision.content')}</textarea>
+                                                                    <!-- [수정] 기본 제공 서비스 텍스트 삽입, 높이 넉넉하게 조절 및 자동 리사이징 추가 -->
+                                                                    <textarea id="cm-init-prov-content" class="input-field flex-1 min-h-[130px] border-slate-200 focus:ring-inset resize-none p-2 leading-relaxed text-xs" placeholder="제공할 서비스 내용 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'initial.provision.content') || '- 노인상담 및 정보제공 - 안전안부확인(전화/방문)\n- 사례관리 - 사례회의, 재사정, 모니터링 등\n- 경제적 위기관리 - 급식지원(밑반찬지원서비스, 김장지원서비스 등)\n- 신체적 위기관리 - 노인성질환관리 및 연계(예방적 건강정보지원)\n- 사회적 위기관리 - 대인관계증진(명절지원, 어버이날 행사 등)\n- 권리옹호 - 노인인식개선(노인인권교육 등)'}</textarea>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -10140,7 +10141,7 @@
                         /* [수정] 페이지 여백 설정: 모든 페이지에 여백 적용 */
                         @page { 
                             size: A4 portrait; 
-                            margin: 15mm 15mm 15mm 20mm; /* 상 우 하 좌 */
+                            margin: 13mm 15mm 8mm 20mm; /* 상 우 하 좌 */
                         }
                         body { 
                             font-family: 'Malgun Gothic', 'Dotum', sans-serif; 
@@ -10155,15 +10156,15 @@
                         
                         /* 제목이 페이지 하단에 혼자 남지 않도록 설정 */
                         h2 { 
-                            font-size: 14px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; 
-                            border-left: 4px solid #333; padding-left: 8px; background: #eee; padding: 5px; 
+                            font-size: 14px; font-weight: bold; margin-top: 1px; margin-bottom: 1px; 
+                            border-left: 4px solid #333; padding-left: 8px; background: #eee; padding: 1px 5px; 
                             break-after: avoid; page-break-after: avoid; 
                         }
                         /* [추가] 소제목(h3)도 맨 밑에 혼자 떨어지지 않도록 방지 */
                         h3 { break-after: avoid; page-break-after: avoid; }
                         
                         /* 테이블 스타일 */
-                        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 1px; table-layout: fixed; }
                         
                         /* 행 중간이 잘리지 않도록 보호 (페이지 넘김 시 통째로 이동) */
                         tr { break-inside: avoid; page-break-inside: avoid; }
@@ -10171,7 +10172,7 @@
                         thead { display: table-header-group; }
                         table { page-break-inside: auto; break-inside: auto; }
 
-                        th, td { border: 1px solid #000; padding: 5px; word-break: break-all; vertical-align: middle; }
+                        th, td { border: 1px solid #000; padding: 1px 5px; word-break: break-all; vertical-align: middle; }
                         th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
                         
                         /* 결재란 스타일 - 잘림 방지 */
@@ -10505,9 +10506,9 @@
 
                     htmlContent = `
                         <!-- [수정] 제목과 결재란 겹침 방지: 좌측 여백을 줄여 자연스럽게 왼쪽으로 당김 -->
-                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2px; min-height: 90px;">
                             <div style="width: 40px; flex-shrink: 0;"></div> <!-- 좌측 여백 축소 -->
-                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">초 기 면 접 지</h1>
+                            <h1 style="flex: 1; margin: 0; padding-bottom: 2px; text-align: center;">초 기 면 접 지</h1>
                             <div style="width: 180px; flex-shrink: 0;">
                                 ${signBoxHtml}
                             </div>
@@ -10517,15 +10518,24 @@
                         <table>
                             <colgroup>
                                 <col width="12%">
-                                <col width="21%">
-                                <col width="12%">
-                                <col width="21%">
+                                <col width="16%">
                                 <col width="12%">
                                 <col width="22%">
+                                <col width="10%">
+                                <col width="14%">
+                                <col width="6%">
+                                <col width="8%">
                             </colgroup>
-                            <tr><th>상담일시</th><td>${getVal(cm, 'initial.date')}</td><th>상담자</th><td>${getVal(cm, 'initial.interviewer')}</td><th>의뢰인</th><td>${getVal(cm, 'initial.referrer.name')} (${getVal(cm, 'initial.referrer.relation')})</td></tr>
-                            <tr><th>대상자명</th><td>${client.name}</td><th>주민번호</th><td>${client.residentNum || ''}</td><th>연락처</th><td>${getVal(cm, 'initial.snapPhone') || client.phone}</td></tr>
-                            <tr><th>주소</th><td colspan="3">${getVal(cm, 'initial.snapAddress') || client.address}</td><th>종교</th><td>${getVal(cm, 'initial.religion')}</td></tr>
+                            <tr>
+                                <th>대상자명</th><td class="text-center text-bold">${client.name}</td>
+                                <th>주민번호</th><td class="text-center">${client.residentNum || ''}</td>
+                                <th>학력</th><td></td> <!-- 입력 칸이 없어 출력 시 빈칸으로 렌더링됨 -->
+                                <th>종교</th><td class="text-center">${getVal(cm, 'initial.religion')}</td>
+                            </tr>
+                            <tr>
+                                <th>주소</th><td colspan="3">${getVal(cm, 'initial.snapAddress') || client.address}</td>
+                                <th>연락처</th><td colspan="3" class="text-center">${getVal(cm, 'initial.snapPhone') || client.phone}</td>
+                            </tr>
                         </table>
 
                         <h2>1. 가족사항</h2>
@@ -10549,18 +10559,47 @@
                             <tr><th>등급/보장구</th><td style="line-height:1.6;"><strong>[등급]</strong> ${gradeHTML}<br><strong>[보장구]</strong> ${deviceHTML}</td></tr>
                         </table>
 
-                        <h2>4. 서비스 판정</h2>
+                        <h2>4. 타 서비스 이용 현황</h2>
+                        <table>
+                            <tr>
+                                <th width="20%">서비스명</th><td style="text-align: center;">${getVal(cm, 'initial.otherServices.serviceName')}</td>
+                                <th width="20%">이용기관</th><td style="text-align: center;">${getVal(cm, 'initial.otherServices.institution')}</td>
+                            </tr>
+                        </table>
+
+                        <h2>5. 신청서비스</h2>
+                        <table>
+                            <tr><td style="padding: 2px; line-height: 1.2;">${(getVal(cm, 'initial.requestedServices')||'').replace(/\n/g, '<br>')}</td></tr>
+                        </table>
+
+                        <h2>6. 서비스 판정</h2>
                         <table>
                             <tr><th width="20%">판정</th><td style="line-height:1.6;">${provHTML}</td></tr>
                             <tr><th>사유</th><td style="line-height:1.6;">${reasonHTML}</td></tr>
-                            <tr><th>제공내용</th><td>${getVal(cm, 'initial.provision.content')}</td></tr>
+                            <!-- [수정] 제공내용에 줄바꿈(\n) 기호를 <br> 태그로 변환해주는 코드 추가 -->
+                            <tr><th>제공내용</th><td style="line-height: 1.6;">${(getVal(cm, 'initial.provision.content') || '').replace(/\n/g, '<br>')}</td></tr>
                         </table>
 
-                        <h2>5. 주호소문제(욕구) 및 종합의견</h2>
+                        <h2>7. 의뢰인</h2>
                         <table>
-                            <tr><th width="20%">신청서비스</th><td>${getVal(cm, 'initial.requestedServices')}</td></tr>
-                            <tr><th height="100">종합의견</th><td style="vertical-align: top;">${(getVal(cm, 'initial.conclusion')||'').replace(/\n/g, '<br>')}</td></tr>
+                            <tr>
+                                <th width="15%">성명</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.name')}</td>
+                                <th width="15%">관계</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.relation')}</td>
+                                <th width="15%">전화번호</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.phone')}</td>
+                                <th width="15%">의뢰경로</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.path')}</td>
+                            </tr>
                         </table>
+
+                        <h2>8. 비고</h2>
+                        <table style="margin-bottom: 5px;">
+                            <tr><td style="vertical-align: top; height: 100px; padding: 10px; line-height: 1.6;">${(getVal(cm, 'initial.conclusion')||'').replace(/\n/g, '<br>')}</td></tr>
+                        </table>
+                        
+                        <!-- [추가] 삭제했던 상담일시와 상담자를 비고 아래에 우측 정렬로 배치 -->
+                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 5px; font-size: 13px; font-weight: bold;">
+                            <span style="margin-right: 25px;">상담일시 : ${getVal(cm, 'initial.date')}</span>
+                            <span>상담자 : ${getVal(cm, 'initial.interviewer')} (인)</span>
+                        </div>
                     `;
                 } else if (docType === 'assessment') {
                     docTitle = '사정기록지';
