@@ -2656,9 +2656,22 @@
                 const html = `
                     <div class="bg-white w-full max-w-3xl p-6 rounded-xl shadow-2xl mx-4 flex flex-col h-[80vh]">
                         <div class="flex justify-between items-center mb-4 flex-shrink-0">
-                            <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                <i data-lucide="map" class="text-blue-500"></i> 위치 지도 보기
-                            </h3>
+                            <div class="flex items-center gap-4">
+                                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                    <i data-lucide="map" class="text-blue-500"></i> 위치 지도 보기
+                                </h3>
+                                <!-- [신규] 카카오맵, 네이버맵 외부 링크 아이콘 버튼 -->
+                                <div class="flex items-center gap-2 border-l border-slate-200 pl-4">
+                                    <!-- [수정] 모바일 앱 연동 오류 개선을 위해 카카오맵 공식 외부 검색 포맷(link/search/) 적용 -->
+                                    <button type="button" onclick="window.open('https://map.kakao.com/link/search/${encodedAddr}')" class="flex items-center justify-center w-7 h-7 bg-[#FAE100] text-[#371D1E] rounded-md shadow-sm hover:opacity-80 transition-opacity" title="카카오맵에서 열기">
+                                        <span class="font-black text-sm" style="font-family: Arial, sans-serif;">K</span>
+                                    </button>
+                                    <button type="button" onclick="window.open('https://map.naver.com/v5/search/${encodedAddr}')" class="flex items-center justify-center w-7 h-7 bg-[#03C75A] text-white rounded-md shadow-sm hover:opacity-80 transition-opacity" title="네이버 지도에서 열기">
+                                        <span class="font-black text-sm" style="font-family: Arial, sans-serif;">N</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- 닫기 버튼 -->
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
                         
@@ -2995,6 +3008,62 @@
                     else if (v.length > 10) res = v.substring(0,3) + '-' + v.substring(3,7) + '-' + v.substring(7,11);
                     else res = v;
                     el.value = res.slice(0, 13);
+                }
+            },
+            // [신규] 생년월일과 성별을 조합하여 주민번호 앞/뒷자리(1자리) 자동 완성
+            autoFillResidentNum: () => {
+                const birthEl = document.getElementById('birth-date-input');
+                const genderEl = document.getElementById('gender-select');
+                const rrEl = document.getElementById('resident-num-input');
+                const ageEl = document.getElementById('age-display');
+                if (!birthEl || !genderEl || !rrEl) return;
+
+                let val = birthEl.value.replace(/[^0-9]/g, '');
+                
+                // 1. 생년월일 칸에 하이픈(-) 자동 추가 (YYYY-MM-DD 형태)
+                if(val.length > 4 && val.length <= 6) {
+                    birthEl.value = val.substring(0,4) + '-' + val.substring(4);
+                } else if(val.length > 6) {
+                    birthEl.value = val.substring(0,4) + '-' + val.substring(4,6) + '-' + val.substring(6,8);
+                }
+
+                // 2. 나이 자동 계산 기능
+                if (ageEl && val.length >= 4) {
+                    const year = parseInt(val.substring(0, 4));
+                    const currentYear = new Date().getFullYear();
+                    ageEl.value = `만 ${currentYear - year}세`;
+                } else if (ageEl) {
+                    ageEl.value = '';
+                }
+
+                // 3. 8자리가 꽉 채워졌을 때 주민번호 자동 조합!
+                if (val.length === 8) { 
+                    const year = parseInt(val.substring(0, 4));
+                    const yy = val.substring(2, 4);
+                    const month = val.substring(4, 6);
+                    const day = val.substring(6, 8);
+                    
+                    const gender = genderEl.value;
+                    let gNum = '1';
+                    
+                    // 2000년생 이후면 3(남), 4(여) / 1900년생이면 1(남), 2(여)
+                    if (year >= 2000) {
+                        gNum = gender === '여성' ? '4' : '3';
+                    } else {
+                        gNum = gender === '여성' ? '2' : '1';
+                    }
+
+                    const newPrefix = `${yy}${month}${day}-${gNum}`;
+                    
+                    // 기존에 주민번호 뒷자리까지 입력해둔 상태라면 앞부분(생년월일+성별)만 교체하고 뒷자리는 유지
+                    const currentRr = rrEl.value.replace(/[^0-9-]/g, '');
+                    if (currentRr.length > 8) {
+                        rrEl.value = newPrefix + currentRr.substring(8);
+                    } else {
+                        rrEl.value = newPrefix;
+                    }
+                    
+                    state.ui.isDirty = true; // 변경사항 자동 감지
                 }
             },
         addSatGoalRow: () => {
@@ -6641,21 +6710,24 @@
     </div>
     <div class="col-span-1 sm:col-span-6 md:col-span-2">
         <label class="text-sm block mb-1">성별</label>
-        <select name="gender" class="input-field" id="gender-select">
+        <!-- [수정] 성별이 바뀔 때도 주민번호 자동 완성을 다시 계산하도록 추가 -->
+        <select name="gender" class="input-field" id="gender-select" onchange="app.autoFillResidentNum()">
             <option value="남성">남성</option>
             <option value="여성" ${c.gender==='여성'?'selected':''}>여성</option>
         </select>
     </div>
-    <div class="col-span-1 sm:col-span-6 md:col-span-3">
-        <label class="text-sm block mb-1">주민등록번호</label>
-        <input name="residentNum" class="input-field" placeholder="YYMMDD-1..." value="${c.residentNum||''}" maxlength="14" oninput="app.calcBirthFromRR(this)">
-    </div>
+    <!-- [수정] 생년월일 칸을 주민번호 앞으로 위치 이동 및 oninput 연결 -->
     <div class="col-span-1 sm:col-span-6 md:col-span-4">
         <label class="text-sm block mb-1">생년월일</label>
         <div class="flex items-center gap-2">
-            <input type="text" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" placeholder="YYYY-MM-DD (연도만 가능)" oninput="app.updateAgeDisplay(this)">
+            <input type="text" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" placeholder="YYYY-MM-DD" oninput="app.autoFillResidentNum()" maxlength="10">
             <input id="age-display" class="input-field !w-[25%] min-w-[60px] text-center bg-slate-100 text-slate-600 focus:outline-none cursor-default font-bold" readonly value="${initialAge}" placeholder="나이" tabindex="-1">
         </div>
+    </div>
+    <!-- [수정] 주민번호 칸을 생년월일 뒤로 이동, ID 추가 -->
+    <div class="col-span-1 sm:col-span-6 md:col-span-3">
+        <label class="text-sm block mb-1">주민등록번호</label>
+        <input type="text" name="residentNum" id="resident-num-input" class="input-field" placeholder="자동 생성됨..." value="${c.residentNum||''}" maxlength="14">
     </div>
 </div>
 
@@ -7473,34 +7545,53 @@
                                                             <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">가산</span>
                                                             <span class="text-xs text-slate-400">항목별 합산</span>
                                                         </div>
-                                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                        <!-- [수정] 배열을 무조건 1x4 (md:grid-cols-4)로 고정하고, 2.5점 등이 줄바꿈되지 않게 w-9 속성을 적용했습니다. -->
+                                                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                                                             <div class="p-3 border border-slate-100 rounded-lg bg-slate-50/30">
                                                                 <div class="text-[11px] font-bold text-slate-500 mb-2 border-b border-slate-100 pb-1">경제활동 능력X 가구원수(본인제외)</div>
-                                                                <div class="flex flex-wrap gap-2">
+                                                                <div class="flex flex-col gap-1.5">
                                                                     ${['2.5점(4인이상)', '2점(3인)', '1.5점(2인)', '1점(1인)'].map(opt => {
-                                                                        const score = opt.split('점')[0];
-                                                                        return `<label class="flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded border border-slate-200 hover:border-blue-300 transition-colors"><input type="checkbox" name="sel-eco-bonus-family" value="${opt}" class="w-3.5 h-3.5 text-blue-500 rounded-full" ${getVal(cm, 'selection.economic.bonus.family') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"><span class="text-xs font-bold text-blue-600">${score}</span></label>`;
+                                                                        const score = opt.split('(')[0];
+                                                                        const label = opt.substring(opt.indexOf('(') + 1, opt.lastIndexOf(')'));
+                                                                        return `<label class="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 rounded border border-slate-200 hover:border-blue-300 transition-colors group"><input type="checkbox" name="sel-eco-bonus-family" value="${opt}" class="w-3.5 h-3.5 text-blue-500 rounded-full cursor-pointer flex-shrink-0" ${getVal(cm, 'selection.economic.bonus.family') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"><span class="text-xs font-bold text-blue-600 w-9 whitespace-nowrap flex-shrink-0">${score}</span><span class="text-[11px] text-slate-600 group-hover:text-slate-800 leading-tight">${label}</span></label>`;
                                                                     }).join('')}
                                                                 </div>
                                                             </div>
+                                                            
                                                             <div class="p-3 border border-slate-100 rounded-lg bg-slate-50/30">
                                                                 <div class="text-[11px] font-bold text-slate-500 mb-2 border-b border-slate-100 pb-1">월세 금액</div>
-                                                                <div class="flex flex-wrap gap-2">
+                                                                <div class="flex flex-col gap-1.5">
                                                                     ${['2점(30만원 초과)', '1.5점(20~30만원)', '1점(20만원 미만)'].map(opt => {
-                                                                        const score = opt.split('점')[0];
-                                                                        return `<label class="flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded border border-slate-200 hover:border-blue-300 transition-colors"><input type="checkbox" name="sel-eco-bonus-rent" value="${opt}" class="w-3.5 h-3.5 text-blue-500 rounded-full" ${getVal(cm, 'selection.economic.bonus.rent') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"><span class="text-xs font-bold text-blue-600">${score}</span></label>`;
+                                                                        const score = opt.split('(')[0];
+                                                                        const label = opt.substring(opt.indexOf('(') + 1, opt.lastIndexOf(')'));
+                                                                        return `<label class="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1.5 rounded border border-slate-200 hover:border-blue-300 transition-colors group"><input type="checkbox" name="sel-eco-bonus-rent" value="${opt}" class="w-3.5 h-3.5 text-blue-500 rounded-full cursor-pointer flex-shrink-0" ${getVal(cm, 'selection.economic.bonus.rent') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"><span class="text-xs font-bold text-blue-600 w-9 whitespace-nowrap flex-shrink-0">${score}</span><span class="text-[11px] text-slate-600 group-hover:text-slate-800 leading-tight">${label}</span></label>`;
                                                                     }).join('')}
                                                                 </div>
                                                             </div>
-                                                            <label class="flex items-start gap-2 cursor-pointer bg-white p-3 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors shadow-sm">
-                                                                <input type="checkbox" name="sel-eco-bonus-jjokbang" value="2점" class="mt-0.5 w-4 h-4 text-blue-500 rounded focus:ring-blue-400" ${getVal(cm, 'selection.economic.bonus.jjokbang') ? 'checked' : ''}>
-                                                                <div class="flex flex-col leading-none gap-1">
-                                                                    <span class="text-sm font-bold text-slate-700">주거 취약 (쪽방 거주)</span>
-                                                                    <span class="text-xs text-blue-500 font-bold">+2점 가산</span>
+                                                            
+                                                            <!-- [신규] 추가하신 소득 관련 가산 항목 -->
+                                                            <div class="p-3 border border-slate-100 rounded-lg bg-slate-50/30">
+                                                                <div class="text-[11px] font-bold text-slate-500 mb-2 border-b border-slate-100 pb-1">소득 여부</div>
+                                                                <div class="flex flex-col gap-1.5">
+                                                                    ${['5점(공적부조 및 기타소득이 없음)', '2점(공적부조(국민연금포함) 외에 소득이 없음)'].map(opt => {
+                                                                        const score = opt.split('(')[0];
+                                                                        const label = opt.substring(opt.indexOf('(') + 1, opt.lastIndexOf(')'));
+                                                                        return `<label class="flex items-start gap-1.5 cursor-pointer bg-white px-2 py-1.5 rounded border border-slate-200 hover:border-blue-300 transition-colors group"><input type="checkbox" name="sel-eco-bonus-income" value="${opt}" class="w-3.5 h-3.5 text-blue-500 rounded-full mt-0.5 cursor-pointer flex-shrink-0" ${getVal(cm, 'selection.economic.bonus.income') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"><span class="text-xs font-bold text-blue-600 w-9 whitespace-nowrap flex-shrink-0">${score}</span><span class="text-[11px] text-slate-600 group-hover:text-slate-800 leading-tight">${label}</span></label>`;
+                                                                    }).join('')}
                                                                 </div>
-                                                            </label>
+                                                            </div>
+
+                                                            <div class="p-3 border border-slate-100 rounded-lg bg-slate-50/30">
+                                                                <div class="text-[11px] font-bold text-slate-500 mb-2 border-b border-slate-100 pb-1">주거 취약</div>
+                                                                <label class="flex items-start gap-2 cursor-pointer bg-white p-3 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors shadow-sm h-fit mt-1">
+                                                                    <input type="checkbox" name="sel-eco-bonus-jjokbang" value="2점" class="mt-0.5 w-4 h-4 text-blue-500 rounded focus:ring-blue-400 flex-shrink-0" ${getVal(cm, 'selection.economic.bonus.jjokbang') ? 'checked' : ''}>
+                                                                    <div class="flex flex-col leading-none gap-1">
+                                                                        <span class="text-sm font-bold text-slate-700">쪽방 거주 등</span>
+                                                                        <span class="text-xs text-blue-500 font-bold">+2점 가산</span>
+                                                                    </div>
+                                                                </label>
+                                                            </div>
                                                         </div>
-                                                    </div>
                                                 </div>
                                             </div>
 
@@ -7550,14 +7641,14 @@
                                                             <label class="flex items-start gap-2 cursor-pointer bg-white p-2.5 rounded-lg border border-slate-200 hover:border-emerald-300 transition-colors shadow-sm">
                                                                 <input type="checkbox" name="sel-phy-bonus-check" value="severe_patient" class="mt-0.5 w-4 h-4 text-emerald-500 rounded focus:ring-emerald-400" ${(getVal(cm, 'selection.physical.bonus.items') || []).includes('severe_patient') ? 'checked' : ''}>
                                                                 <div class="flex flex-col">
-                                                                    <span class="text-sm font-bold text-slate-700">중증질환자 보유</span>
-                                                                    <span class="text-xs text-emerald-600 font-bold">+3점 <span class="font-normal text-slate-400">(암, 뇌졸증 등)</span></span>
+                                                                    <span class="text-sm font-bold text-slate-700">중증질환 보유 <span class="font-normal text-slate-400 text-[11px]">(암, 뇌졸증 등)</span></span>
+                                                                    <span class="text-xs text-emerald-600 font-bold">+3점</span>
                                                                 </div>
                                                             </label>
                                                             <label class="flex items-start gap-2 cursor-pointer bg-white p-2.5 rounded-lg border border-slate-200 hover:border-emerald-300 transition-colors shadow-sm">
                                                                 <input type="checkbox" name="sel-phy-bonus-check" value="household_severe" class="mt-0.5 w-4 h-4 text-emerald-500 rounded focus:ring-emerald-400" ${(getVal(cm, 'selection.physical.bonus.items') || []).includes('household_severe') ? 'checked' : ''}>
                                                                 <div class="flex flex-col">
-                                                                    <span class="text-sm font-bold text-slate-700">가구원 중 중증질환</span>
+                                                                    <span class="text-sm font-bold text-slate-700">가구원 중 중증질환 1인 이상</span>
                                                                     <span class="text-xs text-emerald-600 font-bold">+3점 <span class="font-normal text-slate-400">(본인 외)</span></span>
                                                                 </div>
                                                             </label>
@@ -7571,7 +7662,7 @@
                                                             <label class="flex items-start gap-2 cursor-pointer bg-white p-2.5 rounded-lg border border-slate-200 hover:border-emerald-300 transition-colors shadow-sm">
                                                                 <input type="checkbox" name="sel-phy-bonus-check" value="household_disabled" class="mt-0.5 w-4 h-4 text-emerald-500 rounded focus:ring-emerald-400" ${(getVal(cm, 'selection.physical.bonus.items') || []).includes('household_disabled') ? 'checked' : ''}>
                                                                 <div class="flex flex-col">
-                                                                    <span class="text-sm font-bold text-slate-700">동거가족 중 장애인</span>
+                                                                    <span class="text-sm font-bold text-slate-700">동거가족 중 장애인 1인 이상</span>
                                                                     <span class="text-xs text-emerald-600 font-bold">+2점 <span class="font-normal text-slate-400">(본인 외)</span></span>
                                                                 </div>
                                                             </label>
@@ -7606,10 +7697,12 @@
                                                         <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
                                                     </div>
                                                     
-                                                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                                                    <!-- [수정] sm:grid-cols-2 xl:grid-cols-4 였던 것을 md:grid-cols-4로 변경하여 1x4로 유지 -->
+                                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                                                         ${[
                                                             { label: '① 인지기능', name: 'sel-men-cognitive', opts: ['5점(중도인지장애)', '4점(경도인지장애)', '2점(의심)', '0점(정상)'] },
-                                                            { label: '② 우울증', name: 'sel-men-depression', opts: ['5점(심각)', '4점(중도)', '3점(경도)', '0점(정상)'] },
+                                                            // [수정] 우울증 기본 항목에 2점(우울감, 불안감 의심) 추가
+                                                            { label: '② 우울증', name: 'sel-men-depression', opts: ['5점(심각)', '4점(중도)', '3점(경도)', '2점(우울감, 불안감 의심)', '0점(정상)'] },
                                                             { label: '③ 알콜의존도', name: 'sel-men-alcohol', opts: ['5점(매일)', '4점(주3회이상)', '3점(주1회이상)', '1점(월1회이상)', '0점(해당없음)'] },
                                                             { label: '④ 인권침해', name: 'sel-men-abuse', opts: ['5점(경험있음)', '3점(위협요인)', '0점(해당없음)'] }
                                                         ].map(section => `
@@ -7620,9 +7713,9 @@
                                                                         const parts = opt.split('(');
                                                                         return `
                                                                         <label class="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-white rounded-lg transition-colors group">
-                                                                            <input type="checkbox" name="${section.name}" value="${opt}" class="w-4 h-4 text-pink-600 border-slate-300 focus:ring-pink-500 rounded-full cursor-pointer" ${getVal(cm, `selection.mental.${section.name.split('-')[2]}`) === opt ? 'checked' : ''} onclick="app.checkExclusive(this)">
-                                                                            <span class="text-sm font-bold text-pink-600 w-6 text-right tabular-nums group-hover:text-pink-700">${parts[0]}</span>
-                                                                            <span class="text-sm text-slate-600 border-l-2 border-slate-200 pl-2 group-hover:text-slate-800 text-[11px]">${parts[1].replace(')', '')}</span>
+                                                                            <input type="checkbox" name="${section.name}" value="${opt}" class="w-4 h-4 text-pink-600 border-slate-300 focus:ring-pink-500 rounded-full cursor-pointer flex-shrink-0" ${getVal(cm, `selection.mental.${section.name.split('-')[2]}`) === opt ? 'checked' : ''} onclick="app.checkExclusive(this)">
+                                                                            <span class="text-sm font-bold text-pink-600 w-6 text-right tabular-nums group-hover:text-pink-700 flex-shrink-0">${parts[0]}</span>
+                                                                            <span class="text-sm text-slate-600 border-l-2 border-slate-200 pl-2 group-hover:text-slate-800 text-[11px] leading-tight">${parts[1] ? parts[1].replace(')', '') : ''}</span>
                                                                         </label>`;
                                                                     }).join('')}
                                                                 </div>
@@ -7635,38 +7728,42 @@
                                                             <span class="text-xs font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-100">가산</span>
                                                             <span class="text-xs text-slate-400">항목별 합산</span>
                                                         </div>
-                                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                                                        <!-- [수정] 무조건 1x4 형태 유지를 위해 md:grid-cols-4로 고정 -->
+                                                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                                                            
                                                             <div class="p-2 border border-slate-100 rounded-lg bg-slate-50/30">
-                                                                <div class="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1">인지기능</div>
+                                                                <div class="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1">인지기능 <span class="font-normal text-[9px] text-slate-400">(정상 또는 검사가 곤란한 경우)</span></div>
                                                                 <div class="space-y-2">
-                                                                    <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-cognitive-detail" value="memory_comm_mild" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded" ${(getVal(cm, 'selection.mental.cognitiveDetail') || []).includes('memory_comm_mild') ? 'checked' : ''}><span class="text-slate-700">단기기억/소통 저하 <span class="font-bold text-pink-600">(1)</span></span></label>
-                                                                    <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-cognitive-detail" value="calc_mild" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded" ${(getVal(cm, 'selection.mental.cognitiveDetail') || []).includes('calc_mild') ? 'checked' : ''}><span class="text-slate-700">계산능력 저하 <span class="font-bold text-pink-600">(1)</span></span></label>
+                                                                    <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-cognitive-detail" value="memory_comm_mild" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.cognitiveDetail') || []).includes('memory_comm_mild') ? 'checked' : ''}><span class="text-slate-700 text-xs">단기기억/소통 저하 <span class="font-bold text-pink-600">(1점)</span></span></label>
+                                                                    <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-cognitive-detail" value="calc_mild" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.cognitiveDetail') || []).includes('calc_mild') ? 'checked' : ''}><span class="text-slate-700 text-xs">계산능력 저하 <span class="font-bold text-pink-600">(1점)</span></span></label>
                                                                 </div>
                                                             </div>
+                                                            
                                                             <div class="p-2 border border-slate-100 rounded-lg bg-slate-50/30">
-                                                                <div class="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1">우울증</div>
-                                                                <div class="space-y-2">
-                                                                    <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-dep-bonus" value="suspicion" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded" ${(getVal(cm, 'selection.mental.depressionBonus') || []).includes('suspicion') ? 'checked' : ''}><span class="text-slate-700">우울 의심 <span class="font-bold text-pink-600">(2)</span></span></label>
-                                                                    <div class="grid grid-cols-2 gap-1 text-xs">
-                                                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="sel-men-dep-bonus" value="suicide_attempt" class="w-3 h-3 text-pink-500 rounded" ${(getVal(cm, 'selection.mental.depressionBonus') || []).includes('suicide_attempt') ? 'checked' : ''}><span>자살미수(3)</span></label>
-                                                                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="sel-men-dep-bonus" value="suicide_thought" class="w-3 h-3 text-pink-500 rounded" ${(getVal(cm, 'selection.mental.depressionBonus') || []).includes('suicide_thought') ? 'checked' : ''}><span>자살표현(2)</span></label>
-                                                                        <label class="flex items-center gap-1 cursor-pointer col-span-2"><input type="checkbox" name="sel-men-dep-bonus" value="sleep_disorder" class="w-3 h-3 text-pink-500 rounded" ${(getVal(cm, 'selection.mental.depressionBonus') || []).includes('sleep_disorder') ? 'checked' : ''}><span>수면장애(1)</span></label>
-                                                                    </div>
+                                                                <div class="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1">자살생각(3개월 이내)</div>
+                                                                <div class="flex flex-col gap-1.5 text-xs">
+                                                                    <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-dep-bonus" value="suicide_attempt" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.depressionBonus') || []).includes('suicide_attempt') ? 'checked' : ''}><span class="text-slate-700">자살미수 경험 <span class="font-bold text-pink-600">(3점)</span></span></label>
+                                                                    <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-dep-bonus" value="suicide_thought" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.depressionBonus') || []).includes('suicide_thought') ? 'checked' : ''}><span class="text-slate-700">자살생각 표현 <span class="font-bold text-pink-600">(2점)</span></span></label>
+                                                                    <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-dep-bonus" value="sleep_disorder" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.depressionBonus') || []).includes('sleep_disorder') ? 'checked' : ''}><span class="text-slate-700">수면장애 있음 <span class="font-bold text-pink-600">(1점)</span></span></label>
                                                                 </div>
                                                             </div>
+                                                            
                                                             <div class="p-2 border border-slate-100 rounded-lg bg-slate-50/30">
-                                                                <div class="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1">알콜</div>
-                                                                <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-alc-bonus" value="drug_use" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded" ${(getVal(cm, 'selection.mental.alcoholBonus') || []).includes('drug_use') ? 'checked' : ''}><div class="flex flex-col"><span class="text-slate-700 text-xs">수면제/향정신성 약물</span><span class="font-bold text-pink-600 text-xs">+2점</span></div></label>
+                                                                <div class="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1">약물사용(수면제, 향정신적 약물 등)</div>
+                                                                <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-alc-bonus" value="drug_use" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.alcoholBonus') || []).includes('drug_use') ? 'checked' : ''}><span class="text-slate-700 text-xs">복용 함 <span class="font-bold text-pink-600">(2점)</span></span></label>
                                                             </div>
+                                                            
                                                             <div class="p-2 border border-slate-100 rounded-lg bg-slate-50/30">
-                                                                <div class="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1">인권침해 (스트레스)</div>
+                                                                <!-- [수정] 스트레스 점수 글자에 다른 곳과 똑같이 분홍색 클래스를 입혔습니다! -->
+                                                                <div class="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1">스트레스(3개월 이내)</div>
                                                                 <div class="grid grid-cols-2 gap-1 text-xs">
-                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="sel-men-abuse-bonus" value="family_death" class="w-3 h-3 text-pink-500 rounded" ${(getVal(cm, 'selection.mental.abuseBonus') || []).includes('family_death') ? 'checked' : ''}><span>가족사망(2)</span></label>
-                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="sel-men-abuse-bonus" value="friend_death" class="w-3 h-3 text-pink-500 rounded" ${(getVal(cm, 'selection.mental.abuseBonus') || []).includes('friend_death') ? 'checked' : ''}><span>친구사망(1)</span></label>
-                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="sel-men-abuse-bonus" value="isolation" class="w-3 h-3 text-pink-500 rounded" ${(getVal(cm, 'selection.mental.abuseBonus') || []).includes('isolation') ? 'checked' : ''}><span>소외감(1)</span></label>
-                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="sel-men-abuse-bonus" value="etc" class="w-3 h-3 text-pink-500 rounded" ${(getVal(cm, 'selection.mental.abuseBonus') || []).includes('etc') ? 'checked' : ''}><span>기타(1)</span></label>
+                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="sel-men-abuse-bonus" value="family_death" class="w-3 h-3 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.abuseBonus') || []).includes('family_death') ? 'checked' : ''}><span class="text-slate-700">가족사망 <span class="font-bold text-pink-600">(2점)</span></span></label>
+                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="sel-men-abuse-bonus" value="friend_death" class="w-3 h-3 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.abuseBonus') || []).includes('friend_death') ? 'checked' : ''}><span class="text-slate-700">친구사망 <span class="font-bold text-pink-600">(1점)</span></span></label>
+                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="sel-men-abuse-bonus" value="isolation" class="w-3 h-3 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.abuseBonus') || []).includes('isolation') ? 'checked' : ''}><span class="text-slate-700">소외감 <span class="font-bold text-pink-600">(1점)</span></span></label>
+                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="sel-men-abuse-bonus" value="etc" class="w-3 h-3 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.abuseBonus') || []).includes('etc') ? 'checked' : ''}><span class="text-slate-700">기타 <span class="font-bold text-pink-600">(1점)</span></span></label>
                                                                 </div>
                                                             </div>
+                                                            
                                                         </div>
                                                     </div>
                                                 </div>
@@ -7686,21 +7783,26 @@
                                                         <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
                                                     </div>
 
-                                                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                                    <!-- [수정] 무조건 1x4 형태 유지를 위해 md:grid-cols-4로 고정 및 간격(gap) 조정 -->
+                                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                                                         ${[
-                                                            { label: '① 세대형태', name: 'sel-soc-household', opts: ['독거노인', '노인부부', '자녀동거/기타'] },
-                                                            { label: '② 가족관계', name: 'sel-soc-family', opts: ['단절/갈등 심각', '소원함(왕래 없음)', '원만함/지지체계 있음'] },
-                                                            { label: '③ 이웃·친구관계', name: 'sel-soc-neighbor', opts: ['고립(왕래 없음)', '가끔 왕래', '자주 왕래(친밀)'] },
-                                                            { label: '④ 사회활동', name: 'sel-soc-activity', opts: ['참여 안함(두문불출)', '비정기적 참여', '적극적 참여(복지관 등)'] }
+                                                            { label: '① 세대형태', name: 'sel-soc-household', opts: ['7점(독거)', '7점(동거-취약)', '3점(동거-일반)'] },
+                                                            { label: '② 가족관계 <span class="font-normal text-[10px] text-slate-500 block sm:inline">(배우자와 연락)</span>', name: 'sel-soc-family', opts: ['5점(없음)', '4점(연 1~2회)', '3점(분기 1~2회)', '2점(월 1~2회)', '1점(주 1~2회)'] },
+                                                            { label: '③ 이웃·친구관계 <span class="font-normal text-[10px] text-slate-500 block sm:inline">(왕래빈도)</span>', name: 'sel-soc-neighbor', opts: ['5점(없음)', '4점(연 1~2회)', '3점(분기 1~2회)', '2점(월 1~2회)', '1점(주 1~2회)'] },
+                                                            { label: '④ 사회활동 <span class="font-normal text-[10px] text-slate-500 block sm:inline">(경로당, 복지관 등)</span>', name: 'sel-soc-activity', opts: ['3점(없음)', '2점(월 1~2회)', '1점(주 1회 이상)'] }
                                                         ].map(section => `
-                                                            <div class="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
-                                                                <label class="block text-sm font-bold text-slate-700 mb-2">${section.label}</label>
+                                                            <div class="bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
+                                                                <label class="block text-sm font-bold text-slate-700 mb-2 leading-tight">${section.label}</label>
                                                                 <div class="flex flex-col gap-1.5">
-                                                                    ${section.opts.map(opt => `
-                                                                    <label class="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-white rounded-lg transition-colors group">
-                                                                        <input type="checkbox" name="${section.name}" value="${opt}" class="w-4 h-4 text-purple-600 border-slate-300 focus:ring-purple-500 rounded-full cursor-pointer" ${getVal(cm, `selection.social.${section.name.split('-')[2]}`) === opt ? 'checked' : ''} onclick="app.checkExclusive(this)">
-                                                                        <span class="text-sm font-medium text-slate-700 group-hover:text-purple-700">${opt}</span>
-                                                                    </label>`).join('')}
+                                                                    ${section.opts.map(opt => {
+                                                                        const parts = opt.split('(');
+                                                                        return `
+                                                                        <label class="flex items-center gap-2 cursor-pointer p-1 hover:bg-white rounded-lg transition-colors group">
+                                                                            <input type="checkbox" name="${section.name}" value="${opt}" class="w-4 h-4 text-purple-600 border-slate-300 focus:ring-purple-500 rounded-full cursor-pointer flex-shrink-0" ${getVal(cm, `selection.social.${section.name.split('-')[2]}`) === opt ? 'checked' : ''} onclick="app.checkExclusive(this)">
+                                                                            <span class="text-sm font-bold text-purple-600 w-6 text-right tabular-nums group-hover:text-purple-700 flex-shrink-0">${parts[0]}</span>
+                                                                            <span class="text-sm text-slate-600 border-l-2 border-slate-200 pl-2 group-hover:text-slate-800 text-[11px] leading-tight break-keep">${parts[1] ? parts[1].replace(')', '') : ''}</span>
+                                                                        </label>`;
+                                                                    }).join('')}
                                                                 </div>
                                                             </div>
                                                         `).join('')}
@@ -9464,6 +9566,7 @@
                         bonus: { 
                             family: getRadio('sel-eco-bonus-family'),
                             rent: getRadio('sel-eco-bonus-rent'),
+                            income: getRadio('sel-eco-bonus-income'), /* [신규] 소득 여부 가산점 저장 */
                             jjokbang: e.target.querySelector('input[name="sel-eco-bonus-jjokbang"]')?.checked ? '2점' : ''
                         }
                     },
