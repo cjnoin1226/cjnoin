@@ -3139,95 +3139,6 @@
                 const tr = btn.closest('tr');
                 if (tr) tr.remove();
             },
-
-            // [신규] 선정기준표 자동 점수 합산 로직 (경제, 신체, 정신, 사회, 사례관리자 통합)
-            updateTotalSelectionScore: () => {
-                const form = document.getElementById('client-form');
-                if (!form) return;
-                
-                const getScore = (name) => {
-                    const el = form.querySelector(`input[name="${name}"]:checked`);
-                    if (!el) return 0;
-                    const match = el.value.match(/([\d.]+)점/);
-                    return match ? parseFloat(match[1]) : 0;
-                };
-
-                const getCustomScore = (name, scoreMap) => {
-                    const els = form.querySelectorAll(`input[name="${name}"]:checked`);
-                    let sum = 0;
-                    els.forEach(el => {
-                        if (scoreMap[el.value]) sum += scoreMap[el.value];
-                    });
-                    return sum;
-                };
-                
-                // 경제영역 점수 합산
-                let ecoScore = getScore('sel-eco-benefit') + getScore('sel-eco-housing') + getScore('sel-eco-income-score') +
-                               getScore('sel-eco-bonus-family') + getScore('sel-eco-bonus-rent') + getScore('sel-eco-bonus-income');
-                if (form.querySelector('input[name="sel-eco-bonus-jjokbang"]')?.checked) ecoScore += 2; // 쪽방 2점 고정
-
-                // 신체영역 점수 합산
-                let phyScore = getScore('sel-phy-disease') + getScore('sel-phy-disability') + getScore('sel-phy-iadl') + getScore('sel-phy-bonus-adl');
-                phyScore += getCustomScore('sel-phy-bonus-check', {
-                    'severe_patient': 3, 'household_severe': 3, 'multi_disability': 1, 'household_disabled': 2
-                });
-
-                // 정신영역 점수 합산
-                let menScore = getScore('sel-men-cognitive') + getScore('sel-men-depression') + getScore('sel-men-alcohol') + getScore('sel-men-abuse');
-                menScore += getCustomScore('sel-men-cognitive-detail', { 'memory_comm_mild': 1, 'calc_mild': 1 });
-                menScore += getCustomScore('sel-men-dep-bonus', { 'suicide_attempt': 3, 'suicide_thought': 2, 'sleep_disorder': 1 });
-                menScore += getCustomScore('sel-men-alc-bonus', { 'drug_use': 2 });
-                menScore += getCustomScore('sel-men-abuse-bonus', { 'family_death': 2, 'friend_death': 1, 'isolation': 1, 'etc': 1 });
-
-                // 사회영역 점수 합산
-                let socScore = getScore('sel-soc-household') + getScore('sel-soc-family') + getScore('sel-soc-neighbor') + getScore('sel-soc-activity');
-                
-                // 사례관리자 직접 입력 점수
-                const manEl = form.querySelector('#sel-man-score');
-                const manScore = manEl && manEl.value ? parseFloat(manEl.value) : 0;
-                
-                // 4. 화면 영역별 점수판 업데이트
-                const updateEl = (id, score) => {
-                    const el = document.getElementById(id);
-                    if (el) el.innerText = score + '점';
-                };
-                
-                updateEl('score-eco', ecoScore);
-                updateEl('score-phy', phyScore);
-                updateEl('score-men', menScore);
-                updateEl('score-soc', socScore);
-                
-                // 5. 맨 밑의 Total Score(총점)도 자동으로 입력
-                const totalScore = ecoScore + phyScore + menScore + socScore + manScore;
-                const totalEl = form.querySelector('#sel-total');
-                if (totalEl && totalScore > 0) totalEl.value = totalScore;
-                else if (totalEl) totalEl.value = '';
-
-                // 6. [신규] 총점에 따른 중점/일반/보류 자동 판정 및 버튼 색깔 변경
-                let decision = '';
-                if (totalScore >= 50) decision = '중점';
-                else if (totalScore >= 30) decision = '일반';
-                else if (totalScore > 0) decision = '보류'; // 30점 미만
-
-                const radios = form.querySelectorAll('.auto-decision-radio');
-                radios.forEach(radio => {
-                    const label = radio.closest('.auto-decision-label');
-                    const opt = radio.value;
-                    
-                    if (opt === decision) {
-                        radio.checked = true;
-                        // 조건에 맞으면 활성화 색상 입히기
-                        if (opt === '중점') label.className = 'px-3 py-2 rounded-md transition-all flex items-center justify-center auto-decision-label bg-pink-100 text-pink-700 font-bold border border-pink-300';
-                        else if (opt === '일반') label.className = 'px-3 py-2 rounded-md transition-all flex items-center justify-center auto-decision-label bg-blue-100 text-blue-700 font-bold border border-blue-300';
-                        else label.className = 'px-3 py-2 rounded-md transition-all flex items-center justify-center auto-decision-label bg-slate-200 text-slate-600 font-bold border border-slate-300';
-                    } else {
-                        radio.checked = false;
-                        // 조건에 안 맞으면 회색으로 죽이기
-                        label.className = 'px-3 py-2 rounded-md transition-all flex items-center justify-center auto-decision-label text-slate-400 border border-transparent';
-                    }
-                });
-            },
-
             // [신규] 재사정기록지 가족사항 행 추가 함수
             addReassessFamilyRow: () => {
                 const tbody = document.getElementById('cm-re-family-tbody');
@@ -6049,7 +5960,6 @@
                                 <label class="block text-sm font-bold text-slate-700 mb-1">문서 종류</label>
                                 <select id="print-doc-type" class="input-field text-sm">
                                     <option value="initial">초기면접지</option>
-                                    <option value="selection">선정기준표</option>
                                     <option value="assessment">사정기록지</option>
                                     <option value="reassess">재사정 기록지</option>
                                     <option value="satisfaction">만족도 조사</option>
@@ -6791,7 +6701,7 @@
                             <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'changes' ? 'active' : ''}" data-tab="changes" onclick="app.setClientModalTab('changes')">변경 이력</button>
                         </div>
                         <div class="px-4 sm:px-6 pb-4 sm:pb-6 overflow-y-auto flex-1 bg-white">
-                            <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" data-id="${c.id||''}" onchange="app.updateTotalSelectionScore()" onkeyup="app.updateTotalSelectionScore()">
+                            <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" data-id="${c.id||''}">
                                 <div id="tab-basic" class="modal-tab-content ${state.ui.clientModalTab === 'basic' ? 'active' : ''} space-y-4 pt-4 sm:pt-6">
                                     <div class="grid grid-cols-2 sm:grid-cols-12 gap-3">
     <div class="col-span-1 sm:col-span-6 md:col-span-3">
@@ -7480,8 +7390,7 @@
                                                             <td colspan="9" class="border border-slate-300 p-2 bg-white border-t-0">
                                                                 <div class="flex items-start gap-2">
                                                                     <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">③ 내용</span>
-                                                                    <!-- [수정] 기본 제공 서비스 텍스트 삽입, 높이 넉넉하게 조절 및 자동 리사이징 추가 -->
-                                                                    <textarea id="cm-init-prov-content" class="input-field flex-1 min-h-[130px] border-slate-200 focus:ring-inset resize-none p-2 leading-relaxed text-xs" placeholder="제공할 서비스 내용 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'initial.provision.content') || '- 노인상담 및 정보제공 - 안전안부확인(전화/방문)\n- 사례관리 - 사례회의, 재사정, 모니터링 등\n- 경제적 위기관리 - 급식지원(밑반찬지원서비스, 김장지원서비스 등)\n- 신체적 위기관리 - 노인성질환관리 및 연계(예방적 건강정보지원)\n- 사회적 위기관리 - 대인관계증진(명절지원, 어버이날 행사 등)\n- 권리옹호 - 노인인식개선(노인인권교육 등)'}</textarea>
+                                                                    <textarea id="cm-init-prov-content" class="input-field flex-1 h-14 border-slate-200 focus:ring-inset resize-none p-2 leading-relaxed text-xs" placeholder="제공할 서비스 내용 입력">${getVal(cm, 'initial.provision.content')}</textarea>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -7602,8 +7511,8 @@
                                                         <!-- Card 3: 소득정보 -->
                                                         <div class="bg-slate-50/50 p-3 rounded-xl border border-slate-100 md:col-span-2 lg:col-span-1">
                                                             <label class="block text-sm font-bold text-slate-700 mb-2">③ 소득정보 (실수령액 점수)</label>
-                                                            <div class="flex flex-col gap-1.5">
-                                                                ${['10점(40만원 미만)', '8점(40만원이상 53만원 미만)', '6점(53만원이상~71만원 미만)', '4점(71만원이상~80만원 미만)', '2점(80만원이상~88만원 미만)', '0점(88만원 이상~)'].map(opt => {
+                                                            <div class="flex flex-col gap-1.5 mb-3">
+                                                                ${['5점(40만원 미만)', '8점(40만원이상 53만원 미만)', '6점(53만원이상~71만원 미만)', '4점(71만원이상~80만원 미만)', '2점(80만원이상~88만원 미만)', '0점(88만원 이상~)'].map(opt => {
                                                                     const parts = opt.split('(');
                                                                     return `
                                                                     <label class="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-white rounded-lg transition-colors group">
@@ -7612,6 +7521,22 @@
                                                                         <span class="text-sm text-slate-600 border-l-2 border-slate-200 pl-2 group-hover:text-slate-800 truncate text-[11px]">${parts[1].replace(')', '')}</span>
                                                                     </label>`;
                                                                 }).join('')}
+                                                            </div>
+                                                            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
+                                                                <div>
+                                                                    <span class="text-[10px] font-bold text-slate-400 block mb-1">실수령액</span>
+                                                                    <div class="flex items-center gap-1 bg-white border border-slate-200 rounded px-2">
+                                                                        <input type="text" id="sel-eco-real-income" class="w-full py-1.5 text-xs text-right outline-none bg-transparent" placeholder="0" value="${getVal(cm, 'selection.economic.realIncome')}">
+                                                                        <span class="text-[10px] text-slate-500">만원</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <span class="text-[10px] font-bold text-slate-400 block mb-1">총소득</span>
+                                                                    <div class="flex items-center gap-1 bg-white border border-slate-200 rounded px-2">
+                                                                        <input type="text" id="sel-eco-total-income" class="w-full py-1.5 text-xs text-right outline-none bg-transparent" placeholder="0" value="${getVal(cm, 'selection.economic.totalIncome')}">
+                                                                        <span class="text-[10px] text-slate-500">만원</span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -7851,7 +7776,7 @@
                                                     <h4 class="font-bold text-slate-800 flex items-center gap-2 text-base">
                                                         <span class="w-2.5 h-2.5 bg-purple-500 rounded-sm"></span> 4. 사회영역
                                                     </h4>
-                                                    <span class="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-1 rounded-md border border-purple-100">배점 15점</span>
+                                                    <span class="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-1 rounded-md border border-purple-100">배점 10점</span>
                                                 </div>
                                                 
                                                 <div class="p-5">
@@ -7886,103 +7811,78 @@
                                                 </div>
                                             </div>
 
-                                            <!-- [수정] 사례관리자 평가, 영역별 점수, 종합판정결과를 1x3 가로 배열로 묶기 -->
-                                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
+                                            <!-- Area 5: 사례관리자 평가 (UI 개선: 카드형 그리드) -->
+
+                                            <!-- Area 5: 사례관리자 평가 (UI 개선: 카드형 그리드) -->
+                                            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden group hover:border-orange-300 transition-colors">
+                                                <div class="px-5 py-3 border-b border-slate-100 bg-orange-50/50 flex justify-between items-center">
+                                                    <h4 class="font-bold text-slate-800 flex items-center gap-2 text-base">
+                                                        <span class="w-2.5 h-2.5 bg-orange-500 rounded-sm"></span> 5. 사례관리자 평가
+                                                    </h4>
+                                                    <span class="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-md border border-orange-100">배점 10점</span>
+                                                </div>
                                                 
-                                                <!-- 1. 사례관리자 평가 -->
-                                                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
-                                                    <div class="px-3 py-3 border-b border-slate-100 bg-orange-50/50 flex flex-wrap gap-2 justify-between items-center">
-                                                        <div class="flex items-center gap-2">
-                                                            <h4 class="font-bold text-slate-800 flex items-center gap-1.5 text-sm whitespace-nowrap">
-                                                                <span class="w-2.5 h-2.5 bg-orange-500 rounded-sm"></span> 사례관리자 평가
-                                                            </h4>
-                                                        </div>
-                                                        <span class="text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-md border border-orange-100">배점 15점</span>
-                                                    </div>
-                                                    <div class="px-3 py-3 bg-slate-50/50 flex-1 flex flex-col justify-between">
-                                                        <div class="flex items-center justify-between gap-2 bg-white border border-slate-300 rounded-lg px-2 py-1 w-full shadow-inner mb-3">
-                                                            <span class="text-[10px] font-bold text-slate-500 uppercase ml-1">평가 점수</span>
-                                                            <div class="flex items-baseline">
-                                                                <input type="number" id="sel-man-score" name="sel-man-score" class="w-12 bg-transparent text-lg font-bold text-orange-600 outline-none text-right" placeholder="0" value="${getVal(cm, 'selection.manager.score') || getVal(cm, 'selection.managerEval')}" min="0" max="15">
-                                                                <span class="text-xs font-bold text-slate-500 whitespace-nowrap pr-1">점</span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="text-[10px] text-slate-600 font-medium flex flex-col gap-1 tracking-tight">
-                                                            <p><span class="font-bold text-orange-500">1~5점 :</span> 단순 서비스가 필요한 대상자</p>
-                                                            <p><span class="font-bold text-orange-500">6~10점 :</span> 다중적 서비스가 필요한 대상자</p>
-                                                            <p><span class="font-bold text-orange-500">11~15점 :</span> 위기지원이 필요한 대상자</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- 2. 영역별 점수 집계 -->
-                                                <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
-                                                    <div class="px-3 py-3 border-b border-slate-100 bg-indigo-50/50 flex justify-between items-center">
-                                                        <h4 class="font-bold text-slate-800 flex items-center gap-1.5 text-sm whitespace-nowrap">
-                                                            <span class="w-2.5 h-2.5 bg-indigo-500 rounded-sm"></span> 영역별 점수
-                                                        </h4>
-                                                        <span class="text-[10px] font-bold text-indigo-600 bg-indigo-100 px-1.5 py-0.5 rounded-md border border-indigo-100">자동 집계</span>
-                                                    </div>
-                                                    <div class="p-3 bg-slate-50/50 flex-1">
-                                                        <div class="grid grid-cols-2 gap-2 items-start h-full">
-                                                            <div class="flex flex-col justify-center items-center bg-white py-2 px-1 rounded-lg border border-slate-200 shadow-sm">
-                                                                <span class="text-[10px] font-bold text-slate-500 mb-0.5">경제영역</span>
-                                                                <span class="text-sm font-bold text-blue-600" id="score-eco">0점</span>
-                                                            </div>
-                                                            <div class="flex flex-col justify-center items-center bg-white py-2 px-1 rounded-lg border border-slate-200 shadow-sm">
-                                                                <span class="text-[10px] font-bold text-slate-500 mb-0.5">정신영역</span>
-                                                                <span class="text-sm font-bold text-pink-600" id="score-men">0점</span>
-                                                            </div>
-                                                            <div class="flex flex-col justify-center items-center bg-white py-2 px-1 rounded-lg border border-slate-200 shadow-sm">
-                                                                <span class="text-[10px] font-bold text-slate-500 mb-0.5">신체영역</span>
-                                                                <span class="text-sm font-bold text-emerald-600" id="score-phy">0점</span>
-                                                            </div>
-                                                            <div class="flex flex-col justify-center items-center bg-white py-2 px-1 rounded-lg border border-slate-200 shadow-sm">
-                                                                <span class="text-[10px] font-bold text-slate-500 mb-0.5">사회영역</span>
-                                                                <span class="text-sm font-bold text-purple-600" id="score-soc">0점</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- 3. 종합 판정 결과 (색상 연하게 수정, 텍스트 수정) -->
-                                                <div class="bg-emerald-50/50 border border-emerald-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-full relative">
-                                                    <div class="px-3 py-3 border-b border-emerald-100 bg-emerald-100/50 flex justify-between items-center">
-                                                        <h4 class="font-bold text-emerald-800 flex items-center gap-1.5 text-sm whitespace-nowrap">
-                                                            <i data-lucide="calculator" size="16" class="text-emerald-600"></i> 종합 판정 결과
-                                                        </h4>
-                                                    </div>
-                                                    <div class="p-3 flex-1 flex flex-col justify-between">
-                                                        
-                                                        <!-- 총점 칸과 판정 버튼들을 가로로 나란히 배치 -->
-                                                        <div class="flex gap-2 mb-2 items-stretch flex-1">
-                                                            <!-- 총점 칸 (크기 확대: 3자리 숫자도 보이도록 박스와 입력칸 너비 증가) -->
-                                                            <div class="bg-white rounded-lg px-2 border border-emerald-200 flex flex-col items-center justify-center shadow-sm w-24 flex-shrink-0">
-                                                                <span class="text-[10px] font-bold text-slate-500 uppercase">총점</span>
-                                                                <div class="flex items-baseline gap-0.5 mt-0.5">
-                                                                    <input type="number" id="sel-total" name="totalScore" class="w-12 bg-transparent text-center text-lg font-extrabold text-emerald-600 outline-none transition-colors p-0" value="${getVal(cm, 'selection.totalScore') || ''}" readonly placeholder="0">
-                                                                    <span class="text-[10px] font-bold text-slate-600">점</span>
+                                                <div class="p-5">
+                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <!-- Basic Score Card -->
+                                                        <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100 flex flex-col justify-between">
+                                                            <div>
+                                                                <div class="flex items-center gap-2 mb-2">
+                                                                    <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
+                                                                    <span class="text-sm font-bold text-slate-700">평가 점수 (배점)</span>
                                                                 </div>
+                                                                <p class="text-[11px] text-slate-400 mb-3">* 담당자가 판단한 긴급성 및 필요도에 따른 점수</p>
                                                             </div>
-                                                            
-                                                            <!-- 자동 판정 버튼들 (버튼 사이 여백과 패딩 축소) -->
-                                                            <div class="flex bg-white p-0.5 rounded-lg border border-slate-200 shadow-sm gap-0.5 flex-1">
-                                                                ${['중점', '일반', '보류'].map(opt => {
-                                                                    let isChecked = getVal(cm, 'selection.decision') === opt;
-                                                                    const activeColor = opt === '중점' ? 'bg-pink-100 text-pink-700 font-bold border border-pink-300' : (opt === '일반' ? 'bg-blue-100 text-blue-700 font-bold border border-blue-300' : 'bg-slate-200 text-slate-600 font-bold border border-slate-300');
-                                                                    return `
-                                                                    <label class="flex-1 py-1 rounded transition-all flex items-center justify-center auto-decision-label ${isChecked ? activeColor : 'text-slate-400 border border-transparent'}" style="pointer-events: none;">
-                                                                        <input type="radio" name="sel-decision" value="${opt}" class="hidden auto-decision-radio" ${isChecked ? 'checked' : ''}>
-                                                                        <span class="text-[11px] font-bold whitespace-nowrap">${opt}</span>
-                                                                    </label>
-                                                                `}).join('')}
+                                                            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 w-full">
+                                                                <input type="number" id="sel-man-score" class="w-full bg-transparent text-xl font-bold text-orange-600 outline-none text-center" placeholder="0" value="${getVal(cm, 'selection.manager.score') || getVal(cm, 'selection.managerEval')}">
+                                                                <span class="text-sm font-bold text-slate-500">점</span>
                                                             </div>
                                                         </div>
                                                         
-                                                        <!-- 판정 기준 설명 텍스트 -->
-                                                        <div class="text-[9px] text-emerald-600 font-bold tracking-tight text-center leading-tight">
-                                                            중점: 50점 이상 / 일반: 30점 이상 / 보류: 30점 미만
+                                                        <!-- Bonus Card -->
+                                                        <div class="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                                                            <div class="flex items-center gap-2 mb-3">
+                                                                <span class="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100">가산</span>
+                                                                <span class="text-xs text-slate-400">항목별 합산</span>
+                                                            </div>
+                                                            <label class="flex items-start gap-3 cursor-pointer bg-white p-3 rounded-lg border border-slate-200 hover:border-orange-300 transition-colors shadow-sm h-full items-center">
+                                                                <input type="checkbox" name="sel-man-bonus" value="urgent" class="w-5 h-5 text-orange-500 border-slate-300 rounded focus:ring-orange-400" ${(getVal(cm, 'selection.manager.bonus') || []).includes('urgent') ? 'checked' : ''}>
+                                                                <div class="flex flex-col">
+                                                                    <span class="text-sm font-bold text-slate-700">긴급 위기 상황</span>
+                                                                    <span class="text-xs text-orange-600 font-bold">+2점 <span class="font-normal text-slate-400">(위기상황 해당 시)</span></span>
+                                                                </div>
+                                                            </label>
                                                         </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- 종합 결과 (강조) -->
+                                            <div class="bg-slate-800 rounded-xl p-6 shadow-lg text-white flex flex-col md:flex-row items-center gap-6 justify-between">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="p-3 bg-white/10 rounded-full"><i data-lucide="calculator" size="24" class="text-emerald-400"></i></div>
+                                                    <div>
+                                                        <h4 class="font-bold text-lg">종합 판정 결과</h4>
+                                                        <p class="text-xs text-slate-400">모든 영역 점수를 합산하여 판정합니다.</p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="flex gap-4 items-center w-full md:w-auto">
+                                                    <div class="bg-white/10 rounded-lg px-4 py-2 flex flex-col items-center min-w-[100px]">
+                                                        <span class="text-[10px] font-bold text-slate-400 uppercase">Total Score</span>
+                                                        <div class="flex items-baseline gap-1">
+                                                            <input type="number" id="sel-total" class="w-16 bg-transparent text-center text-2xl font-extrabold text-emerald-400 outline-none border-b border-white/20 focus:border-emerald-400 transition-colors" value="${getVal(cm, 'selection.totalScore')}" placeholder="0">
+                                                            <span class="text-sm font-bold">점</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="flex bg-white/10 p-1 rounded-lg gap-1">
+                                                        ${['선정', '대기', '탈락'].map(opt => `
+                                                            <label class="cursor-pointer px-4 py-2 rounded-md transition-all ${getVal(cm, 'selection.decision') === opt ? (opt === '선정' ? 'bg-blue-500 text-white shadow-lg font-bold' : (opt === '탈락' ? 'bg-red-500 text-white shadow-lg font-bold' : 'bg-slate-500 text-white shadow-lg font-bold')) : 'hover:bg-white/10 text-slate-300'}">
+                                                                <input type="checkbox" name="sel-decision" value="${opt}" class="hidden" ${getVal(cm, 'selection.decision') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)">
+                                                                <span class="text-sm">${opt}</span>
+                                                            </label>
+                                                        `).join('')}
                                                     </div>
                                                 </div>
                                             </div>
@@ -9622,9 +9522,6 @@
                         el.style.height = 'auto';
                         el.style.height = (el.scrollHeight) + 'px';
                     });
-                    
-                    // [신규] 모달이 열리면 즉시 영역별 점수 자동계산 실행
-                    if(app.updateTotalSelectionScore) app.updateTotalSelectionScore();
                 }, 0);
             },
             
@@ -10078,9 +9975,9 @@
                 if (!docType) {
                     const subTab = state.ui.caseSubTab;
                     if (subTab === 'initial') docType = 'initial';
-                    else if (subTab === 'selection') docType = 'selection';
                     else if (subTab === 'assessment') docType = 'assessment';
                     else if (subTab === 'reassess') docType = 'reassess';
+                    else if (subTab === 'satisfaction') docType = 'satisfaction';
                     else if (subTab === 'evaluation') docType = 'evaluation';
                     else if (subTab === 'history-list') docType = 'history-list';
                     else return alert("인쇄할 문서를 선택해주세요.");
@@ -10139,7 +10036,7 @@
                         /* [수정] 페이지 여백 설정: 모든 페이지에 여백 적용 */
                         @page { 
                             size: A4 portrait; 
-                            margin: 15mm 15mm 5mm 20mm; /* 상 우 하 좌 */
+                            margin: 15mm 15mm 15mm 20mm; /* 상 우 하 좌 */
                         }
                         body { 
                             font-family: 'Malgun Gothic', 'Dotum', sans-serif; 
@@ -10154,15 +10051,15 @@
                         
                         /* 제목이 페이지 하단에 혼자 남지 않도록 설정 */
                         h2 { 
-                            font-size: 14px; font-weight: bold; margin-top: 0px; margin-bottom: 0px; 
-                            border-left: 4px solid #333; padding-left: 8px; background: #eee; padding: 1px 5px; 
+                            font-size: 14px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; 
+                            border-left: 4px solid #333; padding-left: 8px; background: #eee; padding: 5px; 
                             break-after: avoid; page-break-after: avoid; 
                         }
                         /* [추가] 소제목(h3)도 맨 밑에 혼자 떨어지지 않도록 방지 */
                         h3 { break-after: avoid; page-break-after: avoid; }
                         
                         /* 테이블 스타일 */
-                        table { width: 100%; border-collapse: collapse; margin-bottom: 0px; table-layout: fixed; }
+                        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; table-layout: fixed; }
                         
                         /* 행 중간이 잘리지 않도록 보호 (페이지 넘김 시 통째로 이동) */
                         tr { break-inside: avoid; page-break-inside: avoid; }
@@ -10170,7 +10067,7 @@
                         thead { display: table-header-group; }
                         table { page-break-inside: auto; break-inside: auto; }
 
-                        th, td { border: 1px solid #000; padding: 2px 5px; word-break: break-all; vertical-align: middle; }
+                        th, td { border: 1px solid #000; padding: 5px; word-break: break-all; vertical-align: middle; }
                         th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
                         
                         /* 결재란 스타일 - 잘림 방지 */
@@ -10226,215 +10123,6 @@
 
                 let htmlContent = '';
                 let docTitle = '';
-
-                // [신규] 선정기준표 인쇄용 HTML 생성 로직
-                if (docType === 'selection') {
-                    docTitle = '선정기준표';
-
-                    // 데이터 추출
-                    const sData = getVal(cm, 'selection') || {};
-                    const eco = sData.economic || {};
-                    const phy = sData.physical || {};
-                    const men = sData.mental || {};
-                    const soc = sData.social || {};
-                    const man = sData.manager || {};
-                    
-                    const totalScore = sData.totalScore || '0';
-                    const decision = sData.decision || '';
-                    const note = sData.note || '';
-
-                    // 각 영역별 데이터
-                    const ecoBenefit = eco.benefit || ''; const ecoHousing = eco.housing || ''; const ecoIncome = eco.incomeScore || '';
-                    const ecoBonusFam = eco.bonus?.family || ''; const ecoBonusRent = eco.bonus?.rent || ''; const ecoBonusInc = eco.bonus?.income || ''; const ecoBonusJjok = eco.bonus?.jjokbang || '';
-
-                    const phyDis = phy.disease || ''; const phyDisab = phy.disability || ''; const phyIadl = phy.iadl || '';
-                    const phyBonusItems = phy.bonus?.items || []; const phyBonusAdl = phy.bonus?.adl || '';
-
-                    const menCog = men.cognitive || ''; const menCogDet = men.cognitiveDetail || [];
-                    const menDep = men.depression || ''; const menDepBon = men.depressionBonus || [];
-                    const menAlc = men.alcohol || ''; const menAlcBon = men.alcoholBonus || [];
-                    const menAbuse = men.abuse || ''; const menAbuseBon = men.abuseBonus || [];
-
-                    const socHouse = soc.household || ''; const socFam = soc.family || ''; const socNeigh = soc.neighbor || ''; const socAct = soc.activity || '';
-
-                    const managerScore = parseFloat(man.score || 0);
-
-                    // 화면에 렌더링된 값을 재계산
-                    const getNum = (str) => { const m = (str||'').match(/([\d.]+)점/); return m ? parseFloat(m[1]) : 0; };
-                    
-                    let eScore = getNum(ecoBenefit) + getNum(ecoHousing) + getNum(ecoIncome) + getNum(ecoBonusFam) + getNum(ecoBonusRent) + getNum(ecoBonusInc) + (ecoBonusJjok ? 2 : 0);
-                    let pScore = getNum(phyDis) + getNum(phyDisab) + getNum(phyIadl) + getNum(phyBonusAdl);
-                    if(phyBonusItems.includes('severe_patient')) pScore+=3; if(phyBonusItems.includes('household_severe')) pScore+=3; if(phyBonusItems.includes('multi_disability')) pScore+=1; if(phyBonusItems.includes('household_disabled')) pScore+=2;
-
-                    let mScore = getNum(menCog) + getNum(menDep) + getNum(menAlc) + getNum(menAbuse);
-                    if(menCogDet.includes('memory_comm_mild')) mScore+=1; if(menCogDet.includes('calc_mild')) mScore+=1;
-                    if(menDepBon.includes('suicide_attempt')) mScore+=3; if(menDepBon.includes('suicide_thought')) mScore+=2; if(menDepBon.includes('sleep_disorder')) mScore+=1;
-                    if(menAlcBon.includes('drug_use')) mScore+=2;
-                    if(menAbuseBon.includes('family_death')) mScore+=2; if(menAbuseBon.includes('friend_death')) mScore+=1; if(menAbuseBon.includes('isolation')) mScore+=1; if(menAbuseBon.includes('etc')) mScore+=1;
-
-                    let sScore = getNum(socHouse) + getNum(socFam) + getNum(socNeigh) + getNum(socAct);
-                    
-                    // 체크박스 렌더 헬퍼
-                    const renderGrp = (list, selected) => list.map(opt => renderChkBox(opt, opt === selected)).join(' ');
-
-                    htmlContent = `
-                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
-                            <div style="width: 40px; flex-shrink: 0;"></div>
-                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">선 정 기 준 표</h1>
-                            <div style="width: 180px; flex-shrink: 0;">
-                                ${signBoxHtml}
-                            </div>
-                        </div>
-                        <div class="clearfix"></div>
-
-                        <table style="margin-bottom: 10px;">
-                            <col width="15%"><col width="35%"><col width="15%"><col width="35%">
-                            <tr>
-                                <th>대상자명</th><td class="text-center font-bold">${client.name}</td>
-                                <th>생년월일</th><td class="text-center">${client.birthDate}</td>
-                            </tr>
-                            <tr>
-                                <th>작성일자</th><td class="text-center">${sData.date || '-'}</td>
-                                <th>작성자</th><td class="text-center">${sData.writer || '-'}</td>
-                            </tr>
-                        </table>
-
-                        <table style="font-size: 10px;">
-                            <col width="13%"><col width="9%"><col width="78%">
-                            <!-- 1. 경제영역 -->
-                            <tr>
-                                <th rowspan="4" style="font-size:12px;">1. 경제영역<br>(20점)</th>
-                                <th>기본</th>
-                                <td>
-                                    <div style="margin-bottom:3px;"><strong>[수급형태]</strong> ${renderGrp(['5점(기초수급-생계/의료/주거)', '3점(조건부 기초수급)', '2점(차상위계층)', '1점(일반-저소득)'], ecoBenefit)}</div>
-                                    <div style="margin-bottom:3px;"><strong>[주택형태]</strong> ${renderGrp(['5점(가건물-비닐하우스 등)', '4점(월세)', '3점(영구/임대주택)', '2점(무료임대/의탁)', '1점(전세)', '0점(자가)'], ecoHousing)}</div>
-                                    <div><strong>[소득정보]</strong> ${renderGrp(['10점(40만원 미만)', '8점(40만원이상 53만원 미만)', '6점(53만원이상~71만원 미만)', '4점(71만원이상~80만원 미만)', '2점(80만원이상~88만원 미만)', '0점(88만원 이상~)'], ecoIncome)}</div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th rowspan="3">가산</th>
-                                <td>
-                                    <strong>[가구원수]</strong> ${renderGrp(['2.5점(4인이상)', '2점(3인)', '1.5점(2인)', '1점(1인)'], ecoBonusFam)}<br>
-                                    <strong>[월세금액]</strong> ${renderGrp(['2점(30만원 초과)', '1.5점(20~30만원)', '1점(20만원 미만)'], ecoBonusRent)}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>[소득여부]</strong> ${renderGrp(['5점(공적부조 및 기타소득이 없음)', '2점(공적부조(국민연금포함) 외에 소득이 없음)'], ecoBonusInc)}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>[주거취약]</strong> ${renderChkBox('+2점(쪽방 거주 등)', ecoBonusJjok === '2점')}</td>
-                            </tr>
-
-                            <!-- 2. 신체영역 -->
-                            <tr>
-                                <th rowspan="2" style="font-size:12px;">2. 신체영역<br>(15점)</th>
-                                <th>기본</th>
-                                <td>
-                                    <div style="margin-bottom:3px;"><strong>[질병정도]</strong> ${renderGrp(['5점(만성질환 4개이상)', '4점(2-3개)', '3점(1개)', '0점(없음)'], phyDis)}</div>
-                                    <div style="margin-bottom:3px;"><strong>[장애급]</strong> ${renderGrp(['5점(중증장애-기본1-3급)', '3점(경증장애-기존4-6급)', '0점(없음)'], phyDisab)}</div>
-                                    <div><strong>[IADL]</strong> ${renderGrp(['5점(완전도움)', '3점(부분도움)', '1점(자립가능)'], phyIadl)}</div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>가산</th>
-                                <td>
-                                    <div style="margin-bottom:3px;">
-                                    ${renderChkBox('+3점(중증질환 보유)', phyBonusItems.includes('severe_patient'))} 
-                                    ${renderChkBox('+3점(가구원 중 중증질환)', phyBonusItems.includes('household_severe'))} 
-                                    ${renderChkBox('+1점(중복장애)', phyBonusItems.includes('multi_disability'))} 
-                                    ${renderChkBox('+2점(동거가족 중 장애인)', phyBonusItems.includes('household_disabled'))}
-                                    </div>
-                                    <div><strong>[ADL 가산]</strong> ${renderGrp(['3점(완전)', '2점(부분도움)', '0점(자립가능)'], phyBonusAdl)}</div>
-                                </td>
-                            </tr>
-
-                            <!-- 3. 정신영역 -->
-                            <tr>
-                                <th rowspan="2" style="font-size:12px;">3. 정신영역<br>(20점)</th>
-                                <th>기본</th>
-                                <td>
-                                    <div style="margin-bottom:3px;"><strong>[인지기능]</strong> ${renderGrp(['5점(중도인지장애)', '4점(경도인지장애)', '2점(의심)', '0점(정상)'], menCog)}</div>
-                                    <div style="margin-bottom:3px;"><strong>[우울증]</strong> ${renderGrp(['5점(심각)', '4점(중도)', '3점(경도)', '2점(우울감, 불안감 의심)', '0점(정상)'], menDep)}</div>
-                                    <div style="margin-bottom:3px;"><strong>[알콜의존]</strong> ${renderGrp(['5점(매일)', '4점(주3회이상)', '3점(주1회이상)', '1점(월1회이상)', '0점(해당없음)'], menAlc)}</div>
-                                    <div><strong>[인권침해]</strong> ${renderGrp(['5점(경험있음)', '3점(위협요인)', '0점(해당없음)'], menAbuse)}</div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>가산</th>
-                                <td>
-                                    <div style="margin-bottom:3px;"><strong>[인지]</strong> ${renderChkBox('+1점(단기기억/소통)', menCogDet.includes('memory_comm_mild'))} ${renderChkBox('+1점(계산능력)', menCogDet.includes('calc_mild'))}</div>
-                                    <div style="margin-bottom:3px;"><strong>[자살]</strong> ${renderChkBox('+3점(미수경험)', menDepBon.includes('suicide_attempt'))} ${renderChkBox('+2점(생각표현)', menDepBon.includes('suicide_thought'))} ${renderChkBox('+1점(수면장애)', menDepBon.includes('sleep_disorder'))}</div>
-                                    <div style="margin-bottom:3px;"><strong>[약물]</strong> ${renderChkBox('+2점(복용함)', menAlcBon.includes('drug_use'))}</div>
-                                    <div><strong>[스트레스]</strong> ${renderChkBox('+2점(가족사망)', menAbuseBon.includes('family_death'))} ${renderChkBox('+1점(친구사망)', menAbuseBon.includes('friend_death'))} ${renderChkBox('+1점(소외감)', menAbuseBon.includes('isolation'))} ${renderChkBox('+1점(기타)', menAbuseBon.includes('etc'))}</div>
-                                </td>
-                            </tr>
-
-                            <!-- 4. 사회영역 -->
-                            <tr>
-                                <th style="font-size:12px;">4. 사회영역<br>(10점)</th>
-                                <th>기본</th>
-                                <td>
-                                    <div style="margin-bottom:3px;"><strong>[세대형태]</strong> ${renderGrp(['7점(독거)', '7점(동거-취약)', '3점(동거-일반)'], socHouse)}</div>
-                                    <div style="margin-bottom:3px;"><strong>[가족관계]</strong> ${renderGrp(['5점(없음)', '4점(연 1~2회)', '3점(분기 1~2회)', '2점(월 1~2회)', '1점(주 1~2회)'], socFam)}</div>
-                                    <div style="margin-bottom:3px;"><strong>[이웃친구]</strong> ${renderGrp(['5점(없음)', '4점(연 1~2회)', '3점(분기 1~2회)', '2점(월 1~2회)', '1점(주 1~2회)'], socNeigh)}</div>
-                                    <div><strong>[사회활동]</strong> ${renderGrp(['3점(없음)', '2점(월 1~2회)', '1점(주 1회 이상)'], socAct)}</div>
-                                </td>
-                            </tr>
-
-                            <!-- 5. 사례관리자 평가 -->
-                            <tr>
-                                <th style="font-size:12px;">5. 평가<br>(15점)</th>
-                                <th>평가점수</th>
-                                <td>
-                                    <div style="display:flex; justify-content: space-between; align-items:center;">
-                                        <div style="font-size: 14px; font-weight: bold;">${managerScore} 점</div>
-                                        <div style="font-size: 9px; color: #555;">(1~5점: 단순 / 6~10점: 다중적 / 11~15점: 위기지원)</div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </table>
-
-                        <!-- 영역별 점수판 및 종합결과 -->
-                        <div class="keep-together">
-                            <table style="font-size: 11px; text-align: center; margin-bottom: 5px;">
-                                <col width="16%"><col width="16%"><col width="16%"><col width="16%"><col width="16%"><col width="20%">
-                                <tr>
-                                    <th colspan="4" style="background:#e0e7ff;">영역별 점수 (자동집계)</th>
-                                    <th rowspan="2" style="background:#d1fae5; font-size:14px;">총점</th>
-                                    <th rowspan="2" style="background:#d1fae5; font-size:14px; font-weight:bold; color:red;">${totalScore} 점</th>
-                                </tr>
-                                <tr>
-                                    <td>경제: <strong>${eScore}</strong>점</td>
-                                    <td>신체: <strong>${pScore}</strong>점</td>
-                                    <td>정신: <strong>${mScore}</strong>점</td>
-                                    <td>사회: <strong>${sScore}</strong>점</td>
-                                </tr>
-                            </table>
-
-                            <!-- 종합판정결과 -->
-                            <table style="font-size: 12px; margin-bottom: 5px;">
-                                <tr>
-                                    <th style="background:#d1fae5; width:25%;">종합판정결과</th>
-                                    <td class="text-center" style="width: 75%;">
-                                        ${renderChkBox('중점대상자 (50점 이상)', decision === '중점')} &nbsp;&nbsp;
-                                        ${renderChkBox('일반대상자 (30점 이상)', decision === '일반')} &nbsp;&nbsp;
-                                        ${renderChkBox('선정보류 (30점 미만)', decision === '보류')}
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <!-- 비고 -->
-                            <table>
-                                <tr>
-                                    <th style="width: 15%; padding: 15px 5px;">비고 및<br>특이사항</th>
-                                    <td style="text-align: left; vertical-align: top; height: 50px;">
-                                        ${(note||'').replace(/\n/g, '<br>')}
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                    `;
-                }
 
                 // --- 문서별 HTML 생성 ---
                 if (docType === 'initial') {
@@ -10504,9 +10192,9 @@
 
                     htmlContent = `
                         <!-- [수정] 제목과 결재란 겹침 방지: 좌측 여백을 줄여 자연스럽게 왼쪽으로 당김 -->
-                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2px; min-height: 90px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
                             <div style="width: 40px; flex-shrink: 0;"></div> <!-- 좌측 여백 축소 -->
-                            <h1 style="flex: 1; margin: 0; padding-bottom: 5px; text-align: center;">초 기 면 접 지</h1>
+                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">초 기 면 접 지</h1>
                             <div style="width: 180px; flex-shrink: 0;">
                                 ${signBoxHtml}
                             </div>
@@ -10516,24 +10204,15 @@
                         <table>
                             <colgroup>
                                 <col width="12%">
-                                <col width="16%">
+                                <col width="21%">
+                                <col width="12%">
+                                <col width="21%">
                                 <col width="12%">
                                 <col width="22%">
-                                <col width="10%">
-                                <col width="14%">
-                                <col width="6%">
-                                <col width="8%">
                             </colgroup>
-                            <tr>
-                                <th>대상자명</th><td class="text-center text-bold">${client.name}</td>
-                                <th>주민번호</th><td class="text-center">${client.residentNum || ''}</td>
-                                <th>학력</th><td></td> <!-- 입력 칸이 없어 출력 시 빈칸으로 렌더링됨 -->
-                                <th>종교</th><td class="text-center">${getVal(cm, 'initial.religion')}</td>
-                            </tr>
-                            <tr>
-                                <th>주소</th><td colspan="3">${getVal(cm, 'initial.snapAddress') || client.address}</td>
-                                <th>연락처</th><td colspan="3" class="text-center">${getVal(cm, 'initial.snapPhone') || client.phone}</td>
-                            </tr>
+                            <tr><th>상담일시</th><td>${getVal(cm, 'initial.date')}</td><th>상담자</th><td>${getVal(cm, 'initial.interviewer')}</td><th>의뢰인</th><td>${getVal(cm, 'initial.referrer.name')} (${getVal(cm, 'initial.referrer.relation')})</td></tr>
+                            <tr><th>대상자명</th><td>${client.name}</td><th>주민번호</th><td>${client.residentNum || ''}</td><th>연락처</th><td>${getVal(cm, 'initial.snapPhone') || client.phone}</td></tr>
+                            <tr><th>주소</th><td colspan="3">${getVal(cm, 'initial.snapAddress') || client.address}</td><th>종교</th><td>${getVal(cm, 'initial.religion')}</td></tr>
                         </table>
 
                         <h2>1. 가족사항</h2>
@@ -10544,62 +10223,32 @@
 
                         <h2>2. 생활상태</h2>
                         <table>
-                            <tr><th width="15%">경제상황</th><td style="line-height:1.6;">${ecoHTML}<br>${ecoExtra}</td></tr>
+                            <tr><th width="20%">경제상황</th><td style="line-height:1.6;">${ecoHTML}<br>${ecoExtra}</td></tr>
                             <tr><th>세대유형</th><td style="line-height:1.6;">${houseHTML}</td></tr>
                             <tr><th>주거형태</th><td style="line-height:1.6;"><strong>[점유]</strong> ${housingHTML}<br><strong>[유형]</strong> ${dwellingHTML}</td></tr>
                         </table>
 
                         <h2>3. 신체상태</h2>
                         <table>
-                            <tr><th width="15%">건강상태</th><td style="line-height:1.6;">${healthHTML}</td></tr>
+                            <tr><th width="20%">건강상태</th><td style="line-height:1.6;">${healthHTML}</td></tr>
                             <tr><th>만성질환</th><td style="line-height:1.6;">${getVal(cm, 'initial.physical.chronic')}</td></tr>
                             <tr><th>장애여부</th><td style="line-height:1.6;">${disabHTML}</td></tr>
                             <tr><th>등급/보장구</th><td style="line-height:1.6;"><strong>[등급]</strong> ${gradeHTML}<br><strong>[보장구]</strong> ${deviceHTML}</td></tr>
                         </table>
 
-                        <h2>4. 타 서비스 이용 현황</h2>
+                        <h2>4. 서비스 판정</h2>
                         <table>
-                            <tr>
-                                <th width="20%">서비스명</th><td style="text-align: center;">${getVal(cm, 'initial.otherServices.serviceName')}</td>
-                                <th width="20%">이용기관</th><td style="text-align: center;">${getVal(cm, 'initial.otherServices.institution')}</td>
-                            </tr>
-                        </table>
-
-                        <h2>5. 신청서비스</h2>
-                        <table>
-                            <tr><td style="padding: 5px; line-height: 1.2;">${(getVal(cm, 'initial.requestedServices')||'').replace(/\n/g, '<br>')}</td></tr>
-                        </table>
-
-                        <h2>6. 서비스 판정</h2>
-                        <table>
-                            <tr><th width="15%">판정</th><td style="line-height:1.6;">${provHTML}</td></tr>
+                            <tr><th width="20%">판정</th><td style="line-height:1.6;">${provHTML}</td></tr>
                             <tr><th>사유</th><td style="line-height:1.6;">${reasonHTML}</td></tr>
-                            <!-- [수정] 제공내용에 줄바꿈(\n) 기호를 <br> 태그로 변환해주는 코드 추가 -->
-                            <tr><th>제공내용</th><td style="line-height: 1.6;">${(getVal(cm, 'initial.provision.content') || '').replace(/\n/g, '<br>')}</td></tr>
+                            <tr><th>제공내용</th><td>${getVal(cm, 'initial.provision.content')}</td></tr>
                         </table>
 
-                        <h2>7. 의뢰인</h2>
+                        <h2>5. 주호소문제(욕구) 및 종합의견</h2>
                         <table>
-                            <tr>
-                                <th width="15%">성명</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.name')}</td>
-                                <th width="15%">관계</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.relation')}</td>
-                                <th width="15%">전화번호</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.phone')}</td>
-                                <th width="15%">의뢰경로</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.path')}</td>
-                            </tr>
+                            <tr><th width="20%">신청서비스</th><td>${getVal(cm, 'initial.requestedServices')}</td></tr>
+                            <tr><th height="100">종합의견</th><td style="vertical-align: top;">${(getVal(cm, 'initial.conclusion')||'').replace(/\n/g, '<br>')}</td></tr>
                         </table>
-
-                        <h2>8. 비고</h2>
-                        <table style="margin-bottom: 5px;">
-                            <tr><td style="vertical-align: top; height: 100px; padding: 10px; line-height: 1.6;">${(getVal(cm, 'initial.conclusion')||'').replace(/\n/g, '<br>')}</td></tr>
-                        </table>
-                        
-                        <!-- [추가] 삭제했던 상담일시와 상담자를 비고 아래에 우측 정렬로 배치 -->
-                        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 5px; font-size: 13px; font-weight: bold;">
-                            <span style="margin-right: 25px;">상담일시 : ${getVal(cm, 'initial.date')}</span>
-                            <span>상담자 : ${getVal(cm, 'initial.interviewer')} (인)</span>
-                        </div>
                     `;
-
                 } else if (docType === 'assessment') {
                     docTitle = '사정기록지';
                     
