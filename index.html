@@ -7480,7 +7480,8 @@
                                                             <td colspan="9" class="border border-slate-300 p-2 bg-white border-t-0">
                                                                 <div class="flex items-start gap-2">
                                                                     <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">③ 내용</span>
-                                                                    <textarea id="cm-init-prov-content" class="input-field flex-1 h-14 border-slate-200 focus:ring-inset resize-none p-2 leading-relaxed text-xs" placeholder="제공할 서비스 내용 입력">${getVal(cm, 'initial.provision.content')}</textarea>
+                                                                    <!-- [수정] 기본 제공 서비스 텍스트 삽입, 높이 넉넉하게 조절 및 자동 리사이징 추가 -->
+                                                                    <textarea id="cm-init-prov-content" class="input-field flex-1 min-h-[130px] border-slate-200 focus:ring-inset resize-none p-2 leading-relaxed text-xs" placeholder="제공할 서비스 내용 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'initial.provision.content') || '- 노인상담 및 정보제공 - 안전안부확인(전화/방문)\n- 사례관리 - 사례회의, 재사정, 모니터링 등\n- 경제적 위기관리 - 급식지원(밑반찬지원서비스, 김장지원서비스 등)\n- 신체적 위기관리 - 노인성질환관리 및 연계(예방적 건강정보지원)\n- 사회적 위기관리 - 대인관계증진(명절지원, 어버이날 행사 등)\n- 권리옹호 - 노인인식개선(노인인권교육 등)'}</textarea>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -10547,17 +10548,40 @@
                             <tr><th>등급/보장구</th><td style="line-height:1.6;"><strong>[등급]</strong> ${gradeHTML}<br><strong>[보장구]</strong> ${deviceHTML}</td></tr>
                         </table>
 
-                        <h2>4. 서비스 판정</h2>
+                        <h2>4. 타 서비스 이용 현황</h2>
+                        <table>
+                            <tr>
+                                <th width="20%">서비스명</th><td style="text-align: center;">${getVal(cm, 'initial.otherServices.serviceName')}</td>
+                                <th width="20%">이용기관</th><td style="text-align: center;">${getVal(cm, 'initial.otherServices.institution')}</td>
+                            </tr>
+                        </table>
+
+                        <h2>5. 신청서비스</h2>
+                        <table>
+                            <tr><td style="padding: 10px; line-height: 1.6;">${(getVal(cm, 'initial.requestedServices')||'').replace(/\n/g, '<br>')}</td></tr>
+                        </table>
+
+                        <h2>6. 서비스 판정</h2>
                         <table>
                             <tr><th width="20%">판정</th><td style="line-height:1.6;">${provHTML}</td></tr>
                             <tr><th>사유</th><td style="line-height:1.6;">${reasonHTML}</td></tr>
-                            <tr><th>제공내용</th><td>${getVal(cm, 'initial.provision.content')}</td></tr>
+                            <!-- [수정] 제공내용에 줄바꿈(\n) 기호를 <br> 태그로 변환해주는 코드 추가 -->
+                            <tr><th>제공내용</th><td style="line-height: 1.6;">${(getVal(cm, 'initial.provision.content') || '').replace(/\n/g, '<br>')}</td></tr>
                         </table>
 
-                        <h2>5. 주호소문제(욕구) 및 종합의견</h2>
+                        <h2>7. 의뢰인</h2>
                         <table>
-                            <tr><th width="20%">신청서비스</th><td>${getVal(cm, 'initial.requestedServices')}</td></tr>
-                            <tr><th height="100">종합의견</th><td style="vertical-align: top;">${(getVal(cm, 'initial.conclusion')||'').replace(/\n/g, '<br>')}</td></tr>
+                            <tr>
+                                <th width="15%">성명</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.name')}</td>
+                                <th width="15%">관계</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.relation')}</td>
+                                <th width="15%">전화번호</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.phone')}</td>
+                                <th width="15%">의뢰경로</th><td style="text-align: center;">${getVal(cm, 'initial.referrer.path')}</td>
+                            </tr>
+                        </table>
+
+                        <h2>8. 비고</h2>
+                        <table>
+                            <tr><td style="vertical-align: top; height: 100px; padding: 10px; line-height: 1.6;">${(getVal(cm, 'initial.conclusion')||'').replace(/\n/g, '<br>')}</td></tr>
                         </table>
                     `;
                 } else if (docType === 'assessment') {
