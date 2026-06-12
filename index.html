@@ -6049,6 +6049,7 @@
                                 <label class="block text-sm font-bold text-slate-700 mb-1">문서 종류</label>
                                 <select id="print-doc-type" class="input-field text-sm">
                                     <option value="initial">초기면접지</option>
+                                    <option value="selection">선정기준표</option>
                                     <option value="assessment">사정기록지</option>
                                     <option value="reassess">재사정 기록지</option>
                                     <option value="satisfaction">만족도 조사</option>
@@ -10076,9 +10077,9 @@
                 if (!docType) {
                     const subTab = state.ui.caseSubTab;
                     if (subTab === 'initial') docType = 'initial';
+                    else if (subTab === 'selection') docType = 'selection';
                     else if (subTab === 'assessment') docType = 'assessment';
                     else if (subTab === 'reassess') docType = 'reassess';
-                    else if (subTab === 'satisfaction') docType = 'satisfaction';
                     else if (subTab === 'evaluation') docType = 'evaluation';
                     else if (subTab === 'history-list') docType = 'history-list';
                     else return alert("인쇄할 문서를 선택해주세요.");
@@ -10224,6 +10225,215 @@
 
                 let htmlContent = '';
                 let docTitle = '';
+
+                // [신규] 선정기준표 인쇄용 HTML 생성 로직
+                if (docType === 'selection') {
+                    docTitle = '선정기준표';
+
+                    // 데이터 추출
+                    const sData = getVal(cm, 'selection') || {};
+                    const eco = sData.economic || {};
+                    const phy = sData.physical || {};
+                    const men = sData.mental || {};
+                    const soc = sData.social || {};
+                    const man = sData.manager || {};
+                    
+                    const totalScore = sData.totalScore || '0';
+                    const decision = sData.decision || '';
+                    const note = sData.note || '';
+
+                    // 각 영역별 데이터
+                    const ecoBenefit = eco.benefit || ''; const ecoHousing = eco.housing || ''; const ecoIncome = eco.incomeScore || '';
+                    const ecoBonusFam = eco.bonus?.family || ''; const ecoBonusRent = eco.bonus?.rent || ''; const ecoBonusInc = eco.bonus?.income || ''; const ecoBonusJjok = eco.bonus?.jjokbang || '';
+
+                    const phyDis = phy.disease || ''; const phyDisab = phy.disability || ''; const phyIadl = phy.iadl || '';
+                    const phyBonusItems = phy.bonus?.items || []; const phyBonusAdl = phy.bonus?.adl || '';
+
+                    const menCog = men.cognitive || ''; const menCogDet = men.cognitiveDetail || [];
+                    const menDep = men.depression || ''; const menDepBon = men.depressionBonus || [];
+                    const menAlc = men.alcohol || ''; const menAlcBon = men.alcoholBonus || [];
+                    const menAbuse = men.abuse || ''; const menAbuseBon = men.abuseBonus || [];
+
+                    const socHouse = soc.household || ''; const socFam = soc.family || ''; const socNeigh = soc.neighbor || ''; const socAct = soc.activity || '';
+
+                    const managerScore = parseFloat(man.score || 0);
+
+                    // 화면에 렌더링된 값을 재계산
+                    const getNum = (str) => { const m = (str||'').match(/([\d.]+)점/); return m ? parseFloat(m[1]) : 0; };
+                    
+                    let eScore = getNum(ecoBenefit) + getNum(ecoHousing) + getNum(ecoIncome) + getNum(ecoBonusFam) + getNum(ecoBonusRent) + getNum(ecoBonusInc) + (ecoBonusJjok ? 2 : 0);
+                    let pScore = getNum(phyDis) + getNum(phyDisab) + getNum(phyIadl) + getNum(phyBonusAdl);
+                    if(phyBonusItems.includes('severe_patient')) pScore+=3; if(phyBonusItems.includes('household_severe')) pScore+=3; if(phyBonusItems.includes('multi_disability')) pScore+=1; if(phyBonusItems.includes('household_disabled')) pScore+=2;
+
+                    let mScore = getNum(menCog) + getNum(menDep) + getNum(menAlc) + getNum(menAbuse);
+                    if(menCogDet.includes('memory_comm_mild')) mScore+=1; if(menCogDet.includes('calc_mild')) mScore+=1;
+                    if(menDepBon.includes('suicide_attempt')) mScore+=3; if(menDepBon.includes('suicide_thought')) mScore+=2; if(menDepBon.includes('sleep_disorder')) mScore+=1;
+                    if(menAlcBon.includes('drug_use')) mScore+=2;
+                    if(menAbuseBon.includes('family_death')) mScore+=2; if(menAbuseBon.includes('friend_death')) mScore+=1; if(menAbuseBon.includes('isolation')) mScore+=1; if(menAbuseBon.includes('etc')) mScore+=1;
+
+                    let sScore = getNum(socHouse) + getNum(socFam) + getNum(socNeigh) + getNum(socAct);
+                    
+                    // 체크박스 렌더 헬퍼
+                    const renderGrp = (list, selected) => list.map(opt => renderChkBox(opt, opt === selected)).join(' ');
+
+                    htmlContent = `
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; min-height: 90px;">
+                            <div style="width: 40px; flex-shrink: 0;"></div>
+                            <h1 style="flex: 1; margin: 0; padding-bottom: 20px; text-align: center;">선 정 기 준 표</h1>
+                            <div style="width: 180px; flex-shrink: 0;">
+                                ${signBoxHtml}
+                            </div>
+                        </div>
+                        <div class="clearfix"></div>
+
+                        <table style="margin-bottom: 10px;">
+                            <col width="15%"><col width="35%"><col width="15%"><col width="35%">
+                            <tr>
+                                <th>대상자명</th><td class="text-center font-bold">${client.name}</td>
+                                <th>생년월일</th><td class="text-center">${client.birthDate}</td>
+                            </tr>
+                            <tr>
+                                <th>작성일자</th><td class="text-center">${sData.date || '-'}</td>
+                                <th>작성자</th><td class="text-center">${sData.writer || '-'}</td>
+                            </tr>
+                        </table>
+
+                        <table style="font-size: 10px;">
+                            <col width="14%"><col width="11%"><col width="75%">
+                            <!-- 1. 경제영역 -->
+                            <tr>
+                                <th rowspan="4" style="font-size:12px;">1. 경제영역<br>(20점)</th>
+                                <th>기본</th>
+                                <td>
+                                    <div style="margin-bottom:3px;"><strong>[수급형태]</strong> ${renderGrp(['5점(기초수급-생계/의료/주거)', '3점(조건부 기초수급)', '2점(차상위계층)', '1점(일반-저소득)'], ecoBenefit)}</div>
+                                    <div style="margin-bottom:3px;"><strong>[주택형태]</strong> ${renderGrp(['5점(가건물-비닐하우스 등)', '4점(월세)', '3점(영구/임대주택)', '2점(무료임대/의탁)', '1점(전세)', '0점(자가)'], ecoHousing)}</div>
+                                    <div><strong>[소득정보]</strong> ${renderGrp(['10점(40만원 미만)', '8점(40만원이상 53만원 미만)', '6점(53만원이상~71만원 미만)', '4점(71만원이상~80만원 미만)', '2점(80만원이상~88만원 미만)', '0점(88만원 이상~)'], ecoIncome)}</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th rowspan="3">가산</th>
+                                <td>
+                                    <strong>[가구원수]</strong> ${renderGrp(['2.5점(4인이상)', '2점(3인)', '1.5점(2인)', '1점(1인)'], ecoBonusFam)}<br>
+                                    <strong>[월세금액]</strong> ${renderGrp(['2점(30만원 초과)', '1.5점(20~30만원)', '1점(20만원 미만)'], ecoBonusRent)}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>[소득여부]</strong> ${renderGrp(['5점(공적부조 및 기타소득이 없음)', '2점(공적부조(국민연금포함) 외에 소득이 없음)'], ecoBonusInc)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>[주거취약]</strong> ${renderChkBox('+2점(쪽방 거주 등)', ecoBonusJjok === '2점')}</td>
+                            </tr>
+
+                            <!-- 2. 신체영역 -->
+                            <tr>
+                                <th rowspan="2" style="font-size:12px;">2. 신체영역<br>(15점)</th>
+                                <th>기본</th>
+                                <td>
+                                    <div style="margin-bottom:3px;"><strong>[질병정도]</strong> ${renderGrp(['5점(만성질환 4개이상)', '4점(2-3개)', '3점(1개)', '0점(없음)'], phyDis)}</div>
+                                    <div style="margin-bottom:3px;"><strong>[장애급]</strong> ${renderGrp(['5점(중증장애-기본1-3급)', '3점(경증장애-기존4-6급)', '0점(없음)'], phyDisab)}</div>
+                                    <div><strong>[IADL]</strong> ${renderGrp(['5점(완전도움)', '3점(부분도움)', '1점(자립가능)'], phyIadl)}</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>가산</th>
+                                <td>
+                                    <div style="margin-bottom:3px;">
+                                    ${renderChkBox('+3점(중증질환 보유)', phyBonusItems.includes('severe_patient'))} 
+                                    ${renderChkBox('+3점(가구원 중 중증질환)', phyBonusItems.includes('household_severe'))} 
+                                    ${renderChkBox('+1점(중복장애)', phyBonusItems.includes('multi_disability'))} 
+                                    ${renderChkBox('+2점(동거가족 중 장애인)', phyBonusItems.includes('household_disabled'))}
+                                    </div>
+                                    <div><strong>[ADL 가산]</strong> ${renderGrp(['3점(완전)', '2점(부분도움)', '0점(자립가능)'], phyBonusAdl)}</div>
+                                </td>
+                            </tr>
+
+                            <!-- 3. 정신영역 -->
+                            <tr>
+                                <th rowspan="2" style="font-size:12px;">3. 정신영역<br>(20점)</th>
+                                <th>기본</th>
+                                <td>
+                                    <div style="margin-bottom:3px;"><strong>[인지기능]</strong> ${renderGrp(['5점(중도인지장애)', '4점(경도인지장애)', '2점(의심)', '0점(정상)'], menCog)}</div>
+                                    <div style="margin-bottom:3px;"><strong>[우울증]</strong> ${renderGrp(['5점(심각)', '4점(중도)', '3점(경도)', '2점(우울감, 불안감 의심)', '0점(정상)'], menDep)}</div>
+                                    <div style="margin-bottom:3px;"><strong>[알콜의존]</strong> ${renderGrp(['5점(매일)', '4점(주3회이상)', '3점(주1회이상)', '1점(월1회이상)', '0점(해당없음)'], menAlc)}</div>
+                                    <div><strong>[인권침해]</strong> ${renderGrp(['5점(경험있음)', '3점(위협요인)', '0점(해당없음)'], menAbuse)}</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>가산</th>
+                                <td>
+                                    <div style="margin-bottom:3px;"><strong>[인지]</strong> ${renderChkBox('+1점(단기기억/소통)', menCogDet.includes('memory_comm_mild'))} ${renderChkBox('+1점(계산능력)', menCogDet.includes('calc_mild'))}</div>
+                                    <div style="margin-bottom:3px;"><strong>[자살]</strong> ${renderChkBox('+3점(미수경험)', menDepBon.includes('suicide_attempt'))} ${renderChkBox('+2점(생각표현)', menDepBon.includes('suicide_thought'))} ${renderChkBox('+1점(수면장애)', menDepBon.includes('sleep_disorder'))}</div>
+                                    <div style="margin-bottom:3px;"><strong>[약물]</strong> ${renderChkBox('+2점(복용함)', menAlcBon.includes('drug_use'))}</div>
+                                    <div><strong>[스트레스]</strong> ${renderChkBox('+2점(가족사망)', menAbuseBon.includes('family_death'))} ${renderChkBox('+1점(친구사망)', menAbuseBon.includes('friend_death'))} ${renderChkBox('+1점(소외감)', menAbuseBon.includes('isolation'))} ${renderChkBox('+1점(기타)', menAbuseBon.includes('etc'))}</div>
+                                </td>
+                            </tr>
+
+                            <!-- 4. 사회영역 -->
+                            <tr>
+                                <th style="font-size:12px;">4. 사회영역<br>(10점)</th>
+                                <th>기본</th>
+                                <td>
+                                    <div style="margin-bottom:3px;"><strong>[세대형태]</strong> ${renderGrp(['7점(독거)', '7점(동거-취약)', '3점(동거-일반)'], socHouse)}</div>
+                                    <div style="margin-bottom:3px;"><strong>[가족관계]</strong> ${renderGrp(['5점(없음)', '4점(연 1~2회)', '3점(분기 1~2회)', '2점(월 1~2회)', '1점(주 1~2회)'], socFam)}</div>
+                                    <div style="margin-bottom:3px;"><strong>[이웃친구]</strong> ${renderGrp(['5점(없음)', '4점(연 1~2회)', '3점(분기 1~2회)', '2점(월 1~2회)', '1점(주 1~2회)'], socNeigh)}</div>
+                                    <div><strong>[사회활동]</strong> ${renderGrp(['3점(없음)', '2점(월 1~2회)', '1점(주 1회 이상)'], socAct)}</div>
+                                </td>
+                            </tr>
+
+                            <!-- 5. 사례관리자 평가 -->
+                            <tr>
+                                <th style="font-size:12px;">5. 평가<br>(15점)</th>
+                                <th>평가점수</th>
+                                <td>
+                                    <div style="display:flex; justify-content: space-between; align-items:center;">
+                                        <div style="font-size: 14px; font-weight: bold;">${managerScore} 점</div>
+                                        <div style="font-size: 9px; color: #555;">(1~5점: 단순 / 6~10점: 다중적 / 11~15점: 위기지원)</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- 영역별 점수판 및 종합결과 -->
+                        <div class="keep-together">
+                            <table style="font-size: 11px; text-align: center; margin-bottom: 5px;">
+                                <col width="16%"><col width="16%"><col width="16%"><col width="16%"><col width="16%"><col width="20%">
+                                <tr>
+                                    <th colspan="4" style="background:#e0e7ff;">영역별 점수 (자동집계)</th>
+                                    <th rowspan="2" style="background:#d1fae5; font-size:14px;">총점</th>
+                                    <th rowspan="2" style="background:#d1fae5; font-size:14px; font-weight:bold; color:red;">${totalScore} 점</th>
+                                </tr>
+                                <tr>
+                                    <td>경제: <strong>${eScore}</strong>점</td>
+                                    <td>신체: <strong>${pScore}</strong>점</td>
+                                    <td>정신: <strong>${mScore}</strong>점</td>
+                                    <td>사회: <strong>${sScore}</strong>점</td>
+                                </tr>
+                            </table>
+
+                            <!-- 종합판정결과 -->
+                            <table style="font-size: 12px; margin-bottom: 5px;">
+                                <tr>
+                                    <th style="background:#d1fae5; width:25%;">종합판정결과</th>
+                                    <td class="text-center" style="width: 75%;">
+                                        ${renderChkBox('중점대상자 (50점 이상)', decision === '중점')} &nbsp;&nbsp;
+                                        ${renderChkBox('일반대상자 (30점 이상)', decision === '일반')} &nbsp;&nbsp;
+                                        ${renderChkBox('선정보류 (30점 미만)', decision === '보류')}
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- 비고 -->
+                            <table>
+                                <tr>
+                                    <th style="width: 15%; padding: 15px 5px;">비고 및<br>특이사항</th>
+                                    <td style="text-align: left; vertical-align: top; height: 50px;">
+                                        ${(note||'').replace(/\n/g, '<br>')}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    `;
+                }
 
                 // --- 문서별 HTML 생성 ---
                 if (docType === 'initial') {
