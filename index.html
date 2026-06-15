@@ -10378,8 +10378,19 @@
                     } else {
                         updateData.createdAt = new Date().toISOString();
                         const docRef = await addDoc(collection(db, "clients"), updateData);
-                        // 🚨 여기도 alert 대신 app.showToast 로 변경! 🚨
+                        
+                        // [버그 픽스 1] 방금 등록한 데이터를 화면(로컬)에 즉시 밀어넣어서 빈 창이 뜨는 현상을 원천 차단!
+                        if (!state.clients.some(c => c.id === docRef.id)) {
+                            state.clients.push({ id: docRef.id, ...updateData });
+                        }
+
                         app.showToast("대상자가 등록되었습니다.");
+                        
+                        // [버그 픽스 2] 기존에 열려있던 등록창의 꼬리표(ID)를 새 ID로 재빠르게 갈아끼워서, 
+                        // 모달이 이중으로 뜨거나 작성 중이던 탭이 리셋되지 않게 완벽 차단!
+                        const openForm = document.getElementById('client-form');
+                        if (openForm) openForm.dataset.id = docRef.id;
+
                         app.openClientModal(docRef.id);
                         return; 
                     }
