@@ -8898,10 +8898,10 @@
                                                             <div class="mb-1 font-medium">좋아하는 소일거리(여가시간)는?</div>
                                                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 mt-1 text-[11px]">
                                                                 ${['① 노인정, 양로원에서 시간을 보낸다', '② 놀이터, 공원, 산책로에서 보낸다', '③ 집에서 TV를 보거나 그냥 지낸다', '④ 친구의 집이나 내 집에서 친구와 지낸다', '⑤ 노인대학에 가거나 취미활동을 한다', '⑥ 취로사업이나 일, 부업을 한다', '⑦ 종교활동이나 봉사활동을 한다'].map(opt => `
-                                                                <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-1 rounded transition-colors"><input type="checkbox" name="cm-assess-soc-q8" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${getVal(cm, 'assessment.social2.q8') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"> <span>${opt}</span></label>
+                                                                <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-1 rounded transition-colors"><input type="checkbox" name="cm-assess-soc-q8" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${(getVal(cm, 'assessment.social2.q8') || '').includes(opt) ? 'checked' : ''}> <span>${opt}</span></label>
                                                                 `).join('')}
                                                                 <div class="flex items-center gap-1 hover:bg-slate-100 px-1 rounded transition-colors">
-                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="cm-assess-soc-q8" value="⑧ 기타" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${getVal(cm, 'assessment.social2.q8') === '⑧ 기타' ? 'checked' : ''} onclick="app.checkExclusive(this)"> <span>⑧ 기타 (</span></label>
+                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="cm-assess-soc-q8" value="⑧ 기타" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${(getVal(cm, 'assessment.social2.q8') || '').includes('⑧ 기타') ? 'checked' : ''}> <span>⑧ 기타 (</span></label>
                                                                     <input type="text" id="cm-assess-soc-q8-r" class="input-field py-0.5 px-1 text-[11px] w-24 border-slate-300" value="${getVal(cm, 'assessment.social2.q8_r')}">
                                                                     <span class="text-slate-500">)</span>
                                                                 </div>
@@ -8913,10 +8913,10 @@
                                                             <div class="mb-1 font-medium">귀하는 어려움이 생기거나 아플 때 누구로부터 도움을 가장 많이 받습니까?</div>
                                                             <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[11px]">
                                                                 ${['① 배우자', '② 자녀', '③ 형제자매, 부모', '④ 이웃', '⑤ 사회복지관', '⑥ 동사무소 전문요원', '⑦ 종교단체', '⑧ 없다'].map(opt => `
-                                                                <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-1 rounded transition-colors"><input type="checkbox" name="cm-assess-soc-q9" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${getVal(cm, 'assessment.social2.q9') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"> <span>${opt}</span></label>
+                                                                <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-1 rounded transition-colors"><input type="checkbox" name="cm-assess-soc-q9" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${(getVal(cm, 'assessment.social2.q9') || '').includes(opt) ? 'checked' : ''}> <span>${opt}</span></label>
                                                                 `).join('')}
                                                                 <div class="flex items-center gap-1 hover:bg-slate-100 px-1 rounded transition-colors">
-                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="cm-assess-soc-q9" value="⑨ 기타" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${getVal(cm, 'assessment.social2.q9') === '⑨ 기타' ? 'checked' : ''} onclick="app.checkExclusive(this)"> <span>⑨ 기타 (</span></label>
+                                                                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" name="cm-assess-soc-q9" value="⑨ 기타" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${(getVal(cm, 'assessment.social2.q9') || '').includes('⑨ 기타') ? 'checked' : ''}> <span>⑨ 기타 (</span></label>
                                                                     <input type="text" id="cm-assess-soc-q9-r" class="input-field py-0.5 px-1 text-[11px] w-24 border-slate-300" value="${getVal(cm, 'assessment.social2.q9_r')}">
                                                                     <span class="text-slate-500">)</span>
                                                                 </div>
@@ -10217,8 +10217,9 @@
                         q5: getRadio('cm-assess-soc-q5'),
                         q6: getRadio('cm-assess-soc-q6'), q6_r: getEl('cm-assess-soc-q6-r'),
                         q7: getRadio('cm-assess-soc-q7'), q7_org: getEl('cm-assess-soc-q7-org'), q7_phone: getEl('cm-assess-soc-q7-phone'),
-                        q8: getRadio('cm-assess-soc-q8'), q8_r: getEl('cm-assess-soc-q8-r'),
-                        q9: getRadio('cm-assess-soc-q9'), q9_r: getEl('cm-assess-soc-q9-r')
+                        // 🚨 8번, 9번 문항은 다중 선택된 값을 쉼표로 이어서 저장하도록 바꿨습니다!
+                        q8: getCheckedValues('cm-assess-soc-q8').join(', '), q8_r: getEl('cm-assess-soc-q8-r'),
+                        q9: getCheckedValues('cm-assess-soc-q9').join(', '), q9_r: getEl('cm-assess-soc-q9-r')
                     },
                     needs: {
                         w1: getEl('cm-assess-needs-w1'), w2: getEl('cm-assess-needs-w2'), w3: getEl('cm-assess-needs-w3'), w4: getEl('cm-assess-needs-w4'), w5: getEl('cm-assess-needs-w5'),
@@ -10390,11 +10391,13 @@
                             state.clients[existingIndex] = { ...state.clients[existingIndex], ...updateData };
                         }
                         
-                        alert("대상자 정보가 수정/저장되었습니다.");
+                        // 🚨 alert 대신 app.showToast 로 변경! 🚨
+                        app.showToast("대상자 정보가 수정/저장되었습니다.");
                     } else {
                         updateData.createdAt = new Date().toISOString();
                         const docRef = await addDoc(collection(db, "clients"), updateData);
-                        alert("대상자가 등록되었습니다.");
+                        // 🚨 여기도 alert 대신 app.showToast 로 변경! 🚨
+                        app.showToast("대상자가 등록되었습니다.");
                         app.openClientModal(docRef.id);
                         return; 
                     }
@@ -11405,9 +11408,9 @@
                                     <td colspan="3">
                                         <div style="font-weight:bold; margin-bottom:4px;">좋아하는 소일거리(여가시간)는?</div>
                                         ${(() => {
-                                            const v = getVal(cm, 'assessment.social2.q8');
-                                            let html = ['① 노인정, 양로원에서 시간을 보낸다', '② 놀이터, 공원, 산책로에서 보낸다', '③ 집에서 TV를 보거나 그냥 지낸다', '④ 친구의 집이나 내 집에서 친구와 지낸다', '⑤ 노인대학에 가거나 취미활동을 한다', '⑥ 취로사업이나 일, 부업을 한다', '⑦ 종교활동이나 봉사활동을 한다'].map(opt => renderChkBox(opt, v === opt)).join(' ');
-                                            html += renderChkBox(`⑧ 기타(${getVal(cm, 'assessment.social2.q8_r')})`, v === '⑧ 기타');
+                                            const v = getVal(cm, 'assessment.social2.q8') || '';
+                                            let html = ['① 노인정, 양로원에서 시간을 보낸다', '② 놀이터, 공원, 산책로에서 보낸다', '③ 집에서 TV를 보거나 그냥 지낸다', '④ 친구의 집이나 내 집에서 친구와 지낸다', '⑤ 노인대학에 가거나 취미활동을 한다', '⑥ 취로사업이나 일, 부업을 한다', '⑦ 종교활동이나 봉사활동을 한다'].map(opt => renderChkBox(opt, v.includes(opt))).join(' ');
+                                            html += renderChkBox(`⑧ 기타(${getVal(cm, 'assessment.social2.q8_r')})`, v.includes('⑧ 기타'));
                                             return html;
                                         })()}
                                     </td>
@@ -11416,9 +11419,9 @@
                                     <td colspan="3">
                                         <div style="font-weight:bold; margin-bottom:4px;">귀하는 어려움이 생기거나 아플 때 누구로부터 도움을 가장 많이 받습니까?</div>
                                         ${(() => {
-                                            const v = getVal(cm, 'assessment.social2.q9');
-                                            let html = ['① 배우자', '② 자녀', '③ 형제자매, 부모', '④ 이웃', '⑤ 사회복지관', '⑥ 동사무소 전문요원', '⑦ 종교단체', '⑧ 없다'].map(opt => renderChkBox(opt, v === opt)).join(' ');
-                                            html += renderChkBox(`⑨ 기타(${getVal(cm, 'assessment.social2.q9_r')})`, v === '⑨ 기타');
+                                            const v = getVal(cm, 'assessment.social2.q9') || '';
+                                            let html = ['① 배우자', '② 자녀', '③ 형제자매, 부모', '④ 이웃', '⑤ 사회복지관', '⑥ 동사무소 전문요원', '⑦ 종교단체', '⑧ 없다'].map(opt => renderChkBox(opt, v.includes(opt))).join(' ');
+                                            html += renderChkBox(`⑨ 기타(${getVal(cm, 'assessment.social2.q9_r')})`, v.includes('⑨ 기타'));
                                             return html;
                                         })()}
                                     </td>
