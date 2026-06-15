@@ -6455,7 +6455,7 @@
                 // [추가] 탭 변경 시 연도 선택 박스 표시 여부 제어
                 const yearWrapper = document.getElementById('year-select-wrapper');
                 if (yearWrapper) {
-                    if (['reassess', 'satisfaction', 'evaluation', 'servicePlan'].includes(tabName)) {
+                    if (['selection', 'reassess', 'satisfaction', 'evaluation', 'servicePlan'].includes(tabName)) {
                         yearWrapper.classList.remove('hidden');
                     } else {
                         yearWrapper.classList.add('hidden');
@@ -6531,29 +6531,32 @@
                 // [신규] 데이터 가져오기 헬퍼 함수 (연도별 데이터 + 구버전 데이터 호환)
                 const targetYear = state.ui.cmYear;
                 const getVal = (obj, path) => {
-                    // path: "initial.date", "reAssessment.date" 등
                     const parts = path.split('.');
                     const section = parts[0];
                     const fieldPath = parts.slice(1).join('.');
                     
-                    // 1. 초기면접(initial), 사정(assessment)은 연도 구분 없이 기존 위치 사용 (1회성 성격)
+                    // 1. 초기면접, 사정기록지는 연도 구분 없이 최초 입력본 고정 사용
                     if (section === 'initial' || section === 'assessment') {
                         return path.split('.').reduce((o, i) => (o ? o[i] : undefined), obj) || '';
                     }
 
-                    // 2. 재사정, 만족도, 평가서는 연도별 데이터 우선 확인
-                    // 구조: cm.history[2024].reAssessment...
+                    // 2. 선정기준표, 재사정, 만족도, 평가서는 [해당 연도 데이터] 우선 확인
                     let val = undefined;
                     if (obj.history && obj.history[targetYear] && obj.history[targetYear][section]) {
                         val = fieldPath.split('.').reduce((o, i) => (o ? o[i] : undefined), obj.history[targetYear][section]);
                     }
 
-                    // 3. 연도별 데이터가 없으면? -> 기존(구버전) 데이터 확인
-                    // 단, 기존 데이터의 날짜가 현재 선택된 연도와 같을 때만 매핑하여 보여줌 (자동 마이그레이션 효과)
-                    if ((val === undefined || val === null || val === '') && obj[section]) {
-                        const oldDate = obj[section].date;
-                        if (oldDate && oldDate.startsWith(String(targetYear))) {
+                    // 3. 만약 선택한 연도에 쓴 서류가 아예 없다면?
+                    if (val === undefined || val === null || val === '') {
+                        if (section === 'selection' && obj[section]) {
+                            // [핵심] 선정기준표는 연도별 데이터가 없으면 '가장 처음 작성했던 원본'을 그대로 끌어옵니다!
                             val = fieldPath.split('.').reduce((o, i) => (o ? o[i] : undefined), obj[section]);
+                        } else if (obj[section]) {
+                            // 그 외(재사정 등)는 구버전 호환용으로 저장된 날짜가 해당 연도일 때만 끌어옴
+                            const oldDate = obj[section].date;
+                            if (oldDate && oldDate.startsWith(String(targetYear))) {
+                                val = fieldPath.split('.').reduce((o, i) => (o ? o[i] : undefined), obj[section]);
+                            }
                         }
                     }
 
@@ -6573,8 +6576,8 @@
                     cmYearOptionsHTML = `<option value="${y}" ${y === state.ui.cmYear ? 'selected' : ''}>${y}년</option>` + cmYearOptionsHTML;
                 }
                 
-                // [추가] 현재 활성 탭이 연도 선택이 필요한 탭인지 확인
-                const showYearSelect = ['reassess', 'satisfaction', 'evaluation'].includes(state.ui.caseSubTab);
+                // [추가] 현재 활성 탭이 연도 선택이 필요한 탭인지 확인 ('selection' 추가)
+                const showYearSelect = ['selection', 'reassess', 'satisfaction', 'evaluation'].includes(state.ui.caseSubTab);
                 
                 // [신규] 섹션별 초기화 버튼 생성 헬퍼
                 const getSectionResetBtn = (targetId) => `
@@ -10306,9 +10309,17 @@
                 };
 
                 const history = currentCm.history || {};
-                history[targetYear] = { reAssessment, satisfaction, evaluation };
+                // [수정] 선정기준표도 연도별 기록(history)에 저장하도록 추가
+                history[targetYear] = { reAssessment, satisfaction, evaluation, selection };
 
-                const caseManagement = { ...currentCm, initial, assessment, selection, history };
+                // [신규] 최초 입력본(루트 데이터) 보존 로직: 
+                // 기존에 저장된 최초 선정기준표가 없으면, 지금 처음 저장하는 내용을 최초 데이터로 영구 보존합니다.
+                let rootSelection = currentCm.selection;
+                if (!rootSelection || !rootSelection.date) {
+                    rootSelection = selection;
+                }
+
+                const caseManagement = { ...currentCm, initial, assessment, selection: rootSelection, history };
                 const updateData = { ...data, caseManagement };
                 if (updateData.name) updateData.name = updateData.name.trim();
                 
@@ -10410,24 +10421,31 @@
                     const section = parts[0];
                     const fieldPath = parts.slice(1).join('.');
                     
-                    // 초기면접, 사정은 연도 무관 (루트 데이터 사용)
+                    // 1. 초기면접, 사정기록지는 연도 구분 없이 최초 입력본 고정 사용
                     if (section === 'initial' || section === 'assessment') {
                         return path.split('.').reduce((o, i) => (o ? o[i] : undefined), obj) || '';
                     }
-                    
-                    // 연도별 히스토리 우선 확인
+
+                    // 2. 선정기준표, 재사정, 만족도, 평가서는 [해당 연도 데이터] 우선 확인
                     let val = undefined;
                     if (obj.history && obj.history[year] && obj.history[year][section]) {
                         val = fieldPath.split('.').reduce((o, i) => (o ? o[i] : undefined), obj.history[year][section]);
                     }
-                    
-                    // 구버전 데이터 호환 (날짜 일치 시)
-                    if ((val === undefined || val === null || val === '') && obj[section]) {
-                        const oldDate = obj[section].date;
-                        if (oldDate && oldDate.startsWith(String(year))) {
+
+                    // 3. 만약 선택한 연도에 쓴 서류가 아예 없다면?
+                    if (val === undefined || val === null || val === '') {
+                        if (section === 'selection' && obj[section]) {
+                            // [핵심] 선정기준표는 연도별 데이터가 없으면 '가장 처음 작성했던 원본'을 그대로 끌어옵니다!
                             val = fieldPath.split('.').reduce((o, i) => (o ? o[i] : undefined), obj[section]);
+                        } else if (obj[section]) {
+                            // 그 외(재사정 등)는 구버전 호환용으로 저장된 날짜가 해당 연도일 때만 끌어옴
+                            const oldDate = obj[section].date;
+                            if (oldDate && oldDate.startsWith(String(year))) {
+                                val = fieldPath.split('.').reduce((o, i) => (o ? o[i] : undefined), obj[section]);
+                            }
                         }
                     }
+
                     return (val === undefined || val === null) ? '' : val;
                 };
 
