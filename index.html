@@ -8740,7 +8740,7 @@
                                                 <div class="w-1.5 h-4 bg-teal-500 rounded-full"></div>
                                                 <span class="font-bold text-slate-700 text-sm">3. 정서적 측면</span>
                                             </div>
-                                            <table class="w-full text-xs text-left border-collapse">
+                                            <table class="w-full text-sm text-left border-collapse">
                                                 <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                                                     <tr>
                                                         <th class="p-2 border-r border-slate-200 text-center">질문</th>
@@ -8757,7 +8757,7 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td class="p-2 border-r border-slate-200">
                                                             안정되지 않거나 화가난 적이 자주 있습니까?[정서상태]<br>
-                                                            <div class="flex items-center gap-1 mt-1 text-[11px]"><span class="text-slate-500">(예라면, 이유:</span><input type="text" id="cm-assess-emo-q2-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.emotional.q2_r')}"><span class="text-slate-500">)</span></div>
+                                                            <div class="flex items-center gap-1 mt-1 text-[9px]"><span class="text-slate-500">(예라면, 이유:</span><input type="text" id="cm-assess-emo-q2-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.emotional.q2_r')}"><span class="text-slate-500">)</span></div>
                                                         </td>
                                                         <td class="p-2 border-r border-slate-200 text-center align-middle"><input type="checkbox" name="cm-assess-emo-q2" value="예" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.emotional.q2') === '예' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
                                                         <td class="p-2 text-center align-middle"><input type="checkbox" name="cm-assess-emo-q2" value="아니오" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.emotional.q2') === '아니오' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
@@ -8770,7 +8770,7 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td class="p-2 border-r border-slate-200">
                                                             슬픔을 느끼는 적이 종종 있으십니까?[정서상태]<br>
-                                                            <div class="flex items-center gap-1 mt-1 text-[11px]"><span class="text-slate-500">(예라면, 이유:</span><input type="text" id="cm-assess-emo-q4-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.emotional.q4_r')}"><span class="text-slate-500">)</span></div>
+                                                            <div class="flex items-center gap-1 mt-1 text-[9px]"><span class="text-slate-500">(예라면, 이유:</span><input type="text" id="cm-assess-emo-q4-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.emotional.q4_r')}"><span class="text-slate-500">)</span></div>
                                                         </td>
                                                         <td class="p-2 border-r border-slate-200 text-center align-middle"><input type="checkbox" name="cm-assess-emo-q4" value="예" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.emotional.q4') === '예' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
                                                         <td class="p-2 text-center align-middle"><input type="checkbox" name="cm-assess-emo-q4" value="아니오" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.emotional.q4') === '아니오' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
@@ -8783,7 +8783,7 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td class="p-2 border-r border-slate-200">
                                                             작년 한 해 동안 혹은 근래에 친구나 친척을 잃은 일이 있습니까?<br>
-                                                            <div class="flex items-center gap-1 mt-1 text-[11px]"><span class="text-slate-500">있다면, 어떤 영향을 끼쳤습니까? (</span><input type="text" id="cm-assess-emo-q6-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.emotional.q6_r')}"><span class="text-slate-500">)</span></div>
+                                                            <div class="flex items-center gap-1 mt-1 text-[9px]"><span class="text-slate-500">있다면, 어떤 영향을 끼쳤습니까? (</span><input type="text" id="cm-assess-emo-q6-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.emotional.q6_r')}"><span class="text-slate-500">)</span></div>
                                                         </td>
                                                         <td class="p-2 border-r border-slate-200 text-center align-middle"><input type="checkbox" name="cm-assess-emo-q6" value="예" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.emotional.q6') === '예' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
                                                         <td class="p-2 text-center align-middle"><input type="checkbox" name="cm-assess-emo-q6" value="아니오" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.emotional.q6') === '아니오' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
@@ -8791,7 +8791,7 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td class="p-2 border-r border-slate-200">
                                                             정신 질환으로 입원하신 적이 있습니까?<br>
-                                                            <div class="flex flex-wrap items-center gap-1 mt-1 text-[11px]">
+                                                            <div class="flex flex-wrap items-center gap-1 mt-1 text-[9px]">
                                                                 <span class="text-slate-500">(예라면, 몇 번</span><input type="text" id="cm-assess-emo-q7-cnt" class="input-field py-0.5 px-1 text-[11px] w-12 border-slate-300" value="${getVal(cm, 'assessment.emotional.q7_cnt')}">
                                                                 <span class="text-slate-500">언제</span><input type="text" id="cm-assess-emo-q7-when" class="input-field py-0.5 px-1 text-[11px] w-20 border-slate-300" value="${getVal(cm, 'assessment.emotional.q7_when')}">
                                                                 <span class="text-slate-500">이유</span><input type="text" id="cm-assess-emo-q7-r" class="input-field py-0.5 px-1 text-[11px] flex-1 min-w-[100px] border-slate-300" value="${getVal(cm, 'assessment.emotional.q7_r')}"><span class="text-slate-500">)</span>
@@ -8810,7 +8810,7 @@
                                                 <div class="w-1.5 h-4 bg-purple-500 rounded-full"></div>
                                                 <span class="font-bold text-slate-700 text-sm">4. 사회적 측면</span>
                                             </div>
-                                            <table class="w-full text-xs text-left border-collapse">
+                                            <table class="w-full text-sm text-left border-collapse">
                                                 <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                                                     <tr>
                                                         <th class="p-2 border-r border-slate-200 text-center">질문</th>
@@ -8822,7 +8822,7 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td colspan="3" class="p-2">
                                                             <div class="mb-1 font-medium">최근 1년 사이에 귀하는 출가 또는 분가한 자녀들과의 교류는 어떻습니까?</div>
-                                                            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[11px]">
+                                                            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[9px]">
                                                                 ${['① 거의 연락 없이 지낸다', '② 명절, 생일 등에 가끔씩 만나거나 연락한다', '③ 2달~3달에 한 두 번 정도 연락한다', '④ 1달에 한 두 번 정도 연락한다', '⑤ 1주 일회 이상 연락한다', '⑥ 출가한 자녀가 없다'].map(opt => `
                                                                 <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-1 rounded transition-colors"><input type="checkbox" name="cm-assess-soc-q1" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${getVal(cm, 'assessment.social2.q1') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"> <span>${opt}</span></label>
                                                                 `).join('')}
@@ -8832,7 +8832,7 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td class="p-2 border-r border-slate-200">
                                                             가족과의 관계에 문제가 있습니까?<br>
-                                                            <div class="flex items-center gap-1 mt-1 text-[11px]"><span class="text-slate-500">(예라면, 이유:</span><input type="text" id="cm-assess-soc-q2-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.social2.q2_r')}"><span class="text-slate-500">)</span></div>
+                                                            <div class="flex items-center gap-1 mt-1 text-[9px]"><span class="text-slate-500">(예라면, 이유:</span><input type="text" id="cm-assess-soc-q2-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.social2.q2_r')}"><span class="text-slate-500">)</span></div>
                                                         </td>
                                                         <td class="p-2 border-r border-slate-200 text-center align-middle"><input type="checkbox" name="cm-assess-soc-q2" value="예" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.social2.q2') === '예' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
                                                         <td class="p-2 text-center align-middle"><input type="checkbox" name="cm-assess-soc-q2" value="아니오" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.social2.q2') === '아니오' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
@@ -8840,7 +8840,7 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td colspan="3" class="p-2">
                                                             <div class="mb-1 font-medium">귀하는 대체로 이웃과 어느 정도 친하게 지내고 계십니까?</div>
-                                                            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[11px]">
+                                                            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[9px]">
                                                                 ${['① 거의 모르고 지낸다', '② 인사하는 정도이다', '③ 말벗하는 정도이다', '④ 말벗과 여러 도움을 주고받는다', '⑤ 절대적으로 믿고 가족처럼 지낸다'].map(opt => `
                                                                 <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-1 rounded transition-colors"><input type="checkbox" name="cm-assess-soc-q3" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${getVal(cm, 'assessment.social2.q3') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"> <span>${opt}</span></label>
                                                                 `).join('')}
@@ -8850,7 +8850,7 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td class="p-2 border-r border-slate-200">
                                                             이웃과 어울리는데 어려움이 있으십니까?<br>
-                                                            <div class="flex items-center gap-1 mt-1 text-[11px]"><span class="text-slate-500">(예라면, 이유:</span><input type="text" id="cm-assess-soc-q4-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.social2.q4_r')}"><span class="text-slate-500">)</span></div>
+                                                            <div class="flex items-center gap-1 mt-1 text-[9px]"><span class="text-slate-500">(예라면, 이유:</span><input type="text" id="cm-assess-soc-q4-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.social2.q4_r')}"><span class="text-slate-500">)</span></div>
                                                         </td>
                                                         <td class="p-2 border-r border-slate-200 text-center align-middle"><input type="checkbox" name="cm-assess-soc-q4" value="예" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.social2.q4') === '예' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
                                                         <td class="p-2 text-center align-middle"><input type="checkbox" name="cm-assess-soc-q4" value="아니오" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.social2.q4') === '아니오' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
@@ -8863,7 +8863,7 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td class="p-2 border-r border-slate-200">
                                                             교회, 지역사회활동 그 밖의 사회활동에 참여하십니까?<br>
-                                                            <div class="flex items-center gap-1 mt-1 text-[11px]"><span class="text-slate-500">(예라면, 활동종류:</span><input type="text" id="cm-assess-soc-q6-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.social2.q6_r')}"><span class="text-slate-500">)</span></div>
+                                                            <div class="flex items-center gap-1 mt-1 text-[9px]"><span class="text-slate-500">(예라면, 활동종류:</span><input type="text" id="cm-assess-soc-q6-r" class="input-field py-0.5 px-1 text-[11px] flex-1 border-slate-300" value="${getVal(cm, 'assessment.social2.q6_r')}"><span class="text-slate-500">)</span></div>
                                                         </td>
                                                         <td class="p-2 border-r border-slate-200 text-center align-middle"><input type="checkbox" name="cm-assess-soc-q6" value="예" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.social2.q6') === '예' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
                                                         <td class="p-2 text-center align-middle"><input type="checkbox" name="cm-assess-soc-q6" value="아니오" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded cursor-pointer" ${getVal(cm, 'assessment.social2.q6') === '아니오' ? 'checked' : ''} onclick="app.checkExclusive(this)"></td>
@@ -8871,12 +8871,12 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td colspan="3" class="p-2">
                                                             <div class="mb-1 font-medium">종교생활을 하신다면 어떻게 하십니까?</div>
-                                                            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[11px]">
+                                                            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[9px]">
                                                                 ${['① 전혀 하지 않는다', '② 가끔씩 한다', '③ 자주 하는 편이다(월1-2회)', '④ 항상 참여한다', '⑤ 종교가 없다'].map(opt => `
                                                                 <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-1 rounded transition-colors"><input type="checkbox" name="cm-assess-soc-q7" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${getVal(cm, 'assessment.social2.q7') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"> <span>${opt}</span></label>
                                                                 `).join('')}
                                                             </div>
-                                                            <div class="flex items-center gap-2 mt-2 text-[11px]">
+                                                            <div class="flex items-center gap-2 mt-2 text-[9px]">
                                                                 <span class="text-slate-500">♣ 종교기관명(</span><input type="text" id="cm-assess-soc-q7-org" class="input-field py-0.5 px-1 text-[11px] w-32 border-slate-300" value="${getVal(cm, 'assessment.social2.q7_org')}"><span class="text-slate-500">)</span>
                                                                 <span class="text-slate-500 ml-2">전화번호(</span><input type="text" id="cm-assess-soc-q7-phone" class="input-field py-0.5 px-1 text-[11px] w-32 border-slate-300" value="${getVal(cm, 'assessment.social2.q7_phone')}"><span class="text-slate-500">)</span>
                                                             </div>
@@ -8885,7 +8885,7 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td colspan="3" class="p-2">
                                                             <div class="mb-1 font-medium">좋아하는 소일거리(여가시간)는?</div>
-                                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 mt-1 text-[11px]">
+                                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 mt-1 text-[9px]">
                                                                 ${['① 노인정, 양로원에서 시간을 보낸다', '② 놀이터, 공원, 산책로에서 보낸다', '③ 집에서 TV를 보거나 그냥 지낸다', '④ 친구의 집이나 내 집에서 친구와 지낸다', '⑤ 노인대학에 가거나 취미활동을 한다', '⑥ 취로사업이나 일, 부업을 한다', '⑦ 종교활동이나 봉사활동을 한다'].map(opt => `
                                                                 <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-1 rounded transition-colors"><input type="checkbox" name="cm-assess-soc-q8" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${getVal(cm, 'assessment.social2.q8') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"> <span>${opt}</span></label>
                                                                 `).join('')}
@@ -8900,7 +8900,7 @@
                                                     <tr class="hover:bg-slate-50">
                                                         <td colspan="3" class="p-2">
                                                             <div class="mb-1 font-medium">귀하는 어려움이 생기거나 아플 때 누구로부터 도움을 가장 많이 받습니까?</div>
-                                                            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[11px]">
+                                                            <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-[9px]">
                                                                 ${['① 배우자', '② 자녀', '③ 형제자매, 부모', '④ 이웃', '⑤ 사회복지관', '⑥ 동사무소 전문요원', '⑦ 종교단체', '⑧ 없다'].map(opt => `
                                                                 <label class="flex items-center gap-1 cursor-pointer hover:bg-slate-100 px-1 rounded transition-colors"><input type="checkbox" name="cm-assess-soc-q9" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 rounded" ${getVal(cm, 'assessment.social2.q9') === opt ? 'checked' : ''} onclick="app.checkExclusive(this)"> <span>${opt}</span></label>
                                                                 `).join('')}
