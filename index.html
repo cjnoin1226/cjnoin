@@ -271,13 +271,18 @@
         .nav-link:hover { color: #ffffff; background-color: rgba(255, 255, 255, 0.1); }
         .nav-link.active { color: #ffffff; background-color: #059669; font-weight: 700; }
         
-        /* 👇 [수정] 둥둥 띄우는 속성을 지우고 리사이즈(크기조절) 시 점선이 보이게 바꿨습니다 */
+        /* 👇 [수정] 사진에 마우스를 올리면 테두리가 생기고, 사방에서 크기 조절이 가능하게 스타일 업그레이드 */
         div[contenteditable="true"] img { 
             max-width: 100%; 
-            transition: outline 0.1s;
+            transition: outline 0.1s, box-shadow 0.1s;
+        }
+        div[contenteditable="true"] img:hover {
+            outline: 2px solid #3b82f6; /* 마우스를 올리면 파란색 실선 테두리 생성 */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         div[contenteditable="true"] img.resizing {
-            outline: 2px dashed #10b981;
+            outline: 2px dashed #10b981; /* 크기를 조절하는 중에는 초록색 점선으로 변경 */
+            box-shadow: none;
         }
     </style>
 </head>
@@ -14499,57 +14504,81 @@
             }
         }
 
-        // 👇 [신규] 입력칸 이미지 크기 조절 (리사이즈) 로직 👇
+        // 👇 [업그레이드] 사방 모서리에서 모두 크기 조절이 가능한 로직 👇
         let resizingImg = null;
-        let imgStartWidth, imgStartX;
+        let imgStartWidth, imgStartX, resizeCorner;
 
         document.addEventListener('mousedown', (e) => {
-            // contenteditable 안의 이미지를 클릭했을 때
             if (e.target.tagName === 'IMG' && e.target.closest('div[contenteditable="true"]')) {
                 const rect = e.target.getBoundingClientRect();
-                // 이미지의 오른쪽 아래 모서리 (가로세로 30px 이내)를 클릭했는지 확인
-                const isBottomRight = (e.clientX >= rect.right - 30) && (e.clientY >= rect.bottom - 30);
+                const margin = 30; // 모서리로 인식할 터치 영역 크기
+                
+                const isTop = e.clientY <= rect.top + margin;
+                const isBottom = e.clientY >= rect.bottom - margin;
+                const isLeft = e.clientX <= rect.left + margin;
+                const isRight = e.clientX >= rect.right - margin;
 
-                if (isBottomRight) {
+                // 4개의 모서리 중 하나를 클릭했다면
+                if ((isTop || isBottom) && (isLeft || isRight)) {
                     resizingImg = e.target;
                     imgStartX = e.clientX;
                     imgStartWidth = rect.width;
                     
+                    // 어느 모서리를 잡았는지 기억
+                    if (isTop && isLeft) resizeCorner = 'nw';
+                    else if (isTop && isRight) resizeCorner = 'ne';
+                    else if (isBottom && isLeft) resizeCorner = 'sw';
+                    else if (isBottom && isRight) resizeCorner = 'se';
+                    
                     resizingImg.classList.add('resizing');
-                    e.preventDefault(); // 사진이 글자처럼 이동(드래그)되는 기본 동작을 막고 크기 조절만 실행
+                    e.preventDefault(); // 글자 드래그 방지
                 }
-                // 💡 모서리가 아닌 다른 곳을 클릭하면? -> 브라우저의 기본 기능이 작동하여 사진을 글자처럼 쭈욱 끌어서 원하는 위치에 쏙 넣을 수 있습니다!
             }
         });
 
         document.addEventListener('mousemove', (e) => {
-            // 마우스를 이미지 오른쪽 아래 모서리에 올리면 크기조절 화살표(↘)로 바뀌게 해줍니다.
+            // 마우스가 사진의 어느 모서리에 있는지에 따라 대각선 화살표 모양(↖↘, ↙↗)을 바꿔줍니다
             if (e.target.tagName === 'IMG' && e.target.closest('div[contenteditable="true"]')) {
                 const rect = e.target.getBoundingClientRect();
-                if (e.clientX >= rect.right - 30 && e.clientY >= rect.bottom - 30) {
-                    e.target.style.cursor = 'se-resize';
+                const margin = 30;
+                
+                const isTop = e.clientY <= rect.top + margin;
+                const isBottom = e.clientY >= rect.bottom - margin;
+                const isLeft = e.clientX <= rect.left + margin;
+                const isRight = e.clientX >= rect.right - margin;
+
+                if ((isTop && isLeft) || (isBottom && isRight)) {
+                    e.target.style.cursor = 'nwse-resize'; // ↖ ↘ 방향
+                } else if ((isTop && isRight) || (isBottom && isLeft)) {
+                    e.target.style.cursor = 'nesw-resize'; // ↙ ↗ 방향
                 } else {
                     e.target.style.cursor = 'default';
                 }
             }
 
-            // 크기 조절을 위해 마우스를 당기는 중일 때
+            // 마우스를 꾹 누르고 끄는 중이라면
             if (resizingImg) {
-                const dx = e.clientX - imgStartX;
-                resizingImg.style.width = (imgStartWidth + dx) + 'px';
-                resizingImg.style.height = 'auto'; // 가로 길이에 맞춰 세로는 원본 비율대로 자동 조절
+                let dx = e.clientX - imgStartX;
+                
+                // 왼쪽 모서리를 잡고 끌 때는 마우스가 왼쪽(-)으로 갈수록 크기가 커져야 하므로 방향을 반전시킵니다
+                if (resizeCorner === 'nw' || resizeCorner === 'sw') {
+                    dx = -dx;
+                }
+                
+                // 사진이 너무 작아지지 않게 최소 가로폭 50px 보장
+                resizingImg.style.width = Math.max(50, imgStartWidth + dx) + 'px';
+                resizingImg.style.height = 'auto'; // 비율 유지
             }
         });
 
         document.addEventListener('mouseup', () => {
-            // 마우스 떼면 크기 조절 끝
             if (resizingImg) {
                 resizingImg.classList.remove('resizing');
                 resizingImg = null;
-                state.ui.isDirty = true; // 변경사항 감지
+                state.ui.isDirty = true;
             }
         });
-        // 👆 이미지 크기 조절 로직 끝 👆
+        // 👆 사방 크기 조절 로직 끝 👆
 
         initDataSync();
     </script>
