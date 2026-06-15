@@ -8701,6 +8701,13 @@
                                             </div>
                                             <table class="w-full text-sm text-left border-collapse">
                                                 <tbody class="divide-y divide-slate-100">
+                                                    <!-- [신규] 개인력/가족력 칸 추가 -->
+                                                    <tr>
+                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[18%] align-top pt-4">개인력/가족력</th>
+                                                        <td class="p-0">
+                                                            <textarea id="cm-assess-history-nar" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="개인력 및 가족력 관련 특이사항 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.historyNar')}</textarea>
+                                                        </td>
+                                                    </tr>
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[18%] align-top pt-4">경제상황</th>
                                                         <td class="p-0">
@@ -10185,7 +10192,8 @@
                     genogram: (() => { const el = e.target.querySelector('#cm-assess-genogram'); return el ? el.innerHTML : ''; })(),
                     ecomap: (() => { const el = e.target.querySelector('#cm-assess-ecomap'); return el ? el.innerHTML : ''; })(),
                     
-                    // [수정] 4가지 영역으로 축소된 항목 매핑
+                    // [수정] 개인력/가족력을 포함한 영역별 사정 매핑
+                    historyNar: getEl('cm-assess-history-nar'), // <--- 새로 추가된 줄!
                     economic: getEl('cm-assess-eco'),
                     housingNar: getEl('cm-assess-housing-nar'),
                     healthNar: getEl('cm-assess-health-nar'),
@@ -11266,6 +11274,11 @@
                         <h2>2. 영역별 사정 (Narrative)</h2>
                         <table>
                             <col width="15%"><col width="85%">
+                            <!-- [신규] 개인력/가족력 인쇄 칸 추가 -->
+                            <tr>
+                                <th>개인력/<br>가족력</th>
+                                <td style="text-align: left; vertical-align: top; padding: 10px;">${(getVal(cm, 'assessment.historyNar')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
                             <tr>
                                 <th>경제상황</th>
                                 <td style="text-align: left; vertical-align: top; padding: 10px;">${(getVal(cm, 'assessment.economic')||'').replace(/\n/g, '<br>')}</td>
