@@ -3278,7 +3278,8 @@
                     <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-freq w-full p-1 text-center outline-none bg-transparent focus:bg-white" value=""></td>
                     <td class="p-0 border-r border-b border-slate-200 last:border-b-0"><input type="text" class="med-drug w-full p-1 text-center outline-none bg-transparent focus:bg-white" value=""></td>
                     <td class="p-0 border-b border-slate-200 last:border-b-0 relative">
-                        <input type="text" id="cm-assess-med-contact-${i}" class="w-full p-1 text-center outline-none bg-transparent focus:bg-white pr-7" value="${getVal(cm, `assessment.data.medicalHistory.${i}.contact`) || ''}">
+                        <!-- 에러를 뱉던 부분과 변수(i, getVal)를 모두 지우고, 값을 읽어갈 때 필요한 'med-contact' 클래스를 넣었습니다 -->
+                        <input type="text" class="med-contact w-full p-1 text-center outline-none bg-transparent focus:bg-white pr-7" value="">
                         <button type="button" onclick="this.closest('tr').remove()" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 transition-all shadow-sm" title="행 삭제"><i data-lucide="minus" size="12"></i></button>
                     </td>
                 `;
@@ -10940,26 +10941,26 @@
                             <col width="15%"><col width="85%">
                             <tr>
                                 <th>경제상황</th>
-                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.economic')||'').replace(/\n/g, '<br>')}</td>
+                                <td style="text-align: left; vertical-align: top; padding: 10px;">${(getVal(cm, 'assessment.economic')||'').replace(/\n/g, '<br>')}</td>
                             </tr>
                             <tr>
                                 <th>주거상황</th>
-                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.housingNar')||'').replace(/\n/g, '<br>')}</td>
+                                <td style="text-align: left; vertical-align: top; padding: 10px;">${(getVal(cm, 'assessment.housingNar')||'').replace(/\n/g, '<br>')}</td>
                             </tr>
                             <tr>
                                 <th>건강상황</th>
-                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.healthNar')||'').replace(/\n/g, '<br>')}</td>
+                                <td style="text-align: left; vertical-align: top; padding: 10px;">${(getVal(cm, 'assessment.healthNar')||'').replace(/\n/g, '<br>')}</td>
                             </tr>
                             <tr>
                                 <th>일상/기타</th>
-                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.environment')||'').replace(/\n/g, '<br>')}</td>
+                                <td style="text-align: left; vertical-align: top; padding: 10px;">${(getVal(cm, 'assessment.environment')||'').replace(/\n/g, '<br>')}</td>
                             </tr>
                         </table>
 
                         <h2>4. 종합 소견 (욕구 및 문제)</h2>
                         <table>
                             <tr>
-                                <td style="text-align: left; vertical-align: top; height: 100px; padding: 10px;">${(getVal(cm, 'assessment.general')||'').replace(/\n/g, '<br>')}</td>
+                                <td style="text-align: left; vertical-align: top; padding: 10px;">${(getVal(cm, 'assessment.general')||'').replace(/\n/g, '<br>')}</td>
                             </tr>
                         </table>
 
@@ -10968,11 +10969,11 @@
                             <col width="15%"><col width="85%">
                             <tr>
                                 <th>개입 목표</th>
-                                <td style="text-align: left; vertical-align: top; height: 60px;">${(getVal(cm, 'assessment.goal')||'').replace(/\n/g, '<br>')}</td>
+                                <td style="text-align: left; vertical-align: top; padding: 10px;">${(getVal(cm, 'assessment.goal')||'').replace(/\n/g, '<br>')}</td>
                             </tr>
                             <tr>
                                 <th>세부 계획</th>
-                                <td style="text-align: left; vertical-align: top; height: 120px;">${(getVal(cm, 'assessment.plan')||'').replace(/\n/g, '<br>')}</td>
+                                <td style="text-align: left; vertical-align: top; padding: 10px;">${(getVal(cm, 'assessment.plan')||'').replace(/\n/g, '<br>')}</td>
                             </tr>
                         </table>
                     `;
