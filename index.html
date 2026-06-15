@@ -8657,6 +8657,18 @@
                                             </div>
                                         </div>
 
+                                        <!-- [신규] 가계도 및 지역사회 연계도 (이미지 붙여넣기 가능) -->
+                                        <div class="flex flex-col sm:flex-row gap-4">
+                                            <div class="flex-1 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col">
+                                                <div class="bg-slate-100 p-2 border-b border-slate-200 text-center font-bold text-slate-700 text-sm">가계도</div>
+                                                <div id="cm-assess-genogram" contenteditable="true" class="p-3 min-h-[150px] outline-none text-sm focus:bg-slate-50 transition-colors overflow-y-auto" style="cursor: text;" title="여기를 클릭하고 글을 쓰거나 이미지를 붙여넣으세요 (Ctrl+V)">${getVal(cm, 'assessment.genogram')}</div>
+                                            </div>
+                                            <div class="flex-1 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col">
+                                                <div class="bg-slate-100 p-2 border-b border-slate-200 text-center font-bold text-slate-700 text-sm">지역사회 연계도 (생태도)</div>
+                                                <div id="cm-assess-ecomap" contenteditable="true" class="p-3 min-h-[150px] outline-none text-sm focus:bg-slate-50 transition-colors overflow-y-auto" style="cursor: text;" title="여기를 클릭하고 글을 쓰거나 이미지를 붙여넣으세요 (Ctrl+V)">${getVal(cm, 'assessment.ecomap')}</div>
+                                            </div>
+                                        </div>
+
                                         <!-- 2. 영역별 사정 (Narrative) -->
                                         <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
                                             <div class="bg-slate-100 p-2.5 border-b border-slate-200 flex items-center gap-2">
@@ -8666,45 +8678,34 @@
                                             <table class="w-full text-sm text-left border-collapse">
                                                 <tbody class="divide-y divide-slate-100">
                                                     <tr>
-                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[18%] align-top pt-4">신체/건강<br><span class="text-[10px] font-normal text-slate-400">Physical</span></th>
+                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[18%] align-top pt-4">경제상황</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-assess-phy" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="현재 건강상태, 만성질환, 장애유무, ADL/IADL 수행 능력, 복약 관리 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.physical')}</textarea>
+                                                            <textarea id="cm-assess-eco" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="수입/지출 현황 등 경제적 상태" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.economic')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
-                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-4">심리/정서<br><span class="text-[10px] font-normal text-slate-400">Mental</span></th>
+                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-4">주거상황</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-assess-men" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="우울감, 고독감, 인지기능(치매), 정서적 안정 상태, 자살 위험성 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.mental')}</textarea>
+                                                            <textarea id="cm-assess-housing-nar" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="주거 형태, 주거 환경 안전성, 위생 상태 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.housingNar')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
-                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-4">가족/사회<br><span class="text-[10px] font-normal text-slate-400">Social</span></th>
+                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-4">건강상황</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-assess-soc" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="가족 관계, 동거 실태, 부양 의무자 유무, 이웃 관계, 외부 지지체계 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.social')}</textarea>
-                                                        </td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-4">경제/주거<br><span class="text-[10px] font-normal text-slate-400">Economic</span></th>
-                                                        <td class="p-0">
-                                                            <textarea id="cm-assess-eco" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="수입/지출 현황, 주거 형태(자가/전월세), 주거 환경 안전성, 위생 상태 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.economic')}</textarea>
+                                                            <textarea id="cm-assess-health-nar" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="현재 건강상태, 만성질환, 신체/정신적 문제 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.healthNar')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
                                                         <th class="p-2 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-3">
-                                                            <div>일상생활<br>및 기타</div>
-                                                            <div class="text-[10px] font-normal text-slate-400 mb-1">Life/Etc</div>
-                                                            <div class="flex justify-center gap-1 w-full px-1">
-                                                                <button type="button" onclick="app.openAssessmentSurveyModal('ADL')" class="flex-1 py-0.5 text-[10px] bg-white border border-slate-300 rounded hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 font-bold text-slate-500 transition-colors shadow-sm leading-tight">
-                                                                    ADL
-                                                                </button>
-                                                                <button type="button" onclick="app.openAssessmentSurveyModal('IADL')" class="flex-1 py-0.5 text-[10px] bg-white border border-slate-300 rounded hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 font-bold text-slate-500 transition-colors shadow-sm leading-tight">
-                                                                    IADL
-                                                                </button>
+                                                            <div>일상 / 기타</div>
+                                                            <div class="flex justify-center gap-1 w-full px-1 mt-1">
+                                                                <button type="button" onclick="app.openAssessmentSurveyModal('ADL')" class="flex-1 py-0.5 text-[10px] bg-white border border-slate-300 rounded hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 font-bold text-slate-500 transition-colors shadow-sm leading-tight">ADL</button>
+                                                                <button type="button" onclick="app.openAssessmentSurveyModal('IADL')" class="flex-1 py-0.5 text-[10px] bg-white border border-slate-300 rounded hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 font-bold text-slate-500 transition-colors shadow-sm leading-tight">IADL</button>
                                                             </div>
                                                         </th>
                                                         <td class="p-0">
                                                             <textarea id="cm-assess-env" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="식사 해결, 가사 활동 수행 능력, 기타 특이사항" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.environment')}</textarea>
-                                                            <!-- [추가] ADL/IADL 결과를 눈에 안 보이게 저장해둘 숨김 칸 -->
+                                                            <!-- [유지] ADL/IADL 결과를 눈에 안 보이게 저장해둘 숨김 칸 -->
                                                             <input type="hidden" id="cm-assess-adl-text" value="${getVal(cm, 'assessment.data.adlText')}">
                                                             <input type="hidden" id="cm-assess-iadl-text" value="${getVal(cm, 'assessment.data.iadlText')}">
                                                         </td>
@@ -9895,11 +9896,16 @@
                         adlText: getEl('cm-assess-adl-text'),
                         iadlText: getEl('cm-assess-iadl-text')
                     },
-                    physical: getEl('cm-assess-phy'),
-                    mental: getEl('cm-assess-men'),
-                    social: getEl('cm-assess-soc'),
+                    // [신규] 이미지와 텍스트를 포함하는 가계도/생태도를 가져오기 위한 헬퍼 추가
+                    genogram: (() => { const el = e.target.querySelector('#cm-assess-genogram'); return el ? el.innerHTML : ''; })(),
+                    ecomap: (() => { const el = e.target.querySelector('#cm-assess-ecomap'); return el ? el.innerHTML : ''; })(),
+                    
+                    // [수정] 4가지 영역으로 축소된 항목 매핑
                     economic: getEl('cm-assess-eco'),
+                    housingNar: getEl('cm-assess-housing-nar'),
+                    healthNar: getEl('cm-assess-health-nar'),
                     environment: getEl('cm-assess-env'),
+                    
                     general: getEl('cm-assess-general'),
                     goal: getEl('cm-assess-goal'),
                     plan: getEl('cm-assess-plan'),
@@ -10904,40 +10910,60 @@
                                 </td>
                             </tr>
                         </table>
+                        
+                        <!-- [신규] 인쇄용 표 안에 들어간 사진들이 너무 크면 표를 뚫고 나가지 않게 조절 -->
+                        <style>
+                            .rich-text-box img { max-width: 100%; height: auto; }
+                        </style>
 
-                        <h2>2. 영역별 사정 (Narrative)</h2>
+                        <div class="keep-together">
+                            <h2>2. 가계도 및 지역사회 연계도</h2>
+                            <table>
+                                <colgroup><col width="50%"><col width="50%"></colgroup>
+                                <tr>
+                                    <th style="font-size: 13px;">가계도</th>
+                                    <th style="font-size: 13px;">지역사회 연계도 (생태도)</th>
+                                </tr>
+                                <tr>
+                                    <td class="rich-text-box" style="text-align: center; vertical-align: top; min-height: 200px; padding: 10px;">
+                                        ${getVal(cm, 'assessment.genogram')}
+                                    </td>
+                                    <td class="rich-text-box" style="text-align: center; vertical-align: top; min-height: 200px; padding: 10px;">
+                                        ${getVal(cm, 'assessment.ecomap')}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <h2>3. 영역별 사정 (Narrative)</h2>
                         <table>
                             <col width="15%"><col width="85%">
                             <tr>
-                                <th>신체/건강</th>
-                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.physical')||'').replace(/\n/g, '<br>')}</td>
-                            </tr>
-                            <tr>
-                                <th>심리/정서</th>
-                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.mental')||'').replace(/\n/g, '<br>')}</td>
-                            </tr>
-                            <tr>
-                                <th>가족/사회</th>
-                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.social')||'').replace(/\n/g, '<br>')}</td>
-                            </tr>
-                            <tr>
-                                <th>경제/주거</th>
+                                <th>경제상황</th>
                                 <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.economic')||'').replace(/\n/g, '<br>')}</td>
                             </tr>
                             <tr>
+                                <th>주거상황</th>
+                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.housingNar')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                            <tr>
+                                <th>건강상황</th>
+                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.healthNar')||'').replace(/\n/g, '<br>')}</td>
+                            </tr>
+                            <tr>
                                 <th>일상/기타</th>
-                                <td style="text-align: left; vertical-align: top; height: 60px;">${(getVal(cm, 'assessment.environment')||'').replace(/\n/g, '<br>')}</td>
+                                <td style="text-align: left; vertical-align: top; height: 80px;">${(getVal(cm, 'assessment.environment')||'').replace(/\n/g, '<br>')}</td>
                             </tr>
                         </table>
 
-                        <h2>3. 종합 소견 (욕구 및 문제)</h2>
+                        <h2>4. 종합 소견 (욕구 및 문제)</h2>
                         <table>
                             <tr>
-                                <td style="text-align: left; vertical-align: top; height: 150px; padding: 10px;">${(getVal(cm, 'assessment.general')||'').replace(/\n/g, '<br>')}</td>
+                                <td style="text-align: left; vertical-align: top; height: 100px; padding: 10px;">${(getVal(cm, 'assessment.general')||'').replace(/\n/g, '<br>')}</td>
                             </tr>
                         </table>
 
-                        <h2>4. 개입 계획</h2>
+                        <h2>5. 개입 계획</h2>
                         <table>
                             <col width="15%"><col width="85%">
                             <tr>
@@ -11012,8 +11038,8 @@
                                 </table>
                             </div>
 
-                            <!-- IADL 인쇄 페이지 추가 (새 페이지에서 시작) -->
-                            <div style="page-break-before: always; padding-top: 20px;">
+                            <!-- IADL 인쇄 테이블 추가 (ADL 바로 아래에 이어서 출력) -->
+                            <div style="margin-top: 30px;">
                                 <h1 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px;">도구적 일상생활동작(IADL) 평가</h1>
                                 <table>
                                     <colgroup>
@@ -12618,10 +12644,15 @@
                 }
             },
 
-            // [신규] ADL/IADL 조사 팝업 열기 (항목 그룹화 적용)
+            // [신규] ADL/IADL 조사 팝업 열기 (항목 그룹화 적용 및 상태 복원 기능 추가)
             openAssessmentSurveyModal: (type) => {
                 const title = type === 'ADL' ? '일상생활동작(ADL) 평가' : '도구적 일상생활동작(IADL) 평가';
                 
+                // [핵심 추가] 모달을 열 때, 숨겨진 텍스트 칸에서 이전에 저장했던 결과값을 가져옵니다.
+                const targetId = type === 'ADL' ? 'cm-assess-adl-text' : 'cm-assess-iadl-text';
+                const targetEl = document.getElementById(targetId);
+                const savedText = targetEl ? targetEl.value : '';
+
                 let groups = [];
                 if (type === 'ADL') {
                     groups = [
@@ -12666,14 +12697,16 @@
                                             <div class="divide-y divide-slate-100">
                                                 ${group.items.map((item) => {
                                                     const currentIdx = globalIdx++;
-                                                    // [수정] type="radio" -> type="checkbox" 변경 및 checkExclusive 함수 연결
+                                                    // [핵심 추가] 저장된 텍스트에 해당 항목이 있는지 검색해서 체크박스 복원!
+                                                    const isChecked = (val) => savedText.includes('- ' + item + ': ' + val) ? 'checked' : '';
+
                                                     return `
                                                     <div class="grid grid-cols-[3fr_1fr_1fr_1fr_1fr] gap-2 py-2 items-center hover:bg-slate-50 transition-colors">
                                                         <div class="text-sm font-medium text-slate-700 pl-2 break-keep">${item}</div>
-                                                        <label class="flex justify-center cursor-pointer" title="자립가능"><input type="checkbox" name="surv-${currentIdx}" value="자립가능" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded" onclick="app.checkExclusive(this)"></label>
-                                                        <label class="flex justify-center cursor-pointer" title="약간불편"><input type="checkbox" name="surv-${currentIdx}" value="약간불편" class="w-4 h-4 text-blue-500 focus:ring-blue-400 border-slate-300 rounded" onclick="app.checkExclusive(this)"></label>
-                                                        <label class="flex justify-center cursor-pointer" title="도움필요"><input type="checkbox" name="surv-${currentIdx}" value="도움필요" class="w-4 h-4 text-orange-500 focus:ring-orange-400 border-slate-300 rounded" onclick="app.checkExclusive(this)"></label>
-                                                        <label class="flex justify-center cursor-pointer" title="완전도움필요"><input type="checkbox" name="surv-${currentIdx}" value="완전도움필요" class="w-4 h-4 text-red-600 focus:ring-red-500 border-slate-300 rounded" onclick="app.checkExclusive(this)"></label>
+                                                        <label class="flex justify-center cursor-pointer" title="자립가능"><input type="checkbox" name="surv-${currentIdx}" value="자립가능" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded" onclick="app.checkExclusive(this)" ${isChecked('자립가능')}></label>
+                                                        <label class="flex justify-center cursor-pointer" title="약간불편"><input type="checkbox" name="surv-${currentIdx}" value="약간불편" class="w-4 h-4 text-blue-500 focus:ring-blue-400 border-slate-300 rounded" onclick="app.checkExclusive(this)" ${isChecked('약간불편')}></label>
+                                                        <label class="flex justify-center cursor-pointer" title="도움필요"><input type="checkbox" name="surv-${currentIdx}" value="도움필요" class="w-4 h-4 text-orange-500 focus:ring-orange-400 border-slate-300 rounded" onclick="app.checkExclusive(this)" ${isChecked('도움필요')}></label>
+                                                        <label class="flex justify-center cursor-pointer" title="완전도움필요"><input type="checkbox" name="surv-${currentIdx}" value="완전도움필요" class="w-4 h-4 text-red-600 focus:ring-red-500 border-slate-300 rounded" onclick="app.checkExclusive(this)" ${isChecked('완전도움필요')}></label>
                                                     </div>`;
                                                 }).join('')}
                                             </div>
