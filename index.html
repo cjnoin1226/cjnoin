@@ -6046,15 +6046,17 @@
                         </div>
                         <div class="space-y-4 mb-6">
                             <div>
-                                <label class="block text-sm font-bold text-slate-700 mb-1">문서 종류</label>
-                                <select id="print-doc-type" class="input-field text-sm">
-                                    <option value="initial">초기면접지</option>
-                                    <option value="selection">선정기준표</option>
-                                    <option value="assessment">사정기록지</option>
-                                    <option value="reassess">재사정 기록지</option>
-                                    <option value="satisfaction">만족도 조사</option>
-                                    <option value="evaluation">사례평가서</option>
-                                </select>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="block text-sm font-bold text-slate-700">문서 종류 <span class="text-blue-500 font-normal text-xs ml-1">(중복 선택 가능)</span></label>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 border border-slate-200 rounded-lg">
+                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors"><input type="checkbox" name="print-doc-type" value="initial" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded border-slate-300 cursor-pointer" checked><span class="text-sm text-slate-700">초기면접지</span></label>
+                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors"><input type="checkbox" name="print-doc-type" value="selection" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded border-slate-300 cursor-pointer"><span class="text-sm text-slate-700">선정기준표</span></label>
+                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors"><input type="checkbox" name="print-doc-type" value="assessment" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded border-slate-300 cursor-pointer"><span class="text-sm text-slate-700">사정기록지</span></label>
+                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors"><input type="checkbox" name="print-doc-type" value="reassess" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded border-slate-300 cursor-pointer"><span class="text-sm text-slate-700">재사정 기록지</span></label>
+                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors"><input type="checkbox" name="print-doc-type" value="satisfaction" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded border-slate-300 cursor-pointer"><span class="text-sm text-slate-700">만족도 조사</span></label>
+                                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors"><input type="checkbox" name="print-doc-type" value="evaluation" class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded border-slate-300 cursor-pointer"><span class="text-sm text-slate-700">사례평가서</span></label>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1">대상 연도</label>
@@ -6077,9 +6079,16 @@
 
             // [신규] 다중 선택 서류 일괄 인쇄 실행
             executePrintCaseDocuments: async () => {
-                const docType = document.getElementById('print-doc-type').value;
+                // 체크된 항목 모두 가져오기
+                const docTypeEls = document.querySelectorAll('input[name="print-doc-type"]:checked');
+                const docTypes = Array.from(docTypeEls).map(el => el.value);
                 const year = parseInt(document.getElementById('print-doc-year').value);
                 const clientIds = Array.from(state.ui.selectedClientIds);
+                
+                if (docTypes.length === 0) {
+                    alert("인쇄할 문서 종류를 1개 이상 선택해주세요.");
+                    return;
+                }
                 
                 app.closeDialog();
 
@@ -6101,14 +6110,14 @@
                     const progressEl = document.getElementById(`${loadingId}-progress`);
 
                     for (const cid of clientIds) {
-                        // 각 대상자의 HTML 조각만 가져오기
-                        const result = await app.printCaseManagement(cid, 'html', docType, year);
-                        
-                        if (result && result.html) {
-                            if (!commonCss) commonCss = result.css; // CSS는 한 번만 적용
+                        // 선택된 문서 종류 배열(docTypes)을 순회하며 모두 가져오기
+                        for (const dType of docTypes) {
+                            const result = await app.printCaseManagement(cid, 'html', dType, year);
                             
-                            // 각 대상자 문서 사이에 페이지 나눔 태그 추가 (page-break-after: always)
-                            combinedHtml += `<div style="page-break-after: always; padding: 20px;">${result.html}</div>`;
+                            if (result && result.html) {
+                                if (!commonCss) commonCss = result.css;
+                                combinedHtml += `<div style="page-break-after: always; padding: 20px;">${result.html}</div>`;
+                            }
                         }
                         
                         completed++;
