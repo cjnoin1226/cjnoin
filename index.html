@@ -9014,28 +9014,6 @@
                                             </div>
                                             <div id="cm-assess-map" contenteditable="true" class="p-3 min-h-[250px] outline-none text-sm focus:bg-slate-50 transition-colors overflow-y-auto" style="cursor: text;" title="여기를 클릭하고 지도를 캡처하여 붙여넣으세요 (Ctrl+V)">${getVal(cm, 'assessment.map')}</div>
                                         </div>
-
-                                        <!-- 8. 개입 계획 (기존 4번에서 8번으로 변경) -->
-                                        <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
-                                            <div class="bg-slate-100 p-2.5 border-b border-slate-200 flex items-center gap-2">
-                                                <div class="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
-                                                <span class="font-bold text-slate-700 text-sm">8. 개입 계획 (Service Plan)</span>
-                                            </div>
-                                            <div class="divide-y divide-slate-100">
-                                                <div class="flex">
-                                                    <div class="w-[18%] bg-slate-50 p-3 font-bold text-slate-700 border-r border-slate-200 text-sm flex items-center justify-center">개입 목표</div>
-                                                    <div class="flex-1 p-0">
-                                                        <textarea id="cm-assess-goal" class="input-field w-full h-20 border-0 focus:ring-0 rounded-none p-3 resize-none leading-relaxed" placeholder="장기 목표 및 단기 목표 설정">${getVal(cm, 'assessment.goal')}</textarea>
-                                                    </div>
-                                                </div>
-                                                <div class="flex">
-                                                    <div class="w-[18%] bg-slate-50 p-3 font-bold text-slate-700 border-r border-slate-200 text-sm flex items-center justify-center">세부 계획</div>
-                                                    <div class="flex-1 p-0">
-                                                        <textarea id="cm-assess-plan" class="input-field w-full h-32 border-0 focus:ring-0 rounded-none p-3 resize-none leading-relaxed" placeholder="제공할 서비스 내용, 연계 자원, 개입 방법 및 빈도 등 구체적 계획 수립">${getVal(cm, 'assessment.plan')}</textarea>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
 
                                     <div id="sub-tab-reassess" class="sub-tab-content ${state.ui.caseSubTab === 'reassess' ? 'active' : ''} space-y-4">
@@ -11474,19 +11452,6 @@
                                 </tr>
                             </table>
                         </div>
-
-                        <h2>8. 개입 계획</h2>
-                        <table>
-                            <col width="15%"><col width="85%">
-                            <tr>
-                                <th>개입 목표</th>
-                                <td style="text-align: left; vertical-align: top; padding: 10px;">${(getVal(cm, 'assessment.goal')||'').replace(/\n/g, '<br>')}</td>
-                            </tr>
-                            <tr>
-                                <th>세부 계획</th>
-                                <td style="text-align: left; vertical-align: top; padding: 10px;">${(getVal(cm, 'assessment.plan')||'').replace(/\n/g, '<br>')}</td>
-                            </tr>
-                        </table>
                     `;
 
                      // [수정] 일상 텍스트가 아닌, 숨겨진 ADL/IADL 전용 저장소에서 결과를 추출하여 표로 인쇄
