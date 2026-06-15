@@ -7555,7 +7555,7 @@
                                                     <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i data-lucide="calendar" size="16"></i></div>
                                                     <div>
                                                         <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">작성일자</label>
-                                                        <input type="text" id="cm-sel-date" class="bg-transparent font-bold text-slate-700 text-sm focus:outline-none border-b border-transparent hover:border-slate-300 focus:border-emerald-500 transition-colors py-0.5" value="${getVal(cm, 'selection.date')}" placeholder="YYYY-MM-DD">
+                                                        <input type="text" id="cm-sel-date" class="bg-transparent font-bold text-slate-700 text-sm focus:outline-none border-b border-transparent hover:border-slate-300 focus:border-emerald-500 transition-colors py-0.5" value="${getVal(cm, 'selection.date')}" placeholder="YYYY-MM-DD" oninput="app.formatFullDateInput(this)" maxlength="10">
                                                     </div>
                                                 </div>
                                                 <div class="w-px h-8 bg-slate-100"></div>
