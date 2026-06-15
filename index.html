@@ -8704,6 +8704,9 @@
                                                         </th>
                                                         <td class="p-0">
                                                             <textarea id="cm-assess-env" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="식사 해결, 가사 활동 수행 능력, 기타 특이사항" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.environment')}</textarea>
+                                                            <!-- [추가] ADL/IADL 결과를 눈에 안 보이게 저장해둘 숨김 칸 -->
+                                                            <input type="hidden" id="cm-assess-adl-text" value="${getVal(cm, 'assessment.data.adlText')}">
+                                                            <input type="hidden" id="cm-assess-iadl-text" value="${getVal(cm, 'assessment.data.iadlText')}">
                                                         </td>
                                                     </tr>
                                                 </tbody>
@@ -9887,7 +9890,10 @@
                             frequency: row.querySelector('.med-freq') ? row.querySelector('.med-freq').value : '',
                             medication: row.querySelector('.med-drug') ? row.querySelector('.med-drug').value : '',
                             contact: row.querySelector('.med-contact') ? row.querySelector('.med-contact').value : ''
-                        }))
+                        })),
+                        // [추가] 숨겨둔 ADL/IADL 평가 결과값을 DB에 같이 저장
+                        adlText: getEl('cm-assess-adl-text'),
+                        iadlText: getEl('cm-assess-iadl-text')
                     },
                     physical: getEl('cm-assess-phy'),
                     mental: getEl('cm-assess-men'),
@@ -10842,7 +10848,8 @@
                                         <tr><th>환경</th><td>${envHTML}</td></tr>
                                         <tr><th>화장실</th><td>(공용) ${tShareHTML} &nbsp;/&nbsp; (형태) ${tStyleHTML}</td></tr>
                                         <tr><th>난방</th><td>${heatingHTML}</td></tr>
-                                        <tr><th>상태</th><td>(주택) ${hCondHTML} &nbsp;/&nbsp; (위생) ${hyCondHTML}</td></tr>
+                                        <!-- 주택과 위생 사이에 <br>을 넣어 두 줄로 나뉘게 수정했습니다. -->
+                                        <tr><th>상태</th><td style="line-height: 1.6;">(주택) ${hCondHTML}<br>(위생) ${hyCondHTML}</td></tr>
                                     </table>
                                 </td>
                             </tr>
@@ -10943,6 +10950,103 @@
                             </tr>
                         </table>
                     `;
+
+                     // [수정] 일상 텍스트가 아닌, 숨겨진 ADL/IADL 전용 저장소에서 결과를 추출하여 표로 인쇄
+                        const adlText = getVal(cm, 'assessment.data.adlText') || '';
+                        const iadlText = getVal(cm, 'assessment.data.iadlText') || '';
+
+                        const getSurvChk = (item, level, type) => {
+                            const searchStr = '- ' + item + ': ' + level;
+                            const isChecked = type === 'ADL' ? adlText.includes(searchStr) : iadlText.includes(searchStr);
+                            return '<span class="chk ' + (isChecked ? 'checked' : '') + '">' + (isChecked ? 'V' : '') + '</span>';
+                        };
+
+                        const adlGroups = [
+                            { category: '기본동작', items: ['문 열고닫기', '혼자서 신발벗기', '신발장에 넣기', '의자를 책상에서 넣고 빼기'] },
+                            { category: '신변처리', items: ['욕조에 들어가 샤워하기', '세수하고 양치질하기', '기본적인 몸단장', '혼자서 옷입기', '혼자서 옷벗기'] },
+                            { category: '용변처리', items: ['혼자서 변기에 앉기', '용변 후 뒷처리', '대변조절하기', '소변조절하기'] },
+                            { category: '식사', items: ['수저로 먹기', '젓가락 사용하기', '포크 사용하기', '컵으로 물마시기', '손잡이 있는 컵 사용하기'] },
+                            { category: '보행', items: ['혼자서 100m이상 걷기', '난간잡고 계단오르내리기', '난간없이 계단 오르내리기'] },
+                            { category: '침상활동', items: ['선 상태에서 앉기', '앉은 상태에서 일어나기', '혼자서 눕고 일어나기', '혼자서 뒤척이기', '기상 후 침구정리'] }
+                        ];
+
+                        const iadlItems = ['전화사용', '외출 또는 여행', '물건구입', '식사준비', '집안일(청소나 정리정돈)', '빨래', '정확한 약 복용', '금전관리', '수공일(바느질 또는 못질)'];
+
+                        htmlContent += `
+                            <!-- ADL 인쇄 페이지 추가 (새 페이지에서 시작) -->
+                            <div style="page-break-before: always; padding-top: 20px;">
+                                <h1 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px;">일상생활동작(ADL) 평가</h1>
+                                <table>
+                                    <colgroup>
+                                        <col width="15%">
+                                        <col width="45%">
+                                        <col width="10%">
+                                        <col width="10%">
+                                        <col width="10%">
+                                        <col width="10%">
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th>분류</th>
+                                            <th>평가항목</th>
+                                            <th>자립<br>가능</th>
+                                            <th>약간<br>불편</th>
+                                            <th>도움<br>필요</th>
+                                            <th>완전<br>도움</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${adlGroups.map(g => {
+                                            return g.items.map((item, idx) => `
+                                                <tr>
+                                                    ${idx === 0 ? `<th rowspan="${g.items.length}" style="background-color: #f9f9f9;">${g.category}</th>` : ''}
+                                                    <td style="text-align: left; padding-left: 10px;">${item}</td>
+                                                    <td class="text-center">${getSurvChk(item, '자립가능', 'ADL')}</td>
+                                                    <td class="text-center">${getSurvChk(item, '약간불편', 'ADL')}</td>
+                                                    <td class="text-center">${getSurvChk(item, '도움필요', 'ADL')}</td>
+                                                    <td class="text-center">${getSurvChk(item, '완전도움필요', 'ADL')}</td>
+                                                </tr>
+                                            `).join('');
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- IADL 인쇄 페이지 추가 (새 페이지에서 시작) -->
+                            <div style="page-break-before: always; padding-top: 20px;">
+                                <h1 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px;">도구적 일상생활동작(IADL) 평가</h1>
+                                <table>
+                                    <colgroup>
+                                        <col width="60%">
+                                        <col width="10%">
+                                        <col width="10%">
+                                        <col width="10%">
+                                        <col width="10%">
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th>평가항목</th>
+                                            <th>자립<br>가능</th>
+                                            <th>약간<br>불편</th>
+                                            <th>도움<br>필요</th>
+                                            <th>완전<br>도움</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${iadlItems.map(item => `
+                                            <tr>
+                                                <td style="text-align: left; padding-left: 10px;">${item}</td>
+                                                <td class="text-center">${getSurvChk(item, '자립가능', 'IADL')}</td>
+                                                <td class="text-center">${getSurvChk(item, '약간불편', 'IADL')}</td>
+                                                <td class="text-center">${getSurvChk(item, '도움필요', 'IADL')}</td>
+                                                <td class="text-center">${getSurvChk(item, '완전도움필요', 'IADL')}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+
                 } else if (docType === 'reassess') {
                     docTitle = `재사정기록지(${year}년)`;
                     
@@ -12591,28 +12695,21 @@
 
             // [신규] 조사 결과 저장 및 텍스트 변환 (항목 변경 반영)
             saveAssessmentSurvey: (type) => {
-                // 저장 시 인덱스 매칭을 위해 동일한 평탄화된 리스트 생성
                 let items = [];
                 if (type === 'ADL') {
                     items = [
-                        // 기본동작
                         '문 열고닫기', '혼자서 신발벗기', '신발장에 넣기', '의자를 책상에서 넣고 빼기',
-                        // 신변처리
                         '욕조에 들어가 샤워하기', '세수하고 양치질하기', '기본적인 몸단장', '혼자서 옷입기', '혼자서 옷벗기',
-                        // 용변처리
                         '혼자서 변기에 앉기', '용변 후 뒷처리', '대변조절하기', '소변조절하기',
-                        // 식사
                         '수저로 먹기', '젓가락 사용하기', '포크 사용하기', '컵으로 물마시기', '손잡이 있는 컵 사용하기',
-                        // 보행
                         '혼자서 100m이상 걷기', '난간잡고 계단오르내리기', '난간없이 계단 오르내리기',
-                        // 침상활동
                         '선 상태에서 앉기', '앉은 상태에서 일어나기', '혼자서 눕고 일어나기', '혼자서 뒤척이기', '기상 후 침구정리'
                     ];
                 } else {
                     items = ['전화사용', '외출 또는 여행', '물건구입', '식사준비', '집안일(청소나 정리정돈)', '빨래', '정확한 약 복용', '금전관리', '수공일(바느질 또는 못질)'];
                 }
                 
-                let resultText = `[${type} 평가 결과]\n`;
+                let resultText = '';
                 let hasValue = false;
 
                 items.forEach((item, idx) => {
@@ -12620,8 +12717,6 @@
                     if (checked) {
                         resultText += `- ${item}: ${checked.value}\n`;
                         hasValue = true;
-                    } else {
-                        resultText += `- ${item}: (미체크)\n`;
                     }
                 });
 
@@ -12630,15 +12725,14 @@
                     return;
                 }
 
-                const targetEl = document.getElementById('cm-assess-env');
+                // [수정] 텍스트 입력칸(cm-assess-env)이 아니라 눈에 안 보이는 숨김 칸에 저장합니다.
+                const targetId = type === 'ADL' ? 'cm-assess-adl-text' : 'cm-assess-iadl-text';
+                const targetEl = document.getElementById(targetId);
                 if (targetEl) {
-                    const currentVal = targetEl.value;
-                    targetEl.value = currentVal + (currentVal ? "\n\n" : "") + resultText;
-                    // 높이 자동 조절
-                    targetEl.style.height = 'auto';
-                    targetEl.style.height = (targetEl.scrollHeight) + 'px';
+                    targetEl.value = resultText;
                 }
 
+                app.showToast(`${type} 평가 결과가 반영되었습니다. (※ 상단의 '저장' 버튼을 꼭 눌러주세요)`);
                 app.closeDialog();
             },
 
