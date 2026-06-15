@@ -8654,8 +8654,9 @@
                                                                         ${(() => {
                                                                             const medData = getVal(cm, 'assessment.data.medicalHistory') || [];
                                                                             let rows = [...medData];
-                                                                            if (rows.length < 2) {
-                                                                                while (rows.length < 2) rows.push({});
+                                                                            // 🚨 무조건 2줄로 강제하는 코드를 지우고, 데이터가 아예 없을 때만 1줄을 띄우게 바꿨습니다! 🚨
+                                                                            if (rows.length === 0) {
+                                                                                rows.push({});
                                                                             }
                                                                             return rows.map((m, i) => `
                                                                                 <tr class="hover:bg-slate-50 assess-med-row relative">
@@ -10173,7 +10174,9 @@
                             frequency: row.querySelector('.med-freq') ? row.querySelector('.med-freq').value : '',
                             medication: row.querySelector('.med-drug') ? row.querySelector('.med-drug').value : '',
                             contact: row.querySelector('.med-contact') ? row.querySelector('.med-contact').value : ''
-                        })),
+                        })).filter(m => m.institution || m.disease || m.status || m.frequency || m.medication || m.contact), 
+                        // 🚨 맨 끝에 .filter(...)를 붙여서 텅텅 빈 깡통 줄은 DB에 들어가지 못하도록 원천 차단했습니다! 🚨
+                        
                         // [추가] 숨겨둔 ADL/IADL 평가 결과값을 DB에 같이 저장
                         adlText: getEl('cm-assess-adl-text'),
                         iadlText: getEl('cm-assess-iadl-text')
