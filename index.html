@@ -7034,15 +7034,21 @@
                                                         <!-- 3. 주소 -->
                                                         <tr>
                                                             <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">주소</th>
-                                                            <td colspan="9" class="border border-slate-300 p-2 text-slate-600 bg-slate-50">${getVal(cm, 'initial.snapAddress') || (c.address ? c.address + (c.addressDetail ? ', ' + c.addressDetail : '') : '')}</td>
+                                                            <td colspan="9" class="border border-slate-300 p-0">
+                                                                <input type="text" id="cm-initial-address" class="input-field w-full border-0 focus:ring-inset rounded-none h-full bg-slate-50" value="${getVal(cm, 'initial.snapAddress') || (c.address ? c.address + (c.addressDetail ? ', ' + c.addressDetail : '') : '')}">
+                                                            </td>
                                                         </tr>
 
                                                         <!-- 4. 연락처 -->
                                                         <tr>
                                                             <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">연락처</th>
-                                                            <td colspan="4" class="border border-slate-300 p-2 text-slate-600 bg-slate-50">${getVal(cm, 'initial.snapPhone') || c.phone}</td>
+                                                            <td colspan="4" class="border border-slate-300 p-0">
+                                                                <input type="text" id="cm-initial-phone" class="input-field w-full border-0 focus:ring-inset rounded-none h-full bg-slate-50" value="${getVal(cm, 'initial.snapPhone') || c.phone || ''}">
+                                                            </td>
                                                             <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">보호자</th>
-                                                            <td colspan="4" class="border border-slate-300 p-2 text-slate-600 bg-slate-50">${c.guardianRelation ? c.guardianRelation + ' / ' : ''}${c.guardianPhone}</td>
+                                                            <td colspan="4" class="border border-slate-300 p-0 text-slate-600 bg-slate-50">
+                                                                <div class="px-2 py-2">${c.guardianRelation ? c.guardianRelation + ' / ' : ''}${c.guardianPhone || ''}</div>
+                                                            </td>
                                                         </tr>
 
                                                         <!-- 5. 가족 사항 -->
@@ -8068,8 +8074,14 @@
                                                     </div>
                                                     <!-- 2줄: 주소, 연락처 -->
                                                     <div class="flex flex-wrap gap-3 items-center mt-1">
-                                                        <div class="flex items-center gap-2 flex-1 min-w-[200px]"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">주소</span><span class="text-sm text-slate-700 truncate">${getVal(cm, 'assessment.snapAddress') || (c.address ? c.address + (c.addressDetail ? ', ' + c.addressDetail : '') : '')}</span></div>
-                                                        <div class="flex items-center gap-2 flex-1 min-w-[150px]"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">연락처</span><span class="text-sm text-slate-700">${getVal(cm, 'assessment.snapPhone') || c.phone}</span></div>
+                                                        <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                                                            <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">주소</span>
+                                                            <input type="text" id="cm-assess-address" class="input-field py-0.5 px-2 text-sm border-slate-300 flex-1" value="${getVal(cm, 'assessment.snapAddress') || (c.address ? c.address + (c.addressDetail ? ', ' + c.addressDetail : '') : '')}">
+                                                        </div>
+                                                        <div class="flex items-center gap-2 flex-1 min-w-[150px]">
+                                                            <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">연락처</span>
+                                                            <input type="text" id="cm-assess-phone" class="input-field py-0.5 px-2 text-sm border-slate-300 flex-1" value="${getVal(cm, 'assessment.snapPhone') || c.phone || ''}">
+                                                        </div>
                                                     </div>
                                                     <!-- 3줄: 결혼/동거여부 -->
                                                     <div class="flex items-center gap-2 mt-2">
@@ -10028,8 +10040,8 @@
                     interviewer: getEl('cm-initial-interviewer'),
                     religion: getEl('cm-initial-religion'),
                     conclusion: getEl('cm-initial-conclusion'),
-                    snapAddress: currentCm.initial?.snapAddress || (client ? client.address : ''),
-                    snapPhone: currentCm.initial?.snapPhone || (client ? client.phone : ''),
+                    snapAddress: getEl('cm-initial-address'),
+                    snapPhone: getEl('cm-initial-phone'),
                     // [핵심] 가족사항도 무조건 현재 폼(e.target) 안에서만 긁어오도록 수정!
                     familyDetails: Array.from(e.target.querySelectorAll('.fam-row')).map(row => ({
                         rel: row.querySelector('.fam-rel') ? row.querySelector('.fam-rel').value : '',
@@ -10115,8 +10127,8 @@
                     methodOther: getEl('cm-assess-method-other'),
                     education: getEl('cm-assess-education'),
                     religion: getEl('cm-assess-religion'),
-                    snapAddress: currentCm.assessment?.snapAddress || (client ? client.address : ''),
-                    snapPhone: currentCm.assessment?.snapPhone || (client ? client.phone : ''),
+                    snapAddress: getEl('cm-assess-address'),
+                    snapPhone: getEl('cm-assess-phone'),
                     data: {
                         maritalStatus: getCheckedValues('cm-assess-marital'),
                         economic: getCheckedValues('cm-assess-eco'),
