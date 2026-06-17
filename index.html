@@ -11311,9 +11311,9 @@
                                                     </tr>
                                                     ${(() => {
                                                         const fam = getVal(cm, 'initial.familyDetails') || [];
-                                                        const validFam = fam.filter(f => f.rel || f.name); // 비어있는 줄 숨기기
-                                                        if (validFam.length === 0) return '<tr><td colspan="5" class="p-4 text-slate-400">초기면접지에 입력된 가족사항이 없습니다.</td></tr>';
-                                                        return validFam.map(f => `<tr><td class="p-1.5 border-r border-slate-200">${f.rel||''}</td><td class="p-1.5 border-r border-slate-200">${f.name||''}</td><td class="p-1.5 border-r border-slate-200">${f.age||''}</td><td class="p-1.5 border-r border-slate-200">${f.co||''}</td><td class="p-1.5">${f.note||''}</td></tr>`).join('');
+                                                        const validFam = fam.filter(f => f.rel || f.name || f.age || f.note);
+                                                        if (validFam.length === 0) return '<tr><td colspan="5" style="border: 1px solid #bbb; padding: 4px; text-align: center; color:#888; font-weight:bold;">가족사항 없음</td></tr>';
+                                                        return validFam.map(f => `<tr><td style="border: 1px solid #bbb; padding: 2px; text-align: center;">${f.rel||''}</td><td style="border: 1px solid #bbb; padding: 2px; text-align: center;">${f.name||''}</td><td style="border: 1px solid #bbb; padding: 2px; text-align: center;">${f.age||''}</td><td style="border: 1px solid #bbb; padding: 2px; text-align: center;">${f.co||''}</td><td style="border: 1px solid #bbb; padding: 2px;">${f.note||''}</td></tr>`).join('');
                                                     })()}
                                                 </table>
                                             </td>
