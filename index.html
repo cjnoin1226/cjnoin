@@ -10563,13 +10563,6 @@
                         /* 테이블 스타일 */
                         table { width: 100%; border-collapse: collapse; margin-bottom: 1px; table-layout: fixed; }
                         
-                        /* [수정] 상단 정보표 선 굵어짐(겹침) 현상 완벽 해결 */
-                        .info-group { display: flex; flex-direction: column; }
-                        .info-group table { margin: 0 !important; }
-                        /* 위에 있는 테이블의 맨 아랫줄 테두리를 아예 지워서 아래 표의 윗줄과 하나가 되게 만듦 */
-                        .info-group table:not(:last-child) tr:last-child th,
-                        .info-group table:not(:last-child) tr:last-child td { border-bottom: none !important; }
-                        
                         /* 행 중간이 잘리지 않도록 보호 (페이지 넘김 시 통째로 이동) */
                         tr { break-inside: avoid; page-break-inside: avoid; }
                         /* 표가 잘릴 때 제목(헤더) 반복 및 표 내부 분할 허용 */
@@ -11206,44 +11199,49 @@
                         <div class="clearfix"></div>
 
                         <div class="info-group">
-                            <table style="font-size: 11px;">
-                                <!-- [신규] 표를 10칸으로 쪼개서 학력, 종교, 주소, 연락처까지 상단에 통합 배치 -->
-                                <colgroup>
-                                    <col width="9%"><col width="13%">
-                                    <col width="9%"><col width="17%">
-                                    <col width="7%"><col width="7%">
-                                    <col width="8%"><col width="12%">
-                                    <col width="8%"><col width="10%">
-                                </colgroup>
+                            <!-- [수정] 다중 표 겹침(더블 보더) 문제를 원천 차단하는 정석적인 이중 테이블(Nested Table) 방식 -->
+                            <table style="margin-bottom: 20px; border: 1px solid #000; border-collapse: collapse; padding: 0;">
                                 <tr>
-                                    <th>대상자명</th><td class="text-center text-bold">${client.name}</td>
-                                    <th>생년월일</th><td class="text-center">${client.birthDate} (${client.birthDate ? ((getVal(cm, 'assessment.date') ? parseInt(getVal(cm, 'assessment.date').split('-')[0]) : new Date().getFullYear()) - parseInt(client.birthDate.substring(0, 4))) : 0}세)</td>
-                                    <th>성별</th><td class="text-center">${client.gender}</td>
-                                    <th>학력</th><td class="text-center">${getVal(cm, 'assessment.education')}</td>
-                                    <th>종교</th><td class="text-center">${getVal(cm, 'assessment.religion') || getVal(cm, 'initial.religion') || ''}</td>
+                                    <td style="padding: 0; border: none; border-bottom: 1px solid #000;">
+                                        <!-- 첫 번째 줄, 두 번째 줄 (10칸 비율 유지) -->
+                                        <table style="width: 100%; border-collapse: collapse; border-style: hidden; margin: 0;">
+                                            <colgroup>
+                                                <col width="9%"><col width="13%">
+                                                <col width="9%"><col width="17%">
+                                                <col width="7%"><col width="7%">
+                                                <col width="8%"><col width="12%">
+                                                <col width="8%"><col width="10%">
+                                            </colgroup>
+                                            <tr>
+                                                <th style="border-top: none; border-left: none;">대상자명</th><td style="border-top: none;" class="text-center text-bold">${client.name}</td>
+                                                <th style="border-top: none;">생년월일</th><td style="border-top: none;" class="text-center">${client.birthDate} (${client.birthDate ? ((getVal(cm, 'assessment.date') ? parseInt(getVal(cm, 'assessment.date').split('-')[0]) : new Date().getFullYear()) - parseInt(client.birthDate.substring(0, 4))) : 0}세)</td>
+                                                <th style="border-top: none;">성별</th><td style="border-top: none;" class="text-center">${client.gender}</td>
+                                                <th style="border-top: none;">학력</th><td style="border-top: none;" class="text-center">${getVal(cm, 'assessment.education')}</td>
+                                                <th style="border-top: none;">종교</th><td style="border-top: none; border-right: none;" class="text-center">${getVal(cm, 'assessment.religion') || getVal(cm, 'initial.religion') || ''}</td>
+                                            </tr>
+                                            <tr>
+                                                <th style="border-bottom: none; border-left: none;">주소</th><td colspan="5" style="border-bottom: none; text-align: left; padding-left: 8px;">${getVal(cm, 'assessment.snapAddress') || client.address}</td>
+                                                <th style="border-bottom: none;">연락처</th><td colspan="3" style="border-bottom: none; border-right: none;" class="text-center">${getVal(cm, 'assessment.snapPhone') || client.phone}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
                                 </tr>
-                            </table>
-                            <table style="font-size: 11px;">
-                                <colgroup>
-                                    <col width="9%"><col width="41%">
-                                    <col width="9%"><col width="41%">
-                                </colgroup>
                                 <tr>
-                                    <th>주소</th><td style="text-align: left; padding-left: 8px;">${getVal(cm, 'assessment.snapAddress') || client.address}</td>
-                                    <th>연락처</th><td class="text-center">${getVal(cm, 'assessment.snapPhone') || client.phone}</td>
-                                </tr>
-                            </table>
-                            <table style="font-size: 11px;">
-                                <!-- 👇 여기서 사정일자, 작성자, 상담방법의 비율을 맞췄습니다! 👇 -->
-                                <colgroup>
-                                    <col width="9%"><col width="24%">
-                                    <col width="9%"><col width="24%">
-                                    <col width="10%"><col width="24%">
-                                </colgroup>
-                                <tr>
-                                    <th>사정일자</th><td class="text-center">${getVal(cm, 'assessment.date')}</td>
-                                    <th>작성자</th><td class="text-center">${getVal(cm, 'assessment.writer')}</td>
-                                    <th>상담방법</th><td class="text-center">${getVal(cm, 'assessment.method') === '기타' ? getVal(cm, 'assessment.methodOther') : (getVal(cm, 'assessment.method') || '')}</td>
+                                    <td style="padding: 0; border: none;">
+                                        <!-- 세 번째 줄 (완벽한 가로 3등분 비율 유지) -->
+                                        <table style="width: 100%; border-collapse: collapse; border-style: hidden; margin: 0;">
+                                            <colgroup>
+                                                <col width="9%"><col width="24.3%">
+                                                <col width="9%"><col width="24.3%">
+                                                <col width="10%"><col width="23.4%">
+                                            </colgroup>
+                                            <tr>
+                                                <th style="border-top: none; border-bottom: none; border-left: none;">사정일자</th><td style="border-top: none; border-bottom: none;" class="text-center">${getVal(cm, 'assessment.date')}</td>
+                                                <th style="border-top: none; border-bottom: none;">작성자</th><td style="border-top: none; border-bottom: none;" class="text-center">${getVal(cm, 'assessment.writer')}</td>
+                                                <th style="border-top: none; border-bottom: none;">상담방법</th><td style="border-top: none; border-bottom: none; border-right: none;" class="text-center">${getVal(cm, 'assessment.method') === '기타' ? getVal(cm, 'assessment.methodOther') : (getVal(cm, 'assessment.method') || '')}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
                                 </tr>
                             </table>
                         </div>
