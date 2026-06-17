@@ -10563,9 +10563,12 @@
                         /* 테이블 스타일 */
                         table { width: 100%; border-collapse: collapse; margin-bottom: 1px; table-layout: fixed; }
                         
-                        /* [수정] 상단 정보표 사이의 틈새(여백) 완전 제거 및 완벽 밀착 */
-                        .info-group table { margin-bottom: 0 !important; }
-                        .info-group table + table { margin-top: -1px !important; }
+                        /* [수정] 상단 정보표 선 굵어짐(겹침) 현상 완벽 해결 */
+                        .info-group { display: flex; flex-direction: column; }
+                        .info-group table { margin: 0 !important; }
+                        /* 위에 있는 테이블의 맨 아랫줄 테두리를 아예 지워서 아래 표의 윗줄과 하나가 되게 만듦 */
+                        .info-group table:not(:last-child) tr:last-child th,
+                        .info-group table:not(:last-child) tr:last-child td { border-bottom: none !important; }
                         
                         /* 행 중간이 잘리지 않도록 보호 (페이지 넘김 시 통째로 이동) */
                         tr { break-inside: avoid; page-break-inside: avoid; }
