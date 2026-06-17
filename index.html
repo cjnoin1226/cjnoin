@@ -8080,6 +8080,7 @@
                                                                     <input type="checkbox" name="cm-assess-marital" value="${opt}" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${(getVal(cm, 'assessment.data.maritalStatus')||[]).includes(opt) ? 'checked' : ''}>
                                                                     <span>${opt}</span>
                                                                 </label>
+                                                                ${opt === '사실혼' ? '<div class="w-px h-3 bg-slate-300 mx-1 hidden sm:block"></div>' : ''}
                                                             `).join('')}
                                                         </div>
                                                     </div>
@@ -11045,6 +11046,15 @@
                     // [신규] 의료기관 이용현황 데이터 추출
                     const medHist = aData.medicalHistory || [];
 
+                    // [신규] 결혼/동거여부 렌더링 로직 (체크박스 나열 및 사실혼 구분선 추가)
+                    const maritalOpts = ['결혼', '미혼', '이혼', '사실혼', '동거', '별거', '사별', '행방불명'];
+                    const maritalStat = aData.maritalStatus || [];
+                    const maritalHTML = maritalOpts.map(m => {
+                        let chkHtml = renderChkBox(m, maritalStat.includes(m));
+                        if (m === '사실혼') chkHtml += ` <span style="display:inline-block; width:1px; height:11px; background:#888; margin:0 4px; vertical-align:middle;"></span>`;
+                        return chkHtml;
+                    }).join(' ');
+
                     // [수정] 경제상황 렌더링 로직 (전체 항목 표시)
                     const ecoList = ['기초수급(의료/생계/주거)', '조건부 수급', '차상위', '일반(저소득)', '기타'];
                     const ecoHTML = ecoList.map(item => {
@@ -11255,8 +11265,7 @@
                                     <table class="inner-tbl">
                                         <tr>
                                             <th>결혼/동거</th>
-                                            <!-- 기존 4칸 구조에서 주소/연락처/종교/학력이 빠졌으므로 혼자 남은 결혼/동거 칸을 끝까지 확장 -->
-                                            <td colspan="3">${(getVal(cm, 'assessment.data.maritalStatus')||[]).join(', ')}</td>
+                                            <td colspan="3" style="white-space: nowrap; letter-spacing: -0.5px;">${maritalHTML}</td>
                                         </tr>
                                         <tr>
                                             <th>가족사항</th>
