@@ -7034,7 +7034,7 @@
                                                         <!-- 3. 주소 -->
                                                         <tr>
                                                             <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">주소</th>
-                                                            <td colspan="9" class="border border-slate-300 p-2 text-slate-600 bg-slate-50">${getVal(cm, 'initial.snapAddress') || c.address}</td>
+                                                            <td colspan="9" class="border border-slate-300 p-2 text-slate-600 bg-slate-50">${getVal(cm, 'initial.snapAddress') || (c.address ? c.address + (c.addressDetail ? ', ' + c.addressDetail : '') : '')}</td>
                                                         </tr>
 
                                                         <!-- 4. 연락처 -->
@@ -8068,7 +8068,7 @@
                                                     </div>
                                                     <!-- 2줄: 주소, 연락처 -->
                                                     <div class="flex flex-wrap gap-3 items-center mt-1">
-                                                        <div class="flex items-center gap-2 flex-1 min-w-[200px]"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">주소</span><span class="text-sm text-slate-700 truncate">${getVal(cm, 'assessment.snapAddress') || c.address}</span></div>
+                                                        <div class="flex items-center gap-2 flex-1 min-w-[200px]"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">주소</span><span class="text-sm text-slate-700 truncate">${getVal(cm, 'assessment.snapAddress') || (c.address ? c.address + (c.addressDetail ? ', ' + c.addressDetail : '') : '')}</span></div>
                                                         <div class="flex items-center gap-2 flex-1 min-w-[150px]"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">연락처</span><span class="text-sm text-slate-700">${getVal(cm, 'assessment.snapPhone') || c.phone}</span></div>
                                                     </div>
                                                     <!-- 3줄: 결혼/동거여부 -->
@@ -10944,7 +10944,7 @@
                                 <th>종교</th><td class="text-center">${getVal(cm, 'initial.religion')}</td>
                             </tr>
                             <tr>
-                                <th>주소</th><td colspan="3">${getVal(cm, 'initial.snapAddress') || client.address}</td>
+                                <th>주소</th><td colspan="3">${getVal(cm, 'initial.snapAddress') || (client.address ? client.address + (client.addressDetail ? ', ' + client.addressDetail : '') : '')}</td>
                                 <th>연락처</th><td colspan="3" class="text-center">${getVal(cm, 'initial.snapPhone') || client.phone}</td>
                             </tr>
                         </table>
@@ -11230,7 +11230,7 @@
                                                 <th style="border-top: none;">종교</th><td style="border-top: none; border-right: none;" class="text-center">${getVal(cm, 'assessment.religion') || getVal(cm, 'initial.religion') || ''}</td>
                                             </tr>
                                             <tr>
-                                                <th style="border-bottom: none; border-left: none;">주소</th><td colspan="5" style="border-bottom: none; text-align: left; padding-left: 8px;">${getVal(cm, 'assessment.snapAddress') || client.address}</td>
+                                                <th style="border-bottom: none; border-left: none;">주소</th><td colspan="5" style="border-bottom: none; text-align: left; padding-left: 8px;">${getVal(cm, 'assessment.snapAddress') || (client.address ? client.address + (client.addressDetail ? ', ' + client.addressDetail : '') : '')}</td>
                                                 <th style="border-bottom: none;">연락처</th><td colspan="3" style="border-bottom: none; border-right: none;" class="text-center">${getVal(cm, 'assessment.snapPhone') || client.phone}</td>
                                             </tr>
                                         </table>
