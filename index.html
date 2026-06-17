@@ -11197,18 +11197,30 @@
                         </div>
                         <div class="clearfix"></div>
 
-                        <table>
-                            <!-- 표를 6칸으로 쪼개서 상담방법까지 한 줄에 나오게 조정 -->
-                            <colgroup><col width="12%"><col width="21%"><col width="12%"><col width="21%"><col width="12%"><col width="22%"></colgroup>
+                        <table style="font-size: 11px;">
+                            <!-- [신규] 표를 10칸으로 쪼개서 학력, 종교, 주소, 연락처까지 상단에 통합 배치 -->
+                            <colgroup>
+                                <col width="9%"><col width="13%">
+                                <col width="9%"><col width="17%">
+                                <col width="7%"><col width="7%">
+                                <col width="8%"><col width="12%">
+                                <col width="8%"><col width="10%">
+                            </colgroup>
                             <tr>
                                 <th>대상자명</th><td class="text-center text-bold">${client.name}</td>
                                 <th>생년월일</th><td class="text-center">${client.birthDate} (${client.birthDate ? ((getVal(cm, 'assessment.date') ? parseInt(getVal(cm, 'assessment.date').split('-')[0]) : new Date().getFullYear()) - parseInt(client.birthDate.substring(0, 4))) : 0}세)</td>
                                 <th>성별</th><td class="text-center">${client.gender}</td>
+                                <th>학력</th><td class="text-center">${getVal(cm, 'assessment.education')}</td>
+                                <th>종교</th><td class="text-center">${getVal(cm, 'assessment.religion') || getVal(cm, 'initial.religion') || ''}</td>
                             </tr>
                             <tr>
-                                <th>사정일자</th><td class="text-center">${getVal(cm, 'assessment.date')}</td>
+                                <th>주소</th><td colspan="5" style="text-align: left; padding-left: 8px;">${getVal(cm, 'assessment.snapAddress') || client.address}</td>
+                                <th>연락처</th><td colspan="3" class="text-center">${getVal(cm, 'assessment.snapPhone') || client.phone}</td>
+                            </tr>
+                            <tr>
+                                <th>사정일자</th><td colspan="3" class="text-center">${getVal(cm, 'assessment.date')}</td>
                                 <th>작성자</th><td class="text-center">${getVal(cm, 'assessment.writer')}</td>
-                                <th>상담방법</th><td class="text-center">${getVal(cm, 'assessment.method') === '기타' ? getVal(cm, 'assessment.methodOther') : (getVal(cm, 'assessment.method') || '')}</td>
+                                <th>상담방법</th><td colspan="3" class="text-center">${getVal(cm, 'assessment.method') === '기타' ? getVal(cm, 'assessment.methodOther') : (getVal(cm, 'assessment.method') || '')}</td>
                             </tr>
                         </table>
 
@@ -11220,20 +11232,9 @@
                                 <td style="padding: 0;">
                                     <table class="inner-tbl">
                                         <tr>
-                                            <th>주소</th>
-                                            <td colspan="3">${getVal(cm, 'assessment.snapAddress') || client.address}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>연락처</th>
-                                            <td>${getVal(cm, 'assessment.snapPhone') || client.phone}</td>
-                                            <th>종교</th>
-                                            <td>${getVal(cm, 'assessment.religion') || getVal(cm, 'initial.religion') || ''}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>학력</th>
-                                            <td>${getVal(cm, 'assessment.education') || ''}</td>
                                             <th>결혼/동거</th>
-                                            <td>${(getVal(cm, 'assessment.data.maritalStatus')||[]).join(', ')}</td>
+                                            <!-- 기존 4칸 구조에서 주소/연락처/종교/학력이 빠졌으므로 혼자 남은 결혼/동거 칸을 끝까지 확장 -->
+                                            <td colspan="3">${(getVal(cm, 'assessment.data.maritalStatus')||[]).join(', ')}</td>
                                         </tr>
                                         <tr>
                                             <th>가족사항</th>
