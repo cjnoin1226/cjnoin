@@ -1567,24 +1567,22 @@
             // [변경] 뷰 모드에 따른 스타일 분기 처리
             const isSingleView = state.viewMode === 'single';
             
-            // 싱글 뷰일 때는 fixed로 하단 고정, 스플릿 뷰일 때는 sticky 유지
+            /// 싱글 뷰일 때는 fixed로 하단 고정, 스플릿 뷰일 때는 flex 흐름에 맞게 위치 고정
             const footerClass = isSingleView 
                 ? "fixed bottom-0 left-0 right-0 z-[55] bg-slate-50 border-t border-slate-200 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"
-                : "sticky bottom-0 z-50 bg-slate-50 border-t border-slate-200 py-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]";
+                : "flex-shrink-0 bg-slate-50 border-t border-slate-200 py-2 mt-auto shadow-inner z-50";
                 
             const listClass = isSingleView 
-                ? "overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-20" // 하단 패딩 증가 (Fixed Footer 고려)
-                : "overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-4";
+                ? "overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-20 flex-1" 
+                : "overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-4 flex-1 min-h-0";
 
-            // [핵심 변경 사항] 목록 컨테이너에 max-height를 강제 적용하여 내부 스크롤 생성 (70vh)
-            // 브라우저 전체 높이가 70vh + 헤더 높이보다 작으면 브라우저 스크롤 발생
-            // 목록 내용이 70vh보다 길면 내부 스크롤 발생
-            const containerStyle = "max-height: 70vh;"; 
+            // 스플릿 뷰에서는 flex 레이아웃으로 자동 조절되게 max-height 제외
+            const containerStyle = isSingleView ? "max-height: 70vh;" : "";
 
             return `
-                <div class="space-y-6 animate-fade-in p-1">
-                    <!-- [상단] 필터 영역 (Sticky: 전체 스크롤 시 상단 고정) -->
-                    <div class="sticky top-0 z-50 bg-slate-50 pt-2 pb-2 shadow-sm -mx-1 px-1">
+                <div class="${isSingleView ? 'space-y-6' : 'flex flex-col h-full'} animate-fade-in p-1 relative">
+                    <!-- [상단] 필터 영역 (스플릿 뷰에선 flex-shrink-0으로 고정) -->
+                    <div class="${isSingleView ? 'sticky top-0' : 'flex-shrink-0 relative'} z-50 bg-slate-50 pt-2 pb-2 shadow-sm -mx-1 px-1 mb-2">
                         <div class="space-y-4 pb-2 transition-all">
                             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
                                 <!-- [수정] 제목 옆에 로딩 태그 추가 -->
@@ -14494,6 +14492,66 @@
             m.innerHTML = html; 
             m.classList.remove('hidden'); 
             state.ui.allowOverlayClose = allowOverlayClose;
+            
+            // [신규] 분할 화면 모드일 때 모달 배경 투명화 및 뒷배경 클릭 허용 (비모달형 작동)
+            const isSplitView = state.viewMode === 'split';
+            if (isSplitView) {
+                m.classList.remove('modal-overlay'); // 검은 배경 제거
+                m.style.pointerEvents = 'none'; // 뒷배경 클릭 통과
+            } else {
+                m.classList.add('modal-overlay');
+                m.style.pointerEvents = 'auto'; // 뒷배경 클릭 차단
+            }
+
+            // 모달 안의 실제 컨텐츠 박스 (하얀색 네모 창)
+            const modalContent = m.firstElementChild;
+            if (modalContent) {
+                modalContent.style.pointerEvents = 'auto'; // 창 안은 정상적으로 클릭되게 복구
+                
+                // [신규] 모달 드래그(이동) 기능 추가
+                const header = modalContent.querySelector('.flex.justify-between.items-center'); // 헤더 찾기
+                if (header) {
+                    header.style.cursor = 'grab';
+                    header.title = "여기를 잡고 드래그하면 모달을 이동할 수 있습니다.";
+                    let isDragging = false, startX, startY, initialLeft, initialTop;
+                    
+                    header.addEventListener('mousedown', (e) => {
+                        // 버튼이나 입력칸 클릭 시에는 드래그 무시
+                        if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+                        isDragging = true;
+                        header.style.cursor = 'grabbing';
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        
+                        const rect = modalContent.getBoundingClientRect();
+                        // 드래그를 위해 position 속성 변경
+                        if (modalContent.style.position !== 'absolute') {
+                            modalContent.style.position = 'absolute';
+                            modalContent.style.left = rect.left + 'px';
+                            modalContent.style.top = rect.top + 'px';
+                            modalContent.style.margin = '0'; // 중앙 정렬 마진 무력화
+                            modalContent.style.transform = 'none';
+                        }
+                        initialLeft = parseFloat(modalContent.style.left) || rect.left;
+                        initialTop = parseFloat(modalContent.style.top) || rect.top;
+                    });
+
+                    document.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return;
+                        const dx = e.clientX - startX;
+                        const dy = e.clientY - startY;
+                        modalContent.style.left = (initialLeft + dx) + 'px';
+                        modalContent.style.top = (initialTop + dy) + 'px';
+                    });
+
+                    document.addEventListener('mouseup', () => {
+                        if (isDragging) {
+                            isDragging = false;
+                            header.style.cursor = 'grab';
+                        }
+                    });
+                }
+            }
             
             setTimeout(() => {
                 // [스마트 감지] 모달이 열리면 무조건 깨끗한 상태로 리셋!
