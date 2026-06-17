@@ -8034,6 +8034,16 @@
                                                     <label class="text-sm font-bold text-slate-700">작성자</label>
                                                     <input type="text" id="cm-assess-writer" class="input-field py-1 px-2 text-sm w-32 bg-white" value="${getVal(cm, 'assessment.writer')}" placeholder="성명">
                                                 </div>
+                                                <!-- [신규] 상담방법 추가 -->
+                                                <div class="flex items-center gap-2">
+                                                    <label class="text-sm font-bold text-slate-700">상담방법</label>
+                                                    <select id="cm-assess-method" class="input-field py-1 px-2 text-sm w-24 bg-white" onchange="const t = document.getElementById('cm-assess-method-other'); if(this.value==='기타') t.classList.remove('hidden'); else t.classList.add('hidden');">
+                                                        <option value="">선택</option>
+                                                        ${['내방', '방문', '전화', '서면'].map(m => `<option value="${m}" ${getVal(cm, 'assessment.method') === m ? 'selected' : ''}>${m}</option>`).join('')}
+                                                        <option value="기타" ${getVal(cm, 'assessment.method') === '기타' ? 'selected' : ''}>기타</option>
+                                                    </select>
+                                                    <input type="text" id="cm-assess-method-other" class="input-field py-1 px-2 text-sm w-24 bg-white ${getVal(cm, 'assessment.method') === '기타' ? '' : 'hidden'}" value="${getVal(cm, 'assessment.methodOther')}" placeholder="직접입력">
+                                                </div>
                                             </div>
                                             ${getSectionResetBtn('sub-tab-assessment')}
                                         </div>
@@ -8045,12 +8055,51 @@
                                                 <span class="font-bold text-slate-700 text-sm">1. 대상자 상세정보 (Basic Information)</span>
                                             </div>
                                             <div class="p-4 space-y-4">
-                                                <!-- 기본 인적사항 (요약) -->
-                                                <div class="flex flex-wrap gap-4 pb-4 border-b border-slate-100">
-                                                    <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">성명</span><span class="text-sm font-bold text-slate-800">${c.name}</span></div>
-                                                    <!-- [수정] 사정일자 기준으로 나이 계산 -->
-                                                    <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">생년월일</span><span class="text-sm text-slate-700">${c.birthDate} (${c.birthDate ? ((getVal(cm, 'assessment.date') ? parseInt(getVal(cm, 'assessment.date').split('-')[0]) : new Date().getFullYear()) - parseInt(c.birthDate.substring(0, 4))) : 0}세)</span></div>
-                                                    <div class="flex items-center gap-2 flex-1"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">주소</span><span class="text-sm text-slate-700 truncate">${getVal(cm, 'assessment.snapAddress') || c.address}</span></div>
+                                                <!-- [신규] 기본 인적사항 (상세) + 가족사항 표 -->
+                                                <div class="flex flex-col gap-3 pb-4 border-b border-slate-100">
+                                                    <!-- 1줄: 이름, 생년월일, 성별, 연령, 학력, 종교 -->
+                                                    <div class="flex flex-wrap gap-3 items-center">
+                                                        <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">성명</span><span class="text-sm font-bold text-slate-800">${c.name}</span></div>
+                                                        <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">생년월일</span><span class="text-sm text-slate-700">${c.birthDate}</span></div>
+                                                        <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">연령</span><span class="text-sm text-slate-700">${c.birthDate ? ((getVal(cm, 'assessment.date') ? parseInt(getVal(cm, 'assessment.date').split('-')[0]) : new Date().getFullYear()) - parseInt(c.birthDate.substring(0, 4))) : 0}세</span></div>
+                                                        <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">성별</span><span class="text-sm text-slate-700">${c.gender}</span></div>
+                                                        <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">학력</span><input type="text" id="cm-assess-education" class="input-field py-0.5 px-2 text-xs w-28 border-slate-300" value="${getVal(cm, 'assessment.education')}" placeholder="직접입력"></div>
+                                                        <div class="flex items-center gap-2"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">종교</span><input type="text" id="cm-assess-religion" class="input-field py-0.5 px-2 text-xs w-28 border-slate-300" value="${getVal(cm, 'assessment.religion') || getVal(cm, 'initial.religion')}" placeholder="직접입력"></div>
+                                                    </div>
+                                                    <!-- 2줄: 주소, 연락처 -->
+                                                    <div class="flex flex-wrap gap-3 items-center mt-1">
+                                                        <div class="flex items-center gap-2 flex-1 min-w-[200px]"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">주소</span><span class="text-sm text-slate-700 truncate">${getVal(cm, 'assessment.snapAddress') || c.address}</span></div>
+                                                        <div class="flex items-center gap-2 flex-1 min-w-[150px]"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">연락처</span><span class="text-sm text-slate-700">${getVal(cm, 'assessment.snapPhone') || c.phone}</span></div>
+                                                    </div>
+                                                    <!-- 3줄: 결혼/동거여부 -->
+                                                    <div class="flex items-center gap-2 mt-2">
+                                                        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">결혼/동거여부</span>
+                                                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-700">
+                                                            ${['결혼', '미혼', '이혼', '사실혼', '동거', '별거', '사별', '행방불명'].map(opt => `
+                                                                <label class="flex items-center gap-1 cursor-pointer">
+                                                                    <input type="checkbox" name="cm-assess-marital" value="${opt}" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500" ${(getVal(cm, 'assessment.data.maritalStatus')||[]).includes(opt) ? 'checked' : ''}>
+                                                                    <span>${opt}</span>
+                                                                </label>
+                                                            `).join('')}
+                                                        </div>
+                                                    </div>
+                                                    <!-- 4줄: 가족사항 표 (초기면접지 연동) -->
+                                                    <div class="mt-3">
+                                                        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded inline-block mb-2">가족사항 <span class="font-normal text-slate-400 ml-1">(초기면접지에서 자동 연동)</span></span>
+                                                        <table class="w-full text-xs text-center border-collapse border border-slate-200">
+                                                            <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                                                                <tr><th class="p-1.5 border-r border-slate-200">관계</th><th class="p-1.5 border-r border-slate-200">성명</th><th class="p-1.5 border-r border-slate-200">연령</th><th class="p-1.5 border-r border-slate-200">동거여부</th><th class="p-1.5">비고(직업 등)</th></tr>
+                                                            </thead>
+                                                            <tbody class="divide-y divide-slate-100">
+                                                                ${(() => {
+                                                                    const fam = getVal(cm, 'initial.familyDetails') || [];
+                                                                    const validFam = fam.filter(f => f.rel || f.name); // 비어있는 줄 숨기기
+                                                                    if (validFam.length === 0) return '<tr><td colspan="5" class="p-4 text-slate-400">초기면접지에 입력된 가족사항이 없습니다.</td></tr>';
+                                                                    return validFam.map(f => `<tr><td class="p-1.5 border-r border-slate-200">${f.rel||''}</td><td class="p-1.5 border-r border-slate-200">${f.name||''}</td><td class="p-1.5 border-r border-slate-200">${f.age||''}</td><td class="p-1.5 border-r border-slate-200">${f.co||''}</td><td class="p-1.5">${f.note||''}</td></tr>`).join('');
+                                                                })()}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
 
                                                 <!-- ① 경제상황 -->
@@ -10061,8 +10110,14 @@
                 const assessment = {
                     date: getEl('cm-assess-date'),
                     writer: getEl('cm-assess-writer'),
+                    method: getEl('cm-assess-method'),
+                    methodOther: getEl('cm-assess-method-other'),
+                    education: getEl('cm-assess-education'),
+                    religion: getEl('cm-assess-religion'),
                     snapAddress: currentCm.assessment?.snapAddress || (client ? client.address : ''),
+                    snapPhone: currentCm.assessment?.snapPhone || (client ? client.phone : ''),
                     data: {
+                        maritalStatus: getCheckedValues('cm-assess-marital'),
                         economic: getCheckedValues('cm-assess-eco'),
                         economicDetail: {
                             conditional: getEl('cm-assess-eco-cond'),
@@ -11143,21 +11198,66 @@
                         <div class="clearfix"></div>
 
                         <table>
-                            <col width="15%"><col width="35%"><col width="15%"><col width="35%">
+                            <!-- 표를 6칸으로 쪼개서 상담방법까지 한 줄에 나오게 조정 -->
+                            <colgroup><col width="12%"><col width="21%"><col width="12%"><col width="21%"><col width="12%"><col width="22%"></colgroup>
                             <tr>
-                                <th>대상자명</th><td>${client.name}</td>
-                                <!-- [수정] 사정일자 기준으로 나이 계산 -->
-                                <th>생년월일</th><td>${client.birthDate} (${client.birthDate ? ((getVal(cm, 'assessment.date') ? parseInt(getVal(cm, 'assessment.date').split('-')[0]) : new Date().getFullYear()) - parseInt(client.birthDate.substring(0, 4))) : 0}세)</td>
+                                <th>대상자명</th><td class="text-center text-bold">${client.name}</td>
+                                <th>생년월일</th><td class="text-center">${client.birthDate} (${client.birthDate ? ((getVal(cm, 'assessment.date') ? parseInt(getVal(cm, 'assessment.date').split('-')[0]) : new Date().getFullYear()) - parseInt(client.birthDate.substring(0, 4))) : 0}세)</td>
+                                <th>성별</th><td class="text-center">${client.gender}</td>
                             </tr>
                             <tr>
-                                <th>사정일자</th><td>${getVal(cm, 'assessment.date')}</td>
-                                <th>작성자</th><td>${getVal(cm, 'assessment.writer')}</td>
+                                <th>사정일자</th><td class="text-center">${getVal(cm, 'assessment.date')}</td>
+                                <th>작성자</th><td class="text-center">${getVal(cm, 'assessment.writer')}</td>
+                                <th>상담방법</th><td class="text-center">${getVal(cm, 'assessment.method') === '기타' ? getVal(cm, 'assessment.methodOther') : (getVal(cm, 'assessment.method') || '')}</td>
                             </tr>
                         </table>
 
                         <h2>1. 대상자 기본정보 및 상세현황</h2>
                         <table>
-                            <col width="15%"><col width="85%">
+                            <colgroup><col width="15%"><col width="85%"></colgroup>
+                            <tr>
+                                <th>기본정보</th>
+                                <td style="padding: 0;">
+                                    <table class="inner-tbl">
+                                        <tr>
+                                            <th>주소</th>
+                                            <td colspan="3">${getVal(cm, 'assessment.snapAddress') || client.address}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>연락처</th>
+                                            <td>${getVal(cm, 'assessment.snapPhone') || client.phone}</td>
+                                            <th>종교</th>
+                                            <td>${getVal(cm, 'assessment.religion') || getVal(cm, 'initial.religion') || ''}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>학력</th>
+                                            <td>${getVal(cm, 'assessment.education') || ''}</td>
+                                            <th>결혼/동거</th>
+                                            <td>${(getVal(cm, 'assessment.data.maritalStatus')||[]).join(', ')}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>가족사항</th>
+                                            <td colspan="3" style="padding: 0;">
+                                                <table style="width: 100%; border-collapse: collapse; border: none; font-size: 10px;">
+                                                    <tr style="background-color: #f9f9f9;">
+                                                        <th style="border: 1px solid #bbb; padding: 2px;">관계</th>
+                                                        <th style="border: 1px solid #bbb; padding: 2px;">성명</th>
+                                                        <th style="border: 1px solid #bbb; padding: 2px;">연령</th>
+                                                        <th style="border: 1px solid #bbb; padding: 2px;">동거여부</th>
+                                                        <th style="border: 1px solid #bbb; padding: 2px;">비고</th>
+                                                    </tr>
+                                                    ${(() => {
+                                                        const fam = getVal(cm, 'initial.familyDetails') || [];
+                                                        const validFam = fam.filter(f => f.rel || f.name);
+                                                        if (validFam.length === 0) return '<tr><td colspan="5" style="border: 1px solid #bbb; padding: 2px; text-align: center;">초기면접지 가족사항 없음</td></tr>';
+                                                        return validFam.map(f => `<tr><td style="border: 1px solid #bbb; padding: 2px; text-align: center;">${f.rel||''}</td><td style="border: 1px solid #bbb; padding: 2px; text-align: center;">${f.name||''}</td><td style="border: 1px solid #bbb; padding: 2px; text-align: center;">${f.age||''}</td><td style="border: 1px solid #bbb; padding: 2px; text-align: center;">${f.co||''}</td><td style="border: 1px solid #bbb; padding: 2px;">${f.note||''}</td></tr>`).join('');
+                                                    })()}
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
                             <tr>
                                 <th>경제상황</th>
                                 <td style="padding: 0;">
