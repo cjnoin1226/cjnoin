@@ -10563,6 +10563,10 @@
                         /* 테이블 스타일 */
                         table { width: 100%; border-collapse: collapse; margin-bottom: 1px; table-layout: fixed; }
                         
+                        /* [수정] 상단 정보표 사이의 틈새(여백) 완전 제거 및 완벽 밀착 */
+                        .info-group table { margin-bottom: 0 !important; }
+                        .info-group table + table { margin-top: -1px !important; }
+                        
                         /* 행 중간이 잘리지 않도록 보호 (페이지 넘김 시 통째로 이동) */
                         tr { break-inside: avoid; page-break-inside: avoid; }
                         /* 표가 잘릴 때 제목(헤더) 반복 및 표 내부 분할 허용 */
@@ -10593,7 +10597,8 @@
                         /* 유틸리티 */
                         .text-center { text-align: center; }
                         .text-bold { font-weight: bold; }
-                        .chk { display: inline-block; width: 12px; height: 12px; border: 1px solid #000; margin-right: 3px; vertical-align: middle; text-align: center; line-height: 10px; font-size: 10px; }
+                        /* [수정] 체크박스가 찌그러지거나 모양이 제각각이 되지 않도록 완벽한 정사각형으로 고정 (크기도 살짝 키움) */
+                        .chk { display: inline-block; width: 13px !important; height: 13px !important; min-width: 13px; min-height: 13px; border: 1px solid #000; margin-right: 3px; vertical-align: middle; text-align: center; line-height: 11px; font-size: 10px; box-sizing: border-box; background-color: #fff; }
                         .chk.checked { background: #000; color: #fff; }
                         .bg-gray { background-color: #e5e7eb !important; font-weight: bold; } 
                         .clearfix::after { content: ""; clear: both; display: table; }
