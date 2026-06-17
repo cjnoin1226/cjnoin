@@ -6984,7 +6984,7 @@
                                         <div>
                                             <!-- [수정] 초기면접지 서식 테이블 구현 (10열 구조로 변경하여 한 줄 배치) -->
                                             <div class="border border-slate-300 bg-white shadow-sm overflow-hidden">
-                                                <table class="w-full text-sm text-left border-collapse table-fixed">
+                                                <table class="w-full text-base text-left border-collapse table-fixed">
                                                     <colgroup>
                                                         <col class="w-[8%]">
                                                         <col class="w-[12%]">
@@ -7625,8 +7625,8 @@
                                                             </div>
                                                         </div>
 
-                                                        <!-- Card 3: 소득정보 -->
-                                                        <div class="bg-slate-50/50 p-3 rounded-xl border border-slate-100 md:col-span-2 lg:col-span-1">
+                                                       <!-- Card 3: 소득정보 -->
+                                                        <div class="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
                                                             <label class="block text-sm font-bold text-slate-700 mb-2">③ 소득정보 (실수령액 점수)</label>
                                                             <div class="flex flex-col gap-1.5">
                                                                 ${['10점(40만원 미만)', '8점(40만원이상 53만원 미만)', '6점(53만원이상~71만원 미만)', '4점(71만원이상~80만원 미만)', '2점(80만원이상~88만원 미만)', '0점(88만원 이상~)'].map(opt => {
@@ -8118,7 +8118,8 @@
                                                                         return `
                                                                         <div class="flex items-center gap-1">
                                                                             <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded transition-colors">
-                                                                                <input type="checkbox" id="cm-assess-inc-${s.key}" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" ${isChk ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-assess-inc-${s.key}-val')">
+                                                                                <!-- 🚨 핵심: 저장할 때 값을 읽어갈 수 있도록 name="cm-assess-inc-\${s.key}" 이름표 속성을 추가했습니다! -->
+                                                                                <input type="checkbox" id="cm-assess-inc-${s.key}" name="cm-assess-inc-${s.key}" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" ${isChk ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-assess-inc-${s.key}-val')">
                                                                                 <span class="text-xs text-slate-700">${s.label}</span>
                                                                             </label>
                                                                             <input type="text" id="cm-assess-inc-${s.key}-val" class="input-field py-0.5 px-2 text-xs w-20 border-slate-300 h-[24px] ${isChk ? '' : 'hidden'}" placeholder="금액" value="${val}">
@@ -8703,7 +8704,7 @@
                                                 <div class="w-1.5 h-4 bg-slate-500 rounded-full"></div>
                                                 <span class="font-bold text-slate-700 text-sm">2. 영역별 사정 (Assessment Narrative)</span>
                                             </div>
-                                            <table class="w-full text-sm text-left border-collapse">
+                                            <table class="w-full text-base text-left border-collapse">
                                                 <tbody class="divide-y divide-slate-100">
                                                     <!-- [신규] 개인력/가족력 칸 추가 -->
                                                     <tr>
@@ -8755,7 +8756,7 @@
                                                 <div class="w-1.5 h-4 bg-teal-500 rounded-full"></div>
                                                 <span class="font-bold text-slate-700 text-sm">3. 정서적 측면</span>
                                             </div>
-                                            <table class="w-full text-sm text-left border-collapse">
+                                            <table class="w-full text-base text-left border-collapse">
                                                 <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                                                     <tr>
                                                         <th class="p-2 border-r border-slate-200 text-center">질문</th>
@@ -8825,7 +8826,7 @@
                                                 <div class="w-1.5 h-4 bg-purple-500 rounded-full"></div>
                                                 <span class="font-bold text-slate-700 text-sm">4. 사회적 측면</span>
                                             </div>
-                                            <table class="w-full text-sm text-left border-collapse">
+                                            <table class="w-full text-base text-left border-collapse">
                                                 <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                                                     <tr>
                                                         <th class="p-2 border-r border-slate-200 text-center">질문</th>
@@ -8937,7 +8938,7 @@
                                                 <div class="w-1.5 h-4 bg-orange-500 rounded-full"></div>
                                                 <span class="font-bold text-slate-700 text-sm">5. 욕구</span>
                                             </div>
-                                            <table class="w-full text-xs text-left border-collapse">
+                                            <table class="w-full text-base text-left border-collapse">
                                                 <tbody class="divide-y divide-slate-200">
                                                     <!-- 위기관리체계구축 -->
                                                     <tr>
@@ -11494,7 +11495,17 @@
                         htmlContent += `
                             <!-- ADL 인쇄 페이지 추가 (새 페이지에서 시작) -->
                             <div style="page-break-before: always; padding-top: 20px;">
-                                <h1 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px;">일상생활동작(ADL) 평가</h1>
+                                <h1 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">일상생활동작(ADL) 평가</h1>
+                                
+                                <!-- 🚨 [추가] 인쇄화면 상단 대상자 기본정보 표 🚨 -->
+                                <table style="margin-bottom: 15px;">
+                                    <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
+                                    <tr>
+                                        <th>대상자명</th><td class="text-center font-bold">\${client.name}</td>
+                                        <th>생년월일</th><td class="text-center">\${client.birthDate}</td>
+                                    </tr>
+                                </table>
+
                                 <table>
                                     <colgroup>
                                         <col width="15%">
