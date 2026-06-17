@@ -11022,7 +11022,8 @@
 
                         <h2>8. 비고</h2>
                         <table style="margin-bottom: 5px;">
-                            <tr><td style="vertical-align: top; height: 100px; padding: 10px; line-height: 1.6;">${(getVal(cm, 'initial.conclusion')||'').replace(/\n/g, '<br>')}</td></tr>
+                            <!-- 높이 제한 완화, 여백 축소, 줄간격 축소 -->
+                            <tr><td style="vertical-align: top; min-height: 60px; padding: 3px 8px; line-height: 1.2;">${(getVal(cm, 'initial.conclusion')||'').replace(/\n/g, '<br>')}</td></tr>
                         </table>
                         
                         <!-- [추가] 삭제했던 상담일시와 상담자를 비고 아래에 우측 정렬로 배치 -->
