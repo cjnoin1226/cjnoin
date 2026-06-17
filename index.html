@@ -1580,7 +1580,7 @@
             const containerStyle = isSingleView ? "max-height: 70vh;" : "";
 
             return `
-                <div class="${isSingleView ? 'space-y-6' : 'flex flex-col h-full'} animate-fade-in p-1 relative">
+                <div class="${isSingleView ? 'space-y-6' : 'flex flex-col h-full flex-1 min-h-0 w-full'} animate-fade-in p-1 relative">
                     <!-- [상단] 필터 영역 (스플릿 뷰에선 flex-shrink-0으로 고정) -->
                     <div class="${isSingleView ? 'sticky top-0' : 'flex-shrink-0 relative'} z-50 bg-slate-50 pt-2 pb-2 shadow-sm -mx-1 px-1 mb-2">
                         <div class="space-y-4 pb-2 transition-all">
@@ -14508,6 +14508,90 @@
             if (modalContent) {
                 modalContent.style.pointerEvents = 'auto'; // 창 안은 정상적으로 클릭되게 복구
                 
+                // [신규] 모달 사방 크기 조절 (Resize) 기능 추가
+                if (!modalContent.querySelector('.modal-resizer-container')) {
+                    const resizerContainer = document.createElement('div');
+                    resizerContainer.className = 'modal-resizer-container relative'; // 모달 영역을 감싸는 역할
+                    const dirs = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+                    dirs.forEach(dir => {
+                        const handle = document.createElement('div');
+                        handle.className = `resizer resizer-${dir}`;
+                        handle.style.zIndex = '200'; // 겉으로 튀어나오게
+                        
+                        handle.addEventListener('mousedown', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Tailwind의 최대 너비 고정(max-w-2xl 등) 무력화 (그래야 크기 조절이 됨)
+                            modalContent.style.maxWidth = 'none';
+                            
+                            const startX = e.clientX;
+                            const startY = e.clientY;
+                            const rect = modalContent.getBoundingClientRect();
+                            
+                            // 크기 조절을 위해 CSS 포지션을 강제로 absolute로 전환
+                            if (modalContent.style.position !== 'absolute') {
+                                modalContent.style.position = 'absolute';
+                                modalContent.style.left = rect.left + 'px';
+                                modalContent.style.top = rect.top + 'px';
+                                modalContent.style.margin = '0';
+                                modalContent.style.transform = 'none';
+                            }
+                            
+                            const initialX = parseFloat(modalContent.style.left) || rect.left;
+                            const initialY = parseFloat(modalContent.style.top) || rect.top;
+                            const initialW = rect.width;
+                            const initialH = rect.height;
+
+                            let currentX = startX;
+                            let currentY = startY;
+                            let rafId = null;
+
+                            document.body.style.userSelect = 'none';
+                            const cursorMap = { 'n': 'n-resize', 's': 's-resize', 'e': 'e-resize', 'w': 'w-resize', 'ne': 'ne-resize', 'nw': 'nw-resize', 'se': 'se-resize', 'sw': 'sw-resize' };
+                            document.body.style.cursor = cursorMap[dir];
+
+                            const updateSize = () => {
+                                const dx = currentX - startX;
+                                const dy = currentY - startY;
+                                let newW = initialW, newH = initialH, newX = initialX, newY = initialY;
+
+                                // 방향별로 너비, 높이, x, y 좌표 재계산
+                                if (dir.includes('e')) newW = Math.max(300, initialW + dx);
+                                if (dir.includes('w')) { const proposedW = initialW - dx; newW = Math.max(300, proposedW); newX = initialX + (initialW - newW); }
+                                if (dir.includes('s')) newH = Math.max(200, initialH + dy);
+                                if (dir.includes('n')) { const proposedH = initialH - dy; newH = Math.max(200, proposedH); newY = initialY + (initialH - newH); }
+
+                                modalContent.style.width = `${newW}px`; 
+                                modalContent.style.height = `${newH}px`; 
+                                modalContent.style.left = `${newX}px`; 
+                                modalContent.style.top = `${newY}px`;
+                                rafId = null;
+                            };
+
+                            const onMove = (moveEvent) => {
+                                currentX = moveEvent.clientX;
+                                currentY = moveEvent.clientY;
+                                if (!rafId) rafId = requestAnimationFrame(updateSize);
+                            };
+
+                            const onUp = () => {
+                                document.removeEventListener('mousemove', onMove);
+                                document.removeEventListener('mouseup', onUp);
+                                if (rafId) cancelAnimationFrame(rafId);
+                                document.body.style.userSelect = '';
+                                document.body.style.cursor = '';
+                            };
+                            
+                            document.addEventListener('mousemove', onMove);
+                            document.addEventListener('mouseup', onUp);
+                        });
+                        resizerContainer.appendChild(handle);
+                    });
+                    // 모달의 가장 앞부분에 핸들(8방향)을 삽입합니다.
+                    modalContent.insertBefore(resizerContainer, modalContent.firstChild);
+                }
+
                 // [신규] 모달 드래그(이동) 기능 추가
                 const header = modalContent.querySelector('.flex.justify-between.items-center'); // 헤더 찾기
                 if (header) {
@@ -14722,7 +14806,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="window-content p-4 overflow-y-auto h-full flex-1">
+                        <div class="window-content p-4 h-full flex-1 overflow-hidden flex flex-col">
                             ${getTabHTML(tabKey)}
                         </div>
                         ${handles}
