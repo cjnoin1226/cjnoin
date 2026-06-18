@@ -1403,31 +1403,42 @@
                         
                         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-2">
                             <div class="flex flex-wrap items-center gap-3 w-full">
+                                <!-- 💡 [크기조절: 대상자명 검색] min-w-[180px] 부분 수정 -->
                                 <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">대상자명</span><input id="client-search-name" enterkeyhint="search" class="input-field py-1.5 px-2 text-sm w-full" placeholder="이름 입력 (Enter)" value="${search}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('client','search',this.value)" oninput="if(this.value === '') app.setFilter('client','search','')"></div>
+                                <!-- 💡 [크기조절: 연락처 검색] min-w-[180px] 부분 수정 -->
                                 <div class="flex items-center gap-2 flex-1 min-w-[180px]"><span class="text-sm font-bold text-slate-600 whitespace-nowrap">연락처</span><input id="client-search-phone" enterkeyhint="search" class="input-field py-1.5 px-2 text-sm w-full" placeholder="번호 입력 (Enter)" value="${searchPhone}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('client','searchPhone',this.value)" oninput="if(this.value === '') app.setFilter('client','searchPhone','')"></div>
-                                <!-- [수정] 초기화 버튼에 app.render() 추가하여 분할 화면에서 갱신 보장 -->
+                                
                                 <button onclick="app.resetFilters('client'); app.render()" class="bg-slate-100 text-slate-500 hover:text-slate-700 text-xs flex items-center gap-1 whitespace-nowrap px-3 py-2 rounded-lg font-medium transition-colors ml-auto sm:ml-0"><i data-lucide="refresh-cw" size="14"></i> 초기화</button>
                             </div>
-                            <!-- [수정] 스크롤 제거 및 Flex Wrap 적용하여 반응형 배치 -->
+                            
                             <div class="pt-2 border-t border-slate-100">
                                 <div class="flex flex-wrap items-center gap-2 pb-1">
-                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[110px]" onchange="app.setFilter('client','targetYear',this.value)" title="연도">${yearOptions.join('')}</select>
-                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[90px]" onchange="app.setFilter('client','targetMonth',this.value)" title="월">${monthOptions.join('')}</select>
+                                    <!-- 💡 [크기조절: 연도] min-w-[110px] 부분 수정 -->
+                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','targetYear',this.value)" title="연도">${yearOptions.join('')}</select>
+                                    <!-- 💡 [크기조절: 월] min-w-[90px] 부분 수정 -->
+                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','targetMonth',this.value)" title="월">${monthOptions.join('')}</select>
                                     
                                     <div class="hidden md:block w-px h-4 bg-slate-300 mx-1"></div>
                                     
-                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[110px]" onchange="app.setFilter('client','status',this.value)"><option value="">상태(전체)</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}</select>
-                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[110px]" onchange="app.setFilter('client','level',this.value)"><option value="">등급(전체)</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}</select>
+                                    <!-- 💡 [크기조절: 상태] min-w-[110px] 부분 수정 -->
+                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','status',this.value)"><option value="">상태(전체)</option>${CONSTANTS.STATUS_LIST.map(s=>`<option value="${s}" ${status===s?'selected':''}>${s}</option>`).join('')}</select>
+                                    <!-- 💡 [크기조절: 등급] min-w-[110px] 부분 수정 -->
+                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[70px]" onchange="app.setFilter('client','level',this.value)"><option value="">등급(전체)</option>${CONSTANTS.CARE_LEVEL_LIST.map(c=>`<option value="${c}" ${level===c?'selected':''}>${c}</option>`).join('')}</select>
                                     
-                                    <div class="relative z-30 flex-1 min-w-[120px]">
+                                    <!-- 💡 [크기조절: 행정동] min-w-[120px] 부분 수정 -->
+                                    <div class="relative z-30 flex-1 min-w-[70px]">
                                         <button id="btn-region-filter" onclick="app.toggleRegionDropdown()" class="input-field py-1.5 px-2 text-sm flex items-center justify-between w-full bg-white cursor-pointer text-left h-[34px]"><span class="truncate text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '전체 동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400"></i></button>
                                         ${state.ui.regionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleRegionDropdown()"></div><div id="dropdown-region-menu" class="fixed mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
                                     </div>
                                     
-                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[100px]" onchange="app.setFilter('client','gender',this.value)"><option value="">성별(전체)</option><option value="남성" ${gender==='남성'?'selected':''}>남성</option><option value="여성" ${gender==='여성'?'selected':''}>여성</option></select>
-                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[120px]" onchange="app.setFilter('client','economicStatus',this.value)"><option value="">경제상황(전체)</option>${CONSTANTS.ECONOMIC_LIST.map(e=>`<option value="${e}" ${economicStatus===e?'selected':''}>${e}</option>`).join('')}</select>
-                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[120px]" onchange="app.setFilter('client','duplicateService',this.value)"><option value="">중복서비스(전체)</option>${CONSTANTS.DUPLICATE_SERVICE_LIST.map(d=>`<option value="${d}" ${duplicateService===d?'selected':''}>${d}</option>`).join('')}</select>
-                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[100px]" onchange="app.setFilter('client','ictStatus',this.value)"><option value="">ICT(전체)</option>${CONSTANTS.ICT_STATUS_LIST.map(i=>`<option value="${i}" ${ictStatus===i?'selected':''}>${i}</option>`).join('')}</select>
+                                    <!-- 💡 [크기조절: 성별] min-w-[100px] 부분 수정 -->
+                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[50px]" onchange="app.setFilter('client','gender',this.value)"><option value="">성별(전체)</option><option value="남성" ${gender==='남성'?'selected':''}>남성</option><option value="여성" ${gender==='여성'?'selected':''}>여성</option></select>
+                                    <!-- 💡 [크기조절: 경제상황] min-w-[120px] 부분 수정 -->
+                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[80px]" onchange="app.setFilter('client','economicStatus',this.value)"><option value="">경제상황(전체)</option>${CONSTANTS.ECONOMIC_LIST.map(e=>`<option value="${e}" ${economicStatus===e?'selected':''}>${e}</option>`).join('')}</select>
+                                    <!-- 💡 [크기조절: 중복서비스] min-w-[120px] 부분 수정 -->
+                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[80px]" onchange="app.setFilter('client','duplicateService',this.value)"><option value="">중복서비스(전체)</option>${CONSTANTS.DUPLICATE_SERVICE_LIST.map(d=>`<option value="${d}" ${duplicateService===d?'selected':''}>${d}</option>`).join('')}</select>
+                                    <!-- 💡 [크기조절: ICT현황] min-w-[100px] 부분 수정 -->
+                                    <select class="input-field py-1.5 px-2 text-sm flex-1 min-w-[50px]" onchange="app.setFilter('client','ictStatus',this.value)"><option value="">ICT(전체)</option>${CONSTANTS.ICT_STATUS_LIST.map(i=>`<option value="${i}" ${ictStatus===i?'selected':''}>${i}</option>`).join('')}</select>
                                 </div>
                             </div>
                         </div>
