@@ -14539,6 +14539,7 @@
             if (modalContent) {
                 modalContent.style.pointerEvents = 'auto'; // 창 안은 정상적으로 클릭되게 복구
                 modalContent.classList.add('modal-content-box'); // [신규] 시각적 효과를 위한 클래스 추가
+                modalContent.classList.add('relative'); // 🚨 [핵심 해결] 투명 손잡이가 화면 밖으로 도망가지 않도록 모달을 '기준점'으로 꽉 잡아줍니다!
                 
                 // [신규] 모달 사방 크기 조절 (Resize) 기능 추가
                 if (!modalContent.querySelector('.modal-resizer-container')) {
