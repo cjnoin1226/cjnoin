@@ -1292,7 +1292,7 @@
 
             const currentYearStr = String(new Date().getFullYear());
             let activeStats = { total: 0, using: 0, absent: 0, highFocus: 0, general: 0, male: 0, female: 0 };
-            let yearStats = { new: 0, end: 0 };
+            let yearStats = { new: 0, end: 0, waiting: 0 }; // 대기 인원 저장용 추가
             const today = new Date().toISOString().split('T')[0];
 
             state.clients.forEach(c => {
@@ -1312,6 +1312,7 @@
                 }
                 if (c.serviceStartDate && c.serviceStartDate.startsWith(currentYearStr)) yearStats.new++;
                 if (c.endDate && c.endDate.startsWith(currentYearStr)) yearStats.end++;
+                if (c.status === '대기') yearStats.waiting++; // 대기 상태 인원 합산
             });
 
             const yearOptions = [`<option value="" ${!targetYear ? 'selected' : ''}>전체 기간</option>`];
@@ -1375,8 +1376,7 @@
                               <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1">성별</span><div class="text-sm font-bold flex gap-2"><span class="text-blue-500">남 ${activeStats.male}</span><span class="text-slate-300">|</span><span class="text-red-500">여 ${activeStats.female}</span></div></div>
                            </div>
                            <div onclick="app.showYearStatsModal()" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-6 cursor-pointer hover:bg-slate-50 transition-colors group">
-                              <div class="flex flex-col justify-center"><span class="text-xs text-slate-500 font-bold mb-1 group-hover:text-emerald-600 transition-colors">올해 현황 (${currentYearStr})</span><div class="text-sm font-bold flex gap-2"><span class="text-emerald-600">신규 ${yearStats.new}</span><span class="text-slate-300">|</span><span class="text-slate-500">종결 ${yearStats.end}</span></div></div>
-                              <div class="p-3 bg-orange-50 rounded-full text-orange-500 ml-auto group-hover:bg-orange-100 transition-colors"><i data-lucide="activity" size="20"></i></div>
+                              <div class="flex flex-col justify-center w-full"><span class="text-xs text-slate-500 font-bold mb-1 group-hover:text-emerald-600 transition-colors">올해 현황 (${currentYearStr})</span><div class="text-sm font-bold flex gap-2"><span class="text-emerald-600">신규 ${yearStats.new}</span><span class="text-slate-300">|</span><span class="text-slate-500">종결 ${yearStats.end}</span><span class="text-slate-300">|</span><span class="text-amber-500">대기 ${yearStats.waiting}</span></div></div>
                            </div>
                         <!-- 신규 추가: 사례관리 현황 통계 박스 -->
                            <div onclick="app.showCaseManagementStatsModal()" class="bg-white py-3 px-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-3 cursor-pointer hover:bg-slate-50 transition-colors group">
@@ -6224,8 +6224,9 @@
 
                 const newClients = state.clients.filter(c => c.name !== '-' && c.serviceStartDate && c.serviceStartDate.startsWith(currentYear)).sort((a,b) => b.serviceStartDate.localeCompare(a.serviceStartDate));
                 const endClients = state.clients.filter(c => c.name !== '-' && c.endDate && c.endDate.startsWith(currentYear)).sort((a,b) => b.endDate.localeCompare(a.endDate));
+                const waitingClients = state.clients.filter(c => c.name !== '-' && c.status === '대기').sort((a,b) => (b.createdAt || '').localeCompare(a.createdAt || '')); // 대기자 필터 추가
                 
-                const html = `<div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+                const html = `<div class="bg-white w-full max-w-5xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
                     <div class="flex justify-between items-center mb-6 flex-shrink-0">
                         <div class="flex items-center gap-3">
                             <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
@@ -6238,20 +6239,50 @@
                         </div>
                         <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                     </div>
-                    <div class="flex flex-col md:flex-row gap-6 overflow-hidden min-h-0 flex-1">
+                    <div class="flex flex-col md:flex-row gap-4 overflow-hidden min-h-0 flex-1">
+                        <!-- 1. 신규 등록 칸 -->
                         <div class="flex-1 flex flex-col min-h-0 bg-emerald-50/50 rounded-xl border border-emerald-100 overflow-hidden">
-                            <div class="p-4 bg-emerald-100/50 border-b border-emerald-200 flex justify-between items-center flex-shrink-0">
-                                <h4 class="font-bold text-emerald-800 flex items-center gap-2"><i data-lucide="user-plus" size="18"></i> 신규 등록 (${newClients.length}명)</h4>
+                            <div class="p-3 bg-emerald-100/50 border-b border-emerald-200 flex justify-between items-center flex-shrink-0">
+                                <h4 class="font-bold text-emerald-800 flex items-center gap-1.5"><i data-lucide="user-plus" size="18"></i> 신규 등록 (${newClients.length}명)</h4>
                             </div>
                             <div class="overflow-y-auto p-2 flex-1">
                                 <table class="w-full text-sm text-left border-separate border-spacing-y-1">
                                     <thead class="text-xs text-emerald-700 font-bold sticky top-0 bg-emerald-50 z-10">
-                                        <tr><th class="px-3 py-2">이름</th><th class="px-3 py-2">시작일</th><th class="px-3 py-2">등급/동</th></tr>
+                                        <tr><th class="px-2 py-2">이름</th><th class="px-2 py-2">시작일</th><th class="px-2 py-2">등급/동</th></tr>
                                     </thead>
-                                    <tbody>${newClients.length ? newClients.map(c => `<tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')"><td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td><td class="px-3 py-2 text-slate-600 bg-transparent">${c.serviceStartDate}</td><td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.careLevel} · ${c.region}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}</tbody>
+                                    <tbody>${newClients.length ? newClients.map(c => `<tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')"><td class="px-2 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg whitespace-nowrap">${c.name}</td><td class="px-2 py-2 text-slate-600 bg-transparent text-xs whitespace-nowrap">${c.serviceStartDate}</td><td class="px-2 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg truncate max-w-[80px]">${c.careLevel} · ${c.region}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}</tbody>
                                 </table>
                             </div>
                         </div>
+                        <!-- 2. 종결 칸 -->
+                        <div class="flex-1 flex flex-col min-h-0 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                            <div class="p-3 bg-slate-100 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
+                                <h4 class="font-bold text-slate-700 flex items-center gap-1.5"><i data-lucide="user-minus" size="18"></i> 종결 (${endClients.length}명)</h4>
+                            </div>
+                            <div class="overflow-y-auto p-2 flex-1">
+                                <table class="w-full text-sm text-left border-separate border-spacing-y-1">
+                                    <thead class="text-xs text-slate-600 font-bold sticky top-0 bg-slate-100 z-10">
+                                        <tr><th class="px-2 py-2">이름</th><th class="px-2 py-2">종결일</th><th class="px-2 py-2">상태</th></tr>
+                                    </thead>
+                                    <tbody>${endClients.length ? endClients.map(c => `<tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')"><td class="px-2 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg whitespace-nowrap">${c.name}</td><td class="px-2 py-2 text-slate-600 bg-transparent text-xs whitespace-nowrap">${c.endDate}</td><td class="px-2 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg truncate max-w-[80px]">${c.status}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- 3. 대기 칸 (신규 추가) -->
+                        <div class="flex-1 flex flex-col min-h-0 bg-amber-50/50 rounded-xl border border-amber-100 overflow-hidden">
+                            <div class="p-3 bg-amber-100/50 border-b border-amber-200 flex justify-between items-center flex-shrink-0">
+                                <h4 class="font-bold text-amber-800 flex items-center gap-1.5"><i data-lucide="clock" size="18"></i> 대기 (${waitingClients.length}명)</h4>
+                            </div>
+                            <div class="overflow-y-auto p-2 flex-1">
+                                <table class="w-full text-sm text-left border-separate border-spacing-y-1">
+                                    <thead class="text-xs text-amber-700 font-bold sticky top-0 bg-amber-50 z-10">
+                                        <tr><th class="px-2 py-2">이름</th><th class="px-2 py-2">연락처</th><th class="px-2 py-2">등급/동</th></tr>
+                                    </thead>
+                                    <tbody>${waitingClients.length ? waitingClients.map(c => `<tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')"><td class="px-2 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg whitespace-nowrap">${c.name}</td><td class="px-2 py-2 text-slate-600 bg-transparent text-xs whitespace-nowrap">${c.phone || '-'}</td><td class="px-2 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg truncate max-w-[80px]">${c.careLevel} · ${c.region}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                         <div class="flex-1 flex flex-col min-h-0 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
                             <div class="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
                                 <h4 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="user-minus" size="18"></i> 종결 (${endClients.length}명)</h4>
