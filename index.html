@@ -297,15 +297,15 @@
             pointer-events: auto; /* 핸들은 클릭 가능 */
             background-color: transparent; /* 평소엔 투명 */
         }
-        /* 각 방향별 핸들 위치 및 크기 설정 */
-        .resizer-n { top: -5px; left: 0; right: 0; height: 10px; cursor: n-resize; }
-        .resizer-s { bottom: -5px; left: 0; right: 0; height: 10px; cursor: s-resize; }
-        .resizer-e { top: 0; bottom: 0; right: -5px; width: 10px; cursor: e-resize; }
-        .resizer-w { top: 0; bottom: 0; left: -5px; width: 10px; cursor: w-resize; }
-        .resizer-ne { top: -5px; right: -5px; width: 15px; height: 15px; cursor: ne-resize; z-index: 20; }
-        .resizer-nw { top: -5px; left: -5px; width: 15px; height: 15px; cursor: nw-resize; z-index: 20; }
-        .resizer-se { bottom: -5px; right: -5px; width: 15px; height: 15px; cursor: se-resize; z-index: 20; }
-        .resizer-sw { bottom: -5px; left: -5px; width: 15px; height: 15px; cursor: sw-resize; z-index: 20; }
+        /* 각 방향별 핸들 위치 및 크기 설정 (모달 안쪽으로 배치하여 짤림 방지) */
+        .resizer-n { top: 0; left: 0; right: 0; height: 8px; cursor: n-resize; }
+        .resizer-s { bottom: 0; left: 0; right: 0; height: 8px; cursor: s-resize; }
+        .resizer-e { top: 0; bottom: 0; right: 0; width: 8px; cursor: e-resize; }
+        .resizer-w { top: 0; bottom: 0; left: 0; width: 8px; cursor: w-resize; }
+        .resizer-ne { top: 0; right: 0; width: 16px; height: 16px; cursor: ne-resize; z-index: 20; }
+        .resizer-nw { top: 0; left: 0; width: 16px; height: 16px; cursor: nw-resize; z-index: 20; }
+        .resizer-se { bottom: 0; right: 0; width: 16px; height: 16px; cursor: se-resize; z-index: 20; }
+        .resizer-sw { bottom: 0; left: 0; width: 16px; height: 16px; cursor: sw-resize; z-index: 20; }
 
         /* [신규] 모달 드래그/리사이즈 중 시각적 피드백 (파란색 테두리) */
         .modal-content-box.is-dragging,
@@ -14555,8 +14555,9 @@
                             
                             modalContent.classList.add('is-resizing'); // [신규] 리사이즈 시작 시각적 효과
 
-                            // Tailwind의 최대 너비 고정(max-w-2xl 등) 무력화 (그래야 크기 조절이 됨)
+                            // Tailwind의 최대 너비/높이 고정 무력화 (그래야 4면 전체 크기 조절이 완벽히 됨!)
                             modalContent.style.maxWidth = 'none';
+                            modalContent.style.maxHeight = 'none';
                             
                             const startX = e.clientX;
                             const startY = e.clientY;
