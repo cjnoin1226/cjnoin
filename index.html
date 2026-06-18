@@ -1632,35 +1632,45 @@
                             </div>
 
                             <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center gap-2">
-                                <!-- [수정] 모든 필터 요소에 h-9 (36px) 클래스 적용하여 높이 통일 -->
+                                <!-- 💡 [크기조절 1. 연도 선택] w-24 부분 수정 -->
                                 <select class="input-field h-9 py-1 px-2 text-sm w-24 font-medium border-slate-200 bg-slate-50 mr-1 focus:ring-0 focus:border-emerald-500" onchange="app.setLogYear(this.value)">
                                     ${logYearOptions.join('')}
                                 </select>
 
                                 <div class="flex items-center gap-2 w-full sm:w-auto px-2 bg-slate-50 rounded-lg border border-slate-200 h-9">
+                                    <!-- 💡 [크기조절 2. 시작 날짜] w-[90px] 부분 수정 -->
                                     <input type="date" id="log-filter-start" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${start}" onchange="app.setFilter('log','start',this.value, false)" max="9999-12-31">
                                     <span class="text-slate-400">~</span>
+                                    <!-- 💡 [크기조절 3. 종료 날짜] w-[90px] 부분 수정 -->
                                     <input type="date" id="log-filter-end" class="bg-transparent border-0 text-sm focus:ring-0 p-0 w-[110px] h-full" value="${end}" onchange="app.setFilter('log','end',this.value, false)" max="9999-12-31">
                                     <!-- [수정] 조회 버튼에 새로운 검색 함수 연결 -->
                                     <button onmousedown="event.stopPropagation()" onclick="app.searchLogsByDateRange()" class="bg-slate-800 text-white px-3 py-0.5 rounded text-xs font-medium hover:bg-slate-700 transition-colors whitespace-nowrap ml-1 h-6">조회</button>
                                 </div>
+                                <!-- 💡 [크기조절 4. 대상자 검색] sm:w-24 부분 수정 -->
                                 <input id="log-search-name" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="대상자" value="${search}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','search',this.value)" oninput="if(this.value === '') app.setFilter('log','search','')">
+                                <!-- 💡 [크기조절 5. 제공자 검색] sm:w-24 부분 수정 -->
                                 <input id="log-search-provider" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-24 text-sm" placeholder="제공자" value="${provider || ''}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','provider',this.value)" oninput="if(this.value === '') app.setFilter('log','provider','')">
+                                <!-- 💡 [크기조절 6. 일지내용 검색] sm:w-28 부분 수정 -->
                                 <input id="log-search-content" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-28 text-sm" placeholder="일지내용검색" value="${state.filters.log.contentSearch || ''}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','contentSearch',this.value)" oninput="if(this.value === '') app.setFilter('log','contentSearch','')">
                                 
                                 <!-- [신규] 제공방법 필터 추가 (행정동 필터 왼쪽) -->
+                                <!-- 💡 [크기조절 7. 제공방법] sm:w-24 부분 수정 -->
                                 <select class="input-field h-9 py-1 px-2 text-sm w-full sm:w-24 font-medium border-slate-200 bg-white" onchange="app.setFilter('log','provideMethod',this.value)">
                                     <option value="">제공방법</option>
                                     ${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${state.filters.log.provideMethod === m ? 'selected' : ''}>${m}</option>`).join('')}
                                 </select>
 
                                 <div class="relative z-30 w-full sm:w-auto">
+                                    <!-- 💡 [크기조절 8. 행정동] sm:w-28 부분 수정 -->
                                     <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-28"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '행정동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
                                     ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
                                 </div>
                                 <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
+                                    <!-- 💡 [크기조절 9. 서비스 분류] sm:w-20 부분 수정 -->
                                     <select class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1" onchange="app.setFilter('log','category',this.value); app.setFilter('log','service','');"><option value="">서비스</option>${categories.map(c=>`<option value="${c}" ${category===c?'selected':''}>${c}</option>`).join('')}</select>
-                                    <select class="input-field h-9 py-1 w-full sm:w-32 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
+                                    <!-- 💡 [크기조절 10. 서비스 상세내용] sm:w-20 부분 수정 -->
+                                    <select class="input-field h-9 py-1 w-full sm:w-15 text-sm flex-1" onchange="app.setFilter('log','service',this.value)"><option value="">상세내용</option>${filteredServices.map(s=>`<option value="${s.name}" ${service===s.name?'selected':''}>${s.name}</option>`).join('')}</select>
+                                    <!-- 💡 [크기조절 11. 메모] sm:w-28 부분 수정 -->
                                     <input id="log-search-detailnote" enterkeyhint="search" class="input-field h-9 py-1 w-full sm:w-28 text-sm flex-1" placeholder="메모" value="${detailNote || ''}" onkeydown="if(event.key === 'Enter' || event.keyCode === 13) app.setFilter('log','detailNote',this.value)" oninput="if(this.value === '') app.setFilter('log','detailNote','')">
                                 </div>
                                 <!-- [수정] 초기화 버튼에 app.render() 추가하여 분할 화면에서 갱신 보장 -->
