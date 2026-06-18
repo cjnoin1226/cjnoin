@@ -290,7 +290,7 @@
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
             pointer-events: none; /* 컨테이너 자체는 클릭 통과 */
-            z-index: 10;
+            z-index: 100; /* 윗면과 윗 꼭짓점이 헤더에 가려지지 않고 무조건 앞으로 나오게 100으로 상향! */
         }
         .resizer {
             position: absolute;
