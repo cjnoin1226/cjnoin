@@ -12814,6 +12814,7 @@
                 }
                 state.ui.initialFormState = null; // 초기화
                 state.ui.cmStatsRegions = []; // <--- 이 줄을 추가하세요! (사례관리 통계 행정동 필터 초기화)
+                state.ui.clientHistorySortArray = []; // 🚨 [여기에 이 한 줄 추가!] 모달 닫을 때 서비스 내역 정렬도 초기화!
                 closeModal(); // 실제 글로벌 닫기 함수 호출
             },
             closeDialog: () => closeDialog(),
