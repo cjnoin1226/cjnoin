@@ -6283,20 +6283,7 @@
                             </div>
                         </div>
                     </div>
-                        <div class="flex-1 flex flex-col min-h-0 bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-                            <div class="p-4 bg-slate-100 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
-                                <h4 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="user-minus" size="18"></i> 종결 (${endClients.length}명)</h4>
-                            </div>
-                            <div class="overflow-y-auto p-2 flex-1">
-                                <table class="w-full text-sm text-left border-separate border-spacing-y-1">
-                                    <thead class="text-xs text-slate-600 font-bold sticky top-0 bg-slate-100 z-10">
-                                        <tr><th class="px-3 py-2">이름</th><th class="px-3 py-2">종결일</th><th class="px-3 py-2">사유/상태</th></tr>
-                                    </thead>
-                                    <tbody>${endClients.length ? endClients.map(c => `<tr class="hover:bg-white hover:shadow-sm transition-all cursor-pointer rounded-lg" onclick="app.openClientModal('${c.id}')"><td class="px-3 py-2 font-bold text-slate-700 bg-transparent rounded-l-lg">${c.name}</td><td class="px-3 py-2 text-slate-600 bg-transparent">${c.endDate}</td><td class="px-3 py-2 text-slate-500 text-xs bg-transparent rounded-r-lg">${c.status}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center py-8 text-slate-400">데이터가 없습니다.</td></tr>'}</tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+
                     <div class="mt-4 text-right flex-shrink-0 pt-2 border-t border-slate-100">
                         <button onclick="app.closeModal()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button>
                     </div>
@@ -6896,6 +6883,8 @@
                             <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'basic' ? 'active' : ''}" data-tab="basic" onclick="app.setClientModalTab('basic')">기본 정보</button>
                             <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'case' ? 'active' : ''}" data-tab="case" onclick="app.setClientModalTab('case')">사례관리</button>
                             <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'history' ? 'active' : ''}" data-tab="history" onclick="app.setClientModalTab('history')">서비스 내역</button>
+                            <!-- [신규] 일지 탭 버튼 추가 -->
+                            <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'logs' ? 'active' : ''}" data-tab="logs" onclick="app.setClientModalTab('logs')">일지</button>
                             <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'changes' ? 'active' : ''}" data-tab="changes" onclick="app.setClientModalTab('changes')">변경 이력</button>
                         </div>
                         <div class="px-4 sm:px-6 pb-4 sm:pb-6 overflow-y-auto flex-1 bg-white">
@@ -9961,6 +9950,47 @@
                                     </div>
                                 </div>
 
+                                <!-- [신규] 일지 탭 콘텐츠 추가 -->
+                                <div id="tab-logs" class="modal-tab-content ${state.ui.clientModalTab === 'logs' ? 'active' : ''} space-y-4 pt-4 sm:pt-6">
+                                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                        <div class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                            <div class="p-1.5 bg-emerald-100 text-emerald-600 rounded"><i data-lucide="file-text" class="w-4 h-4"></i></div>
+                                            <span>작성된 서비스 일지</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs text-slate-500 font-medium">조회 연도</span>
+                                            <select class="input-field w-32 py-1 text-sm bg-white border-slate-300 shadow-sm" onchange="app.updateClientLogTab('${c.id}', this.value)">
+                                                ${yearOptionsHTML}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="border border-slate-200 rounded-lg overflow-hidden bg-slate-100 shadow-sm flex flex-col h-[500px]">
+                                        <div class="overflow-y-auto flex-1 custom-scrollbar p-3 space-y-3" id="client-log-list-container">
+                                            ${(() => {
+                                                const logsForTab = state.logs.filter(l => l.clientId === c.id && l.date.startsWith(String(currentYear))).sort((a,b) => b.date.localeCompare(a.date));
+                                                if (logsForTab.length === 0) return '<div class="text-center py-12 text-slate-400 bg-white rounded-lg border border-slate-200 shadow-sm">해당 연도에 작성된 일지가 없습니다.</div>';
+                                                return logsForTab.map(l => `
+                                                    <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col gap-2">
+                                                        <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                                                            <div class="flex items-center gap-2">
+                                                                <span class="font-bold text-slate-700">${l.date}</span>
+                                                                <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">${l.provideMethod || '방문'}</span>
+                                                            </div>
+                                                            <span class="text-xs text-slate-500 font-medium">작성자: <span class="text-slate-700">${l.provider || '-'}</span></span>
+                                                        </div>
+                                                        <div class="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">${l.content || ''}</div>
+                                                        ${l.serviceItems && l.serviceItems.length > 0 ? `
+                                                        <div class="mt-2 pt-2 border-t border-dashed border-slate-100 flex flex-wrap gap-1">
+                                                            ${l.serviceItems.map(i => `<span class="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded shadow-sm">${i.serviceName}</span>`).join('')}
+                                                        </div>
+                                                        ` : ''}
+                                                    </div>
+                                                `).join('');
+                                            })()}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div id="tab-changes" class="modal-tab-content ${state.ui.clientModalTab === 'changes' ? 'active' : ''} space-y-4 pt-4 sm:pt-6">
                                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
                                         <div class="text-sm font-bold text-slate-700 flex items-center gap-2">
@@ -12555,6 +12585,44 @@
                 const container = document.getElementById('client-history-list');
                 if (container) container.innerHTML = rows;
             },
+            
+            // [신규] 대상자 상세 모달 - 일지 탭 업데이트 함수
+            updateClientLogTab: async (clientId, year) => {
+                if (!clientId) return;
+
+                const targetYear = parseInt(year);
+                if (!state.loadedYears.has(targetYear)) {
+                    await app.loadLogsByYear(targetYear);
+                }
+
+                const clientLogs = state.logs.filter(l => l.clientId === clientId && l.date.startsWith(year)).sort((a,b) => b.date.localeCompare(a.date));
+                const container = document.getElementById('client-log-list-container');
+                
+                if (container) {
+                    if (clientLogs.length > 0) {
+                        container.innerHTML = clientLogs.map(l => `
+                            <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col gap-2">
+                                <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-700">${l.date}</span>
+                                        <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">${l.provideMethod || '방문'}</span>
+                                    </div>
+                                    <span class="text-xs text-slate-500 font-medium">작성자: <span class="text-slate-700">${l.provider || '-'}</span></span>
+                                </div>
+                                <div class="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">${l.content || ''}</div>
+                                ${l.serviceItems && l.serviceItems.length > 0 ? `
+                                <div class="mt-2 pt-2 border-t border-dashed border-slate-100 flex flex-wrap gap-1">
+                                    ${l.serviceItems.map(i => `<span class="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded shadow-sm">${i.serviceName}</span>`).join('')}
+                                </div>
+                                ` : ''}
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<div class="text-center py-12 text-slate-400 bg-white rounded-lg border border-slate-200 shadow-sm">해당 연도에 작성된 일지가 없습니다.</div>';
+                    }
+                }
+            },
+
             fillClientInfo: (input) => {
                 const c = state.clients.find(x => x.name === input.value);
                 if(c) { document.getElementById('d-birth').value = c.birthDate || ''; document.getElementById('d-region').value = c.region || ''; document.getElementById('d-level').value = c.careLevel || ''; } 
