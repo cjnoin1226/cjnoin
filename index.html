@@ -9882,18 +9882,17 @@
                                 </tr>
 
                                 <!-- 2. 욕구기반 위기관리 서비스 그룹 -->
-                                <tr class="hover:bg-slate-50 transition-colors border-t-2 border-slate-400">
+                                <tr class="hover:bg-slate-50 transition-colors border-t border-slate-300">
                                     <td rowspan="8" class="border-r border-b border-slate-300 p-2 text-center align-middle font-bold bg-slate-50">욕구기반<br>위기관리<br>서비스</td>
                                     <td rowspan="4" class="border-r border-b border-slate-300 p-2 text-center align-middle">경제적 위기관리</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center">급식지원</td>
-                                    <td class="border-r border-b border-slate-300 p-0"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-[11px]" value="월 2회 또는 비정기"></td>
-                                    <td class="border-r border-b border-slate-300 p-0"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2" rows="2">밑반찬 및 영양식 지원</textarea></td>
+                                    <td rowspan="2" class="border-r border-b border-slate-300 p-2 text-center align-middle">급식지원</td>
+                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-[11px]" value="월 2회 또는 비정기"></td>
+                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 leading-relaxed" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">밑반찬 및 영양식 지원</textarea></td>
                                 </tr>
                                 <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="border-r border-b border-slate-300 p-2 text-center">급식지원</td>
-                                    <td class="border-r border-b border-slate-300 p-0"><input type="text" class="w-full text-center bg-transparent outline-none p-2" value="연 1회"></td>
-                                    <td class="border-r border-b border-slate-300 p-0"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2" rows="2">김장지원</textarea></td>
-                                </tr>
+                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2" value="연 1회"></td>
+                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 leading-relaxed" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">김장지원</textarea></td>
+                                </tr
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="border-r border-b border-slate-300 p-2 text-center">주거안정지원</td>
                                     <td class="border-r border-b border-slate-300 p-0"><input type="text" class="w-full text-center bg-transparent outline-none p-2" value="연 1회"></td>
@@ -9935,12 +9934,12 @@
                                 </tr>
 
                                 <!-- 3. 위기상황 관리 및 긴급지원 그룹 -->
-                                <tr class="hover:bg-slate-50 transition-colors border-t-2 border-slate-400">
+                                <tr class="hover:bg-slate-50 transition-colors border-t border-slate-300">
                                     <td rowspan="2" class="border-r border-b border-slate-300 p-2 text-center align-middle font-bold bg-slate-50">위기상황<br>관리<br>및 긴급지원</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center">권리옹호</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center">노인인권교육</td>
-                                    <td class="border-r border-b border-slate-300 p-0"><input type="text" class="w-full text-center bg-transparent outline-none p-2" value="연 2회"></td>
-                                    <td class="border-r border-b border-slate-300 p-0"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2" rows="2">노인인권교육 실시</textarea></td>
+                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">권리옹호</td>
+                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">노인인권교육</td>
+                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2" value="연 2회"></td>
+                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 leading-relaxed" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">노인인권교육 실시</textarea></td>
                                 </tr>
                                 <tr class="hover:bg-slate-50 transition-colors">
                                             <td class="border-r border-b border-slate-300 p-2 text-center">긴급지원</td>
@@ -11914,9 +11913,136 @@
                         const iadlItems = ['전화사용', '외출 또는 여행', '물건구입', '식사준비', '집안일(청소나 정리정돈)', '빨래', '정확한 약 복용', '금전관리', '수공일(바느질 또는 못질)'];
 
                         htmlContent += `
-                            <!-- ADL 인쇄 페이지 추가 (새 페이지에서 시작) -->
-                            <div style="page-break-before: always; padding-top: 20px;">
-                                <h1 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">일상생활동작(ADL) 평가</h1>
+                            <!-- 🚨 서비스 제공 계획서 인쇄 영역 🚨 -->
+                        <div style="page-break-before: always; padding-top: 20px;">
+                            <h1 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 20px;">서 비 스 제 공 계 획 서</h1>
+                            
+                            <table style="margin-bottom: 15px;">
+                                <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
+                                <tr>
+                                    <th>대상자명</th><td class="text-center font-bold">${client.name}</td>
+                                    <th>작성자</th><td class="text-center">${getVal(cm, 'assessment.writer') || ''}</td>
+                                </tr>
+                                <tr>
+                                    <th>작성일자</th><td colspan="3" class="text-center">${getVal(cm, 'assessment.date') || ''}</td>
+                                </tr>
+                            </table>
+
+                            <table style="text-align: center; font-size: 11px;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 10%;">대분류</th>
+                                        <th style="width: 12%;">중분류</th>
+                                        <th style="width: 12%;">소분류</th>
+                                        <th style="width: 12%;">제공횟수</th>
+                                        <th style="width: 24%;">서비스내용 및 방법</th>
+                                        <th style="width: 15%;">서비스기간</th>
+                                        <th style="width: 15%;">점검/평가</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- 위기관리체계구축 -->
+                                    <tr>
+                                        <th rowspan="3">위기관리<br>체계구축</th>
+                                        <td>사례관리</td>
+                                        <td>재사정/모니터링</td>
+                                        <td>연 1회 이상</td>
+                                        <td style="text-align: left; padding: 4px;">사례관리 및 재사정 실시</td>
+                                        <td rowspan="11"></td>
+                                        <td rowspan="11"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>정보통신기반<br>안전지원</td>
+                                        <td>ICT기반<br>일상생활 관리</td>
+                                        <td>월 1회</td>
+                                        <td style="text-align: left; padding: 4px;">ICT설치 안내 및 연계 등</td>
+                                    </tr>
+                                    <tr>
+                                        <td>노인상담 및<br>정보제공</td>
+                                        <td>노인상담 및<br>정서지원</td>
+                                        <td>매주 1회</td>
+                                        <td style="text-align: left; padding: 4px;">방문 또는 전화를 통한 안부확인</td>
+                                    </tr>
+                                    <!-- 욕구기반 위기관리 서비스 -->
+                                    <tr>
+                                        <th rowspan="6">욕구기반<br>위기관리<br>서비스</th>
+                                        <td rowspan="4">경제적<br>위기관리</td>
+                                        <td rowspan="2">급식지원</td>
+                                        <td>월 2회 또는 비정기</td>
+                                        <td style="text-align: left; padding: 4px;">밑반찬 및 영양식 지원</td>
+                                    </tr>
+                                    <tr>
+                                        <td>연 1회</td>
+                                        <td style="text-align: left; padding: 4px;">김장지원</td>
+                                    </tr>
+                                    <tr>
+                                        <td>주거안정지원</td>
+                                        <td>연 1회</td>
+                                        <td style="text-align: left; padding: 4px;">방역 및 냉난방용품 제공</td>
+                                    </tr>
+                                    <tr>
+                                        <td>자원관리</td>
+                                        <td>비정기</td>
+                                        <td style="text-align: left; padding: 4px;">후원금품 연계</td>
+                                    </tr>
+                                    <tr>
+                                        <td>정신적<br>위기관리</td>
+                                        <td>정신적 위기관련<br>기관 연계</td>
+                                        <td>필요시</td>
+                                        <td style="text-align: left; padding: 4px;">정신건강 관련 기관 협약 및 자원 연결</td>
+                                    </tr>
+                                    <tr>
+                                        <td>신체적<br>위기관리</td>
+                                        <td>노인성 질환<br>관리 및 연계</td>
+                                        <td>연 4회</td>
+                                        <td style="text-align: left; padding: 4px;">건강교육제공</td>
+                                    </tr>
+                                    <tr>
+                                        <th rowspan="2">사회적<br>위기관리</th>
+                                        <td>대인관계증진</td>
+                                        <td>연 1회</td>
+                                        <td style="text-align: left; padding: 4px;">어버이날 서비스<br>명절 서비스<br>생신 서비스</td>
+                                        <td rowspan="2"></td>
+                                        <td rowspan="2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>문화생활지원</td>
+                                        <td>연 1회</td>
+                                        <td style="text-align: left; padding: 4px;">소규모활동(인지PG등) / 문화체험 등</td>
+                                    </tr>
+                                    <!-- 위기상황 관리 -->
+                                    <tr>
+                                        <th rowspan="2">위기상황<br>관리 및<br>긴급지원</th>
+                                        <td>권리옹호</td>
+                                        <td>노인인권교육</td>
+                                        <td>연 2회</td>
+                                        <td style="text-align: left; padding: 4px;">노인인권교육 실시</td>
+                                        <td rowspan="2"></td>
+                                        <td rowspan="2"></td>
+                                    </tr>
+                                    <tr>
+                                        <td>긴급지원</td>
+                                        <td>자연재해, 응급상황 보호</td>
+                                        <td>필요 시</td>
+                                        <td style="text-align: left; padding: 4px;">필요 시 자연재해, 응급상황 등에 대한 보호</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div style="margin-top: 15px; font-weight: bold;">
+                                ※ 서비스 조정 및 종결 사유
+                                <ul style="margin-top: 5px; font-weight: normal; font-size: 11px; padding-left: 20px; line-height: 1.5;">
+                                    <li>서비스 이용자에게 적절하지 않거나 서비스 제공 목적에 어긋날 때</li>
+                                    <li>서비스 이용자의 부적절한 서비스 요구가 있을 경우</li>
+                                    <li>다른 지역으로 이주를 하였을 때</li>
+                                    <li>3개월 이상 연락이 끊겼을 경우</li>
+                                    <li>타 기관과 서비스가 중복되었을 경우</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- ADL 인쇄 페이지 추가 (새 페이지에서 시작) -->
+                        <div style="page-break-before: always; padding-top: 20px;">
+                            <h1 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">일상생활동작(ADL) 평가</h1>
                                 
                                 <!-- 🚨 [추가] 인쇄화면 상단 대상자 기본정보 표 🚨 -->
                                 <table style="margin-bottom: 15px;">
