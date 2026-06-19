@@ -7299,7 +7299,7 @@
                                                                                         <div class="flex items-center gap-1 transition-all">
                                                                                             <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                                 <input type="checkbox" name="cm-init-live-house" value="${house}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked} ${onChangeAttr}>
-                                                                                                <span class="text-xs text-slate-600">${house}</span>
+                                                                                                <span class="text-base text-slate-600">${house}</span>
                                                                                             </label>
                                                                                             ${inputHtml}
                                                                                         </div>`;
@@ -7344,7 +7344,7 @@
                                                                                                 <div id="wrapper-jeonse" class="flex items-center gap-1 ${isChecked ? '' : 'hidden'} bg-slate-50 rounded px-1 border border-slate-100">
                                                                                                     <span class="text-[10px] text-slate-500">보증금</span>
                                                                                                     <input type="text" id="cm-init-housing-jeonse-deposit" class="input-field py-0.5 px-1 text-xs w-16 text-right border-slate-200 h-6" placeholder="0" value="${jeonseDeposit}">
-                                                                                                    <span class="text-[10px] text-slate-500">만</span>
+                                                                                                    <span class="text-[10px] text-slate-500">만원</span>
                                                                                                 </div>
                                                                                             </div>`;
                                                                                         } else if (housing === '월세') {
@@ -7355,11 +7355,11 @@
                                                                                                     <span class="text-base text-slate-600">${housing}</span>
                                                                                                 </label>
                                                                                                 <div id="wrapper-wolse" class="flex items-center gap-1 ${isChecked ? '' : 'hidden'} bg-slate-50 rounded px-1 border border-slate-100">
-                                                                                                    <span class="text-[10px] text-slate-500">보</span>
+                                                                                                    <span class="text-[10px] text-slate-500">보증금</span>
                                                                                                     <input type="text" id="cm-init-housing-wolse-deposit" class="input-field py-0.5 px-1 text-xs w-12 text-right border-slate-200 h-6" placeholder="0" value="${wolseDeposit}">
-                                                                                                    <span class="text-[10px] text-slate-500">/ 월</span>
+                                                                                                    <span class="text-[10px] text-slate-500">/ 월세</span>
                                                                                                     <input type="text" id="cm-init-housing-wolse-rent" class="input-field py-0.5 px-1 text-xs w-12 text-right border-slate-200 h-6" placeholder="0" value="${wolseRent}">
-                                                                                                    <span class="text-[10px] text-slate-500">만</span>
+                                                                                                    <span class="text-[10px] text-slate-500">만원</span>
                                                                                                 </div>
                                                                                             </div>`;
                                                                                         } else {
@@ -7419,7 +7419,7 @@
                                                                         <!-- [수정] 소제목 너비 축소 (w-24 -> w-20), 패딩 축소 (px-1.5 -> px-1) -->
                                                                         <span class="text-xs font-bold text-slate-700 w-20 flex-shrink-0 mt-0.5 bg-slate-100 px-1 py-0.5 rounded text-center border border-slate-200">② 만성질환</span>
                                                                         <div class="flex-1">
-                                                                            <input type="text" id="cm-init-phy-chronic" class="input-field py-0.5 px-2 text-xs w-full border-slate-200" placeholder="내용 입력" value="${getVal(cm, 'initial.physical.chronic') || getVal(cm, 'initial.health.disease')}">
+                                                                            <input type="text" id="cm-init-phy-chronic" class="input-field py-0.5 px-2 text-base w-full border-slate-200" placeholder="내용 입력" value="${getVal(cm, 'initial.physical.chronic') || getVal(cm, 'initial.health.disease')}">
                                                                         </div>
                                                                     </div>
                                                                     <!-- 3) 장애여부 (UI 변경: radio -> checkbox) -->
@@ -7448,17 +7448,17 @@
                                                                                     <div class="flex items-center gap-1 transition-all">
                                                                                         <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                             <input type="checkbox" name="cm-init-phy-disability-status" value="유" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${status === '유' ? 'checked' : ''} onchange="if(this.checked) { document.getElementById('cm-init-phy-disability-type-wrapper').classList.remove('hidden'); document.getElementById('cm-init-phy-disability-type').focus(); } else { document.getElementById('cm-init-phy-disability-type-wrapper').classList.add('hidden'); }">
-                                                                                            <span class="text-xs text-slate-600">유</span>
+                                                                                            <span class="text-base text-slate-600">유</span>
                                                                                         </label>
                                                                                         <div id="cm-init-phy-disability-type-wrapper" class="flex items-center gap-1 ${status === '유' ? '' : 'hidden'}">
                                                                                             <span class="text-[10px] text-slate-500">(장애유형:</span>
-                                                                                            <input type="text" id="cm-init-phy-disability-type" class="input-field py-0.5 px-2 text-xs w-32 border-slate-200" placeholder="입력" value="${typeValue || ''}">
+                                                                                            <input type="text" id="cm-init-phy-disability-type" class="input-field py-0.5 px-2 text-base w-32 border-slate-200" placeholder="입력" value="${typeValue || ''}">
                                                                                             <span class="text-[10px] text-slate-500">)</span>
                                                                                         </div>
                                                                                     </div>
                                                                                     <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                         <input type="checkbox" name="cm-init-phy-disability-status" value="무" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${status === '무' ? 'checked' : ''} onchange="if(this.checked) { document.getElementById('cm-init-phy-disability-type-wrapper').classList.add('hidden'); }">
-                                                                                        <span class="text-xs text-slate-600">무</span>
+                                                                                        <span class="text-base text-slate-600">무</span>
                                                                                     </label>
                                                                                 `;
                                                                             })()}
@@ -7484,16 +7484,16 @@
                                                                                             <div class="flex items-center gap-1 transition-all">
                                                                                                 <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                                     <input type="checkbox" name="cm-init-phy-device-check" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked} onchange="app.toggleDisplay(this, 'cm-init-phy-device-detail')">
-                                                                                                    <span class="text-xs text-slate-600">${opt}</span>
+                                                                                                    <span class="text-base text-slate-600">${opt}</span>
                                                                                                 </label>
-                                                                                                <input type="text" id="cm-init-phy-device-detail" class="input-field py-0.5 px-2 text-xs w-28 border-slate-200 ${isChecked ? '' : 'hidden'}" placeholder="내용 입력" value="${deviceDetail}">
+                                                                                                <input type="text" id="cm-init-phy-device-detail" class="input-field py-0.5 px-2 text-base w-28 border-slate-200 ${isChecked ? '' : 'hidden'}" placeholder="내용 입력" value="${deviceDetail}">
                                                                                             </div>
                                                                                         `;
                                                                                     } else {
                                                                                         return `
                                                                                             <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                                 <input type="checkbox" name="cm-init-phy-device-check" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked}>
-                                                                                                <span class="text-xs text-slate-600">${opt}</span>
+                                                                                                <span class="text-base text-slate-600">${opt}</span>
                                                                                             </label>
                                                                                         `;
                                                                                     }
@@ -7515,7 +7515,7 @@
                                                                                 return options.map(opt => `
                                                                                     <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                         <input type="checkbox" name="cm-init-phy-grade-check" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${savedGrades.includes(opt) ? 'checked' : ''}>
-                                                                                        <span class="text-xs text-slate-600">${opt}</span>
+                                                                                        <span class="text-base text-slate-600">${opt}</span>
                                                                                     </label>
                                                                                 `).join('');
                                                                             })()}
@@ -7531,12 +7531,12 @@
                                                             <td colspan="9" class="border border-slate-300 p-3 bg-white">
                                                                 <div class="flex flex-wrap items-center gap-4">
                                                                     <div class="flex items-center gap-2 flex-1 min-w-[200px]">
-                                                                        <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">서비스명</span>
+                                                                        <span class="text-base font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">서비스명</span>
                                                                         <input type="text" id="cm-init-other-service-name" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" placeholder="이용 중인 서비스 입력" value="${getVal(cm, 'initial.otherServices.serviceName')}">
                                                                     </div>
                                                                     <div class="w-px h-4 bg-slate-200 hidden sm:block"></div>
                                                                     <div class="flex items-center gap-2 flex-1 min-w-[200px]">
-                                                                        <span class="text-xs font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">이용기관</span>
+                                                                        <span class="text-base font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">이용기관</span>
                                                                         <input type="text" id="cm-init-other-service-institution" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" placeholder="기관명 입력" value="${getVal(cm, 'initial.otherServices.institution')}">
                                                                     </div>
                                                                 </div>
@@ -7556,17 +7556,17 @@
                                                             <th rowspan="3" class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">서비스<br>제공여부</th>
                                                             <td colspan="9" class="border border-slate-300 p-2 bg-white border-b-0">
                                                                 <div class="flex items-center gap-4">
-                                                                    <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200">① 판정</span>
+                                                                    <span class="text-base font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200">① 판정</span>
                                                                     <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                         <input type="checkbox" name="cm-init-prov-status" value="적격" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${getVal(cm, 'initial.provision.status') === '적격' ? 'checked' : ''} onchange="if(this.checked) document.querySelectorAll('input[name=\'cm-init-prov-status\']').forEach(el => { if(el !== this) el.checked = false; })">
-                                                                        <span class="text-xs text-slate-700 font-bold">적격</span>
+                                                                        <span class="text-base text-slate-700 font-bold">적격</span>
                                                                     </label>
                                                                     <div class="flex items-center gap-2">
                                                                         <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                             <input type="checkbox" name="cm-init-prov-status" value="부적격" class="w-3.5 h-3.5 text-red-600 focus:ring-red-500 border-slate-300 rounded cursor-pointer" ${getVal(cm, 'initial.provision.status') === '부적격' ? 'checked' : ''} onchange="if(this.checked) document.querySelectorAll('input[name=\'cm-init-prov-status\']').forEach(el => { if(el !== this) el.checked = false; })">
-                                                                            <span class="text-xs text-slate-700 font-bold">부적격</span>
+                                                                            <span class="text-base text-slate-700 font-bold">부적격</span>
                                                                         </label>
-                                                                        <input type="text" id="cm-init-prov-disq-reason" class="input-field py-0.5 px-2 text-xs w-64 border-slate-200" placeholder="부적격 사유 입력" value="${getVal(cm, 'initial.provision.disqualifiedReason')}">
+                                                                        <input type="text" id="cm-init-prov-disq-reason" class="input-field py-0.5 px-2 text-base w-64 border-slate-200" placeholder="부적격 사유 입력" value="${getVal(cm, 'initial.provision.disqualifiedReason')}">
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -7574,7 +7574,7 @@
                                                         <tr>
                                                             <td colspan="9" class="border border-slate-300 p-2 bg-white border-b-0 border-t-0">
                                                                 <div class="flex flex-wrap items-start gap-2">
-                                                                    <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">② 사유</span>
+                                                                    <span class="text-base font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">② 사유</span>
                                                                     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 flex-1">
                                                                         ${(() => {
                                                                             const reasons = getVal(cm, 'initial.provision.reasons') || [];
@@ -7584,7 +7584,7 @@
                                                                             let html = list.map(r => `
                                                                                 <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                     <input type="checkbox" name="cm-init-prov-reason" value="${r}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${reasons.includes(r) ? 'checked' : ''}>
-                                                                                    <span class="text-xs text-slate-600">${r}</span>
+                                                                                    <span class="text-base text-slate-600">${r}</span>
                                                                                 </label>
                                                                             `).join('');
 
@@ -7592,9 +7592,9 @@
                                                                                 <div class="flex items-center gap-1 transition-all">
                                                                                     <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                         <input type="checkbox" name="cm-init-prov-reason" value="기타" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${reasons.includes('기타') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-init-prov-reason-other')">
-                                                                                        <span class="text-xs text-slate-600">기타</span>
+                                                                                        <span class="text-base text-slate-600">기타</span>
                                                                                     </label>
-                                                                                    <input type="text" id="cm-init-prov-reason-other" class="input-field py-0.5 px-2 text-xs w-40 border-slate-200 ${reasons.includes('기타') ? '' : 'hidden'}" placeholder="내용 입력" value="${otherReason}">
+                                                                                    <input type="text" id="cm-init-prov-reason-other" class="input-field py-0.5 px-2 text-base w-40 border-slate-200 ${reasons.includes('기타') ? '' : 'hidden'}" placeholder="내용 입력" value="${otherReason}">
                                                                                 </div>
                                                                             `;
                                                                             return html;
@@ -7606,7 +7606,7 @@
                                                         <tr>
                                                             <td colspan="9" class="border border-slate-300 p-2 bg-white border-t-0">
                                                                 <div class="flex items-start gap-2">
-                                                                    <span class="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">③ 내용</span>
+                                                                    <span class="text-sm font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">③ 내용</span>
                                                                     <!-- [수정] 기본 제공 서비스 텍스트 삽입, 높이 넉넉하게 조절 및 자동 리사이징 추가 -->
                                                                     <textarea id="cm-init-prov-content" class="input-field flex-1 min-h-[130px] border-slate-200 focus:ring-inset resize-none p-2 leading-relaxed text-xs" placeholder="제공할 서비스 내용 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'initial.provision.content') || '- 노인상담 및 정보제공 - 안전안부확인(전화/방문)\n- 사례관리 - 사례회의, 재사정, 모니터링 등\n- 경제적 위기관리 - 급식지원(밑반찬지원서비스, 김장지원서비스 등)\n- 신체적 위기관리 - 노인성질환관리 및 연계(예방적 건강정보지원)\n- 사회적 위기관리 - 대인관계증진(명절지원, 어버이날 행사 등)\n- 권리옹호 - 노인인식개선(노인인권교육 등)'}</textarea>
                                                                 </div>
@@ -7619,19 +7619,19 @@
                                                             <td colspan="9" class="border border-slate-300 p-2 bg-white">
                                                                 <div class="flex flex-wrap items-center gap-2 w-full">
                                                                     <div class="flex items-center gap-1 flex-1 min-w-[110px]">
-                                                                        <span class="text-xs font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">성명</span>
+                                                                        <span class="text-sm font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">성명</span>
                                                                         <input type="text" id="cm-init-referrer-name" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" value="${getVal(cm, 'initial.referrer.name')}">
                                                                     </div>
                                                                     <div class="flex items-center gap-1 flex-1 min-w-[90px]">
-                                                                        <span class="text-xs font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">관계</span>
+                                                                        <span class="text-sm font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">관계</span>
                                                                         <input type="text" id="cm-init-referrer-relation" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" value="${getVal(cm, 'initial.referrer.relation')}">
                                                                     </div>
                                                                     <div class="flex items-center gap-1 flex-1 min-w-[130px]">
-                                                                        <span class="text-xs font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">전화번호</span>
+                                                                        <span class="text-sm font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">전화번호</span>
                                                                         <input type="text" id="cm-init-referrer-phone" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" value="${getVal(cm, 'initial.referrer.phone')}">
                                                                     </div>
                                                                     <div class="flex items-center gap-1 flex-1 min-w-[130px]">
-                                                                        <span class="text-xs font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">의뢰경로</span>
+                                                                        <span class="text-sm font-bold text-slate-600 whitespace-nowrap bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">의뢰경로</span>
                                                                         <input type="text" id="cm-init-referrer-path" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" value="${getVal(cm, 'initial.referrer.path')}">
                                                                     </div>
                                                                 </div>
@@ -7689,7 +7689,7 @@
                                                 
                                                 <div class="p-5">
                                                     <div class="flex items-center gap-2 mb-3">
-                                                        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
+                                                        <span class="text-sm font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
                                                     </div>
 
                                                     <!-- [수정] 무조건 3칸이 되도록 md:grid-cols-3 으로 고정 -->
@@ -7745,7 +7745,7 @@
 
                                                     <div class="mt-5 pt-4 border-t border-dashed border-slate-200">
                                                         <div class="flex items-center gap-2 mb-3">
-                                                            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">가산</span>
+                                                            <span class="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">가산</span>
                                                             <span class="text-xs text-slate-400">항목별 합산</span>
                                                         </div>
                                                         <!-- [수정] 배열을 무조건 1x4 (md:grid-cols-4)로 고정하고, 2.5점 등이 줄바꿈되지 않게 w-9 속성을 적용했습니다. -->
@@ -7790,7 +7790,7 @@
                                                                     <input type="checkbox" name="sel-eco-bonus-jjokbang" value="2점" class="mt-0.5 w-4 h-4 text-blue-500 rounded focus:ring-blue-400 flex-shrink-0" ${getVal(cm, 'selection.economic.bonus.jjokbang') ? 'checked' : ''}>
                                                                     <div class="flex flex-col leading-none gap-1">
                                                                         <span class="text-sm font-bold text-slate-700">쪽방 거주 등</span>
-                                                                        <span class="text-xs text-blue-500 font-bold">+2점 가산</span>
+                                                                        <span class="text-xs text-blue-500 font-bold">+2점</span>
                                                                     </div>
                                                                 </label>
                                                             </div>
@@ -7810,7 +7810,7 @@
                                                 
                                                 <div class="p-5">
                                                     <div class="flex items-center gap-2 mb-3">
-                                                        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
+                                                        <span class="text-sm font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
                                                     </div>
                                                     
                                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -7838,7 +7838,7 @@
 
                                                     <div class="mt-5 pt-4 border-t border-dashed border-slate-200">
                                                         <div class="flex items-center gap-2 mb-3">
-                                                            <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">가산</span>
+                                                            <span class="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">가산</span>
                                                             <span class="text-xs text-slate-400">항목별 합산</span>
                                                         </div>
                                                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
@@ -7899,7 +7899,7 @@
                                                 
                                                 <div class="p-5">
                                                     <div class="flex items-center gap-2 mb-3">
-                                                        <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
+                                                        <span class="text-sm font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">기본</span>
                                                     </div>
                                                     
                                                     <!-- [수정] sm:grid-cols-2 xl:grid-cols-4 였던 것을 md:grid-cols-4로 변경하여 1x4로 유지 -->
@@ -7930,7 +7930,7 @@
 
                                                     <div class="mt-5 pt-4 border-t border-dashed border-slate-200">
                                                         <div class="flex items-center gap-2 mb-3">
-                                                            <span class="text-xs font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-100">가산</span>
+                                                            <span class="text-sm font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-100">가산</span>
                                                             <span class="text-xs text-slate-400">항목별 합산</span>
                                                         </div>
                                                         <!-- [수정] 무조건 1x4 형태 유지를 위해 md:grid-cols-4로 고정 -->
@@ -7946,7 +7946,7 @@
                                                             
                                                             <div class="p-2 border border-slate-100 rounded-lg bg-slate-50/30">
                                                                 <div class="text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-100 pb-1">자살생각(3개월 이내)</div>
-                                                                <div class="flex flex-col gap-1.5 text-xs">
+                                                                <div class="flex flex-col gap-1.5 text-base">
                                                                     <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-dep-bonus" value="suicide_attempt" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.depressionBonus') || []).includes('suicide_attempt') ? 'checked' : ''}><span class="text-slate-700">자살미수 경험 <span class="font-bold text-pink-600">(3점)</span></span></label>
                                                                     <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-dep-bonus" value="suicide_thought" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.depressionBonus') || []).includes('suicide_thought') ? 'checked' : ''}><span class="text-slate-700">자살생각 표현 <span class="font-bold text-pink-600">(2점)</span></span></label>
                                                                     <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" name="sel-men-dep-bonus" value="sleep_disorder" class="mt-0.5 w-3.5 h-3.5 text-pink-500 rounded flex-shrink-0" ${(getVal(cm, 'selection.mental.depressionBonus') || []).includes('sleep_disorder') ? 'checked' : ''}><span class="text-slate-700">수면장애 있음 <span class="font-bold text-pink-600">(1점)</span></span></label>
