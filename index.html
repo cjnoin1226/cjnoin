@@ -3196,7 +3196,7 @@
                     </td>
                     <td class="border-r border-b border-slate-200 p-0"><input type="text" class="fam-note w-full p-1 outline-none bg-transparent focus:bg-white transition-colors" value=""></td>
                     <td class="border-b border-slate-200 p-0 text-center">
-                        <button type="button" onclick="app.removeFamilyRow(this)" class="text-slate-400 hover:text-red-500 p-1 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
+                        <button type="button" onclick="app.removeFamilyRow(this)" class="w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-blue-50 hover:text-blue-600 transition-all shadow-sm mx-auto" title="행 삭제"><i data-lucide="minus" size="12"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -7176,9 +7176,8 @@
                                                                             const famData = getVal(cm, 'initial.familyDetails') || [];
                                                                             // 기본 2줄 보장, 데이터가 더 있으면 그만큼 렌더링
                                                                             let rows = [...famData];
-                                                                            if (rows.length < 2) {
-                                                                                const diff = 2 - rows.length;
-                                                                                for(let k=0; k<diff; k++) rows.push({});
+                                                                            if (rows.length === 0) {
+                                                                                rows.push({});
                                                                             }
                                                                             // 최대 6개까지만 렌더링 (데이터가 오염되었을 경우 대비)
                                                                             rows = rows.slice(0, 6);
@@ -8369,7 +8368,7 @@
                                                                             const hOther = getVal(cm, 'assessment.data.housingDetail.other') || getVal(cm, 'initial.living.housingDetail.other') || '';
                                                                             return `
                                                                             <div class="flex items-center gap-1 transition-all">
-                                                                                <label class="flex items-center gap-1.5 cursor-pointer whitespace-nowrap hover:bg-slate-50 px-1 py-0.5 rounded transition-colors"><input type="checkbox" name="cm-assess-housing" value="기타" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" ${isChecked} onchange="app.toggleDisplay(this, 'cm-assess-housing-other')"><span class="text-base text-slate-700">기타</span></label>
+                                                                                <label class="flex items-center gap-1.5 cursor-pointer whitespace-nowrap hover:bg-slate-50 px-1 py-0.5 rounded transition-colors"><input type="checkbox" name="cm-assess-housing" value="기타" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300" ${isChecked} onchange="app.toggleDisplay(this, 'cm-assess-housing-other')"><span class="text-sm text-slate-700">기타</span></label>
                                                                                 <input type="text" id="cm-assess-housing-other" class="input-field py-0.5 px-1 text-sm w-24 border-slate-300 ${isChecked ? '' : 'hidden'}" placeholder="내용 입력" value="${hOther}">
                                                                             </div>`;
                                                                         } else {
@@ -10242,7 +10241,7 @@
                         age: row.querySelector('.fam-age') ? row.querySelector('.fam-age').value : '',
                         co: row.querySelector('.fam-co') ? row.querySelector('.fam-co').value : '',
                         note: row.querySelector('.fam-note') ? row.querySelector('.fam-note').value : ''
-                    })),
+                    })).filter(f => f.rel || f.name || f.age || f.note),
                     living: {
                         economic: getCheckedValues('cm-init-live-eco'),
                         economicDetail: {
