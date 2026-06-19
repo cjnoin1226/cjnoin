@@ -7237,7 +7237,7 @@
                                                                                         <div class="flex items-center gap-1 transition-all">
                                                                                             <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                                 <input type="checkbox" name="cm-init-live-eco" value="조건부 수급" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${savedEcos.includes('조건부 수급') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-init-live-eco-cond-detail')">
-                                                                                                <span class="text-xs text-slate-600">조건부 수급</span>
+                                                                                                <span class="text-sm text-slate-600">조건부 수급</span>
                                                                                             </label>
                                                                                             <input type="text" id="cm-init-live-eco-cond-detail" class="input-field py-0.5 px-2 text-xs w-28 border-slate-200 ${savedEcos.includes('조건부 수급') ? '' : 'hidden'}" placeholder="내용 입력" value="${condDetail}">
                                                                                         </div>
@@ -7248,7 +7248,7 @@
                                                                                         <div class="flex items-center gap-1 transition-all">
                                                                                             <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                                 <input type="checkbox" name="cm-init-live-eco" value="기타" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${savedEcos.includes('기타') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-init-live-eco-other-detail')">
-                                                                                                <span class="text-xs text-slate-600">기타</span>
+                                                                                                <span class="text-base text-slate-600">기타</span>
                                                                                             </label>
                                                                                             <input type="text" id="cm-init-live-eco-other-detail" class="input-field py-0.5 px-2 text-xs w-28 border-slate-200 ${savedEcos.includes('기타') ? '' : 'hidden'}" placeholder="내용 입력" value="${otherDetail}">
                                                                                         </div>
