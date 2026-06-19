@@ -7079,7 +7079,7 @@
                                         <div>
                                             <!-- [수정] 초기면접지 서식 테이블 구현 (10열 구조로 변경하여 한 줄 배치) -->
                                             <div class="border border-slate-300 bg-white shadow-sm overflow-hidden">
-                                                <table class="w-full text-base text-left border-collapse table-fixed">
+                                                <table class="w-full text-sm text-left border-collapse table-fixed">
                                                     <colgroup>
                                                         <col class="w-[8%]">
                                                         <col class="w-[12%]">
@@ -7531,12 +7531,12 @@
                                                             <td colspan="9" class="border border-slate-300 p-3 bg-white">
                                                                 <div class="flex flex-wrap items-center gap-4">
                                                                     <div class="flex items-center gap-2 flex-1 min-w-[200px]">
-                                                                        <span class="text-base font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">서비스명</span>
+                                                                        <span class="text-sm font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">서비스명</span>
                                                                         <input type="text" id="cm-init-other-service-name" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" placeholder="이용 중인 서비스 입력" value="${getVal(cm, 'initial.otherServices.serviceName')}">
                                                                     </div>
                                                                     <div class="w-px h-4 bg-slate-200 hidden sm:block"></div>
                                                                     <div class="flex items-center gap-2 flex-1 min-w-[200px]">
-                                                                        <span class="text-base font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">이용기관</span>
+                                                                        <span class="text-sm font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded">이용기관</span>
                                                                         <input type="text" id="cm-init-other-service-institution" class="input-field py-1 px-2 text-xs flex-1 border-slate-200" placeholder="기관명 입력" value="${getVal(cm, 'initial.otherServices.institution')}">
                                                                     </div>
                                                                 </div>
@@ -7556,7 +7556,7 @@
                                                             <th rowspan="3" class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700">서비스<br>제공여부</th>
                                                             <td colspan="9" class="border border-slate-300 p-2 bg-white border-b-0">
                                                                 <div class="flex items-center gap-4">
-                                                                    <span class="text-base font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200">① 판정</span>
+                                                                    <span class="text-sm font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200">① 판정</span>
                                                                     <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                         <input type="checkbox" name="cm-init-prov-status" value="적격" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${getVal(cm, 'initial.provision.status') === '적격' ? 'checked' : ''} onchange="if(this.checked) document.querySelectorAll('input[name=\'cm-init-prov-status\']').forEach(el => { if(el !== this) el.checked = false; })">
                                                                         <span class="text-base text-slate-700 font-bold">적격</span>
@@ -7566,7 +7566,7 @@
                                                                             <input type="checkbox" name="cm-init-prov-status" value="부적격" class="w-3.5 h-3.5 text-red-600 focus:ring-red-500 border-slate-300 rounded cursor-pointer" ${getVal(cm, 'initial.provision.status') === '부적격' ? 'checked' : ''} onchange="if(this.checked) document.querySelectorAll('input[name=\'cm-init-prov-status\']').forEach(el => { if(el !== this) el.checked = false; })">
                                                                             <span class="text-base text-slate-700 font-bold">부적격</span>
                                                                         </label>
-                                                                        <input type="text" id="cm-init-prov-disq-reason" class="input-field py-0.5 px-2 text-base w-64 border-slate-200" placeholder="부적격 사유 입력" value="${getVal(cm, 'initial.provision.disqualifiedReason')}">
+                                                                        <input type="text" id="cm-init-prov-disq-reason" class="input-field py-0.5 px-2 text-sm w-64 border-slate-200" placeholder="부적격 사유 입력" value="${getVal(cm, 'initial.provision.disqualifiedReason')}">
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -7574,7 +7574,7 @@
                                                         <tr>
                                                             <td colspan="9" class="border border-slate-300 p-2 bg-white border-b-0 border-t-0">
                                                                 <div class="flex flex-wrap items-start gap-2">
-                                                                    <span class="text-base font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">② 사유</span>
+                                                                    <span class="text-sm font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">② 사유</span>
                                                                     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 flex-1">
                                                                         ${(() => {
                                                                             const reasons = getVal(cm, 'initial.provision.reasons') || [];
@@ -7594,7 +7594,7 @@
                                                                                         <input type="checkbox" name="cm-init-prov-reason" value="기타" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${reasons.includes('기타') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-init-prov-reason-other')">
                                                                                         <span class="text-base text-slate-600">기타</span>
                                                                                     </label>
-                                                                                    <input type="text" id="cm-init-prov-reason-other" class="input-field py-0.5 px-2 text-base w-40 border-slate-200 ${reasons.includes('기타') ? '' : 'hidden'}" placeholder="내용 입력" value="${otherReason}">
+                                                                                    <input type="text" id="cm-init-prov-reason-other" class="input-field py-0.5 px-2 text-sm w-40 border-slate-200 ${reasons.includes('기타') ? '' : 'hidden'}" placeholder="내용 입력" value="${otherReason}">
                                                                                 </div>
                                                                             `;
                                                                             return html;
