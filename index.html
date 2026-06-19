@@ -6787,6 +6787,19 @@
                     serviceGoalRowsHTML += `<tr><td class="p-0 border-r border-slate-200"><textarea id="sat-goal-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 font-bold text-slate-700 overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${displayGoal}</textarea></td><td class="p-0 border-r border-slate-200"><textarea id="sat-action-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 whitespace-pre overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${displayAction}</textarea></td><td class="p-0 border-r border-slate-200 align-top bg-white">${renderSatisfactionOptions(i, savedUserSat)}</td><td class="p-0 relative"><textarea id="sat-worker-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 overflow-hidden pr-8" placeholder="평가 내용" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${savedWorkerEval}</textarea><button type="button" onclick="app.removeSatGoalRow(this)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500" title="이 항목 삭제"><i data-lucide="x-circle" size="16"></i></button></td></tr>`;
                 });
 
+                // [신규] 서비스 내역 정렬 헤더 렌더링 헬퍼 함수
+                if (!state.ui.clientHistorySortKey) state.ui.clientHistorySortKey = 'date';
+                if (!state.ui.clientHistorySortOrder) state.ui.clientHistorySortOrder = 'desc';
+
+                const renderHistTh = (key, label, widthClass) => {
+                    const isSorted = state.ui.clientHistorySortKey === key;
+                    const sortIcon = isSorted ? (state.ui.clientHistorySortOrder === 'asc' ? '<i data-lucide="arrow-up" class="inline w-3 h-3 text-emerald-500"></i>' : '<i data-lucide="arrow-down" class="inline w-3 h-3 text-emerald-500"></i>') : '<i data-lucide="minus" class="inline w-3 h-3 opacity-30"></i>';
+                    const alignClass = ['provideMethod', 'provider'].includes(key) ? 'justify-center' : '';
+                    return `<th class="${widthClass} whitespace-nowrap bg-slate-50 cursor-pointer hover:bg-slate-200 select-none transition-colors border-r border-slate-200 last:border-0" onclick="app.toggleClientHistorySort('${key}', '${c.id}')">
+                        <div class="flex items-center gap-1 ${alignClass}">${label} ${sortIcon}</div>
+                    </th>`;
+                };
+
                 // [유지] 초기 데이터(현재 연도) 생성
                 let historyRows = '';
                 if (c.id) {
@@ -9937,14 +9950,14 @@
                                     <div class="border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col h-[500px]">
                                         <div class="overflow-y-auto flex-1 custom-scrollbar">
                                             <table class="w-full text-sm text-left border-collapse relative">
-                                                <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+                                                <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 sticky top-0 z-10 shadow-sm" id="client-history-thead">
                                                     <tr>
-                                                        <th class="pl-4 pr-3 py-3 w-[120px] whitespace-nowrap bg-slate-50">날짜</th>
-                                                        <th class="pl-2 pr-4 py-3 w-[80px] text-center whitespace-nowrap bg-slate-50">방법</th>
-                                                        <th class="px-4 py-3 w-[140px] whitespace-nowrap bg-slate-50">분류</th>
-                                                        <th class="pl-4 pr-1 py-3 w-[180px] whitespace-nowrap bg-slate-50">서비스명</th>
-                                                        <th class="pl-1 pr-4 py-3 min-w-[200px] whitespace-nowrap bg-slate-50">내용/메모</th>
-                                                        <th class="px-4 py-3 w-[80px] text-center whitespace-nowrap bg-slate-50">제공자</th>
+                                                        ${renderHistTh('date', '날짜', 'pl-4 pr-3 py-3 w-[120px]')}
+                                                        ${renderHistTh('provideMethod', '방법', 'px-2 py-3 w-[80px]')}
+                                                        ${renderHistTh('category', '분류', 'px-4 py-3 w-[140px]')}
+                                                        ${renderHistTh('serviceName', '서비스명', 'px-4 py-3 w-[180px]')}
+                                                        ${renderHistTh('detailNote', '내용/메모', 'px-4 py-3 min-w-[200px]')}
+                                                        ${renderHistTh('provider', '제공자', 'px-4 py-3 w-[80px]')}
                                                     </tr>
                                                 </thead>
                                                 <tbody id="client-history-list" class="divide-y divide-slate-100 bg-white">
@@ -12618,6 +12631,20 @@
                     }
                 });
 
+                // [신규] 생성된 항목 정렬 로직 추가
+                const sortKey = state.ui.clientHistorySortKey || 'date';
+                const sortOrder = state.ui.clientHistorySortOrder || 'desc';
+
+                historyItems.sort((a, b) => {
+                    let valA = a[sortKey] || '';
+                    let valB = b[sortKey] || '';
+                    if (valA !== valB) {
+                        return sortOrder === 'asc' ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+                    }
+                    if (a.date !== b.date) return b.date.localeCompare(a.date);
+                    return 0;
+                });
+
                 if (historyItems.length > 0) {
                     return historyItems.map(h => `
                         <tr class="hover:bg-slate-50 transition-colors cursor-pointer" onclick="app.openLogModal('${h.logId}')" title="클릭하여 일지 상세보기">
@@ -12642,10 +12669,49 @@
                     await app.loadLogsByYear(targetYear);
                 }
 
-                const clientLogs = state.logs.filter(l => l.clientId === clientId && l.date.startsWith(year)).sort((a,b) => b.date.localeCompare(a.date));
+                const clientLogs = state.logs.filter(l => l.clientId === clientId && l.date.startsWith(year));
+                // 정렬 로직은 generateHistoryRows로 위임했으므로 바로 넘깁니다.
                 const rows = app.generateHistoryRows(clientLogs);
                 const container = document.getElementById('client-history-list');
                 if (container) container.innerHTML = rows;
+            },
+
+            // [신규] 서비스 내역 탭 정렬 토글 함수 (헤더 클릭 시 발동)
+            toggleClientHistorySort: (key, clientId) => {
+                if (!state.ui.clientHistorySortKey) state.ui.clientHistorySortKey = 'date';
+                if (!state.ui.clientHistorySortOrder) state.ui.clientHistorySortOrder = 'desc';
+
+                if (state.ui.clientHistorySortKey === key) {
+                    state.ui.clientHistorySortOrder = state.ui.clientHistorySortOrder === 'asc' ? 'desc' : 'asc';
+                } else {
+                    state.ui.clientHistorySortKey = key;
+                    state.ui.clientHistorySortOrder = 'asc';
+                }
+                
+                // 모달 전체가 아니라 해당 표 부분만 즉시 갱신 (빠름)
+                app.updateClientHistory(clientId, String(state.ui.cmYear));
+                
+                // 헤더 화살표 방향도 즉시 갱신
+                const theadTr = document.querySelector('#client-history-thead tr');
+                if (theadTr) {
+                    const renderHistTh = (k, label, widthClass) => {
+                        const isSorted = state.ui.clientHistorySortKey === k;
+                        const sortIcon = isSorted ? (state.ui.clientHistorySortOrder === 'asc' ? '<i data-lucide="arrow-up" class="inline w-3 h-3 text-emerald-500"></i>' : '<i data-lucide="arrow-down" class="inline w-3 h-3 text-emerald-500"></i>') : '<i data-lucide="minus" class="inline w-3 h-3 opacity-30"></i>';
+                        const alignClass = ['provideMethod', 'provider'].includes(k) ? 'justify-center' : '';
+                        return `<th class="${widthClass} whitespace-nowrap bg-slate-50 cursor-pointer hover:bg-slate-200 select-none transition-colors border-r border-slate-200 last:border-0" onclick="app.toggleClientHistorySort('${k}', '${clientId}')">
+                            <div class="flex items-center gap-1 ${alignClass}">${label} ${sortIcon}</div>
+                        </th>`;
+                    };
+                    theadTr.innerHTML = `
+                        ${renderHistTh('date', '날짜', 'pl-4 pr-3 py-3 w-[120px]')}
+                        ${renderHistTh('provideMethod', '방법', 'px-2 py-3 w-[80px]')}
+                        ${renderHistTh('category', '분류', 'px-4 py-3 w-[140px]')}
+                        ${renderHistTh('serviceName', '서비스명', 'px-4 py-3 w-[180px]')}
+                        ${renderHistTh('detailNote', '내용/메모', 'px-4 py-3 min-w-[200px]')}
+                        ${renderHistTh('provider', '제공자', 'px-4 py-3 w-[80px]')}
+                    `;
+                    if(window.lucide) lucide.createIcons();
+                }
             },
             
             // [신규] 모달 내 일지 탭 전용 연도 변경 처리
