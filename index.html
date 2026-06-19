@@ -7237,7 +7237,7 @@
                                                                                         <div class="flex items-center gap-1 transition-all">
                                                                                             <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                                 <input type="checkbox" name="cm-init-live-eco" value="조건부 수급" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${savedEcos.includes('조건부 수급') ? 'checked' : ''} onchange="app.toggleDisplay(this, 'cm-init-live-eco-cond-detail')">
-                                                                                                <span class="text-sm text-slate-600">조건부 수급</span>
+                                                                                                <span class="text-base text-slate-600">조건부 수급</span>
                                                                                             </label>
                                                                                             <input type="text" id="cm-init-live-eco-cond-detail" class="input-field py-0.5 px-2 text-xs w-28 border-slate-200 ${savedEcos.includes('조건부 수급') ? '' : 'hidden'}" placeholder="내용 입력" value="${condDetail}">
                                                                                         </div>
@@ -7330,7 +7330,7 @@
                                                                                             <div class="flex items-center gap-1 transition-all">
                                                                                                 <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                                     <input type="checkbox" name="cm-init-live-housing" value="${housing}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked} onchange="app.toggleDisplay(this, 'cm-init-housing-free-detail')">
-                                                                                                    <span class="text-xs text-slate-600">${housing}</span>
+                                                                                                    <span class="text-base text-slate-600">${housing}</span>
                                                                                                 </label>
                                                                                                 <input type="text" id="cm-init-housing-free-detail" class="input-field py-0.5 px-2 text-xs w-28 border-slate-200 ${isChecked ? '' : 'hidden'}" placeholder="관계 등 입력" value="${freeHousing}">
                                                                                             </div>`;
@@ -7339,7 +7339,7 @@
                                                                                             <div class="flex items-center gap-1 transition-all">
                                                                                                 <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                                     <input type="checkbox" name="cm-init-live-housing" value="${housing}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked} onchange="app.toggleDisplay(this, 'wrapper-jeonse')">
-                                                                                                    <span class="text-xs text-slate-600">${housing}</span>
+                                                                                                    <span class="text-base text-slate-600">${housing}</span>
                                                                                                 </label>
                                                                                                 <div id="wrapper-jeonse" class="flex items-center gap-1 ${isChecked ? '' : 'hidden'} bg-slate-50 rounded px-1 border border-slate-100">
                                                                                                     <span class="text-[10px] text-slate-500">보증금</span>
@@ -7352,7 +7352,7 @@
                                                                                             <div class="flex items-center gap-1 transition-all">
                                                                                                 <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                                     <input type="checkbox" name="cm-init-live-housing" value="${housing}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked} onchange="app.toggleDisplay(this, 'wrapper-wolse')">
-                                                                                                    <span class="text-xs text-slate-600">${housing}</span>
+                                                                                                    <span class="text-base text-slate-600">${housing}</span>
                                                                                                 </label>
                                                                                                 <div id="wrapper-wolse" class="flex items-center gap-1 ${isChecked ? '' : 'hidden'} bg-slate-50 rounded px-1 border border-slate-100">
                                                                                                     <span class="text-[10px] text-slate-500">보</span>
@@ -7363,7 +7363,7 @@
                                                                                                 </div>
                                                                                             </div>`;
                                                                                         } else {
-                                                                                            return `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors"><input type="checkbox" name="cm-init-live-housing" value="${housing}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked}><span class="text-xs text-slate-600">${housing}</span></label>`;
+                                                                                            return `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors"><input type="checkbox" name="cm-init-live-housing" value="${housing}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked}><span class="text-base text-slate-600">${housing}</span></label>`;
                                                                                         }
                                                                                     }).join('');
                                                                                 })()}
@@ -7374,7 +7374,7 @@
                                                                                 ${['단독주택', '아파트', '빌라/연립', '다세대주택', '기타'].map(type => {
                                                                                     const savedTypes = getVal(cm, 'initial.living.dwellingType') || [];
                                                                                     const isChecked = savedTypes.includes(type) ? 'checked' : '';
-                                                                                    return `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors"><input type="checkbox" name="cm-init-live-dwelling" value="${type}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked}><span class="text-xs text-slate-600">${type}</span></label>`;
+                                                                                    return `<label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors"><input type="checkbox" name="cm-init-live-dwelling" value="${type}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${isChecked}><span class="text-base text-slate-600">${type}</span></label>`;
                                                                                 }).join('')}
                                                                             </div>
                                                                         </div>
@@ -7408,7 +7408,7 @@
                                                                                 return options.map(opt => `
                                                                                     <label class="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 rounded px-1 py-0.5 transition-colors">
                                                                                         <input type="checkbox" name="cm-init-phy-health-option" value="${opt}" class="w-3.5 h-3.5 text-emerald-600 focus:ring-emerald-500 border-slate-300 rounded cursor-pointer" ${savedHealthList.includes(opt) ? 'checked' : ''}>
-                                                                                        <span class="text-xs text-slate-600 break-keep">${opt}</span>
+                                                                                        <span class="text-base text-slate-600 break-keep">${opt}</span>
                                                                                     </label>
                                                                                 `).join('');
                                                                             })()}
