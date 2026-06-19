@@ -9943,15 +9943,28 @@
                                     <td class="border-r border-b border-slate-300 p-0"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2" rows="2">노인인권교육 실시</textarea></td>
                                 </tr>
                                 <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="border-r border-b border-slate-300 p-2 text-center">긴급지원</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center text-[10px] break-keep">자연재해, 응급상황 등에 대한 보호</td>
-                                    <td class="border-r border-b border-slate-300 p-0"><input type="text" class="w-full text-center bg-transparent outline-none p-2" value="필요 시"></td>
-                                    <td class="border-r border-b border-slate-300 p-0"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2" rows="2">필요 시 자연재해, 응급상황 등에 대한 보호(안부확인 등)</textarea></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </td>
-                </tr>
+                                            <td class="border-r border-b border-slate-300 p-2 text-center">긴급지원</td>
+                                            <td class="border-r border-b border-slate-300 p-2 text-center text-[10px] break-keep">자연재해, 응급상황 등에 대한 보호</td>
+                                            <td class="border-r border-b border-slate-300 p-0"><input type="text" class="w-full text-center bg-transparent outline-none p-2" value="필요 시"></td>
+                                            <td class="border-r border-b border-slate-300 p-0"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2" rows="2">필요 시 자연재해, 응급상황 등에 대한 보호(안부확인 등)</textarea></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        <!-- 5. 조정 및 종결 -->
+                        <tr>
+                            <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700 leading-tight">서비스<br>조정<br>및<br>종결</th>
+                            <td colspan="5" class="border border-slate-300 p-0">
+                                <textarea id="cm-plan-adjust" class="input-field w-full min-h-[100px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed text-sm" placeholder="- 서비스 이용자에게 적절하지 않거나...\n- 다른 지역으로 이주를 하였을 때...\n- 3개월 이상 연락이 끊겼을 경우" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'"></textarea>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+                                    <!-- 여기서부터 정상적으로 다음 '내역' 탭 시작 -->
                                     <div id="sub-tab-history-list" class="sub-tab-content ${state.ui.caseSubTab === 'history-list' ? 'active' : ''} space-y-4">
                                         <div class="bg-slate-50 p-2 pl-3 rounded flex flex-col sm:flex-row justify-between items-center gap-2 border border-slate-200">
                                             <div class="text-sm text-slate-600 flex items-center gap-2">
