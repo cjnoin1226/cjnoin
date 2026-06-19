@@ -509,6 +509,10 @@
             loadingCancelled: false,
             // [신규] 탭별 스크롤 위치 저장소
             tabScrolls: {}, 
+            clientLogFilters: { 
+                // [신규] 모달 내 일지 탭 전용 필터 상태
+                start: '', end: '', searchContent: '', provider: '', provideMethod: '', category: '', service: '', detailNote: '' 
+            },
             ui: {
                 regionDropdownOpen: false,
                 logRegionDropdownOpen: false,
@@ -6288,7 +6292,7 @@
                         <button onclick="app.closeModal()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button>
                     </div>
                 </div>`;
-                
+
                 showModal(html, true);
                 if(window.lucide) lucide.createIcons();
             },
@@ -9951,25 +9955,82 @@
                                     </div>
                                 </div>
 
-                                <!-- [신규] 일지 탭 콘텐츠 추가 -->
+                                <!-- [신규] 일지 탭 콘텐츠 추가 (필터 기능 포함) -->
                                 <div id="tab-logs" class="modal-tab-content ${state.ui.clientModalTab === 'logs' ? 'active' : ''} space-y-4 pt-4 sm:pt-6">
-                                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                        <div class="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                            <div class="p-1.5 bg-emerald-100 text-emerald-600 rounded"><i data-lucide="file-text" class="w-4 h-4"></i></div>
-                                            <span>작성된 서비스 일지</span>
+                                    <div class="flex flex-col gap-2 mb-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                        <div class="flex justify-between items-center">
+                                            <div class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                                <div class="p-1.5 bg-emerald-100 text-emerald-600 rounded"><i data-lucide="file-text" class="w-4 h-4"></i></div>
+                                                <span>작성된 서비스 일지</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs text-slate-500 font-medium">조회 연도</span>
+                                                <select class="input-field w-24 py-1 text-sm bg-white border-slate-300 shadow-sm" onchange="app.setClientModalLogYear('${c.id}', this.value)">
+                                                    ${yearOptionsHTML}
+                                                </select>
+                                                <button type="button" onclick="app.resetClientLogFilters('${c.id}')" class="bg-white border border-slate-300 text-slate-500 hover:text-slate-700 text-xs px-2 py-1 rounded shadow-sm flex items-center gap-1 transition-colors"><i data-lucide="refresh-cw" size="12"></i> 초기화</button>
+                                            </div>
                                         </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs text-slate-500 font-medium">조회 연도</span>
-                                            <select class="input-field w-32 py-1 text-sm bg-white border-slate-300 shadow-sm" onchange="app.updateClientLogTab('${c.id}', this.value)">
-                                                ${yearOptionsHTML}
+                                        
+                                        <!-- 모달 전용 필터 UI -->
+                                        <div class="flex flex-wrap gap-2 pt-2 border-t border-slate-200">
+                                            <div class="flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-slate-200">
+                                                <input type="date" id="c-log-start" class="border-0 bg-transparent text-xs p-1 w-24 outline-none" value="${state.clientLogFilters.start}" onchange="app.setClientLogFilter('${c.id}', 'start', this.value)" max="9999-12-31">
+                                                <span class="text-slate-400 text-xs">~</span>
+                                                <input type="date" id="c-log-end" class="border-0 bg-transparent text-xs p-1 w-24 outline-none" value="${state.clientLogFilters.end}" onchange="app.setClientLogFilter('${c.id}', 'end', this.value)" max="9999-12-31">
+                                            </div>
+                                            
+                                            <input type="text" class="input-field py-1 px-2 text-xs w-24 bg-white" placeholder="제공자" value="${state.clientLogFilters.provider}" oninput="app.setClientLogFilter('${c.id}', 'provider', this.value)">
+                                            
+                                            <select class="input-field py-1 px-2 text-xs w-24 bg-white" onchange="app.setClientLogFilter('${c.id}', 'provideMethod', this.value)">
+                                                <option value="">제공방법</option>
+                                                ${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${state.clientLogFilters.provideMethod === m ? 'selected' : ''}>${m}</option>`).join('')}
                                             </select>
+                                            
+                                            <select class="input-field py-1 px-2 text-xs w-24 bg-white" onchange="app.setClientLogFilter('${c.id}', 'category', this.value); app.setClientLogFilter('${c.id}', 'service', '');">
+                                                <option value="">서비스분류</option>
+                                                ${[...new Set(state.services.map(s => s.category))].map(cat => `<option value="${cat}" ${state.clientLogFilters.category === cat ? 'selected' : ''}>${cat}</option>`).join('')}
+                                            </select>
+                                            
+                                            <select class="input-field py-1 px-2 text-xs w-28 bg-white" onchange="app.setClientLogFilter('${c.id}', 'service', this.value)">
+                                                <option value="">상세내용</option>
+                                                ${(state.clientLogFilters.category ? state.services.filter(s => s.category === state.clientLogFilters.category) : state.services).map(s => `<option value="${s.name}" ${state.clientLogFilters.service === s.name ? 'selected' : ''}>${s.name}</option>`).join('')}
+                                            </select>
+
+                                            <input type="text" class="input-field py-1 px-2 text-xs w-28 bg-white flex-1 min-w-[100px]" placeholder="메모 내용" value="${state.clientLogFilters.detailNote}" oninput="app.setClientLogFilter('${c.id}', 'detailNote', this.value)">
+                                            <input type="text" class="input-field py-1 px-2 text-xs w-32 bg-white flex-1 min-w-[120px]" placeholder="일지 본문 검색" value="${state.clientLogFilters.searchContent}" oninput="app.setClientLogFilter('${c.id}', 'searchContent', this.value)">
                                         </div>
                                     </div>
                                     <div class="border border-slate-200 rounded-lg overflow-hidden bg-slate-100 shadow-sm flex flex-col h-[500px]">
                                         <div class="overflow-y-auto flex-1 custom-scrollbar p-3 space-y-3" id="client-log-list-container">
                                             ${(() => {
-                                                const logsForTab = state.logs.filter(l => l.clientId === c.id && l.date.startsWith(String(currentYear))).sort((a,b) => b.date.localeCompare(a.date));
-                                                if (logsForTab.length === 0) return '<div class="text-center py-12 text-slate-400 bg-white rounded-lg border border-slate-200 shadow-sm">해당 연도에 작성된 일지가 없습니다.</div>';
+                                                const f = state.clientLogFilters;
+                                                const hasFilter = f.start || f.end || f.provider || f.provideMethod || f.category || f.service || f.detailNote || f.searchContent;
+                                                
+                                                let logsForTab = state.logs.filter(l => l.clientId === c.id);
+                                                
+                                                // 필터가 없으면 연도만으로 조회, 필터가 있으면 필터 조건 전체 적용
+                                                if (!hasFilter) {
+                                                    logsForTab = logsForTab.filter(l => l.date.startsWith(String(currentYear)));
+                                                } else {
+                                                    logsForTab = logsForTab.filter(l => {
+                                                        const matchDate = (!f.start || l.date >= f.start) && (!f.end || l.date <= f.end);
+                                                        const matchProvider = !f.provider || (l.provider && l.provider.includes(f.provider));
+                                                        const matchMethod = !f.provideMethod || l.provideMethod === f.provideMethod;
+                                                        const matchContent = !f.searchContent || (l.content && l.content.includes(f.searchContent));
+                                                        
+                                                        const matchCat = !f.category || (l.serviceItems && l.serviceItems.some(i => i.category === f.category));
+                                                        const matchSvc = !f.service || (l.serviceItems && l.serviceItems.some(i => i.serviceName === f.service));
+                                                        const matchNote = !f.detailNote || (l.serviceItems && l.serviceItems.some(i => i.detailNote && i.detailNote.includes(f.detailNote)));
+
+                                                        return matchDate && matchProvider && matchMethod && matchContent && matchCat && matchSvc && matchNote;
+                                                    });
+                                                }
+                                                
+                                                logsForTab.sort((a,b) => b.date.localeCompare(a.date));
+
+                                                if (logsForTab.length === 0) return '<div class="text-center py-12 text-slate-400 bg-white rounded-lg border border-slate-200 shadow-sm">검색된 일지가 없습니다.</div>';
+                                                
                                                 return logsForTab.map(l => `
                                                     <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col gap-2">
                                                         <div class="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -12587,41 +12648,52 @@
                 if (container) container.innerHTML = rows;
             },
             
-            // [신규] 대상자 상세 모달 - 일지 탭 업데이트 함수
-            updateClientLogTab: async (clientId, year) => {
-                if (!clientId) return;
-
+            // [신규] 모달 내 일지 탭 전용 연도 변경 처리
+            setClientModalLogYear: async (clientId, year) => {
                 const targetYear = parseInt(year);
+                state.ui.cmYear = targetYear; // 메인 화면 연도 동기화
+                
+                // 해당 연도의 데이터 로드 시도
                 if (!state.loadedYears.has(targetYear)) {
                     await app.loadLogsByYear(targetYear);
                 }
-
-                const clientLogs = state.logs.filter(l => l.clientId === clientId && l.date.startsWith(year)).sort((a,b) => b.date.localeCompare(a.date));
-                const container = document.getElementById('client-log-list-container');
                 
-                if (container) {
-                    if (clientLogs.length > 0) {
-                        container.innerHTML = clientLogs.map(l => `
-                            <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex flex-col gap-2">
-                                <div class="flex justify-between items-center border-b border-slate-100 pb-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-bold text-slate-700">${l.date}</span>
-                                        <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">${l.provideMethod || '방문'}</span>
-                                    </div>
-                                    <span class="text-xs text-slate-500 font-medium">작성자: <span class="text-slate-700">${l.provider || '-'}</span></span>
-                                </div>
-                                <div class="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">${l.content || ''}</div>
-                                ${l.serviceItems && l.serviceItems.length > 0 ? `
-                                <div class="mt-2 pt-2 border-t border-dashed border-slate-100 flex flex-wrap gap-1">
-                                    ${l.serviceItems.map(i => `<span class="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded shadow-sm">${i.serviceName}</span>`).join('')}
-                                </div>
-                                ` : ''}
-                            </div>
-                        `).join('');
-                    } else {
-                        container.innerHTML = '<div class="text-center py-12 text-slate-400 bg-white rounded-lg border border-slate-200 shadow-sm">해당 연도에 작성된 일지가 없습니다.</div>';
+                // 연도를 바꿨으므로 필터 내용 초기화 후 렌더링
+                state.clientLogFilters = { start: '', end: '', searchContent: '', provider: '', provideMethod: '', category: '', service: '', detailNote: '' };
+                app.openClientModal(clientId);
+            },
+
+            // [신규] 모달 내 일지 탭 전용 필터 적용 함수
+            setClientLogFilter: (clientId, key, val) => {
+                state.clientLogFilters[key] = val;
+                
+                // 즉각적으로 필터 결과를 반영하기 위해 렌더링
+                app.openClientModal(clientId);
+                
+                // 포커스 유지를 위해 약간의 지연 후 검색창에 다시 포커스 맞추기
+                setTimeout(() => {
+                    const focusMap = {
+                        'start': 'c-log-start', 'end': 'c-log-end'
+                    };
+                    // input 타입들만 포커스 복귀 시도
+                    if (['provider', 'detailNote', 'searchContent'].includes(key)) {
+                        const inputs = document.querySelectorAll(`input[placeholder]`);
+                        inputs.forEach(el => {
+                            if ((key === 'provider' && el.placeholder === '제공자') ||
+                                (key === 'detailNote' && el.placeholder === '메모 내용') ||
+                                (key === 'searchContent' && el.placeholder === '일지 본문 검색')) {
+                                el.focus();
+                                el.setSelectionRange(el.value.length, el.value.length); // 커서를 맨 뒤로
+                            }
+                        });
                     }
-                }
+                }, 10);
+            },
+
+            // [신규] 모달 내 일지 탭 전용 필터 초기화
+            resetClientLogFilters: (clientId) => {
+                state.clientLogFilters = { start: '', end: '', searchContent: '', provider: '', provideMethod: '', category: '', service: '', detailNote: '' };
+                app.openClientModal(clientId);
             },
 
             fillClientInfo: (input) => {
