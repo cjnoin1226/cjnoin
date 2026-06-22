@@ -12198,35 +12198,42 @@
                                     let trHtml = '';
                                     plans.forEach((p, i) => {
                                         trHtml += `<tr>`;
-                                        if(majorSpans[i] > 0) trHtml += `<td rowspan="${majorSpans[i]}" style="font-weight:bold; vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${p.major || ''}</td>`;
-                                        if(middleSpans[i] > 0) trHtml += `<td rowspan="${middleSpans[i]}" style="vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${p.middle || ''}</td>`;
-                                        if(minorSpans[i] > 0) trHtml += `<td rowspan="${minorSpans[i]}" style="vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${p.minor || ''}</td>`;
+                                        // 🚨 인라인으로 강제하던 회색(cbd5e1) 테두리 속성을 모두 지웠습니다! 이제 깔끔한 검은색 1px 선으로 쭉 이어집니다.
+                                        if(majorSpans[i] > 0) trHtml += `<td rowspan="${majorSpans[i]}" style="font-weight:bold; vertical-align:middle;">${p.major || ''}</td>`;
+                                        if(middleSpans[i] > 0) trHtml += `<td rowspan="${middleSpans[i]}" style="vertical-align:middle;">${p.middle || ''}</td>`;
+                                        if(minorSpans[i] > 0) trHtml += `<td rowspan="${minorSpans[i]}" style="vertical-align:middle;">${p.minor || ''}</td>`;
                                         
-                                        trHtml += `<td style="vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${p.count || ''}</td>`;
-                                        trHtml += `<td style="padding:4px; text-align:center; vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${(p.content || '').replace(/\n/g, '<br>')}</td>`;
+                                        trHtml += `<td style="vertical-align:middle;">${p.count || ''}</td>`;
+                                        trHtml += `<td style="padding:4px; text-align:center; vertical-align:middle;">${(p.content || '').replace(/\n/g, '<br>')}</td>`;
                                         
-                                        // 인쇄 시에도 기간, 점검/평가는 한 칸으로 통째로 병합!
                                         if (i === 0) {
-                                            trHtml += `<td rowspan="${plans.length}" style="vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${(plans[0].period || '').replace(/\n/g, '<br>')}</td>`;
-                                            trHtml += `<td rowspan="${plans.length}" style="vertical-align:middle; border-bottom:1px solid #cbd5e1;">${(plans[0].evaluation || '연 1회 점검 및\n평가 실시').replace(/\n/g, '<br>')}</td>`;
+                                            trHtml += `<td rowspan="${plans.length}" style="vertical-align:middle;">${(plans[0].period || '').replace(/\n/g, '<br>')}</td>`;
+                                            trHtml += `<td rowspan="${plans.length}" style="vertical-align:middle;">${(plans[0].evaluation || '연 1회 점검 및\n평가 실시').replace(/\n/g, '<br>')}</td>`;
                                         }
                                         
                                         trHtml += `</tr>`;
                                     });
+
+                                    // 🚨 밖에 동떨어져있던 종결 사유를 표 안의 마지막 칸으로 쏙 넣었습니다! 이제 검은 테두리로 예쁘게 이어집니다.
+                                    trHtml += `
+                                        <tr>
+                                            <td colspan="7" style="text-align: left; padding: 10px;">
+                                                <div style="font-weight: bold; margin-bottom: 5px;">※ 서비스 조정 및 종결 사유</div>
+                                                <div style="line-height: 1.6; padding-left: 5px;">
+                                                    - 서비스 이용자에게 적절하지 않거나 서비스 제공 목적에 어긋날 때<br>
+                                                    - 서비스 이용자의 부적절한 서비스 요구가 있을 경우<br>
+                                                    - 다른 지역으로 이주를 하였을 때<br>
+                                                    - 3개월 이상 연락이 끊겼을 경우<br>
+                                                    - 타 기관과 서비스가 중복되었을 경우
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `;
+                                    
                                     return trHtml;
                                 })()}
                             </tbody>
                         </table>
-                        <div style="margin-top: 15px; font-weight: bold;">
-                            ※ 서비스 조정 및 종결 사유
-                            <ul style="margin-top: 5px; font-weight: normal; font-size: 11px; padding-left: 20px; line-height: 1.5;">
-                                <li>서비스 이용자에게 적절하지 않거나 서비스 제공 목적에 어긋날 때</li>
-                                <li>서비스 이용자의 부적절한 서비스 요구가 있을 경우</li>
-                                <li>다른 지역으로 이주를 하였을 때</li>
-                                <li>3개월 이상 연락이 끊겼을 경우</li>
-                                <li>타 기관과 서비스가 중복되었을 경우</li>
-                            </ul>
-                        </div>
                     `;  
                       
                 } else if (docType === 'satisfaction') {
