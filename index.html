@@ -9840,10 +9840,15 @@
                 <tr>
                     <th colspan="6" class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-800 tracking-wider relative">
                         서 비 스 제 공 계 획
-                        <!-- 🚨 가족사항 스타일과 동일한 추가 모달 버튼 🚨 -->
-                        <button type="button" onclick="app.openServicePlanAddModal()" class="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-300 transition-all shadow-sm" title="새로운 서비스 계획 항목을 추가합니다.">
-                            <i data-lucide="plus" size="12"></i>
-                        </button>
+                        <!-- 🚨 초기화 및 추가 버튼 나란히 배치 🚨 -->
+                        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                            <button type="button" onclick="app.resetServicePlanTable()" class="w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-slate-100 hover:text-slate-700 hover:border-slate-400 transition-all shadow-sm" title="서비스 제공 계획표를 기본 양식으로 초기화합니다.">
+                                <i data-lucide="rotate-ccw" size="11"></i>
+                            </button>
+                            <button type="button" onclick="app.openServicePlanAddModal()" class="w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-300 transition-all shadow-sm" title="새로운 서비스 계획 항목을 추가합니다.">
+                                <i data-lucide="plus" size="12"></i>
+                            </button>
+                        </div>
                     </th>
                 </tr>
                 <!-- 4. 내부 테이블 (서비스 리스트) -->
@@ -9866,7 +9871,7 @@
                                     if (!state.currentServicePlans || state.currentServicePlans.clientId !== c.id) {
                                         // 저장된 항목이 없을 때 기본적으로 열릴 16개 데이터 정의
                                         const defaultPlans = [
-                                            { major: '위기관리체계구축', middle: '사례관리', minor: '재사정 및 모니터링', count: '연 1회 이상', content: '사례관리 및 재사정 실시', period: '', evaluation: '' },
+                                            { major: '위기관리체계구축', middle: '사례관리', minor: '재사정 및 모니터링', count: '연 1회 이상', content: '사례관리 및 재사정 실시', period: '', evaluation: '연 1회 점검 및 평가 실시' },
                                             { major: '위기관리체계구축', middle: '정보통신 기반 안전지원', minor: 'ICT기반 일상생활 관리', count: '월 1회', content: 'ICT설치 안내 및 연계 등', period: '', evaluation: '' },
                                             { major: '위기관리체계구축', middle: '노인상담 및 정보제공', minor: '노인상담 및 정서지원', count: '매주 1회', content: '방문 또는 전화를 통한 안부확인', period: '', evaluation: '' },
                                             { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '급식지원', count: '월 2회 또는 비정기', content: '밑반찬 및 영양식 지원', period: '', evaluation: '' },
@@ -12197,8 +12202,13 @@
                                         
                                         trHtml += `<td style="vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${p.count || ''}</td>`;
                                         trHtml += `<td style="padding:4px; text-align:center; vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${(p.content || '').replace(/\n/g, '<br>')}</td>`;
-                                        trHtml += `<td style="vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${p.period || ''}</td>`;
-                                        trHtml += `<td style="vertical-align:middle; border-bottom:1px solid #cbd5e1;">${p.evaluation || ''}</td>`;
+                                        
+                                        // 인쇄 시에도 기간, 점검/평가는 한 칸으로 통째로 병합!
+                                        if (i === 0) {
+                                            trHtml += `<td rowspan="${plans.length}" style="vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${(plans[0].period || '').replace(/\n/g, '<br>')}</td>`;
+                                            trHtml += `<td rowspan="${plans.length}" style="vertical-align:middle; border-bottom:1px solid #cbd5e1;">${(plans[0].evaluation || '연 1회 점검 및 평가 실시').replace(/\n/g, '<br>')}</td>`;
+                                        }
+                                        
                                         trHtml += `</tr>`;
                                     });
                                     return trHtml;
@@ -12845,9 +12855,11 @@
                         </button>
                     </td>`;
                     
-                    // 기간 및 평가
-                    html += `<td class="border-r border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-xs" value="${p.period || ''}" oninput="app.updateServicePlan(${i}, 'period', this.value)" placeholder="기간"></td>`;
-                    html += `<td class="p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-xs" value="${p.evaluation || ''}" oninput="app.updateServicePlan(${i}, 'evaluation', this.value)" placeholder="점검/평가"></td>`;
+                    // 기간 및 평가 (표 전체 통째로 1칸 병합!)
+                    if (i === 0) {
+                        html += `<td rowspan="${plans.length}" class="border-r border-slate-300 p-0 align-middle"><textarea class="w-full h-full text-center bg-transparent outline-none p-2 text-xs font-medium resize-none" oninput="app.updateServicePlan(0, 'period', this.value)" placeholder="서비스 기간 입력">${plans[0].period || ''}</textarea></td>`;
+                        html += `<td rowspan="${plans.length}" class="p-0 align-middle"><textarea class="w-full h-full text-center bg-transparent outline-none p-2 text-xs font-medium resize-none" oninput="app.updateServicePlan(0, 'evaluation', this.value)" placeholder="점검/평가 입력">${plans[0].evaluation || '연 1회 점검 및 평가 실시'}</textarea></td>`;
+                    }
                     
                     html += `</tr>`;
                 });
@@ -12866,6 +12878,37 @@
             updateServicePlan: (index, field, value) => {
                 state.currentServicePlans[index][field] = value;
                 state.ui.isDirty = true;
+            },
+
+            // [신규] 서비스 제공 계획 기본값 초기화 함수
+            resetServicePlanTable: () => {
+                if(!confirm("서비스 제공 계획표를 기본 양식으로 초기화하시겠습니까?\n(현재 작성된 내용은 모두 삭제됩니다)")) return;
+                
+                const defaultPlans = [
+                    { major: '위기관리체계구축', middle: '사례관리', minor: '재사정 및 모니터링', count: '연 1회 이상', content: '사례관리 및 재사정 실시', period: '', evaluation: '연 1회 점검 및 평가 실시' },
+                    { major: '위기관리체계구축', middle: '정보통신 기반 안전지원', minor: 'ICT기반 일상생활 관리', count: '월 1회', content: 'ICT설치 안내 및 연계 등', period: '', evaluation: '' },
+                    { major: '위기관리체계구축', middle: '노인상담 및 정보제공', minor: '노인상담 및 정서지원', count: '매주 1회', content: '방문 또는 전화를 통한 안부확인', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '급식지원', count: '월 2회 또는 비정기', content: '밑반찬 및 영양식 지원', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '급식지원', count: '연 1회', content: '김장지원', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '주거안정지원', count: '연 1회', content: '방역 및 냉난방용품 제공', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '자원관리', count: '비정기', content: '후원금품 연계', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리 서비스', middle: '정신적 위기관리', minor: '정신적 위기관련 기관 연계', count: '필요 시', content: '정신건강 관련 기관 협약 및 자원 연결', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리 서비스', middle: '신체적 위기관리', minor: '노인성 질환 관리 및 연계', count: '연 4회', content: '건강교육제공', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '어버이날 서비스', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '명절 서비스', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '생신 서비스', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '소규모활동(인지PG등)', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '문화체험 등', period: '', evaluation: '' },
+                    { major: '위기상황 관리 및 긴급지원', middle: '권리옹호', minor: '노인인권교육', count: '연 2회', content: '노인인권교육 실시', period: '', evaluation: '' },
+                    { major: '위기상황 관리 및 긴급지원', middle: '긴급지원', minor: '자연재해, 응급상황 등에 대한 보호', count: '필요 시', content: '필요 시 자연재해, 응급상황 등에 대한 보호(안부확인 등)', period: '', evaluation: '' }
+                ];
+                
+                const currentClientId = state.currentServicePlans ? state.currentServicePlans.clientId : null;
+                state.currentServicePlans = JSON.parse(JSON.stringify(defaultPlans));
+                if (currentClientId) state.currentServicePlans.clientId = currentClientId;
+                
+                state.ui.isDirty = true;
+                app.renderServicePlanTable();
             },
 
             removeServicePlanRow: (index) => {
