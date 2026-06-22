@@ -10738,7 +10738,7 @@
                     else if (subTab === 'satisfaction') docType = 'satisfaction';
                     else if (subTab === 'evaluation') docType = 'evaluation';
                     else if (subTab === 'history-list') docType = 'history-list';
-                    else if (subTab === 'servicePlan') docType = 'assessment'; // [수정] 서비스계획서도 사정기록지 인쇄에 포함되도록 연결!
+                    else if (subTab === 'servicePlan') docType = 'servicePlan'; 
                     else return alert("인쇄할 문서를 선택해주세요.");
                 }
 
@@ -12310,7 +12310,8 @@
                                 <li>타 기관과 서비스가 중복되었을 경우</li>
                             </ul>
                         </div>
-                    `;    
+                    `;  
+                      
                 } else if (docType === 'satisfaction') {
                     docTitle = `만족도조사(${year}년)`;
                     
