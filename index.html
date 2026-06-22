@@ -9840,9 +9840,9 @@
                 <tr>
                     <th colspan="6" class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-800 tracking-wider relative">
                         서 비 스 제 공 계 획
-                        <!-- 🚨 여기에 추가 모달 버튼을 달았습니다 🚨 -->
-                        <button type="button" onclick="app.openServicePlanAddModal()" class="absolute right-2 top-1/2 -translate-y-1/2 text-xs bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded hover:bg-emerald-100 font-bold transition-colors shadow-sm flex items-center gap-1" title="새로운 서비스 계획 항목을 추가합니다.">
-                            <i data-lucide="plus" size="12"></i> 추가
+                        <!-- 🚨 가족사항 스타일과 동일한 추가 모달 버튼 🚨 -->
+                        <button type="button" onclick="app.openServicePlanAddModal()" class="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-300 transition-all shadow-sm" title="새로운 서비스 계획 항목을 추가합니다.">
+                            <i data-lucide="plus" size="12"></i>
                         </button>
                     </th>
                 </tr>
@@ -12839,9 +12839,9 @@
                     // 🚨 내용 및 방법 (이 칸의 가장 우측에 휴지통(-) 아이콘 배치) 🚨
                     html += `<td class="border-r border-slate-300 p-0 align-middle relative">
                         <textarea class="w-full bg-transparent outline-none resize-none text-center p-2 pr-6 text-xs leading-tight" rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px'; app.updateServicePlan(${i}, 'content', this.value)" placeholder="내용 입력">${p.content || ''}</textarea>
-                        <!-- 평소엔 연하게 보이다가 마우스를 올리면 빨간색으로 활성화되는 삭제 버튼 -->
-                        <button type="button" onclick="app.removeServicePlanRow(${i})" class="absolute right-1 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 transition-colors p-1" title="이 계획 삭제">
-                            <i data-lucide="minus-circle" size="14"></i>
+                        <!-- 가족사항 삭제 버튼과 동일한 스타일로 변경된 삭제 버튼 -->
+                        <button type="button" onclick="app.removeServicePlanRow(${i})" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all shadow-sm" title="이 계획 삭제">
+                            <i data-lucide="minus" size="12"></i>
                         </button>
                     </td>`;
                     
@@ -12890,37 +12890,34 @@
                         </div>
                         <form onsubmit="app.submitServicePlanAdd(event)" class="space-y-4">
                             <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-500 mb-4">
-                                ※ 아래 목록에서 선택하거나 입력칸에 직접 타이핑할 수 있습니다.
+                                ※ 아래 목록에서 대분류, 중분류, 소분류를 순서대로 선택해주세요.
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-slate-700 mb-1">대분류 (선택 또는 입력)</label>
-                                <select id="sp-add-major" name="major" class="input-field py-1.5 text-sm" onchange="app.updateSpAddMiddleOpts(this.value)">
-                                    <option value="">직접 입력하거나 목록에서 고르세요</option>
+                                <label class="block text-sm font-bold text-slate-700 mb-1">대분류</label>
+                                <select id="sp-add-major" name="major" class="input-field py-1.5 text-sm" onchange="app.updateSpAddMiddleOpts(this.value)" required>
+                                    <option value="">대분류를 선택하세요</option>
                                     ${cats.map(c => `<option value="${c}">${c}</option>`).join('')}
                                 </select>
-                                <input type="text" id="sp-add-major-input" name="major_input" class="input-field py-1.5 mt-1 text-sm bg-white" placeholder="직접 입력 시 여기에 적어주세요">
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-slate-700 mb-1">중분류 (선택 또는 입력)</label>
-                                <select id="sp-add-middle" name="middle" class="input-field py-1.5 text-sm" onchange="app.updateSpAddMinorOpts(this.value)">
+                                <label class="block text-sm font-bold text-slate-700 mb-1">중분류</label>
+                                <select id="sp-add-middle" name="middle" class="input-field py-1.5 text-sm" onchange="app.updateSpAddMinorOpts(this.value)" required>
                                     <option value="">대분류를 먼저 선택하세요</option>
                                 </select>
-                                <input type="text" id="sp-add-middle-input" name="middle_input" class="input-field py-1.5 mt-1 text-sm bg-white" placeholder="직접 입력 시 여기에 적어주세요">
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1">소분류 (서비스명)</label>
-                                <select id="sp-add-minor" name="minor" class="input-field py-1.5 text-sm" onchange="app.updateSpAddContent(this.value)">
+                                <select id="sp-add-minor" name="minor" class="input-field py-1.5 text-sm" onchange="app.updateSpAddContent(this.value)" required>
                                     <option value="">중분류를 먼저 선택하세요</option>
                                 </select>
-                                <input type="text" id="sp-add-minor-input" name="minor_input" class="input-field py-1.5 mt-1 text-sm bg-white" placeholder="소분류 직접 입력">
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-1">내용 및 방법</label>
                                 <textarea name="content" id="sp-add-content" class="input-field py-1.5 text-sm h-16 resize-none bg-white" placeholder="서비스 내용 입력"></textarea>
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div><label class="block text-sm font-bold text-slate-700 mb-1">제공횟수</label><input type="text" name="count" class="input-field py-1.5 text-sm bg-white" placeholder="예: 월 1회"></div>
-                                <div><label class="block text-sm font-bold text-slate-700 mb-1">점검/평가</label><input type="text" name="evaluation" class="input-field py-1.5 text-sm bg-white" placeholder="예: 분기 1회"></div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1">제공횟수</label>
+                                <input type="text" name="count" class="input-field py-1.5 text-sm bg-white" placeholder="예: 월 1회">
                             </div>
                             
                             <div class="flex justify-end gap-2 pt-6 mt-4">
@@ -12939,7 +12936,6 @@
                 const sel = document.getElementById('sp-add-middle');
                 const mids = [...new Set(state.services.filter(s => s.majorCategory === majorVal).map(s => s.category))].filter(Boolean);
                 sel.innerHTML = '<option value="">선택</option>' + mids.map(m => `<option value="${m}">${m}</option>`).join('');
-                document.getElementById('sp-add-major-input').value = majorVal;
                 app.updateSpAddMinorOpts('');
             },
             // 중분류를 고르면 소분류 목록을 찾아 뿌려주는 함수
@@ -12948,12 +12944,10 @@
                 const majorVal = document.getElementById('sp-add-major').value;
                 const mins = state.services.filter(s => s.majorCategory === majorVal && s.category === midVal);
                 sel.innerHTML = '<option value="">선택</option>' + mins.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
-                document.getElementById('sp-add-middle-input').value = midVal;
                 app.updateSpAddContent('');
             },
             // 소분류를 고르면 해당 서비스에 미리 입력된 "예시 내용"을 내용칸에 쏙 넣어주는 함수
             updateSpAddContent: (minorVal) => {
-                document.getElementById('sp-add-minor-input').value = minorVal;
                 const majorVal = document.getElementById('sp-add-major').value;
                 const midVal = document.getElementById('sp-add-middle').value;
                 const svc = state.services.find(s => s.majorCategory === majorVal && s.category === midVal && s.name === minorVal);
@@ -12967,13 +12961,13 @@
                 e.preventDefault();
                 const fd = new FormData(e.target);
                 const plan = {
-                    major: fd.get('major_input') || fd.get('major'),
-                    middle: fd.get('middle_input') || fd.get('middle'),
-                    minor: fd.get('minor_input') || fd.get('minor'),
+                    major: fd.get('major'),
+                    middle: fd.get('middle'),
+                    minor: fd.get('minor'),
                     count: fd.get('count'),
                     content: fd.get('content'),
                     period: '', 
-                    evaluation: fd.get('evaluation')
+                    evaluation: '' // 점검/평가는 사용하지 않으므로 공백 처리
                 };
                 
                 if (!state.currentServicePlans) state.currentServicePlans = [];
