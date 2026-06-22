@@ -9871,7 +9871,7 @@
                                     if (!state.currentServicePlans || state.currentServicePlans.clientId !== c.id) {
                                         // 저장된 항목이 없을 때 기본적으로 열릴 16개 데이터 정의
                                         const defaultPlans = [
-                                            { major: '위기관리체계구축', middle: '사례관리', minor: '재사정 및 모니터링', count: '연 1회 이상', content: '사례관리 및 재사정 실시', period: '', evaluation: '연 1회 점검 및 평가 실시' },
+                                            { major: '위기관리체계구축', middle: '사례관리', minor: '재사정 및 모니터링', count: '연 1회 이상', content: '사례관리 및 재사정 실시', period: '', evaluation: '연 1회 점검 <br>평가 실시' },
                                             { major: '위기관리체계구축', middle: '정보통신 기반 안전지원', minor: 'ICT기반 일상생활 관리', count: '월 1회', content: 'ICT설치 안내 및 연계 등', period: '', evaluation: '' },
                                             { major: '위기관리체계구축', middle: '노인상담 및 정보제공', minor: '노인상담 및 정서지원', count: '매주 1회', content: '방문 또는 전화를 통한 안부확인', period: '', evaluation: '' },
                                             { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '급식지원', count: '월 2회 또는 비정기', content: '밑반찬 및 영양식 지원', period: '', evaluation: '' },
@@ -9886,7 +9886,7 @@
                                             { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '소규모활동(인지PG등)', period: '', evaluation: '' },
                                             { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '문화체험 등', period: '', evaluation: '' },
                                             { major: '위기상황 관리 및 긴급지원', middle: '권리옹호', minor: '노인인권교육', count: '연 2회', content: '노인인권교육 실시', period: '', evaluation: '' },
-                                            { major: '위기상황 관리 및 긴급지원', middle: '긴급지원', minor: '자연재해, 응급상황 등에 대한 보호', count: '필요 시', content: '필요 시 자연재해, 응급상황 등에 대한 보호(안부확인 등)', period: '', evaluation: '' }
+                                            { major: '위기상황 관리 및 긴급지원', middle: '긴급지원', minor: '자연재해, 응급상황 등에 대한 보호', count: '필요 시', content: '필요 시 자연재해, 응급상황 등에 대한 보호<br>(안부확인 등)', period: '', evaluation: '' }
                                         ];
                                         
                                         state.currentServicePlans = (c.servicePlans && c.servicePlans.length > 0) ? JSON.parse(JSON.stringify(c.servicePlans)) : defaultPlans;
