@@ -9871,22 +9871,22 @@
                                     if (!state.currentServicePlans || state.currentServicePlans.clientId !== c.id) {
                                         // 저장된 항목이 없을 때 기본적으로 열릴 16개 데이터 정의
                                         const defaultPlans = [
-                                            { major: '위기관리체계구축', middle: '사례관리', minor: '재사정 및 모니터링', count: '연 1회 이상', content: '사례관리 및 재사정 실시', period: '', evaluation: '연 1회 점검 및\n평가 실시' },
-                                            { major: '위기관리체계구축', middle: '정보통신 기반 안전지원', minor: 'ICT기반 일상생활 관리', count: '월 1회', content: 'ICT설치 안내 및 연계 등', period: '', evaluation: '' },
-                                            { major: '위기관리체계구축', middle: '노인상담 및 정보제공', minor: '노인상담 및 정서지원', count: '매주 1회', content: '방문 또는 전화를 통한 안부확인', period: '', evaluation: '' },
-                                            { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '급식지원', count: '월 2회 또는 비정기', content: '밑반찬 및 영양식 지원', period: '', evaluation: '' },
-                                            { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '급식지원', count: '연 1회', content: '김장지원', period: '', evaluation: '' },
-                                            { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '주거안정지원', count: '연 1회', content: '방역 및 냉난방용품 제공', period: '', evaluation: '' },
-                                            { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '자원관리', count: '비정기', content: '후원금품 연계', period: '', evaluation: '' },
-                                            { major: '욕구기반 위기관리 서비스', middle: '정신적 위기관리', minor: '정신적 위기관련 기관 연계', count: '필요 시', content: '정신건강 관련 기관 협약 및 자원 연결', period: '', evaluation: '' },
-                                            { major: '욕구기반 위기관리 서비스', middle: '신체적 위기관리', minor: '노인성 질환 관리 및 연계', count: '연 4회', content: '건강교육제공', period: '', evaluation: '' },
-                                            { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '어버이날 서비스', period: '', evaluation: '' },
-                                            { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '명절 서비스', period: '', evaluation: '' },
-                                            { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '생신 서비스', period: '', evaluation: '' },
-                                            { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '소규모활동(인지PG등)', period: '', evaluation: '' },
-                                            { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '문화체험 등', period: '', evaluation: '' },
+                                            { major: '위기관리체계구축', middle: '사례관리', minor: '재사정 및\n모니터링', count: '연 1회 이상', content: '사례관리 및 재사정 실시', period: '', evaluation: '연 1회 점검 및\n평가 실시' },
+                                            { major: '위기관리체계구축', middle: '정보통신 기반\n안전지원', minor: 'ICT기반 일상생활 관리', count: '월 1회', content: 'ICT설치 안내 및 연계 등', period: '', evaluation: '' },
+                                            { major: '위기관리체계구축', middle: '노인상담 및\n정보제공', minor: '노인상담 및\n정서지원', count: '매주 1회', content: '방문 또는 전화를 통한 안부확인', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리', middle: '경제적 위기관리', minor: '급식지원', count: '월 2회 또는 비정기', content: '밑반찬 및 영양식 지원', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리', middle: '경제적 위기관리', minor: '급식지원', count: '연 1회', content: '김장지원', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리', middle: '경제적 위기관리', minor: '주거안정지원', count: '연 1회', content: '방역 및 냉난방용품 제공', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리', middle: '경제적 위기관리', minor: '자원관리', count: '비정기', content: '후원금품 연계', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리', middle: '정신적 위기관리', minor: '정신적 위기관련 기관 연계', count: '필요 시', content: '정신건강 관련 기관 협약 및 자원 연결', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리', middle: '신체적 위기관리', minor: '노인성 질환 관리 및 연계', count: '연 4회', content: '건강교육제공', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '어버이날 서비스', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '명절 서비스', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '생신 서비스', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '소규모활동(인지PG등)', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '문화체험 등', period: '', evaluation: '' },
                                             { major: '위기상황 관리 및 긴급지원', middle: '권리옹호', minor: '노인인권교육', count: '연 2회', content: '노인인권교육 실시', period: '', evaluation: '' },
-                                            { major: '위기상황 관리 및 긴급지원', middle: '긴급지원', minor: '자연재해, 응급상황 등에\n대한 보호', count: '필요 시', content: '필요 시 자연재해, 응급상황 등에 대한 보호\n(안부확인 등)', period: '', evaluation: '' }
+                                            { major: '위기상황 관리 및 긴급지원', middle: '긴급지원', minor: '자연재해, 응급상황\n등에 대한 보호', count: '필요 시', content: '필요 시 자연재해, 응급상황 등에 대한 보호\n(안부확인 등)', period: '', evaluation: '' }
                                         ];
                                         
                                         state.currentServicePlans = (c.servicePlans && c.servicePlans.length > 0) ? JSON.parse(JSON.stringify(c.servicePlans)) : defaultPlans;
@@ -12888,22 +12888,22 @@
                 if(!confirm("서비스 제공 계획표를 기본 양식으로 초기화하시겠습니까?\n(현재 작성된 내용은 모두 삭제됩니다)")) return;
                 
                 const defaultPlans = [
-                    { major: '위기관리체계구축', middle: '사례관리', minor: '재사정 및 모니터링', count: '연 1회 이상', content: '사례관리 및 재사정 실시', period: '', evaluation: '연 1회 점검 및\n평가 실시' },
-                    { major: '위기관리체계구축', middle: '정보통신 기반 안전지원', minor: 'ICT기반 일상생활 관리', count: '월 1회', content: 'ICT설치 안내 및 연계 등', period: '', evaluation: '' },
-                    { major: '위기관리체계구축', middle: '노인상담 및 정보제공', minor: '노인상담 및 정서지원', count: '매주 1회', content: '방문 또는 전화를 통한 안부확인', period: '', evaluation: '' },
-                    { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '급식지원', count: '월 2회 또는 비정기', content: '밑반찬 및 영양식 지원', period: '', evaluation: '' },
-                    { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '급식지원', count: '연 1회', content: '김장지원', period: '', evaluation: '' },
-                    { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '주거안정지원', count: '연 1회', content: '방역 및 냉난방용품 제공', period: '', evaluation: '' },
-                    { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '자원관리', count: '비정기', content: '후원금품 연계', period: '', evaluation: '' },
-                    { major: '욕구기반 위기관리 서비스', middle: '정신적 위기관리', minor: '정신적 위기관련 기관 연계', count: '필요 시', content: '정신건강 관련 기관 협약 및 자원 연결', period: '', evaluation: '' },
-                    { major: '욕구기반 위기관리 서비스', middle: '신체적 위기관리', minor: '노인성 질환 관리 및 연계', count: '연 4회', content: '건강교육제공', period: '', evaluation: '' },
-                    { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '어버이날 서비스', period: '', evaluation: '' },
-                    { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '명절 서비스', period: '', evaluation: '' },
-                    { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '생신 서비스', period: '', evaluation: '' },
-                    { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '소규모활동(인지PG등)', period: '', evaluation: '' },
-                    { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '문화체험 등', period: '', evaluation: '' },
+                    { major: '위기관리체계구축', middle: '사례관리', minor: '재사정 및\n모니터링', count: '연 1회 이상', content: '사례관리 및 재사정 실시', period: '', evaluation: '연 1회 점검 및\n평가 실시' },
+                    { major: '위기관리체계구축', middle: '정보통신 기반\n안전지원', minor: 'ICT기반 일상생활 관리', count: '월 1회', content: 'ICT설치 안내 및 연계 등', period: '', evaluation: '' },
+                    { major: '위기관리체계구축', middle: '노인상담 및\n정보제공', minor: '노인상담 및\n정서지원', count: '매주 1회', content: '방문 또는 전화를 통한 안부확인', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리', middle: '경제적 위기관리', minor: '급식지원', count: '월 2회 또는 비정기', content: '밑반찬 및 영양식 지원', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리', middle: '경제적 위기관리', minor: '급식지원', count: '연 1회', content: '김장지원', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리', middle: '경제적 위기관리', minor: '주거안정지원', count: '연 1회', content: '방역 및 냉난방용품 제공', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리', middle: '경제적 위기관리', minor: '자원관리', count: '비정기', content: '후원금품 연계', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리', middle: '정신적 위기관리', minor: '정신적 위기관련 기관 연계', count: '필요 시', content: '정신건강 관련 기관 협약 및 자원 연결', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리', middle: '신체적 위기관리', minor: '노인성 질환 관리 및 연계', count: '연 4회', content: '건강교육제공', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '어버이날 서비스', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '명절 서비스', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '생신 서비스', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '소규모활동(인지PG등)', period: '', evaluation: '' },
+                    { major: '욕구기반 위기관리', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '문화체험 등', period: '', evaluation: '' },
                     { major: '위기상황 관리 및 긴급지원', middle: '권리옹호', minor: '노인인권교육', count: '연 2회', content: '노인인권교육 실시', period: '', evaluation: '' },
-                    { major: '위기상황 관리 및 긴급지원', middle: '긴급지원', minor: '자연재해, 응급상황 등에\n대한 보호', count: '필요 시', content: '필요 시 자연재해, 응급상황 등에 대한 보호\n(안부확인 등)', period: '', evaluation: '' }
+                    { major: '위기상황 관리 및 긴급지원', middle: '긴급지원', minor: '자연재해, 응급상황\n등에 대한 보호', count: '필요 시', content: '필요 시 자연재해, 응급상황 등에 대한 보호\n(안부확인 등)', period: '', evaluation: '' }
                 ];
                 
                 const currentClientId = state.currentServicePlans ? state.currentServicePlans.clientId : null;
