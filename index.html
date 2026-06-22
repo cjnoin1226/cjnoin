@@ -9846,104 +9846,53 @@
                         <table class="w-full text-xs text-center border-collapse">
                             <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-300">
                                 <tr>
-                                    <th class="border-r border-slate-300 p-2 w-[10%]">대분류</th>
-                                    <th class="border-r border-slate-300 p-2 w-[12%]">중분류</th>
-                                    <th class="border-r border-slate-300 p-2 w-[12%]">소분류</th>
-                                    <th class="border-r border-slate-300 p-2 w-[12%] leading-tight">서비스<br>제공 횟수</th>
-                                    <th class="border-r border-slate-300 p-2 w-[24%] leading-tight">서비스내용<br>및 방법</th>
-                                    <th class="border-r border-slate-300 p-2 w-[15%]">서비스 기간</th>
-                                    <th class="p-2 w-[15%] leading-tight">서비스<br>점검 및 평가</th>
+                                    <th class="border-r border-slate-300 p-2 w-[14%]">대분류</th>
+                                    <th class="border-r border-slate-300 p-2 w-[14%]">중분류</th>
+                                    <th class="border-r border-slate-300 p-2 w-[14%]">소분류</th>
+                                    <th class="border-r border-slate-300 p-2 w-[12%] leading-tight">제공횟수</th>
+                                    <th class="border-r border-slate-300 p-2 w-[22%] leading-tight">내용 및 방법</th>
+                                    <th class="border-r border-slate-300 p-2 w-[12%]">서비스 기간</th>
+                                    <th class="p-2 w-[12%] leading-tight">
+                                        점검/평가
+                                        <button type="button" class="block w-full mt-1 text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-1 py-0.5 rounded hover:bg-emerald-100 font-bold" onclick="app.addServicePlanRow()">+ 추가</button>
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- 1. 위기관리체계구축 그룹 -->
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td rowspan="3" class="border-r border-b border-slate-300 p-2 text-center align-middle font-bold bg-slate-50">위기관리<br>체계구축</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">사례관리</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">재사정 및<br>모니터링</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="연 1회 이상"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">사례관리 및 재사정 실시</textarea></td>
-                                    <!-- 서비스 기간/평가 병합 (총 13줄) -->
-                                    <td rowspan="13" class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full h-full text-center bg-transparent outline-none p-2 text-sm" value=""></td>
-                                    <td rowspan="13" class="border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full h-full text-center bg-transparent outline-none p-2 text-sm" value=""></td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">정보통신 기반<br>안전지원</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">ICT기반<br>일상생활 관리</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="월 1회"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">ICT설치 안내 및 연계 등</textarea></td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">노인상담 및<br>정보제공</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">노인상담 및<br>정서지원</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="매주 1회"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">방문 또는 전화를 통한 안부확인</textarea></td>
-                                </tr>
-
-                                <!-- 2. 욕구기반 위기관리 서비스 그룹 -->
-                                <tr class="hover:bg-slate-50 transition-colors border-t border-slate-300">
-                                    <td rowspan="8" class="border-r border-b border-slate-300 p-2 text-center align-middle font-bold bg-slate-50">욕구기반<br>위기관리<br>서비스</td>
-                                    <td rowspan="4" class="border-r border-b border-slate-300 p-2 text-center align-middle">경제적 위기관리</td>
-                                    <td rowspan="2" class="border-r border-b border-slate-300 p-2 text-center align-middle">급식지원</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="월 2회 또는 비정기"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">밑반찬 및 영양식 지원</textarea></td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="연 1회"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">김장지원</textarea></td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">주거안정지원</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="연 1회"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">방역 및 냉난방용품 제공</textarea></td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">자원관리</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="비정기"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">후원금품 연계</textarea></td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 transition-colors border-t border-slate-200">
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">정신적 위기관리</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle text-xs">정신적 위기관련<br>기관 연계</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="필요시"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">정신건강 관련 기관 협약 및 자원 연결</textarea></td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 transition-colors border-t border-slate-200">
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">신체적 위기관리</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle text-[11px]">노인성 질환 관리<br>및 연계</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="연 4회"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">건강교육제공</textarea></td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 transition-colors border-t border-slate-200">
-                                    <td rowspan="2" class="border-r border-b border-slate-300 p-2 text-center align-middle">사회적 위기관리</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">대인관계증진</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="연 1회"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="3" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">어버이날 서비스&#10;명절 서비스&#10;생신 서비스</textarea></td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle text-[10px]">문화생활지원</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="연 1회"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">소규모활동(인지PG등) / 문화체험 등</textarea></td>
-                                </tr>
-
-                                <!-- 3. 위기상황 관리 및 긴급지원 그룹 -->
-                                <tr class="hover:bg-slate-50 transition-colors border-t border-slate-300">
-                                    <td rowspan="2" class="border-r border-b border-slate-300 p-2 text-center align-middle font-bold bg-slate-50">위기상황<br>관리<br>및 긴급지원</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">권리옹호</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">노인인권교육</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="연 2회"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">노인인권교육 실시</textarea></td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle">긴급지원</td>
-                                    <td class="border-r border-b border-slate-300 p-2 text-center align-middle text-xs break-keep">자연재해, 응급상황 등에 대한 보호</td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-sm" value="필요 시"></td>
-                                    <td class="border-r border-b border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-sm leading-tight" rows="1" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">필요 시 자연재해, 응급상황 등에 대한 보호(안부확인 등)</textarea></td>
-                                </tr>
+                            <tbody id="dynamic-service-plan-tbody">
+                                ${(() => {
+                                    if (!state.currentServicePlans || state.currentServicePlans.clientId !== c.id) {
+                                        // 저장된 항목이 없을 때 기본적으로 열릴 16개 데이터 정의
+                                        const defaultPlans = [
+                                            { major: '위기관리체계구축', middle: '사례관리', minor: '재사정 및 모니터링', count: '연 1회 이상', content: '사례관리 및 재사정 실시', period: '', evaluation: '' },
+                                            { major: '위기관리체계구축', middle: '정보통신 기반 안전지원', minor: 'ICT기반 일상생활 관리', count: '월 1회', content: 'ICT설치 안내 및 연계 등', period: '', evaluation: '' },
+                                            { major: '위기관리체계구축', middle: '노인상담 및 정보제공', minor: '노인상담 및 정서지원', count: '매주 1회', content: '방문 또는 전화를 통한 안부확인', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '급식지원', count: '월 2회 또는 비정기', content: '밑반찬 및 영양식 지원', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '급식지원', count: '연 1회', content: '김장지원', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '주거안정지원', count: '연 1회', content: '방역 및 냉난방용품 제공', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리 서비스', middle: '경제적 위기관리', minor: '자원관리', count: '비정기', content: '후원금품 연계', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리 서비스', middle: '정신적 위기관리', minor: '정신적 위기관련 기관 연계', count: '필요 시', content: '정신건강 관련 기관 협약 및 자원 연결', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리 서비스', middle: '신체적 위기관리', minor: '노인성 질환 관리 및 연계', count: '연 4회', content: '건강교육제공', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '어버이날 서비스', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '명절 서비스', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '대인관계증진', count: '연 1회', content: '생신 서비스', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '소규모활동(인지PG등)', period: '', evaluation: '' },
+                                            { major: '욕구기반 위기관리 서비스', middle: '사회적 위기관리', minor: '문화생활지원', count: '연 1회', content: '문화체험 등', period: '', evaluation: '' },
+                                            { major: '위기상황 관리 및 긴급지원', middle: '권리옹호', minor: '노인인권교육', count: '연 2회', content: '노인인권교육 실시', period: '', evaluation: '' },
+                                            { major: '위기상황 관리 및 긴급지원', middle: '긴급지원', minor: '자연재해, 응급상황 등에 대한 보호', count: '필요 시', content: '필요 시 자연재해, 응급상황 등에 대한 보호(안부확인 등)', period: '', evaluation: '' }
+                                        ];
+                                        
+                                        state.currentServicePlans = (c.servicePlans && c.servicePlans.length > 0) ? JSON.parse(JSON.stringify(c.servicePlans)) : defaultPlans;
+                                        state.currentServicePlans.clientId = c.id;
+                                        setTimeout(() => app.renderServicePlanTable(), 50);
+                                    } else {
+                                        setTimeout(() => app.renderServicePlanTable(), 50);
+                                    }
+                                    return `<tr><td colspan="7" class="p-8 text-center bg-slate-50"><span class="animate-spin inline-block w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full mr-2 align-middle"></span> 표 데이터를 준비하고 있습니다...</td></tr>`;
+                                })()}
                             </tbody>
-                                </table>
-                            </td>
-                        </tr>
+                        </table>
+                    </td>
+                </tr>
                         <!-- 5. 조정 및 종결 -->
                         <tr>
                             <th class="border border-slate-300 bg-slate-100 p-2 text-center font-bold text-slate-700 leading-tight">서비스<br>조정<br>및<br>종결</th>
@@ -12207,97 +12156,50 @@
                         <table style="text-align: center; font-size: 11px;">
                             <thead>
                                 <tr>
-                                    <th style="width: 10%;">대분류</th>
-                                    <th style="width: 12%;">중분류</th>
-                                    <th style="width: 12%;">소분류</th>
+                                    <th style="width: 14%;">대분류</th>
+                                    <th style="width: 14%;">중분류</th>
+                                    <th style="width: 14%;">소분류</th>
                                     <th style="width: 12%;">제공횟수</th>
-                                    <th style="width: 24%;">서비스내용 및 방법</th>
-                                    <th style="width: 15%;">서비스기간</th>
-                                    <th style="width: 15%;">점검/평가</th>
+                                    <th style="width: 22%;">서비스내용 및 방법</th>
+                                    <th style="width: 12%;">서비스기간</th>
+                                    <th style="width: 12%;">점검/평가</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- 위기관리체계구축 -->
-                                <tr>
-                                    <th rowspan="3">위기관리<br>체계구축</th>
-                                    <td>사례관리</td>
-                                    <td>재사정/모니터링</td>
-                                    <td>연 1회 이상</td>
-                                    <td style="text-align: center; padding: 4px;">사례관리 및 재사정 실시</td>
-                                    <td rowspan="13"></td>
-                                    <td rowspan="13"></td>
-                                </tr>
-                                <tr>
-                                    <td>정보통신기반<br>안전지원</td>
-                                    <td>ICT기반<br>일상생활 관리</td>
-                                    <td>월 1회</td>
-                                    <td style="text-align: center; padding: 4px;">ICT설치 안내 및 연계, 사용방법 숙지 교육 등</td>
-                                </tr>
-                                <tr>
-                                    <td>노인상담 및<br>정보제공</td>
-                                    <td>노인상담 및<br>정서지원</td>
-                                    <td>매주 1회</td>
-                                    <td style="text-align: center; padding: 4px;">방문 또는 전화를 통한 안부확인</td>
-                                </tr>
-                                <!-- 욕구기반 위기관리 서비스 -->
-                                <tr>
-                                    <th rowspan="8">욕구기반<br>위기관리<br>서비스</th>
-                                    <td rowspan="4">경제적<br>위기관리</td>
-                                    <td rowspan="2">급식지원</td>
-                                    <td>월 2회 또는 비정기</td>
-                                    <td style="text-align: center; padding: 4px;">밑반찬 및 영양식 지원</td>
-                                </tr>
-                                <tr>
-                                    <td>연 1회</td>
-                                    <td style="text-align: center; padding: 4px;">김장지원</td>
-                                </tr>
-                                <tr>
-                                    <td>주거안정지원</td>
-                                    <td>연 1회</td>
-                                    <td style="text-align: center; padding: 4px;">주거환경개선을 위한 방역 및 냉난방용품 제공</td>
-                                </tr>
-                                <tr>
-                                    <td>자원관리</td>
-                                    <td>비정기</td>
-                                    <td style="text-align: center; padding: 4px;">후원금품 연계</td>
-                                </tr>
-                                <tr>
-                                    <td>정신적<br>위기관리</td>
-                                    <td>정신적 위기관련<br>기관 연계</td>
-                                    <td>필요시</td>
-                                    <td style="text-align: center; padding: 4px;">정신건강 관련 기관 협약 및 자원 연결</td>
-                                </tr>
-                                <tr>
-                                    <td>신체적<br>위기관리</td>
-                                    <td>노인성 질환<br>관리 및 연계</td>
-                                    <td>연 4회</td>
-                                    <td style="text-align: center; padding: 4px;">건강교육제공</td>
-                                </tr>
-                                <tr>
-                                    <td rowspan="2">사회적<br>위기관리</td>
-                                    <td>대인관계증진</td>
-                                    <td>연 1회</td>
-                                    <td style="text-align: center; padding: 4px; line-height: 1.5;">어버이날 서비스<br>명절 서비스<br>생신 서비스</td>
-                                </tr>
-                                <tr>
-                                    <td>문화생활지원</td>
-                                    <td>연 1회</td>
-                                    <td style="text-align: center; padding: 4px;">소규모활동(인지PG등) / 문화체험 등</td>
-                                </tr>
-                                <!-- 위기상황 관리 -->
-                                <tr>
-                                    <th rowspan="2">위기상황<br>관리 및<br>긴급지원</th>
-                                    <td>권리옹호</td>
-                                    <td>노인인권교육</td>
-                                    <td>연 2회</td>
-                                    <td style="text-align: center; padding: 4px;">노인인권교육 실시</td>
-                                </tr>
-                                <tr>
-                                    <td>긴급지원</td>
-                                    <td>자연재해, 응급상황 보호</td>
-                                    <td>필요 시</td>
-                                    <td style="text-align: center; padding: 4px;">필요 시 자연재해, 응급상황 등에 대한 보호<br>(안부확인 등)</td>
-                                </tr>
+                                ${(() => {
+                                    const plans = state.currentServicePlans || [];
+                                    if (plans.length === 0) return `<tr><td colspan="7" style="padding: 20px;">등록된 서비스 계획이 없습니다.</td></tr>`;
+                                    
+                                    let majorSpans = new Array(plans.length).fill(1);
+                                    let middleSpans = new Array(plans.length).fill(1);
+                                    let minorSpans = new Array(plans.length).fill(1);
+                                    for (let i = plans.length - 1; i > 0; i--) {
+                                        if (plans[i].major && plans[i].major === plans[i - 1].major) {
+                                            majorSpans[i - 1] += majorSpans[i]; majorSpans[i] = 0;
+                                            if (plans[i].middle && plans[i].middle === plans[i - 1].middle) {
+                                                middleSpans[i - 1] += middleSpans[i]; middleSpans[i] = 0;
+                                                if (plans[i].minor && plans[i].minor === plans[i - 1].minor) {
+                                                    minorSpans[i - 1] += minorSpans[i]; minorSpans[i] = 0;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    let trHtml = '';
+                                    plans.forEach((p, i) => {
+                                        trHtml += `<tr>`;
+                                        if(majorSpans[i] > 0) trHtml += `<td rowspan="${majorSpans[i]}" style="font-weight:bold; vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${p.major || ''}</td>`;
+                                        if(middleSpans[i] > 0) trHtml += `<td rowspan="${middleSpans[i]}" style="vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${p.middle || ''}</td>`;
+                                        if(minorSpans[i] > 0) trHtml += `<td rowspan="${minorSpans[i]}" style="vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${p.minor || ''}</td>`;
+                                        
+                                        trHtml += `<td style="vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${p.count || ''}</td>`;
+                                        trHtml += `<td style="padding:4px; text-align:center; vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${(p.content || '').replace(/\n/g, '<br>')}</td>`;
+                                        trHtml += `<td style="vertical-align:middle; border-right:1px solid #cbd5e1; border-bottom:1px solid #cbd5e1;">${p.period || ''}</td>`;
+                                        trHtml += `<td style="vertical-align:middle; border-bottom:1px solid #cbd5e1;">${p.evaluation || ''}</td>`;
+                                        trHtml += `</tr>`;
+                                    });
+                                    return trHtml;
+                                })()}
                             </tbody>
                         </table>
                         <div style="margin-top: 15px; font-weight: bold;">
@@ -12880,6 +12782,109 @@
                     return `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">해당 연도에 서비스 이력이 없습니다.</td></tr>`;
                 }
             },
+            
+            // [신규] 서비스 계획서 동적 테이블 렌더링
+            renderServicePlanTable: () => {
+                const tbody = document.getElementById('dynamic-service-plan-tbody');
+                if (!tbody) return;
+                
+                const plans = state.currentServicePlans || [];
+                if (plans.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">등록된 서비스 제공 계획이 없습니다. 우측 상단의 '+ 추가' 버튼을 눌러주세요.</td></tr>`;
+                    return;
+                }
+
+                // 자동 병합(Rowspan) 계산 알고리즘
+                let majorSpans = new Array(plans.length).fill(1);
+                let middleSpans = new Array(plans.length).fill(1);
+                let minorSpans = new Array(plans.length).fill(1);
+
+                for (let i = plans.length - 1; i > 0; i--) {
+                    if (plans[i].major && plans[i].major === plans[i - 1].major) {
+                        majorSpans[i - 1] += majorSpans[i];
+                        majorSpans[i] = 0;
+                        if (plans[i].middle && plans[i].middle === plans[i - 1].middle) {
+                            middleSpans[i - 1] += middleSpans[i];
+                            middleSpans[i] = 0;
+                            if (plans[i].minor && plans[i].minor === plans[i - 1].minor) {
+                                minorSpans[i - 1] += minorSpans[i];
+                                minorSpans[i] = 0;
+                            }
+                        }
+                    }
+                }
+
+                const majorList = [...new Set(state.services.map(s => s.majorCategory || ''))].filter(Boolean);
+                let html = '';
+
+                plans.forEach((p, i) => {
+                    html += `<tr class="hover:bg-slate-50 transition-colors border-b border-slate-200">`;
+                    
+                    if (majorSpans[i] > 0) {
+                        html += `<td rowspan="${majorSpans[i]}" class="border-r border-slate-300 p-1 align-middle">
+                            <select class="w-full text-xs bg-transparent border border-slate-300 rounded p-1 focus:ring-1 focus:ring-emerald-500" onchange="app.updateServicePlan(${i}, 'major', this.value)">
+                                <option value="">대분류 선택</option>
+                                ${majorList.map(m => `<option value="${m}" ${p.major === m ? 'selected' : ''}>${m}</option>`).join('')}
+                            </select>
+                        </td>`;
+                    }
+                    if (middleSpans[i] > 0) {
+                        const middleList = [...new Set(state.services.filter(s => s.majorCategory === p.major).map(s => s.category || ''))].filter(Boolean);
+                        html += `<td rowspan="${middleSpans[i]}" class="border-r border-slate-300 p-1 align-middle">
+                            <select class="w-full text-xs bg-transparent border border-slate-300 rounded p-1 focus:ring-1 focus:ring-emerald-500" onchange="app.updateServicePlan(${i}, 'middle', this.value)">
+                                <option value="">중분류 선택</option>
+                                ${middleList.map(m => `<option value="${m}" ${p.middle === m ? 'selected' : ''}>${m}</option>`).join('')}
+                            </select>
+                        </td>`;
+                    }
+                    if (minorSpans[i] > 0) {
+                        const minorList = [...new Set(state.services.filter(s => s.majorCategory === p.major && s.category === p.middle).map(s => s.name || ''))].filter(Boolean);
+                        html += `<td rowspan="${minorSpans[i]}" class="border-r border-slate-300 p-1 align-middle">
+                            <select class="w-full text-xs bg-transparent border border-slate-300 rounded p-1 focus:ring-1 focus:ring-emerald-500" onchange="app.updateServicePlan(${i}, 'minor', this.value)">
+                                <option value="">소분류 선택</option>
+                                ${minorList.map(m => `<option value="${m}" ${p.minor === m ? 'selected' : ''}>${m}</option>`).join('')}
+                            </select>
+                        </td>`;
+                    }
+
+                    html += `<td class="border-r border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-xs" value="${p.count}" oninput="app.updateServicePlan(${i}, 'count', this.value)" placeholder="횟수"></td>`;
+                    html += `<td class="border-r border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-xs leading-tight" rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px'; app.updateServicePlan(${i}, 'content', this.value)" placeholder="내용 및 방법">${p.content}</textarea></td>`;
+                    html += `<td class="border-r border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-xs" value="${p.period}" oninput="app.updateServicePlan(${i}, 'period', this.value)" placeholder="기간"></td>`;
+                    html += `<td class="p-1 align-middle relative">
+                                <input type="text" class="w-full text-center bg-transparent outline-none p-1 text-xs pr-6" value="${p.evaluation}" oninput="app.updateServicePlan(${i}, 'evaluation', this.value)" placeholder="점검 및 평가">
+                                <button type="button" class="absolute top-1/2 -translate-y-1/2 right-1 text-red-400 hover:text-red-600 p-1 rounded" onclick="app.removeServicePlanRow(${i})" title="항목 삭제"><i data-lucide="x" class="w-4 h-4"></i></button>
+                             </td>`;
+                    html += `</tr>`;
+                });
+
+                tbody.innerHTML = html;
+                if(window.lucide) lucide.createIcons();
+            },
+            addServicePlanRow: () => {
+                if (!state.currentServicePlans) state.currentServicePlans = [];
+                state.currentServicePlans.push({ major: '', middle: '', minor: '', count: '', content: '', period: '', evaluation: '' });
+                app.renderServicePlanTable();
+            },
+            removeServicePlanRow: (index) => {
+                if(confirm('이 서비스 계획을 삭제하시겠습니까?')) {
+                    state.currentServicePlans.splice(index, 1);
+                    app.renderServicePlanTable();
+                }
+            },
+            updateServicePlan: (index, field, value) => {
+                state.currentServicePlans[index][field] = value;
+                if (field === 'major') {
+                    state.currentServicePlans[index].middle = '';
+                    state.currentServicePlans[index].minor = '';
+                    app.renderServicePlanTable();
+                } else if (field === 'middle') {
+                    state.currentServicePlans[index].minor = '';
+                    app.renderServicePlanTable();
+                } else if (field === 'minor') {
+                    app.renderServicePlanTable();
+                }
+            },
+            
             updateClientHistory: async (clientId, year) => {
                 if (!clientId) return;
 
