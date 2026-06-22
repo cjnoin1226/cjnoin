@@ -12805,7 +12805,7 @@
                 }
             },
             
-            // [신규] 서비스 계획서 동적 테이블 렌더링 (텍스트 수정형 + 삭제 버튼 추가)
+            // [신규] 서비스 계획서 동적 테이블 렌더링 (여백 및 높이 버그 완벽 해결형!)
             renderServicePlanTable: () => {
                 const tbody = document.getElementById('dynamic-service-plan-tbody');
                 if (!tbody) return;
@@ -12840,34 +12840,34 @@
                 plans.forEach((p, i) => {
                     html += `<tr class="hover:bg-slate-50 transition-colors border-b border-slate-200 group">`;
                     
-                    // 대/중/소분류 모두 자유롭게 글을 수정할 수 있도록 textarea로 복원 (선택 상자 버림!)
-                    // 입력이 끝났을 때(onchange) 표 병합을 다시 계산하기 위해 renderServicePlanTable() 호출
+                    // 🚨 핵심 해결: 텍스트 상자(textarea)를 버리고, 글자 수에 맞춰 자동으로 박스가 늘어나는 div(contenteditable)로 전면 교체!
+                    // 이렇게 하면 수직 중앙 정렬이 항상 100% 완벽하게 유지되며, 높이 계산 버그로 인한 텅 빈 파란 여백이 절대 생기지 않습니다.
+                    
                     if (majorSpans[i] > 0) {
-                        html += `<td rowspan="${majorSpans[i]}" class="border-r border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-xs font-bold leading-tight text-slate-800" rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px'; app.updateServicePlan(${i}, 'major', this.value)" onchange="app.renderServicePlanTable()">${p.major || ''}</textarea></td>`;
+                        html += `<td rowspan="${majorSpans[i]}" class="border-r border-slate-300 p-0 align-middle"><div contenteditable="true" class="w-full h-full min-h-[30px] bg-transparent outline-none flex items-center justify-center text-center px-1.5 py-2 text-xs font-bold leading-snug text-slate-800 break-keep cursor-text" oninput="state.ui.isDirty = true; app.updateServicePlan(${i}, 'major', this.innerText)">${(p.major || '').replace(/\n/g, '<br>')}</div></td>`;
                     }
                     if (middleSpans[i] > 0) {
-                        html += `<td rowspan="${middleSpans[i]}" class="border-r border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-xs leading-tight text-slate-800" rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px'; app.updateServicePlan(${i}, 'middle', this.value)" onchange="app.renderServicePlanTable()">${p.middle || ''}</textarea></td>`;
+                        html += `<td rowspan="${middleSpans[i]}" class="border-r border-slate-300 p-0 align-middle"><div contenteditable="true" class="w-full h-full min-h-[30px] bg-transparent outline-none flex items-center justify-center text-center px-1.5 py-2 text-xs leading-snug text-slate-800 break-keep cursor-text" oninput="state.ui.isDirty = true; app.updateServicePlan(${i}, 'middle', this.innerText)">${(p.middle || '').replace(/\n/g, '<br>')}</div></td>`;
                     }
                     if (minorSpans[i] > 0) {
-                        html += `<td rowspan="${minorSpans[i]}" class="border-r border-slate-300 p-0 align-middle"><textarea class="w-full bg-transparent outline-none resize-none text-center p-2 text-xs leading-tight text-slate-800" rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px'; app.updateServicePlan(${i}, 'minor', this.value)" onchange="app.renderServicePlanTable()">${p.minor || ''}</textarea></td>`;
+                        html += `<td rowspan="${minorSpans[i]}" class="border-r border-slate-300 p-0 align-middle"><div contenteditable="true" class="w-full h-full min-h-[30px] bg-transparent outline-none flex items-center justify-center text-center px-1.5 py-2 text-xs leading-snug text-slate-800 break-keep cursor-text" oninput="state.ui.isDirty = true; app.updateServicePlan(${i}, 'minor', this.innerText)">${(p.minor || '').replace(/\n/g, '<br>')}</div></td>`;
                     }
 
                     // 횟수
-                    html += `<td class="border-r border-slate-300 p-0 align-middle"><input type="text" class="w-full text-center bg-transparent outline-none p-2 text-xs" value="${p.count || ''}" oninput="app.updateServicePlan(${i}, 'count', this.value)" placeholder="횟수"></td>`;
+                    html += `<td class="border-r border-slate-300 p-0 align-middle"><div contenteditable="true" class="w-full h-full min-h-[30px] bg-transparent outline-none flex items-center justify-center text-center px-1.5 py-2 text-xs cursor-text" oninput="state.ui.isDirty = true; app.updateServicePlan(${i}, 'count', this.innerText)">${(p.count || '').replace(/\n/g, '<br>')}</div></td>`;
                     
-                    // 🚨 내용 및 방법 (이 칸의 가장 우측에 휴지통(-) 아이콘 배치) 🚨
+                    // 내용 및 방법 (이 칸의 가장 우측에 휴지통(-) 아이콘 배치)
                     html += `<td class="border-r border-slate-300 p-0 align-middle relative">
-                        <textarea class="w-full bg-transparent outline-none resize-none text-center p-2 pr-6 text-xs leading-tight" rows="1" oninput="this.style.height='auto'; this.style.height=(this.scrollHeight)+'px'; app.updateServicePlan(${i}, 'content', this.value)" placeholder="내용 입력">${p.content || ''}</textarea>
-                        <!-- 가족사항 삭제 버튼과 동일한 스타일로 변경된 삭제 버튼 -->
-                        <button type="button" onclick="app.removeServicePlanRow(${i})" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all shadow-sm" title="이 계획 삭제">
+                        <div contenteditable="true" class="w-full h-full min-h-[30px] bg-transparent outline-none flex items-center justify-center text-center pl-1.5 pr-8 py-2 text-xs leading-snug cursor-text" oninput="state.ui.isDirty = true; app.updateServicePlan(${i}, 'content', this.innerText)">${(p.content || '').replace(/\n/g, '<br>')}</div>
+                        <button type="button" onclick="app.removeServicePlanRow(${i})" class="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center bg-white border border-slate-300 rounded hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-all shadow-sm" title="이 계획 삭제" contenteditable="false">
                             <i data-lucide="minus" size="12"></i>
                         </button>
                     </td>`;
                     
-                    // 기간 및 평가 (표 전체 통째로 1칸 병합!)
+                    // 기간 및 평가 (표 전체 통째로 1칸 병합)
                     if (i === 0) {
-                        html += `<td rowspan="${plans.length}" class="border-r border-slate-300 p-0 align-middle"><textarea class="w-full h-full text-center bg-transparent outline-none p-2 text-xs font-medium resize-none" oninput="app.updateServicePlan(0, 'period', this.value)" placeholder="서비스 기간 입력">${plans[0].period || ''}</textarea></td>`;
-                        html += `<td rowspan="${plans.length}" class="p-0 align-middle"><textarea class="w-full h-full text-center bg-transparent outline-none p-2 text-xs font-medium resize-none" oninput="app.updateServicePlan(0, 'evaluation', this.value)" placeholder="점검/평가 입력">${plans[0].evaluation || '연 1회 점검 및\n평가 실시'}</textarea></td>`;
+                        html += `<td rowspan="${plans.length}" class="border-r border-slate-300 p-0 align-middle"><div contenteditable="true" class="w-full h-full min-h-[30px] bg-transparent outline-none flex items-center justify-center text-center px-1.5 py-2 text-xs font-medium cursor-text" oninput="state.ui.isDirty = true; app.updateServicePlan(0, 'period', this.innerText)">${(plans[0].period || '').replace(/\n/g, '<br>')}</div></td>`;
+                        html += `<td rowspan="${plans.length}" class="p-0 align-middle"><div contenteditable="true" class="w-full h-full min-h-[30px] bg-transparent outline-none flex items-center justify-center text-center px-1.5 py-2 text-xs font-medium cursor-text" oninput="state.ui.isDirty = true; app.updateServicePlan(0, 'evaluation', this.innerText)">${(plans[0].evaluation || '연 1회 점검 및\n평가 실시').replace(/\n/g, '<br>')}</div></td>`;
                     }
                     
                     html += `</tr>`;
@@ -12875,12 +12875,6 @@
 
                 tbody.innerHTML = html;
                 if(window.lucide) lucide.createIcons();
-                // 모든 textarea 높이 자동 조절
-                setTimeout(() => {
-                    tbody.querySelectorAll('textarea').forEach(el => {
-                        el.style.height = 'auto'; el.style.height = (el.scrollHeight) + 'px';
-                    });
-                }, 10);
             },
             
             // 데이터 업데이트 시 단순히 state 값만 바꿉니다. (타이핑 끊김 방지)
