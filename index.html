@@ -5254,8 +5254,8 @@
                                         <table class="w-full border-collapse border-2 border-slate-700 mb-6">
                                             <tr><th class="bg-slate-200 p-2 text-left border-b border-slate-700 font-bold text-base">■ 종합 의견</th></tr>
                                             <tr>
-                                                <td class="p-3">oninput="this.style.height = (this.scrollHeight) + 'px'"
-                                                    <textarea name="comprehensiveOpinion" class="w-full min-h-[80px] outline-none resize-none bg-transparent leading-relaxed text-sm" placeholder="※ 구·군과 공유사항 기재\n○ 서비스 연계 상세 내용\n○ 대상자 특이사항\n○ 기타 사항 등" >${ic.comprehensiveOpinion || ''}</textarea>
+                                                <td class="p-3">
+                                                    <textarea name="comprehensiveOpinion" class="w-full min-h-[80px] outline-none resize-none bg-transparent leading-relaxed text-sm" placeholder="※ 구·군과 공유사항 기재\n○ 서비스 연계 상세 내용\n○ 대상자 특이사항\n○ 기타 사항 등" oninput="this.style.height = (this.scrollHeight) + 'px'">${ic.comprehensiveOpinion || ''}</textarea>
                                                 </td>
                                             </tr>
                                         </table>
@@ -6784,7 +6784,7 @@
                         return `<div class="flex flex-col gap-2 p-3"><div class="flex flex-wrap items-center gap-2">${group1.map(renderItem).join('')}</div><div class="flex flex-wrap items-center gap-2 pt-1 border-t border-dashed border-slate-100">${group2.map(renderItem).join('')}</div></div>`;
                     };
 
-                    serviceGoalRowsHTML += `<tr><td class="p-0 border-r border-slate-200"><textarea id="sat-goal-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 font-bold text-slate-700 overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = (this.scrollHeight) + 'px'">${displayGoal}</textarea></td><td class="p-0 border-r border-slate-200"><textarea id="sat-action-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 whitespace-pre overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = (this.scrollHeight) + 'px'">${displayAction}</textarea></td><td class="p-0 border-r border-slate-200 align-top bg-white">${renderSatisfactionOptions(i, savedUserSat)}</td><td class="p-0 relative"><textarea id="sat-worker-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 overflow-hidden pr-8" placeholder="평가 내용" oninput="this.style.height = (this.scrollHeight) + 'px'">${savedWorkerEval}</textarea><button type="button" onclick="app.removeSatGoalRow(this)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500" title="이 항목 삭제"><i data-lucide="x-circle" size="16"></i></button></td></tr>`;
+                    serviceGoalRowsHTML += `<tr><td class="p-0 border-r border-slate-200"><textarea id="sat-goal-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 font-bold text-slate-700 overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${displayGoal}</textarea></td><td class="p-0 border-r border-slate-200"><textarea id="sat-action-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 whitespace-pre overflow-hidden" placeholder="자동 입력됨" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${displayAction}</textarea></td><td class="p-0 border-r border-slate-200 align-top bg-white">${renderSatisfactionOptions(i, savedUserSat)}</td><td class="p-0 relative"><textarea id="sat-worker-${i}" class="input-field w-full min-h-[60px] text-xs resize-none border-0 focus:ring-0 focus:bg-blue-50/50 rounded-none p-2 overflow-hidden pr-8" placeholder="평가 내용" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${savedWorkerEval}</textarea><button type="button" onclick="app.removeSatGoalRow(this)" class="absolute top-2 right-2 text-slate-300 hover:text-red-500" title="이 항목 삭제"><i data-lucide="x-circle" size="16"></i></button></td></tr>`;
                 });
 
                 // [신규] 서비스 내역 다중 정렬 헤더 렌더링 헬퍼 함수
@@ -7607,7 +7607,7 @@
                                                                 <div class="flex items-start gap-2">
                                                                     <span class="text-sm font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded min-w-[60px] text-center border border-slate-200 mt-0.5">③ 내용</span>
                                                                     <!-- [수정] 기본 제공 서비스 텍스트 삽입, 높이 넉넉하게 조절 및 자동 리사이징 추가 -->
-                                                                    <textarea id="cm-init-prov-content" class="input-field flex-1 min-h-[130px] border-slate-200 focus:ring-inset resize-none p-2 leading-relaxed text-xs" placeholder="제공할 서비스 내용 입력" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'initial.provision.content') || '- 노인상담 및 정보제공 - 안전안부확인(전화/방문)\n- 사례관리 - 사례회의, 재사정, 모니터링 등\n- 경제적 위기관리 - 급식지원(밑반찬지원서비스, 김장지원서비스 등)\n- 신체적 위기관리 - 노인성질환관리 및 연계(예방적 건강정보지원)\n- 사회적 위기관리 - 대인관계증진(명절지원, 어버이날 행사 등)\n- 권리옹호 - 노인인식개선(노인인권교육 등)'}</textarea>
+                                                                    <textarea id="cm-init-prov-content" class="input-field flex-1 min-h-[130px] border-slate-200 focus:ring-inset resize-none p-2 leading-relaxed text-xs" placeholder="제공할 서비스 내용 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'initial.provision.content') || '- 노인상담 및 정보제공 - 안전안부확인(전화/방문)\n- 사례관리 - 사례회의, 재사정, 모니터링 등\n- 경제적 위기관리 - 급식지원(밑반찬지원서비스, 김장지원서비스 등)\n- 신체적 위기관리 - 노인성질환관리 및 연계(예방적 건강정보지원)\n- 사회적 위기관리 - 대인관계증진(명절지원, 어버이날 행사 등)\n- 권리옹호 - 노인인식개선(노인인권교육 등)'}</textarea>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -8866,25 +8866,25 @@
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[18%] align-top pt-4">개인력/가족력</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-assess-history-nar" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="개인력 및 가족력 관련 특이사항 입력" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.historyNar')}</textarea>
+                                                            <textarea id="cm-assess-history-nar" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="개인력 및 가족력 관련 특이사항 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.historyNar')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[18%] align-top pt-4">경제상황</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-assess-eco" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="수입/지출 현황 등 경제적 상태" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.economic')}</textarea>
+                                                            <textarea id="cm-assess-eco" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="수입/지출 현황 등 경제적 상태" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.economic')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-4">주거상황</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-assess-housing-nar" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="주거 형태, 주거 환경 안전성, 위생 상태 등" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.housingNar')}</textarea>
+                                                            <textarea id="cm-assess-housing-nar" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="주거 형태, 주거 환경 안전성, 위생 상태 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.housingNar')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 align-top pt-4">건강상황</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-assess-health-nar" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="현재 건강상태, 만성질환, 신체/정신적 문제 등" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.healthNar')}</textarea>
+                                                            <textarea id="cm-assess-health-nar" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="현재 건강상태, 만성질환, 신체/정신적 문제 등" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.healthNar')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
@@ -8896,7 +8896,7 @@
                                                             </div>
                                                         </th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-assess-env" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="식사 해결, 가사 활동 수행 능력, 기타 특이사항" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.environment')}</textarea>
+                                                            <textarea id="cm-assess-env" class="input-field w-full min-h-[80px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="식사 해결, 가사 활동 수행 능력, 기타 특이사항" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.environment')}</textarea>
                                                             <!-- [유지] ADL/IADL 결과를 눈에 안 보이게 저장해둘 숨김 칸 -->
                                                             <input type="hidden" id="cm-assess-adl-text" value="${getVal(cm, 'assessment.data.adlText')}">
                                                             <input type="hidden" id="cm-assess-iadl-text" value="${getVal(cm, 'assessment.data.iadlText')}">
@@ -9163,7 +9163,7 @@
                                                 <span class="font-bold text-slate-700 text-sm">6. 사회복지사 소견</span>
                                             </div>
                                             <div class="p-0">
-                                                <textarea id="cm-assess-general" class="input-field w-full min-h-[60px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="위기 요인, 강점, 자원 등을 종합하여 주요 욕구 및 문제 기재" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.general')}</textarea>
+                                                <textarea id="cm-assess-general" class="input-field w-full min-h-[60px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden leading-relaxed" placeholder="위기 요인, 강점, 자원 등을 종합하여 주요 욕구 및 문제 기재" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'assessment.general')}</textarea>
                                             </div>
                                         </div>
 
@@ -9571,19 +9571,19 @@
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[20%] align-middle">기능상태변화</th>
                                                         <td class="p-0">
                                                             <!-- [수정] 입력칸 높이 축소 (min-h-[80px] -> min-h-[50px], padding p-3 -> p-2) -->
-                                                            <textarea id="cm-sat-mon-func" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-2 resize-none overflow-hidden" placeholder="신체 및 인지 기능의 변화 내용 입력" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.funcChange')}</textarea>
+                                                            <textarea id="cm-sat-mon-func" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-2 resize-none overflow-hidden" placeholder="신체 및 인지 기능의 변화 내용 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.funcChange')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[20%] align-middle">생활 환경 및<br>능력변화</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-sat-mon-env" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-2 resize-none overflow-hidden" placeholder="주거 환경, 경제 상황, 일상생활 수행 능력 등의 변화 내용 입력" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.envChange')}</textarea>
+                                                            <textarea id="cm-sat-mon-env" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-2 resize-none overflow-hidden" placeholder="주거 환경, 경제 상황, 일상생활 수행 능력 등의 변화 내용 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.envChange')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[20%] align-middle">변화된 욕구</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-sat-mon-needs" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-2 resize-none overflow-hidden" placeholder="새롭게 파악된 욕구 및 요청 사항 입력" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.needsChange')}</textarea>
+                                                            <textarea id="cm-sat-mon-needs" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-2 resize-none overflow-hidden" placeholder="새롭게 파악된 욕구 및 요청 사항 입력" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'satisfaction.monitor.needsChange')}</textarea>
                                                         </td>
                                                     </tr>
                                                 </tbody>
@@ -9696,13 +9696,13 @@
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[20%] align-middle">긍정적</th>
                                                         <td class="p-0">
-                                                            <textarea id="cm-eval-impact-pos" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden" placeholder="서비스 제공으로 인한 긍정적인 변화" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'evaluation.impact.positive')}</textarea>
+                                                            <textarea id="cm-eval-impact-pos" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden" placeholder="서비스 제공으로 인한 긍정적인 변화" oninput="this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'evaluation.impact.positive')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
                                                         <th class="p-3 bg-slate-50 font-bold text-slate-700 border-r border-slate-200 w-[20%] align-middle">부정적</th>
-                                                        <td class="p-0">oninput="this.style.height = (this.scrollHeight) + 'px'"
-                                                            <textarea id="cm-eval-impact-neg" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden" placeholder="서비스 제공 과정에서의 부정적인 영향 또는 한계" >${getVal(cm, 'evaluation.impact.negative')}</textarea>
+                                                        <td class="p-0">
+                                                            <textarea id="cm-eval-impact-neg" class="input-field w-full min-h-[50px] border-0 focus:ring-0 rounded-none p-3 resize-none overflow-hidden" placeholder="서비스 제공 과정에서의 부정적인 영향 또는 한계" oninput="this.style.height = (this.scrollHeight) + 'px'">${getVal(cm, 'evaluation.impact.negative')}</textarea>
                                                         </td>
                                                     </tr>
                                                     <tr>
@@ -12635,9 +12635,9 @@
                         <colgroup>
                             <col style="width: 12%;">
                             <col style="width: 12%;">
-                            <col style="width: 18%;">
-                            <col style="width: 22%;">
-                            <col style="width: 10%;">
+                            <col style="width: 17%;">
+                            <col style="width: 20%;">
+                            <col style="width: 13%;">
                             <col style="width: 18%;">
                             <col style="width: 8%;">
                         </colgroup>
@@ -12670,13 +12670,13 @@
                     <!-- 3. 서비스 연계 결과 -->
                     <table>
                         <colgroup>
+                            <col style="width: 14%;">
                             <col style="width: 12%;">
-                            <col style="width: 12%;">
+                            <col style="width: 11%;">
+                            <col style="width: 19%;">
+                            <col style="width: 20%;">
+                            <col style="width: 11%;">
                             <col style="width: 13%;">
-                            <col style="width: 17%;">
-                            <col style="width: 17%;">
-                            <col style="width: 12%;">
-                            <col style="width: 16%;">
                         </colgroup>
                         <tr class="tbl-title-row"><th colspan="7">■ 서비스 연계 결과 <span style="font-size: 12px; font-weight: normal;">(재가노인지원서비스센터에서 외부기관으로 연계한 서비스)</span></th></tr>
                         <tr>
