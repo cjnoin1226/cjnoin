@@ -2295,6 +2295,7 @@
                     endDate: c.endDate || '9999-12-31', 
                     total: 0, 
                     emotionalCount: 0, 
+                    emotionalDates: [], // [신규] 제공된 날짜 추적용
                     counts: {} 
                 };
                 serviceHeaders.forEach(k => dataMap[c.id].counts[k] = 0);
@@ -2366,7 +2367,10 @@
                         } 
                         // exactMatch가 없으면 key는 빈 문자열이 되어 집계에서 제외됨 (상세/분류 모두 동일하게 제외되어 합계 일치)
 
-                        if (item.serviceName && item.serviceName.includes('정서지원')) dataMap[cid].emotionalCount++;
+                        if (item.serviceName && item.serviceName.includes('정서지원')) {
+                            dataMap[cid].emotionalCount++;
+                            dataMap[cid].emotionalDates.push(l.date); // [신규] 일지 날짜 기록
+                        }
                         
                         // 3. 카운트 증가 (유효한 컬럼인 경우에만)
                         if (key && dataMap[cid].counts[key] !== undefined) { 
@@ -2519,9 +2523,58 @@
                                     const totalBg = isTerminatedInPeriod ? 'bg-slate-200 text-emerald-800' : 'bg-emerald-50 text-emerald-600'; // 합계 컬럼 배경
 
                                     let isDeficient = false;
+                                    let defTip = ''; // [신규] 마우스 올렸을 때 보여줄 사유
+
                                     if (!isTerminatedInPeriod) {
-                                        if (r.careLevel === '중점' && r.emotionalCount < 4) isDeficient = true;
-                                        else if (r.careLevel === '일반' && r.emotionalCount < 1) isDeficient = true;
+                                        if (r.careLevel === '중점') {
+                                            // 대상자의 서비스 시작일과 조회 시작일 중 늦은 날짜를 기준점으로 삼음 (중간에 들어온 대상자 보호)
+                                            const cRef = targetClients.find(client => client.id === r.id);
+                                            let vStart = start;
+                                            if (cRef && cRef.serviceStartDate && cRef.serviceStartDate > vStart) {
+                                                vStart = cRef.serviceStartDate;
+                                            }
+
+                                            // 해당 월의 첫 날부터 마지막 날(end)까지 주(일~토) 단위로 박스에 담기
+                                            let curr = new Date(vStart);
+                                            const eDate = new Date(end);
+                                            const weeks = [];
+                                            let currWeek = [];
+
+                                            while (curr <= eDate) {
+                                                const dStr = curr.getFullYear() + '-' + String(curr.getMonth() + 1).padStart(2, '0') + '-' + String(curr.getDate()).padStart(2, '0');
+                                                currWeek.push(dStr);
+                                                
+                                                // 토요일(6)이거나 월의 마지막 날이면 한 주가 끝난 것으로 보고 박스를 닫음
+                                                if (curr.getDay() === 6 || curr.getTime() === eDate.getTime()) {
+                                                    weeks.push(currWeek);
+                                                    currWeek = [];
+                                                }
+                                                curr.setDate(curr.getDate() + 1);
+                                            }
+
+                                            // 각 주차별로 정서지원을 받은 날짜가 있는지 깐깐하게 검사
+                                            const missingWeeks = [];
+                                            weeks.forEach((wDates, wIdx) => {
+                                                const hasSvc = wDates.some(d => r.emotionalDates.includes(d));
+                                                if (!hasSvc) missingWeeks.push(`${wIdx + 1}주차`);
+                                            });
+
+                                            // 단 한 주라도 빼먹었으면 무조건 빨간 불!
+                                            if (missingWeeks.length > 0) {
+                                                isDeficient = true;
+                                                defTip = `누락: ${missingWeeks.join(', ')}`;
+                                            } else if (r.emotionalCount < 4) {
+                                                // 빠진 주는 없는데(월말에 시작해서 2주밖에 안됨) 총 횟수가 4가 안 되면
+                                                isDeficient = true;
+                                                defTip = `총 횟수 부족 (${r.emotionalCount}/4)`;
+                                            }
+                                        } 
+                                        else if (r.careLevel === '일반') {
+                                            if (r.emotionalCount < 1) {
+                                                isDeficient = true;
+                                                defTip = '월 1회 미제공';
+                                            }
+                                        }
                                     }
                                     return `
                                     <tr class="${rowClass} group transition-colors">
@@ -2538,23 +2591,26 @@
                                             let cellClass = "p-1.5 px-2 text-center border-r transition-colors";
                                             let clickAttr = "";
                                             
-                                            // [수정] 숫자가 있는 경우 클릭 이벤트 추가 및 스타일 변경
                                             if (count > 0) {
                                                 cellClass += " cursor-pointer hover:underline decoration-2 underline-offset-2";
                                                 clickAttr = `onclick="app.showClientStatsDetail('${r.id}', '${r.name}', '${k}')"`;
                                             }
 
+                                            // 기본 툴팁 메시지
+                                            let cellTitle = count > 0 ? `'${k}' 상세 내역 보기` : '';
+
                                             if (isTargetCell) { 
-                                                cellClass += " text-red-600 font-bold bg-red-50 hover:bg-red-100"; 
+                                                cellClass += " text-red-600 font-bold bg-red-50 hover:bg-red-100";
+                                                // 🚨 결핍된 칸이면 우리가 알아낸 사유(defTip)를 툴팁에 넣어줌!
+                                                cellTitle = count > 0 ? `${defTip} (클릭 시 상세)` : defTip; 
                                             } else { 
                                                 if (count > 0) { 
                                                     cellClass += " bg-blue-50 font-medium text-blue-600 hover:bg-blue-100"; 
                                                 } else { 
-                                                    // [수정] 데이터 없는 셀도 종결자면 약간 어둡게, 아니면 연하게
                                                     cellClass += isTerminatedInPeriod ? " text-slate-400" : " text-slate-300"; 
                                                 } 
                                             }
-                                            return `<td class="${cellClass}" ${clickAttr} title="${count > 0 ? `'${k}' 상세 내역 보기` : ''}">${count || '-'}</td>`;
+                                            return `<td class="${cellClass}" ${clickAttr} title="${cellTitle}">${count || '-'}</td>`;
                                         }).join('')}
                                     </tr>
                                 `;}).join('')}
@@ -12564,7 +12620,7 @@
                         table { 
                             width: 100%; 
                             border-collapse: collapse; 
-                            margin-bottom: 13px; 
+                            margin-bottom: 10px; 
                             table-layout: fixed; 
                             border: 2px solid #333; /* 겉 테두리는 두껍게 */
                         }
