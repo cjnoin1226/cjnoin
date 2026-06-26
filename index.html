@@ -14863,7 +14863,8 @@
             // [신규] 통계 상세 내역 보기 함수 추가 (누락된 기능 복구)
             // [수정] filterItem 인자 추가 (특정 서비스 항목 필터링용)
             showClientStatsDetail: (clientId, clientName, filterItem = null) => {
-                const { start, end, type } = state.filters.stats;
+                const { start, end, type, months } = state.filters.stats;
+                const selectedMonths = (months && months.length > 0) ? months.sort((a, b) => a - b) : [];
                 
                 // [신규] 대상자 서비스 기간 정보 조회 및 배지 생성
                 const client = state.clients.find(c => c.id === clientId);
@@ -14884,6 +14885,11 @@
                 const targetLogs = state.logs.filter(l => {
                     const dateMatch = l.clientId === clientId && (!start || l.date >= start) && (!end || l.date <= end);
                     if (!dateMatch) return false;
+                    
+                    if (selectedMonths.length > 0) {
+                        const m = parseInt(l.date.split('-')[1], 10);
+                        if (!selectedMonths.includes(m)) return false;
+                    }
 
                     // [수정] 특정 서비스 항목(filterItem)이 지정된 경우 해당 항목 포함 여부 확인
                     if (filterItem) {
@@ -14902,6 +14908,81 @@
                 // [수정] 모달 제목 구성
                 const titleSuffix = filterItem ? `<span class="text-slate-500 text-sm font-normal ml-2">(${filterItem})</span>` : '';
 
+                // [신규] 정서지원서비스 '중점' 대상자의 주차 누락 계산 로직 (모달창 표시용)
+                let missingText = '';
+                if (filterItem && filterItem.includes('정서지원') && client && client.careLevel === '중점') {
+                    const emotionalDates = targetLogs.map(l => l.date);
+                    
+                    let vStart = start || '2000-01-01';
+                    if (client.serviceStartDate && client.serviceStartDate > vStart) {
+                        vStart = client.serviceStartDate;
+                    }
+
+                    let vEnd = end || '9999-12-31';
+                    if (client.endDate && client.endDate !== '9999-12-31' && client.endDate < vEnd) {
+                        vEnd = client.endDate;
+                    }
+
+                    if (vStart <= vEnd) {
+                        const missingByMonth = {};
+                        let curr = new Date(vStart);
+                        const eDate = new Date(vEnd);
+
+                        while (curr <= eDate) {
+                            const y = curr.getFullYear();
+                            const m = curr.getMonth(); 
+                            const mStr = `${y}-${String(m + 1).padStart(2, '0')}`;
+                            
+                            if (!missingByMonth[mStr]) missingByMonth[mStr] = { monthNum: m + 1, weeks: [], currentWeek: [], missing: [] };
+                            
+                            const dStr = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(curr.getDate()).padStart(2, '0');
+                            missingByMonth[mStr].currentWeek.push(dStr);
+                            
+                            const lastDayOfMonth = new Date(y, m + 1, 0);
+                            if (curr.getDay() === 6 || curr.getTime() === lastDayOfMonth.getTime() || curr.getTime() === eDate.getTime()) {
+                                missingByMonth[mStr].weeks.push(missingByMonth[mStr].currentWeek);
+                                missingByMonth[mStr].currentWeek = [];
+                            }
+                            
+                            curr.setDate(curr.getDate() + 1);
+                        }
+
+                        // 선택된 월(selectedMonths)이 있을 경우, 선택되지 않은 달은 누락 계산에서 뺌
+                        if (selectedMonths.length > 0) {
+                            Object.keys(missingByMonth).forEach(monthKey => {
+                                const mNum = parseInt(monthKey.split('-')[1], 10);
+                                if (!selectedMonths.includes(mNum)) {
+                                    delete missingByMonth[monthKey];
+                                }
+                            });
+                        }
+
+                        Object.keys(missingByMonth).forEach(monthKey => {
+                            const mData = missingByMonth[monthKey];
+                            mData.weeks.forEach((wDates, wIdx) => {
+                                const hasSvc = wDates.some(d => emotionalDates.includes(d));
+                                if (!hasSvc) mData.missing.push(`${wIdx + 1}주차`);
+                            });
+                        });
+
+                        const totalFilteredMonths = Object.keys(missingByMonth).length;
+                        const monthsKeysWithMissing = Object.keys(missingByMonth).filter(k => missingByMonth[k].missing.length > 0);
+                        
+                        if (monthsKeysWithMissing.length > 0) {
+                            if (totalFilteredMonths === 1) { 
+                                const mData = missingByMonth[monthsKeysWithMissing[0]];
+                                missingText = `<span class="text-red-500 font-bold ml-2">(${mData.missing.join(', ')} 누락)</span>`;
+                            } else { 
+                                const textParts = monthsKeysWithMissing.map(k => {
+                                    const mData = missingByMonth[k];
+                                    return `${mData.monthNum}월 ${mData.missing.join(', ').replace(/주차/g, '주')} 누락`;
+                                });
+                                missingText = `<span class="text-red-500 font-bold ml-2">(${textParts.join(' / ')})</span>`;
+                            }
+                        }
+                    }
+                }
+
                 const html = `
                     <div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
                         <div class="flex justify-between items-center mb-4 flex-shrink-0">
@@ -14915,6 +14996,7 @@
                         <div class="bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 mb-4 flex justify-between items-center flex-shrink-0">
                             <div class="text-sm font-bold text-slate-700">
                                 조회 기간: <span class="text-emerald-600">${start || '전체'} ~ ${end || '전체'}</span>
+                                ${missingText}
                             </div>
                             <div class="text-sm text-slate-500">
                                 총 <span class="font-bold text-slate-800">${targetLogs.length}</span>건 (일지 기준)
