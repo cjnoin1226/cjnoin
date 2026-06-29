@@ -15040,7 +15040,7 @@
                                             if (items.length === 0) return []; // 필터링 결과 없으면 생략
 
                                             return items.map((item, idx) => `
-                                                <tr class="hover:bg-slate-50 transition-colors group">
+                                                <tr class="hover:bg-slate-50 transition-colors group cursor-pointer hover:bg-slate-100" onclick="app.openLogModal('${l.id}')" title="클릭하여 일지 상세 보기 및 수정">
                                                     ${idx === 0 ? `<td class="p-3 text-center text-slate-600 font-medium border-r border-slate-100" rowspan="${items.length}">${l.date}</td>` : ''}
                                                     <!-- [신규 추가] 제공방법 데이터 (병합 처리 포함) -->
                                                     ${idx === 0 ? `<td class="p-3 text-center text-slate-600 text-xs border-r border-slate-100" rowspan="${items.length}">${l.provideMethod || '-'}</td>` : ''}
