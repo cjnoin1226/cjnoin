@@ -2255,17 +2255,18 @@
         function renderStatistics() {
              const { start, end, type, region, name, months } = state.filters.stats;
              const selectedMonths = (months && months.length > 0) ? months.sort((a, b) => a - b) : [];
-            // [수정] 날짜 필터가 비어있을 경우를 대비한 방어 코드 추가
-            const sYear = start ? start.split('-')[0] : '0000';
-            const eYear = end ? end.split('-')[0] : '9999';
-            const fullYearStart = `${sYear}-01-01`;
-            const fullYearEnd = `${eYear}-12-31`;
+            // [수정] 조회 기간(날짜)에 이용 중이었던 대상자만 정확히 필터링하도록 수정
+            const filterStart = start || '0000-01-01';
+            const filterEnd = end || '9999-12-31';
+            
             const targetClients = state.clients.filter(c => {
                 const matchBasic = (region.length === 0 || region.includes(c.region)) && (!name || c.name.includes(name));
                 if (!matchBasic) return false;
+                
                 const cS = c.serviceStartDate || '0000-01-01';
                 const cE = c.endDate || '9999-12-31';
-                return cS <= fullYearEnd && cE >= fullYearStart;
+                // 대상자의 이용 기간(cS ~ cE)이 조회 기간(filterStart ~ filterEnd)과 겹치는지 검사
+                return cS <= filterEnd && cE >= filterStart;
             });
             let serviceHeaders = [];
             let headerGroups = {};
@@ -14712,18 +14713,20 @@
             downloadStatsExcel: () => {
                 const { start, end, type, region, name, months } = state.filters.stats;
                 const selectedMonths = (months && months.length > 0) ? months.sort((a, b) => a - b) : [];
-                const sYear = start.split('-')[0];
-                const eYear = end.split('-')[0];
-                const fullYearStart = `${sYear}-01-01`;
-                const fullYearEnd = `${eYear}-12-31`;
+                
+                // [수정] 엑셀 다운로드 시에도 정확한 조회 기간 반영
+                const filterStart = start || '0000-01-01';
+                const filterEnd = end || '9999-12-31';
 
                 // 1. 대상자 필터링
                 const targetClients = state.clients.filter(c => {
                     const matchBasic = (region.length === 0 || region.includes(c.region)) && (!name || c.name.includes(name));
                     if (!matchBasic) return false;
+                    
                     const cS = c.serviceStartDate || '0000-01-01';
                     const cE = c.endDate || '9999-12-31';
-                    return cS <= fullYearEnd && cE >= fullYearStart;
+                    // 대상자의 이용 기간(cS ~ cE)이 조회 기간(filterStart ~ filterEnd)과 겹치는지 검사
+                    return cS <= filterEnd && cE >= filterStart;
                 });
 
                 // 2. 헤더 구성
