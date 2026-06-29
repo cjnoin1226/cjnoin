@@ -4977,6 +4977,18 @@
                 if(window.lucide) lucide.createIcons();
             },
 
+            // [신규] 사례회의 조회 대상 월 변경 함수
+            setMeetingTargetMonth: (month) => {
+                state.ui.meetingTargetMonth = parseInt(month);
+                if(state.viewMode === 'single') updateTabContent('meeting'); else render();
+            },
+
+            // [신규] 사례회의 대상자 조회 타입 변경 함수 (정기/초기/종결)
+            setMeetingCandidateType: (type) => {
+                state.ui.meetingCandidateType = type;
+                if(state.viewMode === 'single') updateTabContent('meeting'); else render();
+            },
+
             // [신규] 사례회의 조회 대상 월 초기화 함수 (현재 월로 복귀 및 기준 초기화)
             resetMeetingTargetMonth: () => {
                 state.ui.meetingTargetMonth = new Date().getMonth() + 1;
