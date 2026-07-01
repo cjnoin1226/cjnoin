@@ -2557,7 +2557,16 @@
                                             const missingWeeks = [];
                                             weeks.forEach((wDates, wIdx) => {
                                                 const hasSvc = wDates.some(d => r.emotionalDates.includes(d));
-                                                if (!hasSvc) missingWeeks.push(`${wIdx + 1}주차`);
+                                                if (!hasSvc) {
+                                                    // [신규] 월말의 마지막 주가 목요일(4) 이전에 끝나면 누락 계산에서 제외 (다음 달 1주차로 넘김)
+                                                    if (wIdx === weeks.length - 1) {
+                                                        const lastDateStr = wDates[wDates.length - 1];
+                                                        const lastDayOfWeek = new Date(lastDateStr).getDay();
+                                                        // 0:일, 1:월, 2:화, 3:수, 4:목 이면 이번 달 누락 계산에서 뺌
+                                                        if (lastDayOfWeek <= 4) return;
+                                                    }
+                                                    missingWeeks.push(`${wIdx + 1}주차`);
+                                                }
                                             });
 
                                             // 단 한 주라도 빼먹었으면 무조건 빨간 불!
@@ -13426,8 +13435,10 @@
                                 <textarea name="content" id="log-content" class="input-field h-32 leading-relaxed" required placeholder="서비스 진행 내용을 입력하세요">${l.content || ''}</textarea>
                             </div>
 
-                            <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 mt-4">
-                                <button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">취소</button>
+                            <div class="flex justify-between pt-4 border-t border-slate-100 mt-4">
+                                <div>
+                                    ${isEdit ? `<button type="button" onclick="app.deleteData('logs', '${id}')" class="px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 font-bold transition-colors shadow-sm">삭제</button>` : ''}
+                                </div>
                                 <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 font-bold shadow-sm transition-colors">저장</button>
                             </div>
                         </form>
@@ -14976,7 +14987,15 @@
                             const mData = missingByMonth[monthKey];
                             mData.weeks.forEach((wDates, wIdx) => {
                                 const hasSvc = wDates.some(d => emotionalDates.includes(d));
-                                if (!hasSvc) mData.missing.push(`${wIdx + 1}주차`);
+                                if (!hasSvc) {
+                                    // [신규] 월말의 마지막 주가 목요일(4) 이전에 끝나면 누락 계산에서 제외 (다음 달 1주차로 넘김)
+                                    if (wIdx === mData.weeks.length - 1) {
+                                        const lastDateStr = wDates[wDates.length - 1];
+                                        const lastDayOfWeek = new Date(lastDateStr).getDay();
+                                        if (lastDayOfWeek <= 4) return;
+                                    }
+                                    mData.missing.push(`${wIdx + 1}주차`);
+                                }
                             });
                         });
 
