@@ -13435,10 +13435,8 @@
                                 <textarea name="content" id="log-content" class="input-field h-32 leading-relaxed" required placeholder="서비스 진행 내용을 입력하세요">${l.content || ''}</textarea>
                             </div>
 
-                            <div class="flex justify-between pt-4 border-t border-slate-100 mt-4">
-                                <div>
-                                    ${isEdit ? `<button type="button" onclick="app.deleteData('logs', '${id}')" class="px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 font-bold transition-colors shadow-sm">삭제</button>` : ''}
-                                </div>
+                            <div class="flex justify-end gap-2 pt-4 border-t border-slate-100 mt-4">
+                                ${isEdit ? `<button type="button" onclick="app.deleteData('logs', '${id}')" class="px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 font-bold transition-colors shadow-sm">삭제</button>` : ''}
                                 <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 font-bold shadow-sm transition-colors">저장</button>
                             </div>
                         </form>
