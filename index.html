@@ -4845,19 +4845,41 @@
             openBatchEditLogModal: () => {
                 const count = state.ui.selectedLogIds.size;
                 if (count === 0) return;
-                const html = `<div class="bg-white w-full max-w-2xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto"><div class="flex items-center gap-2 mb-4"><div class="p-2 bg-blue-100 text-blue-600 rounded-full"><i data-lucide="edit-3" size="20"></i></div><h3 class="font-bold text-lg text-slate-900">일괄 수정 (${count}건)</h3></div><p class="text-sm text-slate-500 mb-6 bg-slate-50 p-3 rounded">체크박스를 선택한 항목만 일괄 변경됩니다.<br>선택하지 않은 항목은 기존 값이 유지됩니다.</p><form onsubmit="app.executeBatchEditLogs(event)"><div class="space-y-4"><div class="flex items-center gap-3"><input type="checkbox" id="chk-date" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-date').disabled = !this.checked"><label for="chk-date" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">날짜</label><input type="date" id="val-date" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" max="9999-12-31" disabled></div><div class="flex items-center gap-3"><input type="checkbox" id="chk-method" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-method').disabled = !this.checked"><label for="chk-method" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">제공방법</label><select id="val-method" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}">${m}</option>`).join('')}</select></div><div class="flex items-center gap-3"><input type="checkbox" id="chk-provider" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-provider').disabled = !this.checked"><label for="chk-provider" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">제공자</label><input type="text" id="val-provider" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" placeholder="변경할 이름" disabled></div><div class="flex items-start gap-3 pt-2 border-t border-dashed border-slate-200"><input type="checkbox" id="chk-service" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mt-1 cursor-pointer" onchange="app.toggleBatchService(this.checked)"><label for="chk-service" class="w-20 text-sm font-bold text-slate-700 mt-1 cursor-pointer">서비스</label><div class="flex-1"><div class="flex flex-col gap-1 mb-2"><div class="flex justify-between items-center w-full"><span class="text-xs text-slate-500 flex-1">적용 방식 선택 (최대 6개 제한)</span><button type="button" id="btn-add-batch-svc" onclick="app.addBatchSvcRow()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed" disabled>행 추가</button></div><div class="flex items-center gap-3 mt-1"><label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="batch-svc-mode" value="overwrite" class="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 cursor-pointer" checked><span class="text-xs font-bold text-slate-700">기존 서비스 덮어쓰기</span></label><label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="batch-svc-mode" value="append" class="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 cursor-pointer"><span class="text-xs font-bold text-slate-700">기존 서비스에 추가</span></label></div></div><div id="batch-svc-container" class="space-y-2 p-2 bg-slate-50 rounded border border-slate-200 min-h-[50px]"><div class="text-center text-xs text-slate-400 py-2">변경하려면 체크박스를 선택하세요</div></div></div></div><div class="flex items-start gap-3 pt-2 border-t border-dashed border-slate-200"><input type="checkbox" id="chk-content" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mt-1 cursor-pointer" onchange="document.getElementById('val-content').disabled = !this.checked"><label for="chk-content" class="w-20 text-sm font-bold text-slate-700 mt-1 cursor-pointer">진행내용</label><textarea id="val-content" class="input-field flex-1 py-1.5 text-sm h-24 disabled:bg-slate-100 disabled:text-slate-400" placeholder="변경할 내용" disabled></textarea></div></div><div class="flex justify-end gap-2 mt-8 pt-4 border-t border-slate-100"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">취소</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors">수정 완료</button></div></form></div>`;
+                const html = `<div class="bg-white w-full max-w-2xl p-6 rounded-xl shadow-xl mx-4 max-h-[90vh] overflow-y-auto"><div class="flex items-center gap-2 mb-4"><div class="p-2 bg-blue-100 text-blue-600 rounded-full"><i data-lucide="edit-3" size="20"></i></div><h3 class="font-bold text-lg text-slate-900">일괄 수정 (${count}건)</h3></div><p class="text-sm text-slate-500 mb-6 bg-slate-50 p-3 rounded">체크박스를 선택한 항목만 일괄 변경됩니다.<br>선택하지 않은 항목은 기존 값이 유지됩니다.</p><form onsubmit="app.executeBatchEditLogs(event)"><div class="space-y-4"><div class="flex items-center gap-3"><input type="checkbox" id="chk-date" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-date').disabled = !this.checked"><label for="chk-date" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">날짜</label><input type="date" id="val-date" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" max="9999-12-31" disabled></div><div class="flex items-center gap-3"><input type="checkbox" id="chk-method" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-method').disabled = !this.checked"><label for="chk-method" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">제공방법</label><select id="val-method" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" disabled>${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}">${m}</option>`).join('')}</select></div><div class="flex items-center gap-3"><input type="checkbox" id="chk-provider" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="document.getElementById('val-provider').disabled = !this.checked"><label for="chk-provider" class="w-20 text-sm font-bold text-slate-700 cursor-pointer">제공자</label><input type="text" id="val-provider" class="input-field flex-1 py-1.5 text-sm disabled:bg-slate-100 disabled:text-slate-400" placeholder="변경할 이름" disabled></div><div class="flex items-start gap-3 pt-2 border-t border-dashed border-slate-200"><input type="checkbox" id="chk-service" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mt-1 cursor-pointer" onchange="app.toggleBatchService(this.checked)"><label for="chk-service" class="w-20 text-sm font-bold text-slate-700 mt-1 cursor-pointer">서비스</label><div class="flex-1"><div class="flex flex-col gap-1 mb-2"><div class="flex justify-between items-center w-full"><span class="text-xs text-slate-500 flex-1">적용 방식 선택 (최대 6개 제한)</span><button type="button" id="btn-add-batch-svc" onclick="app.addBatchSvcRow()" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed" disabled>행 추가</button></div><div class="flex items-center gap-3 mt-1"><label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="batch-svc-mode" value="overwrite" class="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 cursor-pointer" checked onchange="app.changeBatchSvcMode(this.value)"><span class="text-xs font-bold text-slate-700">기존 서비스 덮어쓰기</span></label><label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="batch-svc-mode" value="append" class="w-3.5 h-3.5 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="app.changeBatchSvcMode(this.value)"><span class="text-xs font-bold text-slate-700">기존 서비스에 추가</span></label></div></div><div id="batch-svc-container" class="space-y-2 p-2 bg-slate-50 rounded border border-slate-200 min-h-[50px]"><div class="text-center text-xs text-slate-400 py-2">변경하려면 체크박스를 선택하세요</div></div></div></div><div class="flex items-start gap-3 pt-2 border-t border-dashed border-slate-200"><input type="checkbox" id="chk-content" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 mt-1 cursor-pointer" onchange="document.getElementById('val-content').disabled = !this.checked"><label for="chk-content" class="w-20 text-sm font-bold text-slate-700 mt-1 cursor-pointer">진행내용</label><textarea id="val-content" class="input-field flex-1 py-1.5 text-sm h-24 disabled:bg-slate-100 disabled:text-slate-400" placeholder="변경할 내용" disabled></textarea></div></div><div class="flex justify-end gap-2 mt-8 pt-4 border-t border-slate-100"><button type="button" onclick="app.closeModal()" class="px-4 py-2 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">취소</button><button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition-colors">수정 완료</button></div></form></div>`;
                 showModal(html);
                 if(window.lucide) lucide.createIcons();
             },
             toggleBatchService: (checked) => {
                 const btn = document.getElementById('btn-add-batch-svc');
                 const container = document.getElementById('batch-svc-container');
+                const mode = document.querySelector('input[name="batch-svc-mode"]:checked')?.value || 'overwrite';
                 if (btn) btn.disabled = !checked;
                 if (checked) { 
                     container.innerHTML = ''; 
-                    app.addBatchSvcRow(); // 🚨 쓸데없는 기본값 자동추가를 없애고, 빈 줄 하나만 딱 띄워줍니다!
+                    if (mode === 'overwrite') {
+                        // 덮어쓰기: 기본 1줄 + 빈칸 1줄 세팅
+                        app.addBatchSvcRow({ category: '노인상담 및 정보제공', serviceName: '정서지원서비스', detailNote: '안전안부확인' });
+                        app.addBatchSvcRow();
+                    } else {
+                        // 추가하기: 빈칸 1줄 세팅
+                        app.addBatchSvcRow();
+                    }
                 } else { 
                     container.innerHTML = '<div class="text-center text-xs text-slate-400 py-2">변경하려면 체크박스를 선택하세요</div>'; 
+                }
+            },
+            // [신규] 라디오 버튼 클릭 시 즉시 폼을 바꿔주는 함수
+            changeBatchSvcMode: (mode) => {
+                const chk = document.getElementById('chk-service');
+                if (chk && chk.checked) {
+                    const container = document.getElementById('batch-svc-container');
+                    container.innerHTML = '';
+                    if (mode === 'overwrite') {
+                        app.addBatchSvcRow({ category: '노인상담 및 정보제공', serviceName: '정서지원서비스', detailNote: '안전안부확인' });
+                        app.addBatchSvcRow();
+                    } else {
+                        app.addBatchSvcRow();
+                    }
                 }
             },
             addBatchSvcRow: (item = null) => {
@@ -13975,7 +13997,7 @@
                 }
             },
             
-            // [수정] 서비스 추가/덮어쓰기 선택 기능 반영
+            // [수정] 서비스 추가 시 항목이 두 배로 늘어나는 중복 오류 완벽 차단!
             executeBatchEditLogs: async (e) => {
                 e.preventDefault();
                 const updateData = {};
@@ -13992,7 +14014,6 @@
                     rows.forEach(row => { const cat = row.querySelector('.batch-cat-sel').value; const svc = row.querySelector('.batch-svc-sel').value; const note = row.querySelector('.batch-det-inp').value; if (svc) { newItems.push({ id: Date.now() + Math.random(), category: cat, serviceName: svc, detailNote: note }); } });
                     if (newItems.length === 0) { alert("서비스 변경을 선택하셨다면, 최소 1개의 서비스를 입력해주세요."); return; }
                     updateData.serviceItems = newItems;
-                    // append 모드면 serviceName을 여기서 한 번에 정할 수 없고 각각 로그마다 합쳐야 함
                 }
                 
                 if (Object.keys(updateData).length === 0) { alert("변경할 항목을 하나 이상 선택해주세요."); return; }
@@ -14001,10 +14022,11 @@
                 state.isBatching = true; 
                 try {
                     const batch = writeBatch(db);
+                    const localUpdates = {}; // DB와 똑같은 데이터를 미리 보관해서 두 번 덮어써지는 것 방지
+
                     Array.from(state.ui.selectedLogIds).forEach(id => {
                         const logDataToUpdate = { ...updateData };
 
-                        // 서비스 항목 병합 처리 (Append 모드일 때)
                         if (document.getElementById('chk-service').checked) {
                             if (svcMode === 'append') {
                                 const originalLog = state.logs.find(l => l.id === id);
@@ -14014,54 +14036,34 @@
                                 } else if (originalLog && originalLog.serviceName) {
                                     combinedItems = [{ id: Date.now() + Math.random(), category: originalLog.serviceCategory, serviceName: originalLog.serviceName, detailNote: '' }];
                                 }
-                                // 새 아이템 추가
                                 updateData.serviceItems.forEach(ni => combinedItems.push({...ni, id: Date.now() + Math.random()}));
-                                // 최대 6개 제한
                                 if (combinedItems.length > 6) combinedItems = combinedItems.slice(0, 6);
                                 
                                 logDataToUpdate.serviceItems = combinedItems;
                                 logDataToUpdate.serviceName = combinedItems.map(i => i.serviceName).join(', ');
                             } else {
-                                // 덮어쓰기 모드
                                 logDataToUpdate.serviceName = updateData.serviceItems.map(i => i.serviceName).join(', ');
                             }
                         }
 
                         batch.update(doc(db, "logs", id), logDataToUpdate);
+                        localUpdates[id] = logDataToUpdate; // 나중을 위해 안전하게 보관!
                     });
-                    await batch.commit();
-                    
-                    const affectedYears = new Set();
 
-                    // 로컬 상태 일괄 업데이트
+                    // 여기서 먼저 로컬 화면을 딱 '한 번만' 수정합니다!
+                    const affectedYears = new Set();
                     state.ui.selectedLogIds.forEach(id => {
                         const idx = state.logs.findIndex(l => l.id === id);
                         if (idx !== -1) {
                             if (state.logs[idx].date) affectedYears.add(parseInt(state.logs[idx].date.split('-')[0]));
-                            
-                            const logDataToUpdate = { ...updateData };
-                            if (document.getElementById('chk-service').checked) {
-                                if (svcMode === 'append') {
-                                    let combinedItems = [];
-                                    if (state.logs[idx].serviceItems) {
-                                        combinedItems = [...state.logs[idx].serviceItems];
-                                    } else if (state.logs[idx].serviceName) {
-                                        combinedItems = [{ id: Date.now() + Math.random(), category: state.logs[idx].serviceCategory, serviceName: state.logs[idx].serviceName, detailNote: '' }];
-                                    }
-                                    updateData.serviceItems.forEach(ni => combinedItems.push({...ni, id: Date.now() + Math.random()}));
-                                    if (combinedItems.length > 6) combinedItems = combinedItems.slice(0, 6);
-                                    logDataToUpdate.serviceItems = combinedItems;
-                                    logDataToUpdate.serviceName = combinedItems.map(i => i.serviceName).join(', ');
-                                } else {
-                                    logDataToUpdate.serviceName = updateData.serviceItems.map(i => i.serviceName).join(', ');
-                                }
-                            }
-
-                            state.logs[idx] = { ...state.logs[idx], ...logDataToUpdate };
+                            state.logs[idx] = { ...state.logs[idx], ...localUpdates[id] };
                             if (state.logs[idx].date) affectedYears.add(parseInt(state.logs[idx].date.split('-')[0]));
                         }
                     });
                     state.logs.sort((a, b) => b.date.localeCompare(a.date));
+
+                    // 그 다음 DB를 전송합니다.
+                    await batch.commit();
 
                     app.showToast(`${state.ui.selectedLogIds.size}건의 일지가 수정되었습니다.`);
                     state.ui.selectedLogIds.clear();
