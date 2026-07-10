@@ -9983,6 +9983,9 @@
                                         
                                         state.currentServicePlans = getVal(cm, 'servicePlan.plans') || ((c.servicePlans && c.servicePlans.length > 0) ? JSON.parse(JSON.stringify(c.servicePlans)) : defaultPlans);
                                         state.currentServicePlans.clientId = c.id;
+                                        // 🚨 추가: 따로 저장해둔 기간과 평가 데이터를 불러와 준비시킵니다.
+                                        state.currentServicePeriod = getVal(cm, 'servicePlan.period') || (state.currentServicePlans[0] ? state.currentServicePlans[0].period : '');
+                                        state.currentServiceEvaluation = getVal(cm, 'servicePlan.evaluation') || (state.currentServicePlans[0] ? state.currentServicePlans[0].evaluation : '연 1회 점검 및\n평가 실시');
                                         setTimeout(() => app.renderServicePlanTable(), 50);
                                     } else {
                                         setTimeout(() => app.renderServicePlanTable(), 50);
@@ -10676,6 +10679,9 @@
                     writer: getEl('cm-plan-writer'),
                     goal: (() => { const el = e.target.querySelector('#cm-plan-goal'); return el ? el.innerHTML : ''; })(),
                     adjust: getEl('cm-plan-adjust'),
+                    // 🚨 추가: 표 데이터와 엮이지 않게 '서비스 기간'과 '평가'를 안전하게 따로 떼어내서 저장합니다!
+                    period: (() => { const el = e.target.querySelector('#cm-plan-period'); return el ? el.innerText : ''; })(),
+                    evaluation: (() => { const el = e.target.querySelector('#cm-plan-evaluation'); return el ? el.innerText : ''; })(),
                     plans: state.currentServicePlans || []
                 };
 
@@ -12298,8 +12304,11 @@
                                         trHtml += `<td style="padding:4px; text-align:center; vertical-align:middle;">${(p.content || '').replace(/\n/g, '<br>')}</td>`;
                                         
                                         if (i === 0) {
-                                            trHtml += `<td rowspan="${plans.length}" style="vertical-align:middle;">${(plans[0].period || '').replace(/\n/g, '<br>')}</td>`;
-                                            trHtml += `<td rowspan="${plans.length}" style="vertical-align:middle;">${(plans[0].evaluation || '연 1회 점검 및\n평가 실시').replace(/\n/g, '<br>')}</td>`;
+                                            // 🚨 수정: 인쇄 시에도 꼬이지 않게 1번에서 안전하게 빼둔 변수에서 값을 불러와 뿌려줍니다.
+                                            const pPeriod = getVal(cm, 'servicePlan.period') || (plans[0] ? plans[0].period : '') || '';
+                                            const pEval = getVal(cm, 'servicePlan.evaluation') || (plans[0] ? plans[0].evaluation : '연 1회 점검 및\n평가 실시');
+                                            trHtml += `<td rowspan="${plans.length}" style="vertical-align:middle;">${pPeriod.replace(/\n/g, '<br>')}</td>`;
+                                            trHtml += `<td rowspan="${plans.length}" style="vertical-align:middle;">${pEval.replace(/\n/g, '<br>')}</td>`;
                                         }
                                         
                                         trHtml += `</tr>`;
@@ -12957,8 +12966,9 @@
                     
                     // 기간 및 평가 (표 전체 통째로 1칸 병합)
                     if (i === 0) {
-                        html += `<td rowspan="${plans.length}" class="border-r border-slate-300 p-0 align-middle"><div contenteditable="true" class="w-full h-full min-h-[30px] bg-transparent outline-none flex items-center justify-center text-center px-1.5 py-2 text-xs font-medium cursor-text" oninput="state.ui.isDirty = true; app.updateServicePlan(0, 'period', this.innerText)">${(plans[0].period || '').replace(/\n/g, '<br>')}</div></td>`;
-                        html += `<td rowspan="${plans.length}" class="p-0 align-middle"><div contenteditable="true" class="w-full h-full min-h-[30px] bg-transparent outline-none flex items-center justify-center text-center px-1.5 py-2 text-xs font-medium cursor-text" oninput="state.ui.isDirty = true; app.updateServicePlan(0, 'evaluation', this.innerText)">${(plans[0].evaluation || '연 1회 점검 및\n평가 실시').replace(/\n/g, '<br>')}</div></td>`;
+                        // 🚨 수정: 엔터를 튕겨내는 flex를 지우고, whitespace-pre-wrap을 추가해 마음껏 줄바꿈이 되게 만들었습니다!
+                        html += `<td rowspan="${plans.length}" class="border-r border-slate-300 p-0 align-middle"><div id="cm-plan-period" contenteditable="true" class="w-full h-full min-h-[30px] bg-transparent outline-none text-center px-1.5 py-2 text-xs font-medium cursor-text whitespace-pre-wrap" oninput="state.ui.isDirty = true;">${(state.currentServicePeriod || '').replace(/\n/g, '<br>')}</div></td>`;
+                        html += `<td rowspan="${plans.length}" class="p-0 align-middle"><div id="cm-plan-evaluation" contenteditable="true" class="w-full h-full min-h-[30px] bg-transparent outline-none text-center px-1.5 py-2 text-xs font-medium cursor-text whitespace-pre-wrap" oninput="state.ui.isDirty = true;">${(state.currentServiceEvaluation || '').replace(/\n/g, '<br>')}</div></td>`;
                     }
                     
                     html += `</tr>`;
