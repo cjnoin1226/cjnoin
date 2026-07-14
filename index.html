@@ -1676,10 +1676,10 @@
                                     ${CONSTANTS.PROVIDE_METHOD_LIST.map(m => `<option value="${m}" ${state.filters.log.provideMethod === m ? 'selected' : ''}>${m}</option>`).join('')}
                                 </select>
 
-                                <div class="relative z-50 w-full sm:w-auto">
+                                <div class="relative z-[100] w-full sm:w-auto">
                                      <!-- 💡 [크기조절 8. 행정동] sm:w-28 부분 수정 -->
-                                     <button id="btn-log-region-filter" onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-28"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '행정동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
-                                     ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div id="dropdown-log-region-menu" class="fixed mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
+                                     <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-28"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '행정동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
+                                     ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-[100] p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
                                 </div>
                                 <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
                                     <!-- 💡 [크기조절 9. 서비스 분류] sm:w-20 부분 수정 -->
@@ -4592,24 +4592,6 @@
             },
 
             render: () => render(), 
-            toggleLogRegionDropdown: () => { 
-                state.ui.logRegionDropdownOpen = !state.ui.logRegionDropdownOpen; 
-                if(state.viewMode==='single') updateTabContent('logs'); 
-                else render(); 
-
-                // 드롭다운이 짤리지 않도록 버튼 위치를 계산하여 fixed 위치 설정
-                if (state.ui.logRegionDropdownOpen) {
-                    setTimeout(() => {
-                       const btn = document.getElementById('btn-log-region-filter');
-                       const menu = document.getElementById('dropdown-log-region-menu');
-                       if (btn && menu) {
-                           const rect = btn.getBoundingClientRect();
-                           menu.style.top = (rect.bottom + 4) + 'px';
-                           menu.style.left = rect.left + 'px';
-                        }
-                    }, 0);
-                }
-            },
             toggleRegionFilter: (val) => { const r = state.filters.client.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); if(state.viewMode==='single') updateTabContent('clients'); else render(); },
             toggleLogRegionDropdown: () => { state.ui.logRegionDropdownOpen = !state.ui.logRegionDropdownOpen; if(state.viewMode==='single') updateTabContent('logs'); else render(); },
             toggleLogRegionFilter: (val) => { const r = state.filters.log.region; const idx = r.indexOf(val); if (idx > -1) r.splice(idx, 1); else r.push(val); if(state.viewMode==='single') updateTabContent('logs'); else render(); },
