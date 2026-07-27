@@ -1337,8 +1337,8 @@
 
             // [변경] 분할 화면 모드에 따른 높이/스크롤 스타일 분기 처리
             const isSingleView = state.viewMode === 'single';
-            const containerClass = isSingleView ? "flex flex-col animate-fade-in" : "flex flex-col h-full flex-1 min-h-0 animate-fade-in";
-            const listClass = isSingleView ? "overflow-y-auto max-h-[70vh] custom-scrollbar space-y-2 pr-1 pb-4" : "overflow-y-auto flex-1 min-h-0 custom-scrollbar space-y-2 pr-1 pb-4";
+            const logContainerClass = isSingleView ? "flex flex-col animate-fade-in" : "flex flex-col h-full flex-1 min-h-0 animate-fade-in";
+            const logListClass = isSingleView ? "overflow-y-auto max-h-[70vh] custom-scrollbar space-y-4 pr-1 pb-4" : "overflow-y-auto flex-1 min-h-0 custom-scrollbar space-y-4 pr-1 pb-4";
 
             return `
                 <div class="${containerClass}">
