@@ -1335,9 +1335,14 @@
             // [신규] 전체 선택 여부 확인 ('-' 제외된 목록으로 100% 검사)
             const allSelected = realFiltered.length > 0 && realFiltered.every(c => state.ui.selectedClientIds.has(c.id));
 
+            // [변경] 분할 화면 모드에 따른 높이/스크롤 스타일 분기 처리
+            const isSingleView = state.viewMode === 'single';
+            const containerClass = isSingleView ? "flex flex-col animate-fade-in" : "flex flex-col h-full flex-1 min-h-0 animate-fade-in";
+            const listClass = isSingleView ? "overflow-y-auto max-h-[70vh] custom-scrollbar space-y-2 pr-1 pb-4" : "overflow-y-auto flex-1 min-h-0 custom-scrollbar space-y-2 pr-1 pb-4";
+
             return `
-                <div class="flex flex-col animate-fade-in">
-                    <div class="space-y-6 pb-2 pr-1 transition-all">
+                <div class="${containerClass}">
+                    <div class="space-y-6 pb-2 pr-1 transition-all flex-shrink-0">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
                             <!-- [수정] 제목 옆에 로딩 태그 추가 -->
                             <h2 class="text-xl md:text-2xl font-bold text-slate-800 flex items-center">대상자 관리 ${getLoadingTag()}</h2>
@@ -1474,7 +1479,7 @@
                         <div class="text-right pr-2">관리</div>
                     </div>   
 
-                    <div id="client-list-container" class="overflow-y-auto max-h-[70vh] custom-scrollbar space-y-2 pr-1 pb-4">
+                    <div id="client-list-container" class="${listClass}">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
                         filtered.map(c => {
                             // [수정] 기타 사업용 더미 데이터('-') 여부 확인
