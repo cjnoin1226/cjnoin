@@ -2265,6 +2265,8 @@
             const filterEnd = end || '9999-12-31';
             
             const targetClients = state.clients.filter(c => {
+                if (c.status === '대기') return false;
+
                 const matchBasic = (region.length === 0 || region.includes(c.region)) && (!name || c.name.includes(name));
                 if (!matchBasic) return false;
                 
@@ -6405,12 +6407,23 @@
                 // 표시할 대상자 필터링 (이용중/장기부재 + 해당 연도 종결자 표시, '-' 제외)
                 const targetClients = state.clients.filter(c => {
                     if (c.name === '-') return false;
-                    if (selectedRegions.length > 0 && !selectedRegions.includes(c.region)) return false; // 행정동 필터 적용
-                    const isTerminated = c.status === '종결';
-                    if (!isTerminated) return true; 
-                    if (c.endDate && c.endDate.startsWith(String(currentYear))) return true; 
-                    return false;
-                }).sort((a, b) => {
+                if (selectedRegions.length > 0 && !selectedRegions.includes(c.region)) return false; // 행정동 필터 적용
+
+                // 👇 여기서부터 선택 연도(currentYear) 기준 교집합 필터링 로직입니다.
+                const yearStart = `${currentYear}-01-01`;
+                const yearEnd = `${currentYear}-12-31`;
+        
+                // 대상자의 시작일과 종료일(종결이 아니면 미래의 날짜로 간주)을 가져옵니다.
+                const sDate = c.serviceStartDate || '0000-01-01';
+                const eDate = c.status === '종결' ? (c.endDate || '0000-01-01') : '9999-12-31';
+
+                // 1. 서비스 시작일이 선택 연도보다 늦으면 제외 (예: 25년 조회 시 26년 신규자 안보임)
+                if (sDate > yearEnd) return false;
+                // 2. 종결일이 선택 연도보다 이르면 제외 (예: 25년 조회 시 24년 종결자 안보임)
+                if (eDate < yearStart) return false;
+
+                return true; // 위 두 조건에 안 걸리면 무조건 해당 연도에 이용한 대상자입니다.
+            }).sort((a, b) => {
                     const levelPriority = { '중점': 1, '일반': 2 };
                     const pA = levelPriority[a.careLevel] || 3;
                     const pB = levelPriority[b.careLevel] || 3;
