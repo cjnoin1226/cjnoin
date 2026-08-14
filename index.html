@@ -3718,6 +3718,89 @@
               app.closeDialog();
               app.showToast(`${targetYear}년 재사정 기록을 성공적으로 불러왔습니다.`);
           },
+          // [신규] 서비스계획서 연도 선택 팝업을 띄우는 함수
+          openServicePlanHistorySelector: (clientId) => {
+              const client = state.clients.find(c => c.id === clientId);
+              if (!client) return alert('대상자를 찾을 수 없습니다.');
+
+              const cm = client.caseManagement;
+              if (!cm || !cm.history) return alert('불러올 서비스계획서 기록이 없습니다.');
+
+              const currentYear = state.ui.cmYear;
+
+              // 현재 연도를 제외하고, 서비스계획서(servicePlan) 데이터가 있는 연도만 추출
+              const availableYears = Object.keys(cm.history)
+                  .map(Number)
+                  .filter(y => y !== currentYear && cm.history[y].servicePlan && Object.keys(cm.history[y].servicePlan).length > 0)
+                  .sort((a, b) => b - a); // 최신 연도순 정렬
+
+              if (availableYears.length === 0) return alert('불러올 다른 연도의 서비스계획서 기록이 없습니다.');
+
+              const buttonsHtml = availableYears.map(y => `
+                  <button onclick="app.executeCopyServicePlan('${clientId}', ${y})" class="w-full text-left px-4 py-3 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded-lg font-bold text-slate-700 transition-colors mb-2 shadow-sm">
+                      ${y}년 서비스계획서 불러오기
+                  </button>
+              `).join('');
+
+              const html = `
+                  <div class="bg-white w-full max-w-sm p-6 rounded-xl shadow-2xl mx-4">
+                      <div class="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+                          <div class="p-2 bg-blue-50 text-blue-600 rounded-full"><i data-lucide="history" size="20"></i></div>
+                          <div>
+                              <h3 class="font-bold text-lg text-slate-900">서비스계획서 불러오기</h3>
+                              <p class="text-xs text-slate-500">현재 화면(${currentYear}년)에 덮어씌울 연도를 선택하세요.</p>
+                          </div>
+                      </div>
+                      <div class="max-h-[300px] overflow-y-auto custom-scrollbar mb-4">
+                          ${buttonsHtml}
+                      </div>
+                      <div class="text-right">
+                          <button onclick="app.closeDialog()" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg font-medium hover:bg-slate-200 transition-colors">취소</button>
+                      </div>
+                  </div>
+              `;
+              showDialog(html);
+              if(window.lucide) lucide.createIcons();
+          },
+
+          // [신규] 선택한 연도의 서비스계획서 데이터를 실제로 덮어씌우는 함수
+          executeCopyServicePlan: (clientId, targetYear) => {
+              const client = state.clients.find(c => c.id === clientId);
+              if (!client) return;
+
+              const pastData = client.caseManagement.history[targetYear].servicePlan;
+
+              if (!confirm(`${targetYear}년 서비스계획서를 현재 화면(${state.ui.cmYear}년)에 덮어씌우시겠습니까?`)) return;
+
+              // 1. 일반 필드 덮어씌우기
+              const writerEl = document.getElementById('cm-plan-writer');
+              if (writerEl) writerEl.value = pastData.writer || '';
+              
+              const goalEl = document.getElementById('cm-plan-goal');
+              if (goalEl) goalEl.innerHTML = pastData.goal || '';
+
+              const adjustEl = document.getElementById('cm-plan-adjust');
+              if (adjustEl) adjustEl.value = pastData.adjust || '';
+
+              // 2. 동적 테이블(서비스 리스트) 및 기간/평가 텍스트 교체
+              if (pastData.plans && Array.isArray(pastData.plans)) {
+                  // 데이터를 복사(깊은 복사)하여 가져옴
+                  state.currentServicePlans = JSON.parse(JSON.stringify(pastData.plans));
+              } else {
+                  state.currentServicePlans = [];
+              }
+              state.currentServicePlans.clientId = clientId;
+              
+              state.currentServicePeriod = pastData.period || '';
+              state.currentServiceEvaluation = pastData.evaluation || '';
+
+              // 3. 저장 감지 플래그 On 및 화면(표) 렌더링
+              state.ui.isDirty = true;
+              app.renderServicePlanTable();
+
+              app.closeDialog();
+              app.showToast(`${targetYear}년 서비스계획서를 성공적으로 불러왔습니다.`);
+          },
 
         // [신규] 확인 버튼을 누르지 않아도 2초 뒤 자동으로 사라지는 팝업 알림 (토스트)
         showToast: (msg) => {
@@ -5587,6 +5670,13 @@
                                             <input type="checkbox" name="serviceDecision" value="서비스 종결" class="w-4 h-4 text-red-600 focus:ring-red-500 rounded border-slate-300 cursor-pointer" ${m.serviceDecision === '서비스 종결' ? 'checked' : ''} onclick="app.handleDecisionCheckbox(this)">
                                             <span class="text-sm font-medium text-slate-700">서비스 종결</span>
                                         </label>
+
+                                        <!-- 👇 신규 추가: 서비스 시작일 (초기 회의일 때만 표시됨) 👇 -->
+                                        <div id="meeting-service-start-wrapper" class="flex items-center gap-2 ml-2 border-l border-slate-300 pl-4 ${currentType === '초기' ? '' : 'hidden'}">
+                                            <span class="text-sm font-bold text-blue-600">서비스 시작일 지정</span>
+                                            <input type="date" name="newServiceStartDate" class="input-field py-0.5 px-2 text-xs w-32 border-blue-200 focus:border-blue-500" value="${m.newServiceStartDate || ''}" max="9999-12-31">
+                                        </div>
+
                                     </div>
                                 </div>
                                 <textarea name="decision" class="input-field h-24 leading-relaxed bg-white" placeholder="결론 및 실행 계획">${m.decision || ''}</textarea>
@@ -5622,6 +5712,16 @@
                     wrapper.classList.add('hidden');
                 } else {
                     wrapper.classList.remove('hidden');
+                }
+
+                // 👇 신규 추가: 초기 회의일 때만 서비스 시작일 입력칸 보이기 👇
+                const startWrapper = document.getElementById('meeting-service-start-wrapper');
+                if (startWrapper) {
+                    if (type === '초기') {
+                        startWrapper.classList.remove('hidden');
+                    } else {
+                        startWrapper.classList.add('hidden');
+                    }
                 }
             },
 
@@ -9895,10 +9995,16 @@
         </div>
     </div>
 </div>
-                                    <!-- [신규] 서비스계획서 탭 내용 -->
+
+<!-- [신규] 서비스계획서 탭 내용 -->
 <div id="sub-tab-servicePlan" class="sub-tab-content ${state.ui.caseSubTab === 'servicePlan' ? 'active' : ''} space-y-4">
-    <div class="border border-slate-300 bg-white shadow-sm overflow-hidden mt-4">
-        <table class="w-full text-sm text-left border-collapse table-fixed">
+    
+    <!-- 👇 신규 추가: 서비스계획서 기록 불러오기 버튼 👇 -->
+    <div class="flex justify-end mt-2">
+        <button type="button" onclick="app.openServicePlanHistorySelector('${c.id}')" class="text-xs bg-white text-blue-600 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-50 transition-colors flex items-center gap-1 font-bold shadow-sm" title="원하는 연도의 서비스 계획을 선택하여 덮어씌웁니다.">
+            <i data-lucide="history" size="14"></i> 기록 불러오기
+        </button>
+    </div>
             <colgroup>
                 <col class="w-[12%]">
                 <col class="w-[21%]">
@@ -10272,6 +10378,53 @@
                     
                     // [신규] 모달이 열리면 즉시 영역별 점수 자동계산 실행
                     if(app.updateTotalSelectionScore) app.updateTotalSelectionScore();
+
+                    // 👇 [추가] 한글(HWP) 사진 복붙 시 글자 깨짐 방지 및 순수 이미지 추출 로직 👇
+                    ['cm-assess-genogram', 'cm-assess-ecomap', 'cm-assess-map'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.addEventListener('paste', function(e) {
+                                const items = (e.clipboardData || window.clipboardData).items;
+                                let hasImage = false;
+                                
+                                for (let i = 0; i < items.length; i++) {
+                                    if (items[i].type.indexOf('image') !== -1) {
+                                        hasImage = true;
+                                        const blob = items[i].getAsFile();
+                                        const reader = new FileReader();
+                                        reader.onload = function(event) {
+                                            const img = document.createElement('img');
+                                            img.src = event.target.result;
+                                            img.style.maxWidth = '100%';
+                                            img.style.height = 'auto';
+                                            
+                                            // 현재 커서가 있는 위치에 사진 삽입
+                                            const selection = window.getSelection();
+                                            if (selection.rangeCount > 0) {
+                                                const range = selection.getRangeAt(0);
+                                                range.deleteContents();
+                                                range.insertNode(img);
+                                                // 커서를 사진 뒤로 이동
+                                                range.setStartAfter(img);
+                                                range.setEndAfter(img);
+                                                selection.removeAllRanges();
+                                                selection.addRange(range);
+                                            } else {
+                                                el.appendChild(img);
+                                            }
+                                            state.ui.isDirty = true; // 변경 감지
+                                        };
+                                        reader.readAsDataURL(blob);
+                                    }
+                                }
+                                // 사진이 복사되었다면 한글의 찌꺼기 글자(HTML)들이 안 붙게 기본 붙여넣기를 차단!
+                                if (hasImage) {
+                                    e.preventDefault();
+                                }
+                            });
+                        }
+                    });
+
                 }, 0);
             },
             
