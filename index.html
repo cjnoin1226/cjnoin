@@ -2142,9 +2142,9 @@
                     });
                 }
 
-                let footerRow = `<td class="py-3 px-4 border-r text-center bg-slate-100 font-bold sticky left-0 z-20">총계</td>`;
-                rows.forEach(r => { footerRow += `<td class="py-3 px-1 border-r text-center text-slate-800 font-bold bg-slate-50">${r.displayTotal}</td>`; });
-                footerRow += `<td class="py-3 px-4 text-center text-emerald-700 bg-emerald-100 font-bold">${grandTotal}</td>`;
+                rowHTML += `<td class="py-2 px-4 text-center font-bold text-blue-600 bg-blue-50/30 cursor-pointer hover:underline decoration-2 underline-offset-2" onclick="app.showPerformanceDetail('${year}', ${m}, 'all', 'all')" title="클릭하여 전체 내역 보기">${monthlyTotals[monthIdx]}</td>`;
+                rows.forEach(r => { footerRow += `<td class="py-3 px-1 border-r text-center text-blue-700 font-bold bg-blue-50/30 cursor-pointer hover:underline decoration-2 underline-offset-2" onclick="app.showPerformanceDetail('${year}', 'all', '${r.category}', '${r.serviceName}')" title="클릭하여 전체 내역 보기">${r.displayTotal}</td>`; });
+                footerRow += `<td class="py-3 px-4 text-center font-bold text-emerald-700 bg-emerald-100 cursor-pointer hover:underline decoration-2 underline-offset-2 hover:bg-emerald-200" onclick="app.showPerformanceDetail('${year}', 'all', 'all', 'all')" title="클릭하여 전체 내역 보기">${grandTotal}</td>`;
 
                 tableHTML = `<thead class="sticky top-0 z-30 shadow-sm"><tr>${headerRow1}</tr><tr>${headerRow2}</tr></thead><tbody class="divide-y divide-slate-100">${bodyRows}<tr class="bg-slate-100 font-bold shadow-sm border-t-2 border-slate-300">${footerRow}</tr></tbody>`;
             } else {
@@ -2186,8 +2186,8 @@
                         <tr class="bg-slate-100 font-bold shadow-sm border-t-2 border-slate-300">
                             <td class="py-3 px-2 border-r text-center bg-slate-100" style="${stickColStyle(0, 20)}">총계</td>
                             <td class="py-3 px-2 border-r bg-slate-100" style="${stickColStyle(wCat, 20)}"></td>
-                            ${selectedMonths.map(m => `<td class="py-3 px-2 border-r text-center text-slate-800">${monthlyTotals[m - 1]}</td>`).join('')}
-                            <td class="py-3 px-2 text-center text-emerald-700 bg-emerald-100">${grandTotal}</td>
+                            ${selectedMonths.map(m => `<td class="py-3 px-2 border-r text-center font-bold text-blue-700 bg-blue-50/30 cursor-pointer hover:underline decoration-2 underline-offset-2" onclick="app.showPerformanceDetail('${year}', ${m}, 'all', 'all')">${monthlyTotals[m - 1]}</td>`).join('')}
+<td class="py-3 px-2 text-center font-bold text-emerald-700 bg-emerald-100 cursor-pointer hover:underline decoration-2 underline-offset-2 hover:bg-emerald-200" onclick="app.showPerformanceDetail('${year}', 'all', 'all', 'all')">${grandTotal}</td>
                         </tr>
                     </tbody>
                 `;
@@ -2429,7 +2429,7 @@
             
             // [수정] 합계 행 순서 변경 (No -> 총계라벨 -> 빈칸(등급) -> 빈칸(생년) -> 빈칸(행정동) -> 합계)
             // 고정되는 컬럼(No, 총계, 등급)에만 sticky 스타일 적용, 나머지는 해제
-            const totalRowHTML = `<tr class="bg-slate-100 font-bold shadow-sm border-b border-slate-200"><td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L_No, 50)}"></td><td class="py-2 px-1 border-r text-center text-slate-700 bg-slate-100" style="${stickColStyle(L1, 50)}">총계</td><td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L2, 50)}"></td><td class="py-2 px-1 border-r bg-slate-100"></td><td class="py-2 px-1 border-r bg-slate-100"></td><td class="py-2 px-1 text-center border-r bg-emerald-100 text-emerald-700">${grandTotal}</td>${serviceHeaders.map(k => `<td class="py-2 px-2 text-center border-r text-slate-700">${colTotals[k]}</td>`).join('')}</tr>`;
+            const totalRowHTML = `<tr class="bg-slate-100 font-bold shadow-sm border-b border-slate-200"><td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L_No, 50)}"></td><td class="py-2 px-1 border-r text-center text-slate-700 bg-slate-100" style="${stickColStyle(L1, 50)}">총계</td><td class="py-2 px-1 border-r bg-slate-100" style="${stickColStyle(L2, 50)}"></td><td class="py-2 px-1 border-r bg-slate-100"></td><td class="py-2 px-1 border-r bg-slate-100"></td><td class="py-2 px-1 text-center border-r bg-emerald-100 text-emerald-700 cursor-pointer hover:underline decoration-2 hover:bg-emerald-200" onclick="app.showClientStatsDetail('all', '전체 대상자')" title="전체 상세 내역 보기">${grandTotal}</td>${serviceHeaders.map(k => `<td class="py-2 px-2 text-center border-r text-blue-700 cursor-pointer hover:underline decoration-2 hover:bg-blue-50" onclick="app.showClientStatsDetail('all', '전체 대상자', '${k}')" title="'${k}' 전체 내역 보기">${colTotals[k]}</td>`).join('')}</tr>`;
             
             if (type === 'category') {
                 // [수정] 헤더 순서 변경: 대상자 -> 등급 -> 생년월일
@@ -2601,7 +2601,7 @@
                                         <td class="py-1.5 px-1 text-center border-r text-xs ${cellBg} ${careLevelClass}" style="${stickColStyle(L2, 30)}">${r.careLevel}</td>
                                         <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs">${r.birthDate}</td>
                                         <td class="py-1.5 px-1 text-center border-r text-slate-500 text-xs">${r.region}</td>
-                                        <td class="p-1.5 text-center font-bold border-r ${totalBg}">${r.total}</td>
+                                        <td class="p-1.5 text-center font-bold border-r ${totalBg} cursor-pointer hover:underline decoration-2 underline-offset-2 hover:opacity-75" onclick="app.showClientStatsDetail('${r.id}', '${r.name}')" title="이 대상자의 전체 상세 내역 보기">${r.total}</td>
                                         ${serviceHeaders.map(k => {
                                             const count = r.counts[k] || 0;
                                             const isTargetCell = isDeficient && k.includes('정서지원');
@@ -4482,10 +4482,9 @@
                 if (state.viewMode === 'single') updateTabContent('performance'); else render();
             },
 
-            // [신규] 실적 관리 셀 클릭 시 상세 내역 표출 (엑셀 복붙 지원)
             showPerformanceDetail: (year, month, category, serviceName) => {
-                const targetMonthStr = String(month).padStart(2, '0');
-                const prefix = `${year}-${targetMonthStr}`;
+                // 👇 'all' 인 경우 연도 전체로 prefix 설정
+                const prefix = month === 'all' ? String(year) : `${year}-${String(month).padStart(2, '0')}`;
                 
                 // 대상 일지 필터링 및 메모 추출
                 const targetLogs = [];
@@ -4493,12 +4492,19 @@
                     if (!l.date.startsWith(prefix)) return;
                     
                     let hasService = false;
-                    let memoText = ''; // 추출할 메모
+                    let memoText = ''; 
                     
-                    if (l.serviceItems && l.serviceItems.length > 0) {
+                    if (category === 'all') {
+                        // 👇 'all' 이면 조건 없이 모두 포함하고 메모 합치기
+                        hasService = true;
+                        if (l.serviceItems && l.serviceItems.length > 0) {
+                            memoText = l.serviceItems.map(i => i.detailNote).filter(Boolean).join(', ');
+                        } else {
+                            memoText = l.content || '';
+                        }
+                    } else if (l.serviceItems && l.serviceItems.length > 0) {
                         hasService = l.serviceItems.some(item => {
                             let sName = item.serviceName;
-                            // 과거 호환성 매핑
                             if (sName === '정서지원서비스(안전안부확인)') sName = '정서지원서비스';
                             else if (sName === '정서지원서비스') sName = '정서지원서비스(안전안부확인)';
                             
@@ -4510,7 +4516,6 @@
                         });
                     }
                     if (hasService) {
-                        // 기존 일지 데이터 복사본에 메모 속성 추가
                         targetLogs.push({ ...l, extractedMemo: memoText });
                     }
                 });
@@ -4565,9 +4570,9 @@
                         <div class="flex justify-between items-center mb-4 flex-shrink-0">
                             <div>
                                 <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                    <i data-lucide="list-checks" class="text-blue-600"></i> ${year}년 ${month}월 상세 실적
+                                    <i data-lucide="list-checks" class="text-blue-600"></i> ${year}년 ${month === 'all' ? '전체' : month + '월'} 상세 실적
                                 </h3>
-                                <p class="text-sm text-slate-500 mt-1">${category} &gt; <span class="font-bold text-slate-700">${serviceName}</span> <span class="font-bold text-blue-600 ml-1">(${targetLogs.length}건)</span></p>
+                                <p class="text-sm text-slate-500 mt-1">${category === 'all' ? '전체 서비스' : `${category} &gt; <span class="font-bold text-slate-700">${serviceName}</span>`} <span class="font-bold text-blue-600 ml-1">(${targetLogs.length}건)</span></p>
                             </div>
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
@@ -15097,27 +15102,36 @@
             // [신규] 통계 상세 내역 보기 함수 추가 (누락된 기능 복구)
             // [수정] filterItem 인자 추가 (특정 서비스 항목 필터링용)
             showClientStatsDetail: (clientId, clientName, filterItem = null) => {
-                const { start, end, type, months } = state.filters.stats;
+                // 👇 region, name 변수를 꺼내오도록 추가
+                const { start, end, type, months, region, name } = state.filters.stats;
                 const selectedMonths = (months && months.length > 0) ? months.sort((a, b) => a - b) : [];
                 
-                // [신규] 대상자 서비스 기간 정보 조회 및 배지 생성
-                const client = state.clients.find(c => c.id === clientId);
+                // 👇 'all' 인 경우 처리
+                const client = clientId === 'all' ? null : state.clients.find(c => c.id === clientId);
                 let servicePeriodBadge = '';
                 if (client) {
                     const today = new Date().toISOString().split('T')[0];
-                    // 종결 여부 확인 (상태가 '종결'이거나 종료일이 오늘 이전이면 종결로 간주)
                     const isTerminated = client.status === '종결' || (client.endDate && client.endDate <= today);
                     const sDate = client.serviceStartDate || '미지정';
                     const eDate = isTerminated ? (client.endDate || '') : '현재';
-                    
                     if (sDate) {
-                        servicePeriodBadge = `<span class="ml-2 text-sm font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 tracking-tight">(${sDate} ~ ${eDate})</span>`;
+                        servicePeriodBadge = `<span class="ml-2 text-sm font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 tracking-tight">(${sDate} ~${eDate})</span>`;
                     }
                 }
 
-                // 해당 기간 내 해당 대상자의 로그 필터링
                 const targetLogs = state.logs.filter(l => {
-                    const dateMatch = l.clientId === clientId && (!start || l.date >= start) && (!end || l.date <= end);
+                    // 👇 대상자 검사 (all 인 경우 현재 통계 필터 기준 반영)
+                    let isClientMatch = false;
+                    if (clientId === 'all') {
+                        const c = state.clients.find(cl => cl.id === l.clientId);
+                        if (c && (region.length === 0 || region.includes(c.region)) && (!name || c.name.includes(name))) {
+                            isClientMatch = true;
+                        }
+                    } else {
+                        isClientMatch = l.clientId === clientId;
+                    }
+
+                    const dateMatch = isClientMatch && (!start || l.date >= start) && (!end || l.date <= end);
                     if (!dateMatch) return false;
                     
                     if (selectedMonths.length > 0) {
@@ -15230,14 +15244,15 @@
                         <div class="flex justify-between items-center mb-4 flex-shrink-0">
                             <h3 class="font-bold text-xl text-slate-800 flex items-center gap-2">
                                 <div class="p-2 bg-blue-100 text-blue-600 rounded-full"><i data-lucide="list" size="20"></i></div>
-                                ${clientName}님 서비스 상세 내역 ${titleSuffix} ${servicePeriodBadge}
+                                ${clientId === 'all' ? '전체 대상자' : `${clientName}님`} 서비스 상세 내역 ${titleSuffix} ${servicePeriodBadge}
                             </h3>
-                            <!-- 👇 닫기 버튼 옆에 [일지 작성] 버튼을 추가합니다 👇 -->
                             <div class="flex items-center gap-2">
-                                <button type="button" onclick="app.openLogModal(null, { clientName: '${clientName}' })" class="text-xs bg-emerald-50 text-emerald-600 border border-emerald-200 px-1.5 py-1 rounded hover:bg-emerald-100 transition-colors flex items-center gap-1 font-bold shadow-sm">
-                                    <i data-lucide="plus" size="12"></i> 일지 작성
+                                ${clientId === 'all' ? '' : `
+                                <button type="button" onclick="app.openLogModal(null, { clientName: '${clientName}' })" class="text-xs bg-emerald-50 text-emerald-600 border border-emerald-200 px-3 py-1.5 rounded hover:bg-emerald-100 transition-colors flex items-center gap-1 font-bold shadow-sm">
+                                    <i data-lucide="plus" size="14"></i> 일지 작성
                                 </button>
                                 <div class="w-px h-4 bg-slate-300 mx-1"></div>
+                                `}
                                 <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                             </div>
                         </div>
