@@ -2025,7 +2025,8 @@
             state.services.forEach(s => {
                 const key = `${s.category}|${s.name}`;
                 if (!stats[key]) {
-                    stats[key] = { category: s.category, serviceName: s.name, counts: Array(12).fill(0), total: 0 };
+                    // 👇 맨 끝 total: 0 앞에 dateSets 코드가 추가되었습니다 👇
+                    stats[key] = { category: s.category, serviceName: s.name, counts: Array(12).fill(0), dateSets: Array.from({length: 12}, () => new Set()), total: 0 };
                 }
             });
             
@@ -2051,7 +2052,10 @@
                             }
                         }
 
-                        if (stats[key]) { stats[key].counts[month]++; /* 전체 total은 일단 계산하지만, 표시할 때 재계산함 */ }
+                        if (stats[key]) { 
+                            stats[key].counts[month]++; 
+                            stats[key].dateSets[month].add(l.date); // 👈 신규: 방문한 날짜를 차곡차곡 모아둡니다.
+                        }
                     });
                 }
             });
@@ -2133,9 +2137,11 @@
                         let rowHTML = `<td class="py-2 px-4 border-r font-bold text-slate-600 bg-white text-center sticky left-0 z-20">${m}월</td>`;
                         rows.forEach(r => {
                             const count = r.counts[monthIdx];
+                            const daysCount = r.dateSets[monthIdx].size; // 👈 신규
                             const clickAttr = count > 0 ? `onclick="app.showPerformanceDetail('${year}', ${m}, '${r.category}', '${r.serviceName}')"` : '';
                             const cellClass = count > 0 ? 'text-blue-600 font-bold bg-blue-50/30 cursor-pointer hover:underline decoration-2 underline-offset-2' : 'text-slate-300';
-                            rowHTML += `<td class="py-2 px-1 border-r text-center ${cellClass}" ${clickAttr} title="${count > 0 ? '상세 내역 보기' : ''}">${count || '-'}</td>`;
+                            const daysHtml = (count > 0 && daysCount > 0) ? `<span class="text-[10px] text-emerald-600 font-medium ml-1">(${daysCount})</span>` : ''; // 👈 신규
+                            rowHTML += `<td class="py-2 px-1 border-r text-center ${cellClass}" ${clickAttr} title="${count > 0 ? '상세 내역 보기' : ''}">${count || '-'}${daysHtml}</td>`;
                         });
                         // 👇 우측 끝에 붙는 '해당 월의 전체 합계' (클릭 기능 포함)
                         rowHTML += `<td class="py-2 px-4 text-center font-bold text-blue-600 bg-blue-50/30 cursor-pointer hover:underline decoration-2 underline-offset-2" onclick="app.showPerformanceDetail('${year}', ${m}, 'all', 'all')" title="클릭하여 전체 내역 보기">${monthlyTotals[monthIdx]}</td>`;
@@ -2172,9 +2178,11 @@
                             // 선택된 월 데이터만 렌더링
                             const cells = selectedMonths.map(m => {
                                 const count = r.counts[m - 1];
+                                const daysCount = r.dateSets[m - 1].size; // 👈 신규
                                 const clickAttr = count > 0 ? `onclick="app.showPerformanceDetail('${year}', ${m}, '${r.category}', '${r.serviceName}')"` : '';
                                 const cellClass = count > 0 ? 'text-blue-600 font-bold bg-blue-50/30 cursor-pointer hover:underline decoration-2 underline-offset-2' : 'text-slate-300';
-                                return `<td class="py-2 px-2 border-r text-center ${cellClass}" ${clickAttr} title="${count > 0 ? '상세 내역 보기' : ''}">${count || '-'}</td>`;
+                                const daysHtml = (count > 0 && daysCount > 0) ? `<span class="text-[10px] text-emerald-600 font-medium ml-1">(${daysCount})</span>` : ''; // 👈 신규
+                                return `<td class="py-2 px-2 border-r text-center ${cellClass}" ${clickAttr} title="${count > 0 ? '상세 내역 보기' : ''}">${count || '-'}${daysHtml}</td>`;
                             }).join('');
                             
                             return `
@@ -4852,6 +4860,9 @@
                 }
                 // 👆 누락 건수 계산 로직 끝 👆
 
+                // 👇 [신규] 서로 다른 실적 등록일(날짜) 갯수를 모달용으로 계산합니다.
+                const uniqueDatesCount = new Set(targetLogs.map(l => l.date)).size;
+
                 // [수정] 모달 넓이 확보 및 정렬 초기화 버튼 추가
                 const html = `
                     <div class="bg-white w-full max-w-2xl p-6 rounded-xl shadow-2xl mx-4 max-h-[85vh] flex flex-col">
@@ -4859,8 +4870,8 @@
                             <div>
                                 <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
                                     <i data-lucide="list-checks" class="text-blue-600"></i> ${year}년 ${month === 'all' ? '전체' : month + '월'} 상세 실적
-                                    <!-- 👇 신규: 달력 띄우기 버튼 (월이 'all'이 아닐 때만 표시) 👇 -->
-                                    ${month !== 'all' ? `<button onclick="app.openPerfCalendar('${year}', ${month}, '${category}', '${serviceName}')" class="p-1 ml-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors shadow-sm border border-transparent hover:border-emerald-200" title="달력으로 실적 분포 보기"><i data-lucide="calendar-days" size="18"></i></button>` : ''}
+                                    <!-- 👇 달력 띄우기 버튼 및 (nn건) 텍스트 👇 -->
+                                    ${month !== 'all' ? `<div class="flex items-center"><button onclick="app.openPerfCalendar('${year}', ${month}, '${category}', '${serviceName}')" class="p-1 ml-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors shadow-sm border border-transparent hover:border-emerald-200" title="달력으로 실적 분포 보기"><i data-lucide="calendar-days" size="18"></i></button><span class="text-[13px] font-bold text-emerald-700 ml-1.5 opacity-90">(${uniqueDatesCount}건)</span></div>` : ''}
                                 </h3>
                                 <p class="text-sm text-slate-500 mt-1">${category === 'all' ? '전체 서비스' : `${category} &gt; <span class="font-bold text-slate-700">${serviceName}</span>`} <span class="font-bold text-blue-600 ml-1">(${targetLogs.length}건)</span> ${missingWarningHtml}</p>
                             </div>
