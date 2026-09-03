@@ -4766,7 +4766,9 @@
                             <div>
                                 <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
                                     <i data-lucide="list-checks" class="text-blue-600"></i> ${year}년 ${month === 'all' ? '전체' : month + '월'} 상세 실적
-                                </h3>
+                                    <!-- 👇 신규: 달력 띄우기 버튼 (월이 'all'이 아닐 때만 표시) 👇 -->
+                                    ${month !== 'all' ? `<button onclick="app.openPerfCalendar('${year}', ${month}, '${category}', '${serviceName}')" class="p-1 ml-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors shadow-sm border border-transparent hover:border-emerald-200" title="달력으로 실적 분포 보기"><i data-lucide="calendar-days" size="18"></i></button>` : ''}
+                                </h3
                                 <p class="text-sm text-slate-500 mt-1">${category === 'all' ? '전체 서비스' : `${category} &gt; <span class="font-bold text-slate-700">${serviceName}</span>`} <span class="font-bold text-blue-600 ml-1">(${targetLogs.length}건)</span></p>
                             </div>
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
@@ -4836,6 +4838,86 @@
             resetPerfDetailSort: (year, month, category, serviceName) => {
                 state.ui.perfDetailSortArray = [];
                 app.showPerformanceDetail(year, month, category, serviceName);
+            },
+
+            // 👇 여기에 달력 띄우기 함수를 통째로 붙여넣으세요! 👇
+            // [신규 추가] 실적 달력 모달 (이중 모달) 띄우기 기능
+            openPerfCalendar: (year, month, category, serviceName) => {
+                const targetMonthStr = String(month).padStart(2, '0');
+                const prefix = `${year}-${targetMonthStr}`;
+                
+                // 해당 월의 서비스 날짜만 쏙쏙 뽑아냅니다.
+                const activeDates = new Set();
+                state.logs.forEach(l => {
+                    if (!l.date.startsWith(prefix)) return;
+                    
+                    let hasService = false;
+                    if (category === 'all') {
+                        hasService = true;
+                    } else if (l.serviceItems && l.serviceItems.length > 0) {
+                        hasService = l.serviceItems.some(item => {
+                            let sName = item.serviceName;
+                            if (sName === '정서지원서비스(안전안부확인)') sName = '정서지원서비스';
+                            else if (sName === '정서지원서비스') sName = '정서지원서비스(안전안부확인)';
+                            return (item.category === category && item.serviceName === serviceName) ||
+                                   (item.category === category && sName === serviceName);
+                        });
+                    }
+                    if (hasService) activeDates.add(l.date); // 실적이 있는 날짜 기록!
+                });
+
+                // 달력을 그리기 위한 날짜 계산
+                const firstDay = new Date(year, month - 1, 1).getDay();
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                
+                // 요일 헤더 만들기
+                let cellsHTML = dayNames.map((d, i) => `<div class="p-1 text-center font-bold text-[11px] ${i===0?'text-red-500':(i===6?'text-blue-500':'text-slate-500')}">${d}</div>`).join('');
+                
+                // 첫째 주 빈칸 채우기
+                for (let i = 0; i < firstDay; i++) {
+                    cellsHTML += `<div></div>`;
+                }
+                
+                // 실제 날짜 채우기 (연한 초록색 동그라미 로직 포함)
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dateStr = `${year}-${targetMonthStr}-${String(d).padStart(2, '0')}`;
+                    const hasLog = activeDates.has(dateStr); // 그 날짜에 실적이 있나요?
+                    const dayOfWeek = (firstDay + d - 1) % 7;
+                    const textColor = (dayOfWeek === 0) ? 'text-red-500' : (dayOfWeek === 6 ? 'text-blue-500' : 'text-slate-700');
+                    
+                    if (hasLog) {
+                        // 실적이 있으면 연초록 배경 + 진한 초록 글씨 동그라미!
+                        cellsHTML += `<div class="p-1 flex justify-center"><div class="w-6 h-6 flex items-center justify-center bg-emerald-100 text-emerald-700 font-extrabold rounded-full text-[11px] shadow-sm ring-1 ring-emerald-300" title="실적 있음">${d}</div></div>`;
+                    } else {
+                        // 실적이 없으면 평범한 숫자
+                        cellsHTML += `<div class="p-1 flex justify-center items-center text-[11px] font-medium ${textColor}">${d}</div>`;
+                    }
+                }
+
+                // 이중 모달창 HTML 조립 (z-index를 200으로 주어 기존 창 위에 무조건 뜨게 만듦)
+                const html = `
+                    <div id="perf-calendar-overlay" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in" onclick="this.remove()">
+                        <div class="bg-white p-5 rounded-2xl shadow-2xl w-64 transform transition-all" onclick="event.stopPropagation()">
+                            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
+                                <h4 class="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+                                    <i data-lucide="calendar-check" class="text-emerald-500" size="16"></i> ${month}월 달력 요약
+                                </h4>
+                                <button onclick="document.getElementById('perf-calendar-overlay').remove()" class="text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="x" size="18"></i></button>
+                            </div>
+                            <div class="text-[10px] text-slate-500 mb-3 text-center bg-slate-50 p-1.5 rounded-lg border border-slate-100 flex items-center justify-center gap-1">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-100 ring-1 ring-emerald-300 inline-block"></span> 실적 등록일 (<span class="font-bold text-emerald-600">${activeDates.size}</span>일)
+                            </div>
+                            <div class="grid grid-cols-7 gap-y-2 gap-x-1 mb-2">
+                                ${cellsHTML}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // 화면의 맨 마지막에 살짝 끼워 넣기
+                document.body.insertAdjacentHTML('beforeend', html);
+                if(window.lucide) lucide.createIcons();
             },
 
             // 👇 여기에 명단 모달창 클릭 정렬용 함수를 추가합니다 👇
