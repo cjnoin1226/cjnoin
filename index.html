@@ -2215,52 +2215,61 @@
                         // 👇 추가된 if문: 미래 달이 아닐 때만 대상자 카운트를 실행합니다. 👇
                         if (!isFutureMonth) {
                             state.clients.forEach(c => {
-                                // 대기상태이거나 공란(-)인 데이터 무시
-                                if (c.name === '-' || c.status === '대기') return; 
-                                
-                                const sDate = c.serviceStartDate || '9999-12-31';
-                                const eDate = (c.status === '종결' && c.endDate) ? c.endDate : '9999-12-31';
-                                
-                                const isActive = sDate <= monthEnd && eDate >= monthStart;
-                                const isNew = sDate >= monthStart && sDate <= monthEnd;
-                                const isEnd = c.status === '종결' && eDate >= monthStart && eDate <= monthEnd;
-                                
-                                const isMale = c.gender === '남' || c.gender === '남자';
-                                const isHeavy = c.group === '중점' || c.group === '중점군';
-                                const isGen = !isHeavy;
+                            // 대기상태이거나 공란(-)인 데이터 무시
+                            if (c.name === '-' || c.status === '대기') return; 
 
-                                if (isActive) {
-                                    if (isMale) cur_m++; else cur_f++;
-                                    if (isHeavy) cur_heavy++; else cur_gen++;
+                            const sDate = c.serviceStartDate || '9999-12-31';
+                            const eDate = (c.status === '종결' && c.endDate) ? c.endDate : '9999-12-31';
 
-                                    const income = c.income || '';
-                                    if (income.includes('기초')) inc_basic++;
-                                    else if (income.includes('차상위')) inc_second++;
-                                    else inc_low++;
+                            const isActive = sDate <= monthEnd && eDate >= monthStart;
+                            const isNew = sDate >= monthStart && sDate <= monthEnd;
+                            const isEnd = c.status === '종결' && eDate >= monthStart && eDate <= monthEnd;
 
-                                    if (c.status === '장기부재') {
-                                        if (isHeavy) long_heavy++; else long_gen++;
-                                    }
+                            // 👇 1. 성별 구분 (남, 남자, 남성 모두 포착)
+                            const isMale = c.gender && c.gender.includes('남');
+                            
+                            // 👇 2. 등급 구분 (중점이라는 글자가 없으면 무조건 일반으로 분류)
+                            const isHeavy = c.careLevel && c.careLevel.includes('중점');
+                            const isGen = !isHeavy;
 
-                                    let rKey = '';
-                                    if (c.region) {
-                                        if (c.region.includes('감만')) rKey = '감만동';
-                                        else if (c.region.includes('대연')) rKey = '대연동';
-                                        else if (c.region.includes('문현')) rKey = '문현동';
-                                        else if (c.region.includes('우암')) rKey = '우암동';
-                                        else if (c.region.includes('용호') || c.region.includes('용당')) rKey = '용호,용당동';
-                                    }
-                                    if (rKey && regCounts[rKey]) {
-                                        if (isGen && isMale) regCounts[rKey][0]++;
-                                        if (isGen && !isMale) regCounts[rKey][1]++;
-                                        if (isHeavy && isMale) regCounts[rKey][2]++;
-                                        if (isHeavy && !isMale) regCounts[rKey][3]++;
-                                    }
+                            if (isActive) {
+                                if (isMale) cur_m++; else cur_f++;
+                                if (isHeavy) cur_heavy++; else cur_gen++;
+
+                                // 👇 3. 소득현황 구분
+                                const income = c.economicStatus || ''; 
+                                // '기초'나 '수급' 글자가 들어가면 기초수급자 (조건부 포함)
+                                if (income.includes('기초') || income.includes('수급')) {
+                                    inc_basic++;
+                                } else if (income.includes('차상위')) {
+                                    inc_second++;
+                                } else {
+                                    inc_low++; // 나머지는 전부 저소득(일반)으로 처리
                                 }
-                                if (isNew) { if (isHeavy) new_heavy++; else new_gen++; }
-                                if (isEnd) { if (isHeavy) end_heavy++; else end_gen++; }
-                            });
-                        } 
+
+                                if (c.status === '장기부재') {
+                                    if (isHeavy) long_heavy++; else long_gen++;
+                                }
+
+                                let rKey = '';
+                                if (c.region) {
+                                    if (c.region.includes('감만')) rKey = '감만동';
+                                    else if (c.region.includes('대연')) rKey = '대연동';
+                                    else if (c.region.includes('문현')) rKey = '문현동';
+                                    else if (c.region.includes('우암')) rKey = '우암동';
+                                    else if (c.region.includes('용호') || c.region.includes('용당')) rKey = '용호,용당동';
+                                }
+                                if (rKey && regCounts[rKey]) {
+                                    if (isGen && isMale) regCounts[rKey][0]++;
+                                    if (isGen && !isMale) regCounts[rKey][1]++;
+                                    if (isHeavy && isMale) regCounts[rKey][2]++;
+                                    if (isHeavy && !isMale) regCounts[rKey][3]++;
+                                }
+                            }
+                            if (isNew) { if (isHeavy) new_heavy++; else new_gen++; }
+                            if (isEnd) { if (isHeavy) end_heavy++; else end_gen++; }
+                        });
+                        } // 👈 꼭! forEach가 끝나는 곳에 괄호를 닫아주세요.
 
                         const cur_tot = cur_m + cur_f;
                     trs += `<tr class="hover:bg-blue-50 border-b border-slate-200 transition-colors text-[11px]">
@@ -2277,32 +2286,51 @@
 
                 tableHTML = `
                     <thead class="sticky top-0 z-30 text-[11px]">
-                        <tr class="bg-slate-200 font-bold border-y border-slate-300 text-slate-800">
-                            <th rowspan="3" class="border-r border-slate-300 px-1 py-1 sticky left-0 bg-slate-200 z-40">월계</th>
-                            <th colspan="15" class="border-r border-slate-300 px-1 py-1 text-center">대상자 현황</th>
-                            <th colspan="20" class="border-r border-slate-300 px-1 py-1 text-center">동별현황</th>
+                        <!-- 1번째 줄: 대상자 현황, 동별 현황 -->
+                        <tr class="bg-slate-200 font-bold border-y-2 border-slate-400 text-slate-800">
+                            <th rowspan="4" class="border-r border-slate-300 px-2 py-1 sticky left-0 bg-slate-200 z-40">월계</th>
+                            <th colspan="15" class="border-r border-slate-300 px-2 py-1 text-center">대상자 현황</th>
+                            <th colspan="20" class="border-r border-slate-300 px-2 py-1 text-center">동별현황</th>
                         </tr>
+                        <!-- 2번째 줄: 현원, 구분, 각 행정동 이름 -->
                         <tr class="bg-slate-100 font-bold text-center border-b border-slate-300 text-slate-700">
-                            <th colspan="3" class="border-r border-slate-300 px-1 py-1">현원</th>
-                            <th colspan="3" class="border-r border-slate-300 px-1 py-1">구분</th>
-                            <th colspan="2" class="border-r border-slate-300 px-1 py-1">신규</th>
-                            <th colspan="2" class="border-r border-slate-300 px-1 py-1">장기부재</th>
-                            <th colspan="2" class="border-r border-slate-300 px-1 py-1">종결</th>
-                            <th colspan="3" class="border-r border-slate-300 px-1 py-1">소득현황</th>
-                            <th colspan="4" class="border-r border-slate-300 px-1 py-1">감만동</th>
-                            <th colspan="4" class="border-r border-slate-300 px-1 py-1">대연동</th>
-                            <th colspan="4" class="border-r border-slate-300 px-1 py-1">문현동</th>
-                            <th colspan="4" class="border-r border-slate-300 px-1 py-1">우암동</th>
-                            <th colspan="4" class="border-r border-slate-300 px-1 py-1">용호, 용당동</th>
+                            <th colspan="3" class="border-r border-slate-300 px-2 py-1">현원</th>
+                            <th colspan="12" class="border-r border-slate-300 px-2 py-1">구분</th>
+                            <th colspan="4" class="border-r border-slate-300 px-2 py-1">감만동</th>
+                            <th colspan="4" class="border-r border-slate-300 px-2 py-1">대연동</th>
+                            <th colspan="4" class="border-r border-slate-300 px-2 py-1">문현동</th>
+                            <th colspan="4" class="border-r border-slate-300 px-2 py-1">우암동</th>
+                            <th colspan="4" class="border-r border-slate-300 px-2 py-1">용호, 용당동</th>
                         </tr>
-                        <tr class="bg-slate-50 font-medium text-center border-b border-slate-400 text-slate-600">
-                            <th class="border-r border-slate-200 px-1 py-1 min-w-[30px]">계</th><th class="border-r border-slate-200 px-1 py-1 min-w-[30px]">남</th><th class="border-r border-slate-300 px-1 py-1 min-w-[30px]">여</th>
-                            <th class="border-r border-slate-200 px-1 py-1 min-w-[30px]">계</th><th class="border-r border-slate-200 px-1 py-1 min-w-[35px]">중점</th><th class="border-r border-slate-300 px-1 py-1 min-w-[35px]">일반</th>
-                            <th class="border-r border-slate-200 px-1 py-1 min-w-[35px]">일반</th><th class="border-r border-slate-300 px-1 py-1 min-w-[35px]">중점</th>
-                            <th class="border-r border-slate-200 px-1 py-1 min-w-[35px]">일반</th><th class="border-r border-slate-300 px-1 py-1 min-w-[35px]">중점</th>
-                            <th class="border-r border-slate-200 px-1 py-1 min-w-[35px]">일반</th><th class="border-r border-slate-300 px-1 py-1 min-w-[35px]">중점</th>
-                            <th class="border-r border-slate-200 px-1 py-1 min-w-[40px]">기초</th><th class="border-r border-slate-200 px-1 py-1 min-w-[40px]">차상위</th><th class="border-r border-slate-300 px-1 py-1 min-w-[40px]">일반</th>
-                            ${Array(5).fill('<th class="border-r border-slate-200 px-0.5 py-1 tracking-tighter text-[10px]">일/남</th><th class="border-r border-slate-200 px-0.5 py-1 tracking-tighter text-[10px]">일/여</th><th class="border-r border-slate-200 px-0.5 py-1 tracking-tighter text-[10px]">중/남</th><th class="border-r border-slate-300 px-0.5 py-1 tracking-tighter text-[10px]">중/여</th>').join('')}
+                        <!-- 3번째 줄: 계 남 여, 계 중점 일반, 신규 장기 종결 소득, 각 동의 일반 중점 -->
+                        <tr class="bg-slate-50 font-bold text-center border-b border-slate-300 text-slate-700">
+                            <th rowspan="2" class="border-r border-slate-200 px-1 py-1 min-w-[30px] bg-slate-100">계</th>
+                            <th rowspan="2" class="border-r border-slate-200 px-1 py-1 min-w-[30px] bg-slate-100">남</th>
+                            <th rowspan="2" class="border-r border-slate-300 px-1 py-1 min-w-[30px] bg-slate-100">여</th>
+                            
+                            <th rowspan="2" class="border-r border-slate-200 px-1 py-1 min-w-[30px] bg-slate-100">계</th>
+                            <th rowspan="2" class="border-r border-slate-200 px-1 py-1 min-w-[35px] bg-slate-100">중점</th>
+                            <th rowspan="2" class="border-r border-slate-300 px-1 py-1 min-w-[35px] bg-slate-100">일반</th>
+                            
+                            <th colspan="2" class="border-r border-slate-300 px-1 py-1 min-w-[70px]">신규</th>
+                            <th colspan="2" class="border-r border-slate-300 px-1 py-1 min-w-[70px]">장기부재</th>
+                            <th colspan="2" class="border-r border-slate-300 px-1 py-1 min-w-[70px]">종결</th>
+                            <th colspan="3" class="border-r border-slate-300 px-1 py-1 min-w-[120px]">소득현황</th>
+                            
+                            ${Array(5).fill('<th colspan="2" class="border-r border-slate-300 px-1 py-1 min-w-[60px]">일반</th><th colspan="2" class="border-r border-slate-300 px-1 py-1 min-w-[60px]">중점</th>').join('')}
+                        </tr>
+                        <!-- 4번째 줄: 신규/장기/종결 아래의 일반 중점, 소득 아래의 3개, 동별 일반/중점 아래의 남 여 -->
+                        <tr class="bg-white font-medium text-center border-b border-slate-400 text-slate-600">
+                            <!-- 신규 -->
+                            <th class="border-r border-slate-200 px-1 py-1 w-[35px]">일반</th><th class="border-r border-slate-300 px-1 py-1 w-[35px]">중점</th>
+                            <!-- 장기부재 -->
+                            <th class="border-r border-slate-200 px-1 py-1 w-[35px]">일반</th><th class="border-r border-slate-300 px-1 py-1 w-[35px]">중점</th>
+                            <!-- 종결 -->
+                            <th class="border-r border-slate-200 px-1 py-1 w-[35px]">일반</th><th class="border-r border-slate-300 px-1 py-1 w-[35px]">중점</th>
+                            <!-- 소득현황 -->
+                            <th class="border-r border-slate-200 px-1 py-1 w-[40px] text-[10px] leading-tight break-keep">기초생활<br>수급자</th><th class="border-r border-slate-200 px-1 py-1 w-[40px]">차상위</th><th class="border-r border-slate-300 px-1 py-1 w-[40px] text-[10px] leading-tight break-keep">저소득<br>(일반)</th>
+                            <!-- 동별 남/여 -->
+                            ${Array(5).fill('<th class="border-r border-slate-200 px-1 py-1 w-[30px]">남</th><th class="border-r border-slate-300 px-1 py-1 w-[30px]">여</th><th class="border-r border-slate-200 px-1 py-1 w-[30px]">남</th><th class="border-r border-slate-300 px-1 py-1 w-[30px]">여</th>').join('')}
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
