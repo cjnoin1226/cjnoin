@@ -2438,7 +2438,7 @@
                              <button onclick="app.resetFilters('performance'); app.render()" class="ml-auto text-slate-400 hover:text-slate-600 p-2 rounded hover:bg-slate-100 transition-colors flex justify-center items-center flex-shrink-0" title="필터 초기화"><i data-lucide="refresh-cw" size="20"></i></button>
 
                              <button onclick="app.downloadPerformanceExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm ml-2">
-                                <i data-lucide="download" size="18"></i> 엑셀 다운로드
+                                 <i data-lucide="download" size="12"></i> 엑셀
                              </button>
                         </div>
                     </div>
@@ -15752,58 +15752,28 @@
                 XLSX.writeFile(wb, `대상자명부_${new Date().toISOString().slice(0,10)}.xlsx`);
             },
 
-            // [추가] 실적 엑셀 다운로드 (HTML에 버튼은 있으나 함수 부재)
+            // [수정] 현재 화면에 보이는 표 형태 그대로 엑셀 다운로드
             downloadPerformanceExcel: () => {
-                const { year, months } = state.filters.performance;
-                const selectedMonths = (months && months.length > 0) ? months.sort((a, b) => a - b) : [];
+                // 1. 화면에 그려져 있는 실적 표(Table) 태그를 찾습니다.
+                const tableEl = document.querySelector('#perf-table-container table');
+                if (!tableEl) return alert("다운로드할 표 데이터가 없습니다.");
+
+                // 2. 현재 어떤 뷰를 보고 있는지에 따라 파일 이름을 정합니다.
+                const { year, viewMode } = state.filters.performance;
+                let fileName = `사업실적_${year}년`;
                 
-                if (selectedMonths.length === 0) return alert("선택된 월이 없습니다.");
+                if (viewMode === 'monthRows') fileName += '_월별보기';
+                else if (viewMode === 'serviceRows') fileName += '_서비스별보기';
+                else if (viewMode === 'clientStats') fileName += '_대상자현황';
 
-                const targetLogs = state.logs.filter(l => l.date.startsWith(year));
-                const stats = {};
-                
-                // 초기화
-                state.services.forEach(s => {
-                    const key = `${s.category}|${s.name}`;
-                    stats[key] = { category: s.category, serviceName: s.name, counts: Array(12).fill(0) };
-                });
-
-                // 집계
-                targetLogs.forEach(l => {
-                    const month = parseInt(l.date.split('-')[1]) - 1;
-                    if (month < 0 || month > 11) return;
-                    (l.serviceItems || []).forEach(item => {
-                        const key = `${item.category}|${item.serviceName}`;
-                        if (stats[key]) stats[key].counts[month]++;
-                    });
-                });
-
-                // 데이터 변환
-                const rows = Object.values(stats).sort((a, b) => {
-                    if (a.category !== b.category) return a.category.localeCompare(b.category);
-                    return a.serviceName.localeCompare(b.serviceName);
-                });
-
-                const sheetData = rows.map(r => {
-                    const row = {
-                        '분류': r.category,
-                        '서비스명': r.serviceName
-                    };
-                    let total = 0;
-                    selectedMonths.forEach(m => {
-                        const count = r.counts[m - 1];
-                        row[`${m}월`] = count;
-                        total += count;
-                    });
-                    row['합계'] = total;
-                    return row;
-                });
-
+                // 3. 화면의 표를 통째로 복사해서 엑셀 시트로 만듭니다. 
+                // (표의 병합된 칸들도 엑셀에 그대로 똑같이 병합됩니다!)
                 const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(sheetData);
-                XLSX.utils.book_append_sheet(wb, ws, "월별실적");
-                XLSX.writeFile(wb, `월별서비스실적_${year}년.xlsx`);
-            }
+                const ws = XLSX.utils.table_to_sheet(tableEl, { raw: false }); // raw:false면 숫자 자동 인식
+                
+                XLSX.utils.book_append_sheet(wb, ws, "실적 데이터");
+                XLSX.writeFile(wb, `${fileName}.xlsx`);
+            },
         };
 
         document.addEventListener('click', (e) => {
