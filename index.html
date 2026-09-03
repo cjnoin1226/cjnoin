@@ -4764,6 +4764,7 @@
                 if (serviceName && serviceName.includes('정서지원')) {
                     let heavyDeficit = 0;
                     let generalDeficit = 0;
+                    let missingDetails = []; // 👈 [추가] 누가 부족한지 담을 배열
 
                     const checkMonths = month === 'all' ? [1,2,3,4,5,6,7,8,9,10,11,12] : [parseInt(month)];
                     const realToday = new Date();
@@ -4808,24 +4809,45 @@
                             }
                         });
 
+                        let mHeavyNames = []; // 이번 달 중점 누락자
+                        let mGenNames = [];   // 이번 달 일반 누락자
+
                         activeClients.forEach(c => {
                             const count = logCounts[c.id];
                             if (c.careLevel === '중점') {
-                                if (count < 4) heavyDeficit += (4 - count); // 월 4회(주 1회) 기준
+                                if (count < 4) {
+                                    heavyDeficit += (4 - count); // 월 4회(주 1회) 기준
+                                    mHeavyNames.push(`${c.name}(${4 - count}건)`);
+                                }
                             } else if (c.careLevel === '일반') {
-                                if (count < 1) generalDeficit += (1 - count); // 월 1회 기준
+                                if (count < 1) {
+                                    generalDeficit += (1 - count); // 월 1회 기준
+                                    mGenNames.push(`${c.name}`);
+                                }
                             }
                         });
+
+                        // 이번 달 누락자가 있으면 명단 배열에 텍스트 형태로 추가
+                        if (mHeavyNames.length > 0 || mGenNames.length > 0) {
+                            let line = `[${m}월] `;
+                            if (mHeavyNames.length > 0) line += `중점: ${mHeavyNames.join(', ')} `;
+                            if (mGenNames.length > 0) line += `\n       일반: ${mGenNames.join(', ')}`;
+                            missingDetails.push(line);
+                        }
                     });
 
-                    // 안내 문구 생성
+                    // 안내 문구 생성 (디자인 단순화 및 클릭 시 명단 팝업 띄우기)
                     if (heavyDeficit > 0 || generalDeficit > 0) {
                         let textParts = [];
                         if (heavyDeficit > 0) textParts.push(`중점 ${heavyDeficit}건`);
                         if (generalDeficit > 0) textParts.push(`일반 ${generalDeficit}건`);
-                        missingWarningHtml = `<span class="text-red-500 font-bold ml-2 text-[11px] tracking-tight bg-red-50 px-1.5 py-0.5 rounded border border-red-200 shadow-sm align-middle">🚨 부족: ${textParts.join(', ')}</span>`;
+                        
+                        const alertText = missingDetails.join('\\n\\n');
+                        
+                        // 네모칸과 아이콘을 제거하고, 클릭 가능한 빨간 글씨만 남김
+                        missingWarningHtml = `<span class="text-red-500 font-bold ml-1 cursor-pointer hover:underline" title="클릭하여 누락자 명단 확인" onclick="alert('🚨 정서지원 누락 대상자 명단 🚨\\n\\n${alertText}')">(${textParts.join(', ')})</span>`;
                     } else {
-                        missingWarningHtml = `<span class="text-emerald-600 font-bold ml-2 text-[11px] tracking-tight bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shadow-sm align-middle">✨ 모두 달성됨</span>`;
+                        missingWarningHtml = ''; // 모두 달성 시 아무것도 표시하지 않음 (깔끔하게 비움)
                     }
                 }
                 // 👆 누락 건수 계산 로직 끝 👆
