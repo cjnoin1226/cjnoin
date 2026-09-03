@@ -4838,16 +4838,35 @@
                 app.showPerformanceDetail(year, month, category, serviceName);
             },
 
-            // [신규] 대상자 현황에서 숫자 클릭 시 명단 모달 띄우기
-            showClientStatsList: (month, key) => {
+            // 👇 여기에 명단 모달창 클릭 정렬용 함수를 추가합니다 👇
+            toggleClientStatsModalSort: (month, key, field) => {
+                if (!state.ui.clientStatsModalSort) state.ui.clientStatsModalSort = { field: null, order: 'asc' };
+                
+                if (state.ui.clientStatsModalSort.field === field) {
+                    state.ui.clientStatsModalSort.order = state.ui.clientStatsModalSort.order === 'asc' ? 'desc' : 'asc';
+                } else {
+                    state.ui.clientStatsModalSort.field = field;
+                    state.ui.clientStatsModalSort.order = 'asc';
+                }
+                
+                // true 값을 넘겨서 창을 새로 열 때 정렬이 풀리지 않게 합니다.
+                app.showClientStatsList(month, key, true); 
+            },
+
+            // 👇 기존에 있던 함수를 아래 코드로 덮어씌워 줍니다 👇
+            showClientStatsList: (month, key, isSortUpdate = false) => {
                 const mapData = window.clientStatsMap[month];
                 if (!mapData) return;
+                
+                // 처음 창을 띄울 때는 정렬 상태를 깔끔하게 초기화합니다.
+                if (!isSortUpdate) {
+                    state.ui.clientStatsModalSort = null;
+                }
 
                 let clients = [];
                 let titleStr = `${state.filters.performance.year}년 ${month}월 - `;
 
                 if (key.startsWith('reg_')) {
-                    // 행정동 세부 항목 (예: reg_감만동_0)
                     const parts = key.split('_');
                     const rKey = parts[1];
                     const idx = parseInt(parts[2]);
@@ -4855,7 +4874,6 @@
                     const types = ['일반/남', '일반/여', '중점/남', '중점/여'];
                     titleStr += `${rKey} (${types[idx]})`;
                 } else {
-                    // 상단 그룹 항목
                     clients = mapData.lists[key] || [];
                     const titles = {
                         'cur_tot': '현원 전체', 'cur_m': '현원 (남)', 'cur_f': '현원 (여)',
@@ -4868,7 +4886,43 @@
                     titleStr += titles[key] || '대상자 명단';
                 }
 
-                // 대상자 리스트 테이블 생성
+                // 🌟 [요청 1 & 요청 2] 정렬 로직 적용 🌟
+                clients.sort((a, b) => {
+                    // 빈 칸 데이터('-')는 무조건 맨 아래로 내림
+                    if (a.name === '-' && b.name !== '-') return 1;
+                    if (a.name !== '-' && b.name === '-') return -1;
+                    
+                    // 1. 사용자가 항목(헤더)을 클릭해서 수동 정렬을 한 경우
+                    if (state.ui.clientStatsModalSort && state.ui.clientStatsModalSort.field) {
+                        const { field, order } = state.ui.clientStatsModalSort;
+                        let valA = a[field] || '';
+                        let valB = b[field] || '';
+                        if (valA !== valB) {
+                            return order === 'asc' ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+                        }
+                        return 0; // 값이 똑같으면 아래의 기본 정렬 방식으로 넘어감
+                    }
+                    
+                    // 2. 팝업창을 처음 띄웠을 때의 똑똑한 기본 정렬 방식
+                    if (key.startsWith('new_')) {
+                        // 신규일 경우: 서비스 시작일이 빠른 순
+                        return (a.serviceStartDate || '').localeCompare(b.serviceStartDate || '');
+                    } else if (key.startsWith('end_')) {
+                        // 종결일 경우: 종결일이 빠른 순
+                        return (a.endDate || '').localeCompare(b.endDate || '');
+                    } else if (key.startsWith('long_')) {
+                        // 장기부재일 경우: 부재 시작일이 빠른 순
+                        let aStart = a.absStart || '';
+                        if (!aStart && a.absencePeriod && a.absencePeriod.includes('~')) aStart = a.absencePeriod.split('~')[0].trim();
+                        let bStart = b.absStart || '';
+                        if (!bStart && b.absencePeriod && b.absencePeriod.includes('~')) bStart = b.absencePeriod.split('~')[0].trim();
+                        return aStart.localeCompare(bStart);
+                    } else {
+                        // 현원, 소득현황 등 나머지: 대상자 관리 목록과 똑같이 '서비스 시작일' 빠른 순
+                        return (a.serviceStartDate || '').localeCompare(b.serviceStartDate || '');
+                    }
+                });
+
                 const trs = clients.map((c, i) => `
                     <tr class="hover:bg-slate-50 border-b border-slate-200 transition-colors">
                         <td class="p-2 text-center text-slate-500">${i + 1}</td>
@@ -4881,6 +4935,15 @@
                     </tr>
                 `).join('');
 
+                // 🌟 헤더(표 제목란)에 클릭 버튼과 화살표를 달아주는 함수 🌟
+                const renderTh = (field, label, widthClass) => {
+                    const sortConfig = state.ui.clientStatsModalSort;
+                    const isActive = sortConfig && sortConfig.field === field;
+                    const icon = isActive ? (sortConfig.order === 'asc' ? '<i data-lucide="arrow-up" class="inline w-3 h-3 ml-1 text-emerald-600"></i>' : '<i data-lucide="arrow-down" class="inline w-3 h-3 ml-1 text-emerald-600"></i>') : '<i data-lucide="minus" class="inline w-3 h-3 ml-1 opacity-30"></i>';
+                    const activeClass = isActive ? 'text-emerald-700 bg-emerald-50' : 'text-slate-700 hover:bg-slate-200';
+                    return `<th class="p-2 text-center border-r border-b border-slate-300 ${widthClass} ${activeClass} cursor-pointer transition-colors select-none" onclick="app.toggleClientStatsModalSort('${month}', '${key}', '${field}')"><div class="flex items-center justify-center">${label}${icon}</div></th>`;
+                };
+
                 const html = `
                     <div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-2xl mx-4 max-h-[85vh] flex flex-col">
                         <div class="flex justify-between items-center mb-4 flex-shrink-0 border-b border-slate-100 pb-3">
@@ -4888,7 +4951,7 @@
                                 <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
                                     <i data-lucide="users" class="text-blue-600"></i> ${titleStr} <span class="text-blue-600 ml-1">(${clients.length}명)</span>
                                 </h3>
-                                <p class="text-xs text-slate-500 mt-1">* 이름을 클릭하면 해당 대상자의 상세 정보 창으로 이동합니다.</p>
+                                <p class="text-xs text-slate-500 mt-1">* 이름을 클릭하면 해당 대상자의 상세 정보 창으로 이동합니다. / 표의 항목 제목을 클릭하면 정렬됩니다.</p>
                             </div>
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
@@ -4897,12 +4960,12 @@
                                 <thead class="bg-slate-100 text-slate-700 font-bold sticky top-0 shadow-sm z-10">
                                     <tr>
                                         <th class="p-2 text-center border-r border-b border-slate-300 w-[8%]">No</th>
-                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[15%]">이름</th>
-                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[20%]">생년월일</th>
-                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[10%]">성별</th>
-                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[17%]">행정동</th>
-                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[10%]">등급</th>
-                                        <th class="p-2 text-center border-b border-slate-300 w-[20%]">경제상황</th>
+                                        ${renderTh('name', '이름', 'w-[15%]')}
+                                        ${renderTh('birthDate', '생년월일', 'w-[20%]')}
+                                        ${renderTh('gender', '성별', 'w-[10%]')}
+                                        ${renderTh('region', '행정동', 'w-[17%]')}
+                                        ${renderTh('careLevel', '등급', 'w-[10%]')}
+                                        ${renderTh('economicStatus', '경제상황', 'w-[20%] border-r-0')}
                                     </tr>
                                 </thead>
                                 <tbody>
