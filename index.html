@@ -4839,8 +4839,8 @@
                                     <i data-lucide="list-checks" class="text-blue-600"></i> ${year}년 ${month === 'all' ? '전체' : month + '월'} 상세 실적
                                     <!-- 👇 신규: 달력 띄우기 버튼 (월이 'all'이 아닐 때만 표시) 👇 -->
                                     ${month !== 'all' ? `<button onclick="app.openPerfCalendar('${year}', ${month}, '${category}', '${serviceName}')" class="p-1 ml-1 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors shadow-sm border border-transparent hover:border-emerald-200" title="달력으로 실적 분포 보기"><i data-lucide="calendar-days" size="18"></i></button>` : ''}
-                                </h3
-                                <p class="text-sm text-slate-500 mt-1">${category === 'all' ? '전체 서비스' : `${category} &gt; <span class="font-bold text-slate-700">${serviceName}</span>`} <span class="font-bold text-blue-600 ml-1">(${targetLogs.length}건)</span></p>
+                                </h3>
+                                <p class="text-sm text-slate-500 mt-1">${category === 'all' ? '전체 서비스' : `${category} &gt; <span class="font-bold text-slate-700">${serviceName}</span>`} <span class="font-bold text-blue-600 ml-1">(${targetLogs.length}건)</span> ${missingWarningHtml}</p>
                             </div>
                             <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
                         </div>
