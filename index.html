@@ -2242,26 +2242,32 @@
                             const isHeavy = c.careLevel && c.careLevel.includes('중점');
                             const isGen = !isHeavy;
 
-                            if (isActive) {
-                                // 단순히 숫자(++)를 올리는 대신 바구니에 대상자(c)를 쏙 담습니다(push).
-                                lists.cur_tot.push(c);
-                                if (isMale) lists.cur_m.push(c); else lists.cur_f.push(c);
-                                if (isHeavy) lists.cur_heavy.push(c); else lists.cur_gen.push(c);
+                            // 👇 4. 장기부재 기간 파악 (날짜 기준 교차 검증) 👇
+                                let aStart = c.absStart || '';
+                                let aEnd = c.absEnd || '';
+                                
+                                // (구버전 호환용: '2026-07-07 ~ 2026-09-02' 형태로 적힌 경우 쪼개기)
+                                if (!aStart && c.absencePeriod && c.absencePeriod.includes('~')) {
+                                    const parts = c.absencePeriod.split('~');
+                                    if(parts.length === 2) { aStart = parts[0].trim(); aEnd = parts[1].trim(); }
+                                }
+                                
+                                // 종료일이 안 적혀있으면 아직도 계속 부재중(9999년)인 것으로 간주
+                                const effectiveAEnd = aEnd || '9999-12-31'; 
 
-                                const income = c.economicStatus || ''; 
-                                if (income.includes('기초') || income.includes('수급')) {
-                                    lists.inc_basic.push(c);
-                                } else if (income.includes('차상위')) {
-                                    lists.inc_second.push(c);
-                                } else {
-                                    lists.inc_low.push(c);
+                                let isAbsentThisMonth = false;
+                                if (aStart) {
+                                    // 장기부재 시작일과 종료일이 "지금 계산 중인 월(monthStart ~ monthEnd)"과 겹치는지 확인
+                                    isAbsentThisMonth = (aStart <= monthEnd && effectiveAEnd >= monthStart);
+                                } else if (c.status === '장기부재') {
+                                    // 날짜는 비어있는데 현재 상태가 '장기부재'라면 예외적으로 카운트
+                                    isAbsentThisMonth = true;
                                 }
 
-                                if (c.status === '장기부재') {
-                                    if (isHeavy) lists.long_heavy.push(c); else lists.long_gen.push(c);
+                                // 부재중인 달이 맞다면 카운팅!
+                                if (isAbsentThisMonth) {
+                                    if (isHeavy) long_heavy++; else long_gen++;
                                 }
-
-                                let rKey = '';
                                 if (c.region) {
                                     if (c.region.includes('감만')) rKey = '감만동';
                                     else if (c.region.includes('대연')) rKey = '대연동';
