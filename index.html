@@ -2149,7 +2149,7 @@
                 footerRow += `<td class="py-3 px-4 text-center font-bold text-emerald-700 bg-emerald-100 cursor-pointer hover:underline decoration-2 underline-offset-2 hover:bg-emerald-200" onclick="app.showPerformanceDetail('${year}', 'all', 'all', 'all')" title="클릭하여 전체 내역 보기">${grandTotal}</td>`;
 
                 tableHTML = `<thead class="sticky top-0 z-30 shadow-sm"><tr>${headerRow1}</tr><tr>${headerRow2}</tr></thead><tbody class="divide-y divide-slate-100">${bodyRows}<tr class="bg-slate-100 font-bold shadow-sm border-t-2 border-slate-300">${footerRow}</tr></tbody>`;
-            } else {
+            } else if (viewMode === 'serviceRows') {
                 // --- 서비스별 보기 (세로: 서비스, 가로: 월) ---
                 const wCat = 90;
                 const wSvc = 150;
@@ -2189,8 +2189,117 @@
                             <td class="py-3 px-2 border-r text-center bg-slate-100" style="${stickColStyle(0, 20)}">총계</td>
                             <td class="py-3 px-2 border-r bg-slate-100" style="${stickColStyle(wCat, 20)}"></td>
                             ${selectedMonths.map(m => `<td class="py-3 px-2 border-r text-center font-bold text-blue-700 bg-blue-50/30 cursor-pointer hover:underline decoration-2 underline-offset-2" onclick="app.showPerformanceDetail('${year}', ${m}, 'all', 'all')">${monthlyTotals[m - 1]}</td>`).join('')}
-<td class="py-3 px-2 text-center font-bold text-emerald-700 bg-emerald-100 cursor-pointer hover:underline decoration-2 underline-offset-2 hover:bg-emerald-200" onclick="app.showPerformanceDetail('${year}', 'all', 'all', 'all')">${grandTotal}</td>
+                            <td class="py-3 px-2 text-center font-bold text-emerald-700 bg-emerald-100 cursor-pointer hover:underline decoration-2 underline-offset-2 hover:bg-emerald-200" onclick="app.showPerformanceDetail('${year}', 'all', 'all', 'all')">${grandTotal}</td>
                         </tr>
+                    </tbody>
+                `;
+                } else if (viewMode === 'clientStats') {
+                // --- 대상자 현황 보기 ---
+                const regionsList = ['감만동', '대연동', '문현동', '우암동', '용호,용당동'];
+                let trs = '';
+
+                for (let m = 1; m <= 12; m++) {
+                    let cur_m=0, cur_f=0, cur_heavy=0, cur_gen=0;
+                    let new_gen=0, new_heavy=0, long_gen=0, long_heavy=0, end_gen=0, end_heavy=0;
+                    let inc_basic=0, inc_second=0, inc_low=0;
+                    let regCounts = { '감만동':[0,0,0,0], '대연동':[0,0,0,0], '문현동':[0,0,0,0], '우암동':[0,0,0,0], '용호,용당동':[0,0,0,0] };
+
+                    const monthStart = `${year}-${String(m).padStart(2, '0')}-01`;
+                    const lastDay = new Date(year, m, 0).getDate();
+                    const monthEnd = `${year}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+                    state.clients.forEach(c => {
+                        // 대기상태이거나 공란(-)인 데이터 무시
+                        if (c.name === '-' || c.status === '대기') return; 
+
+                        const sDate = c.serviceStartDate || '9999-12-31';
+                        const eDate = (c.status === '종결' && c.endDate) ? c.endDate : '9999-12-31';
+
+                        const isActive = sDate <= monthEnd && eDate >= monthStart;
+                        const isNew = sDate >= monthStart && sDate <= monthEnd;
+                        const isEnd = c.status === '종결' && eDate >= monthStart && eDate <= monthEnd;
+
+                        const isMale = c.gender === '남성';
+                        const isHeavy = c.careLevel === '중점';
+                        const isGen = c.careLevel === '일반';
+
+                        if (isActive) {
+                            if (isMale) cur_m++; else cur_f++;
+                            if (isHeavy) cur_heavy++; else cur_gen++;
+
+                            const income = c.economicStatus || ''; 
+                            if (income.includes('기초수급') || income === '수급자') inc_basic++;
+                            else if (income.includes('차상위')) inc_second++;
+                            else inc_low++;
+
+                            if (c.status === '장기부재') {
+                                if (isHeavy) long_heavy++; else long_gen++;
+                            }
+
+                            let rKey = '';
+                            if (c.region) {
+                                if (c.region.includes('감만')) rKey = '감만동';
+                                else if (c.region.includes('대연')) rKey = '대연동';
+                                else if (c.region.includes('문현')) rKey = '문현동';
+                                else if (c.region.includes('우암')) rKey = '우암동';
+                                else if (c.region.includes('용호') || c.region.includes('용당')) rKey = '용호,용당동';
+                            }
+                            if (rKey && regCounts[rKey]) {
+                                if (isGen && isMale) regCounts[rKey][0]++;
+                                if (isGen && !isMale) regCounts[rKey][1]++;
+                                if (isHeavy && isMale) regCounts[rKey][2]++;
+                                if (isHeavy && !isMale) regCounts[rKey][3]++;
+                            }
+                        }
+                        if (isNew) { if (isHeavy) new_heavy++; else new_gen++; }
+                        if (isEnd) { if (isHeavy) end_heavy++; else end_gen++; }
+                    });
+
+                    const cur_tot = cur_m + cur_f;
+                    trs += `<tr class="hover:bg-blue-50 border-b border-slate-200 transition-colors text-[11px]">
+                        <td class="px-1 py-1.5 text-center font-bold bg-slate-100 border-r border-slate-300 sticky left-0 z-10">${m}월</td>
+                        <td class="px-1 py-1.5 text-center border-r border-slate-200">${cur_tot}</td><td class="px-1 py-1.5 text-center border-r border-slate-200">${cur_m}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50">${cur_f}</td>
+                        <td class="px-1 py-1.5 text-center border-r border-slate-200">${cur_tot}</td><td class="px-1 py-1.5 text-center border-r border-slate-200">${cur_heavy}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50">${cur_gen}</td>
+                        <td class="px-1 py-1.5 text-center border-r border-slate-200 text-blue-600">${new_gen}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50 text-blue-600">${new_heavy}</td>
+                        <td class="px-1 py-1.5 text-center border-r border-slate-200 text-orange-500">${long_gen}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50 text-orange-500">${long_heavy}</td>
+                        <td class="px-1 py-1.5 text-center border-r border-slate-200 text-red-600">${end_gen}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50 text-red-600">${end_heavy}</td>
+                        <td class="px-1 py-1.5 text-center border-r border-slate-200">${inc_basic}</td><td class="px-1 py-1.5 text-center border-r border-slate-200">${inc_second}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50">${inc_low}</td>
+                        ${regionsList.map(r => `<td class="px-1 py-1.5 text-center border-r border-slate-200">${regCounts[r][0]}</td><td class="px-1 py-1.5 text-center border-r border-slate-200">${regCounts[r][1]}</td><td class="px-1 py-1.5 text-center border-r border-slate-200">${regCounts[r][2]}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50">${regCounts[r][3]}</td>`).join('')}
+                    </tr>`;
+                }
+
+                tableHTML = `
+                    <thead class="sticky top-0 z-30 text-[11px]">
+                        <tr class="bg-slate-200 font-bold border-y border-slate-300 text-slate-800">
+                            <th rowspan="3" class="border-r border-slate-300 px-1 py-1 sticky left-0 bg-slate-200 z-40">월계</th>
+                            <th colspan="15" class="border-r border-slate-300 px-1 py-1 text-center">대상자 현황</th>
+                            <th colspan="20" class="border-r border-slate-300 px-1 py-1 text-center">동별현황</th>
+                        </tr>
+                        <tr class="bg-slate-100 font-bold text-center border-b border-slate-300 text-slate-700">
+                            <th colspan="3" class="border-r border-slate-300 px-1 py-1">현원</th>
+                            <th colspan="3" class="border-r border-slate-300 px-1 py-1">구분</th>
+                            <th colspan="2" class="border-r border-slate-300 px-1 py-1">신규</th>
+                            <th colspan="2" class="border-r border-slate-300 px-1 py-1">장기부재</th>
+                            <th colspan="2" class="border-r border-slate-300 px-1 py-1">종결</th>
+                            <th colspan="3" class="border-r border-slate-300 px-1 py-1">소득현황</th>
+                            <th colspan="4" class="border-r border-slate-300 px-1 py-1">감만동</th>
+                            <th colspan="4" class="border-r border-slate-300 px-1 py-1">대연동</th>
+                            <th colspan="4" class="border-r border-slate-300 px-1 py-1">문현동</th>
+                            <th colspan="4" class="border-r border-slate-300 px-1 py-1">우암동</th>
+                            <th colspan="4" class="border-r border-slate-300 px-1 py-1">용호, 용당동</th>
+                        </tr>
+                        <tr class="bg-slate-50 font-medium text-center border-b border-slate-400 text-slate-600">
+                            <th class="border-r border-slate-200 px-1 py-1 min-w-[30px]">계</th><th class="border-r border-slate-200 px-1 py-1 min-w-[30px]">남</th><th class="border-r border-slate-300 px-1 py-1 min-w-[30px]">여</th>
+                            <th class="border-r border-slate-200 px-1 py-1 min-w-[30px]">계</th><th class="border-r border-slate-200 px-1 py-1 min-w-[35px]">중점</th><th class="border-r border-slate-300 px-1 py-1 min-w-[35px]">일반</th>
+                            <th class="border-r border-slate-200 px-1 py-1 min-w-[35px]">일반</th><th class="border-r border-slate-300 px-1 py-1 min-w-[35px]">중점</th>
+                            <th class="border-r border-slate-200 px-1 py-1 min-w-[35px]">일반</th><th class="border-r border-slate-300 px-1 py-1 min-w-[35px]">중점</th>
+                            <th class="border-r border-slate-200 px-1 py-1 min-w-[35px]">일반</th><th class="border-r border-slate-300 px-1 py-1 min-w-[35px]">중점</th>
+                            <th class="border-r border-slate-200 px-1 py-1 min-w-[40px]">기초</th><th class="border-r border-slate-200 px-1 py-1 min-w-[40px]">차상위</th><th class="border-r border-slate-300 px-1 py-1 min-w-[40px]">일반</th>
+                            ${Array(5).fill('<th class="border-r border-slate-200 px-0.5 py-1 tracking-tighter text-[10px]">일/남</th><th class="border-r border-slate-200 px-0.5 py-1 tracking-tighter text-[10px]">일/여</th><th class="border-r border-slate-200 px-0.5 py-1 tracking-tighter text-[10px]">중/남</th><th class="border-r border-slate-300 px-0.5 py-1 tracking-tighter text-[10px]">중/여</th>').join('')}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        ${trs}
                     </tbody>
                 `;
             }
@@ -2204,6 +2313,7 @@
                              <div class="flex items-center bg-slate-100 rounded-lg p-1 mr-4">
                                 <button onclick="app.setFilter('performance', 'viewMode', 'monthRows')" class="px-3 py-1.5 rounded-md text-sm font-bold transition-all ${viewMode === 'monthRows' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">월별 보기 (기본)</button>
                                 <button onclick="app.setFilter('performance', 'viewMode', 'serviceRows')" class="px-3 py-1.5 rounded-md text-sm font-bold transition-all ${viewMode === 'serviceRows' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">서비스별 보기</button>
+                                <button onclick="app.setFilter('performance', 'viewMode', 'clientStats')" class="px-3 py-1.5 rounded-md text-sm font-bold transition-all ${viewMode === 'clientStats' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}">대상자 현황</button>
                              </div>
                              <div class="flex items-center gap-2">
                                 <label class="text-sm font-bold text-slate-700">연도</label>
