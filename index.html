@@ -4759,6 +4759,77 @@
                     </th>`;
                 };
 
+                // 👇 [신규 추가] 정서지원서비스 누락 건수 계산 로직 👇
+                let missingWarningHtml = '';
+                if (serviceName && serviceName.includes('정서지원')) {
+                    let heavyDeficit = 0;
+                    let generalDeficit = 0;
+
+                    const checkMonths = month === 'all' ? [1,2,3,4,5,6,7,8,9,10,11,12] : [parseInt(month)];
+                    const realToday = new Date();
+
+                    checkMonths.forEach(m => {
+                        // 미래 달은 계산에서 제외
+                        if (year > realToday.getFullYear() || (year === realToday.getFullYear() && m > realToday.getMonth() + 1)) return;
+
+                        const mStr = String(m).padStart(2, '0');
+                        const monthStart = `${year}-${mStr}-01`;
+                        const lastDay = new Date(year, m, 0).getDate();
+                        const monthEnd = `${year}-${mStr}-${String(lastDay).padStart(2, '0')}`;
+
+                        // 이번 달 대상자 목록 필터링 (장기부재, 대기 제외)
+                        const activeClients = state.clients.filter(c => {
+                            if (c.name === '-' || c.status === '대기') return false;
+                            
+                            const sDate = c.serviceStartDate || '9999-12-31';
+                            const eDate = (c.status === '종결' && c.endDate) ? c.endDate : '9999-12-31';
+                            if (!(sDate <= monthEnd && eDate >= monthStart)) return false;
+
+                            let aStart = c.absStart || '';
+                            let aEnd = c.absEnd || '';
+                            if (!aStart && c.absencePeriod && c.absencePeriod.includes('~')) {
+                                const parts = c.absencePeriod.split('~');
+                                if(parts.length === 2) { aStart = parts[0].trim(); aEnd = parts[1].trim(); }
+                            }
+                            const effectiveAEnd = aEnd || '9999-12-31';
+                            const isAbsentThisMonth = aStart && (aStart <= monthEnd && effectiveAEnd >= monthEnd);
+                            if (isAbsentThisMonth) return false;
+
+                            return true;
+                        });
+
+                        // 카운팅
+                        const logCounts = {};
+                        activeClients.forEach(c => logCounts[c.id] = 0);
+                        
+                        targetLogs.forEach(l => {
+                            if (l.date.startsWith(`${year}-${mStr}`) && logCounts[l.clientId] !== undefined) {
+                                logCounts[l.clientId]++;
+                            }
+                        });
+
+                        activeClients.forEach(c => {
+                            const count = logCounts[c.id];
+                            if (c.careLevel === '중점') {
+                                if (count < 4) heavyDeficit += (4 - count); // 월 4회(주 1회) 기준
+                            } else if (c.careLevel === '일반') {
+                                if (count < 1) generalDeficit += (1 - count); // 월 1회 기준
+                            }
+                        });
+                    });
+
+                    // 안내 문구 생성
+                    if (heavyDeficit > 0 || generalDeficit > 0) {
+                        let textParts = [];
+                        if (heavyDeficit > 0) textParts.push(`중점 ${heavyDeficit}건`);
+                        if (generalDeficit > 0) textParts.push(`일반 ${generalDeficit}건`);
+                        missingWarningHtml = `<span class="text-red-500 font-bold ml-2 text-[11px] tracking-tight bg-red-50 px-1.5 py-0.5 rounded border border-red-200 shadow-sm align-middle">🚨 부족: ${textParts.join(', ')}</span>`;
+                    } else {
+                        missingWarningHtml = `<span class="text-emerald-600 font-bold ml-2 text-[11px] tracking-tight bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shadow-sm align-middle">✨ 모두 달성됨</span>`;
+                    }
+                }
+                // 👆 누락 건수 계산 로직 끝 👆
+
                 // [수정] 모달 넓이 확보 및 정렬 초기화 버튼 추가
                 const html = `
                     <div class="bg-white w-full max-w-2xl p-6 rounded-xl shadow-2xl mx-4 max-h-[85vh] flex flex-col">
