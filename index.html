@@ -2198,23 +2198,35 @@
                 const regionsList = ['감만동', '대연동', '문현동', '우암동', '용호,용당동'];
                 let trs = '';
 
+                // 👇 [신규] 월별/항목별 대상자 명단을 저장해둘 전역 메모리 공간 생성
+                window.clientStatsMap = {}; 
+
                 for (let m = 1; m <= 12; m++) {
-                    let cur_m=0, cur_f=0, cur_heavy=0, cur_gen=0;
-                    let new_gen=0, new_heavy=0, long_gen=0, long_heavy=0, end_gen=0, end_heavy=0;
-                    let inc_basic=0, inc_second=0, inc_low=0;
-                    let regCounts = { '감만동':[0,0,0,0], '대연동':[0,0,0,0], '문현동':[0,0,0,0], '우암동':[0,0,0,0], '용호,용당동':[0,0,0,0] };
+                    // 숫자만 세는 대신, 사람(데이터)을 통째로 담을 빈 바구니(배열)들을 만듭니다.
+                    let lists = {
+                        cur_tot: [], cur_m: [], cur_f: [],
+                        cur_heavy: [], cur_gen: [],
+                        new_gen: [], new_heavy: [],
+                        long_gen: [], long_heavy: [],
+                        end_gen: [], end_heavy: [],
+                        inc_basic: [], inc_second: [], inc_low: []
+                    };
+                    let regLists = {
+                        '감만동': [[], [], [], []], '대연동': [[], [], [], []],
+                        '문현동': [[], [], [], []], '우암동': [[], [], [], []], '용호,용당동': [[], [], [], []]
+                    };
 
                     const monthStart = `${year}-${String(m).padStart(2, '0')}-01`;
-                        const lastDay = new Date(year, m, 0).getDate();
-                        const monthEnd = `${year}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+                    const lastDay = new Date(year, m, 0).getDate();
+                    const monthEnd = `${year}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-                        // 👇 신규 추가: 현재 실제 날짜를 기준으로 미래 달인지 판별 👇
-                        const realToday = new Date();
-                        const isFutureMonth = (year > realToday.getFullYear()) || (year === realToday.getFullYear() && m > realToday.getMonth() + 1);
+                    // 현재 실제 날짜를 기준으로 미래 달인지 판별
+                    const realToday = new Date();
+                    const isFutureMonth = (year > realToday.getFullYear()) || (year === realToday.getFullYear() && m > realToday.getMonth() + 1);
 
-                        // 👇 추가된 if문: 미래 달이 아닐 때만 대상자 카운트를 실행합니다. 👇
-                        if (!isFutureMonth) {
-                            state.clients.forEach(c => {
+                    // 미래 달이 아닐 때만 대상자 카운트를 실행합니다.
+                    if (!isFutureMonth) {
+                        state.clients.forEach(c => {
                             // 대기상태이거나 공란(-)인 데이터 무시
                             if (c.name === '-' || c.status === '대기') return; 
 
@@ -2225,30 +2237,28 @@
                             const isNew = sDate >= monthStart && sDate <= monthEnd;
                             const isEnd = c.status === '종결' && eDate >= monthStart && eDate <= monthEnd;
 
-                            // 👇 1. 성별 구분 (남, 남자, 남성 모두 포착)
+                            // 성별 및 등급 구분
                             const isMale = c.gender && c.gender.includes('남');
-                            
-                            // 👇 2. 등급 구분 (중점이라는 글자가 없으면 무조건 일반으로 분류)
                             const isHeavy = c.careLevel && c.careLevel.includes('중점');
                             const isGen = !isHeavy;
 
                             if (isActive) {
-                                if (isMale) cur_m++; else cur_f++;
-                                if (isHeavy) cur_heavy++; else cur_gen++;
+                                // 단순히 숫자(++)를 올리는 대신 바구니에 대상자(c)를 쏙 담습니다(push).
+                                lists.cur_tot.push(c);
+                                if (isMale) lists.cur_m.push(c); else lists.cur_f.push(c);
+                                if (isHeavy) lists.cur_heavy.push(c); else lists.cur_gen.push(c);
 
-                                // 👇 3. 소득현황 구분
                                 const income = c.economicStatus || ''; 
-                                // '기초'나 '수급' 글자가 들어가면 기초수급자 (조건부 포함)
                                 if (income.includes('기초') || income.includes('수급')) {
-                                    inc_basic++;
+                                    lists.inc_basic.push(c);
                                 } else if (income.includes('차상위')) {
-                                    inc_second++;
+                                    lists.inc_second.push(c);
                                 } else {
-                                    inc_low++; // 나머지는 전부 저소득(일반)으로 처리
+                                    lists.inc_low.push(c);
                                 }
 
                                 if (c.status === '장기부재') {
-                                    if (isHeavy) long_heavy++; else long_gen++;
+                                    if (isHeavy) lists.long_heavy.push(c); else lists.long_gen.push(c);
                                 }
 
                                 let rKey = '';
@@ -2259,28 +2269,48 @@
                                     else if (c.region.includes('우암')) rKey = '우암동';
                                     else if (c.region.includes('용호') || c.region.includes('용당')) rKey = '용호,용당동';
                                 }
-                                if (rKey && regCounts[rKey]) {
-                                    if (isGen && isMale) regCounts[rKey][0]++;
-                                    if (isGen && !isMale) regCounts[rKey][1]++;
-                                    if (isHeavy && isMale) regCounts[rKey][2]++;
-                                    if (isHeavy && !isMale) regCounts[rKey][3]++;
+                                if (rKey && regLists[rKey]) {
+                                    if (isGen && isMale) regLists[rKey][0].push(c);
+                                    if (isGen && !isMale) regLists[rKey][1].push(c);
+                                    if (isHeavy && isMale) regLists[rKey][2].push(c);
+                                    if (isHeavy && !isMale) regLists[rKey][3].push(c);
                                 }
                             }
-                            if (isNew) { if (isHeavy) new_heavy++; else new_gen++; }
-                            if (isEnd) { if (isHeavy) end_heavy++; else end_gen++; }
+                            if (isNew) { if (isHeavy) lists.new_heavy.push(c); else lists.new_gen.push(c); }
+                            if (isEnd) { if (isHeavy) lists.end_heavy.push(c); else lists.end_gen.push(c); }
                         });
-                        } // 👈 꼭! forEach가 끝나는 곳에 괄호를 닫아주세요.
+                    } 
+                    
+                    // 이번 달에 모은 명단 바구니들을 창고(window.clientStatsMap)에 잘 보관해 둡니다.
+                    window.clientStatsMap[m] = { lists, regLists };
 
-                        const cur_tot = cur_m + cur_f;
+                    // 👇 클릭 시 명단이 뜨게 해주는 HTML 조립기 (재사용 함수)
+                    const td = (val, key, bgClass, textClass="") => `<td class="px-1 py-1.5 text-center border-r ${bgClass} cursor-pointer hover:bg-slate-200 hover:text-blue-600 transition-colors underline decoration-slate-300 underline-offset-2 ${textClass}" onclick="app.showClientStatsList(${m}, '${key}')" title="클릭하여 명단 보기">${val}</td>`;
+                    const tdReg = (val, rKey, idx, bgClass) => `<td class="px-1 py-1.5 text-center border-r ${bgClass} cursor-pointer hover:bg-slate-200 hover:text-blue-600 transition-colors underline decoration-slate-300 underline-offset-2" onclick="app.showClientStatsList(${m}, 'reg_${rKey}_${idx}')" title="클릭하여 명단 보기">${val}</td>`;
+
                     trs += `<tr class="hover:bg-blue-50 border-b border-slate-200 transition-colors text-[11px]">
                         <td class="px-1 py-1.5 text-center font-bold bg-slate-100 border-r border-slate-300 sticky left-0 z-10">${m}월</td>
-                        <td class="px-1 py-1.5 text-center border-r border-slate-200">${cur_tot}</td><td class="px-1 py-1.5 text-center border-r border-slate-200">${cur_m}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50">${cur_f}</td>
-                        <td class="px-1 py-1.5 text-center border-r border-slate-200">${cur_tot}</td><td class="px-1 py-1.5 text-center border-r border-slate-200">${cur_heavy}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50">${cur_gen}</td>
-                        <td class="px-1 py-1.5 text-center border-r border-slate-200 text-blue-600">${new_gen}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50 text-blue-600">${new_heavy}</td>
-                        <td class="px-1 py-1.5 text-center border-r border-slate-200 text-orange-500">${long_gen}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50 text-orange-500">${long_heavy}</td>
-                        <td class="px-1 py-1.5 text-center border-r border-slate-200 text-red-600">${end_gen}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50 text-red-600">${end_heavy}</td>
-                        <td class="px-1 py-1.5 text-center border-r border-slate-200">${inc_basic}</td><td class="px-1 py-1.5 text-center border-r border-slate-200">${inc_second}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50">${inc_low}</td>
-                        ${regionsList.map(r => `<td class="px-1 py-1.5 text-center border-r border-slate-200">${regCounts[r][0]}</td><td class="px-1 py-1.5 text-center border-r border-slate-200">${regCounts[r][1]}</td><td class="px-1 py-1.5 text-center border-r border-slate-200">${regCounts[r][2]}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50">${regCounts[r][3]}</td>`).join('')}
+                        ${td(lists.cur_tot.length, 'cur_tot', 'border-slate-200 font-bold')}
+                        ${td(lists.cur_m.length, 'cur_m', 'border-slate-200')}
+                        ${td(lists.cur_f.length, 'cur_f', 'border-slate-300 bg-slate-50')}
+                        ${td(lists.cur_tot.length, 'cur_tot', 'border-slate-200 font-bold')}
+                        ${td(lists.cur_heavy.length, 'cur_heavy', 'border-slate-200')}
+                        ${td(lists.cur_gen.length, 'cur_gen', 'border-slate-300 bg-slate-50')}
+                        ${td(lists.new_gen.length, 'new_gen', 'border-slate-200', 'text-blue-600')}
+                        ${td(lists.new_heavy.length, 'new_heavy', 'border-slate-300 bg-slate-50', 'text-blue-600')}
+                        ${td(lists.long_gen.length, 'long_gen', 'border-slate-200', 'text-orange-500')}
+                        ${td(lists.long_heavy.length, 'long_heavy', 'border-slate-300 bg-slate-50', 'text-orange-500')}
+                        ${td(lists.end_gen.length, 'end_gen', 'border-slate-200', 'text-red-600')}
+                        ${td(lists.end_heavy.length, 'end_heavy', 'border-slate-300 bg-slate-50', 'text-red-600')}
+                        ${td(lists.inc_basic.length, 'inc_basic', 'border-slate-200')}
+                        ${td(lists.inc_second.length, 'inc_second', 'border-slate-200')}
+                        ${td(lists.inc_low.length, 'inc_low', 'border-slate-300 bg-slate-50')}
+                        ${regionsList.map(r => `
+                            ${tdReg(regLists[r][0].length, r, 0, 'border-slate-200')}
+                            ${tdReg(regLists[r][1].length, r, 1, 'border-slate-200')}
+                            ${tdReg(regLists[r][2].length, r, 2, 'border-slate-200')}
+                            ${tdReg(regLists[r][3].length, r, 3, 'border-slate-300 bg-slate-50')}
+                        `).join('')}
                     </tr>`;
                 }
 
@@ -4788,6 +4818,87 @@
             resetPerfDetailSort: (year, month, category, serviceName) => {
                 state.ui.perfDetailSortArray = [];
                 app.showPerformanceDetail(year, month, category, serviceName);
+            },
+
+            // [신규] 대상자 현황에서 숫자 클릭 시 명단 모달 띄우기
+            showClientStatsList: (month, key) => {
+                const mapData = window.clientStatsMap[month];
+                if (!mapData) return;
+
+                let clients = [];
+                let titleStr = `${state.filters.performance.year}년 ${month}월 - `;
+
+                if (key.startsWith('reg_')) {
+                    // 행정동 세부 항목 (예: reg_감만동_0)
+                    const parts = key.split('_');
+                    const rKey = parts[1];
+                    const idx = parseInt(parts[2]);
+                    clients = mapData.regLists[rKey][idx] || [];
+                    const types = ['일반/남', '일반/여', '중점/남', '중점/여'];
+                    titleStr += `${rKey} (${types[idx]})`;
+                } else {
+                    // 상단 그룹 항목
+                    clients = mapData.lists[key] || [];
+                    const titles = {
+                        'cur_tot': '현원 전체', 'cur_m': '현원 (남)', 'cur_f': '현원 (여)',
+                        'cur_heavy': '현원 (중점)', 'cur_gen': '현원 (일반)',
+                        'new_gen': '신규 (일반)', 'new_heavy': '신규 (중점)',
+                        'long_gen': '장기부재 (일반)', 'long_heavy': '장기부재 (중점)',
+                        'end_gen': '종결 (일반)', 'end_heavy': '종결 (중점)',
+                        'inc_basic': '소득현황 (기초)', 'inc_second': '소득현황 (차상위)', 'inc_low': '소득현황 (일반)'
+                    };
+                    titleStr += titles[key] || '대상자 명단';
+                }
+
+                // 대상자 리스트 테이블 생성
+                const trs = clients.map((c, i) => `
+                    <tr class="hover:bg-slate-50 border-b border-slate-200 transition-colors">
+                        <td class="p-2 text-center text-slate-500">${i + 1}</td>
+                        <td class="p-2 text-center font-bold text-slate-800 cursor-pointer hover:text-blue-600 hover:underline" onclick="app.openClientModal('${c.id}')" title="클릭하여 대상자 카드 보기">${c.name}</td>
+                        <td class="p-2 text-center text-slate-600">${c.birthDate || '-'}</td>
+                        <td class="p-2 text-center text-slate-600">${c.gender || '-'}</td>
+                        <td class="p-2 text-center text-slate-600">${c.region || '-'}</td>
+                        <td class="p-2 text-center font-bold ${c.careLevel === '중점' ? 'text-pink-600' : 'text-blue-600'}">${c.careLevel || '-'}</td>
+                        <td class="p-2 text-center text-slate-600 text-xs">${c.economicStatus || '-'}</td>
+                    </tr>
+                `).join('');
+
+                const html = `
+                    <div class="bg-white w-full max-w-4xl p-6 rounded-xl shadow-2xl mx-4 max-h-[85vh] flex flex-col">
+                        <div class="flex justify-between items-center mb-4 flex-shrink-0 border-b border-slate-100 pb-3">
+                            <div>
+                                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                    <i data-lucide="users" class="text-blue-600"></i> ${titleStr} <span class="text-blue-600 ml-1">(${clients.length}명)</span>
+                                </h3>
+                                <p class="text-xs text-slate-500 mt-1">* 이름을 클릭하면 해당 대상자의 상세 정보 창으로 이동합니다.</p>
+                            </div>
+                            <button onclick="app.closeDialog()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" size="24"></i></button>
+                        </div>
+                        <div class="overflow-y-auto flex-1 border border-slate-300 rounded-lg custom-scrollbar bg-white">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead class="bg-slate-100 text-slate-700 font-bold sticky top-0 shadow-sm z-10">
+                                    <tr>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[8%]">No</th>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[15%]">이름</th>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[20%]">생년월일</th>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[10%]">성별</th>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[17%]">행정동</th>
+                                        <th class="p-2 text-center border-r border-b border-slate-300 w-[10%]">등급</th>
+                                        <th class="p-2 text-center border-b border-slate-300 w-[20%]">경제상황</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${trs.length > 0 ? trs : '<tr><td colspan="7" class="p-8 text-center text-slate-500">데이터가 없습니다.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4 text-right flex-shrink-0 pt-2 border-t border-slate-100">
+                            <button onclick="app.closeDialog()" class="px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors shadow-sm">닫기</button>
+                        </div>
+                    </div>
+                `;
+                showDialog(html);
+                if(window.lucide) lucide.createIcons();
             },
 
             // [신규] 통계 연도 필터 간편 설정 함수
