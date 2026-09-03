@@ -2205,57 +2205,64 @@
                     let regCounts = { '감만동':[0,0,0,0], '대연동':[0,0,0,0], '문현동':[0,0,0,0], '우암동':[0,0,0,0], '용호,용당동':[0,0,0,0] };
 
                     const monthStart = `${year}-${String(m).padStart(2, '0')}-01`;
-                    const lastDay = new Date(year, m, 0).getDate();
-                    const monthEnd = `${year}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+                        const lastDay = new Date(year, m, 0).getDate();
+                        const monthEnd = `${year}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-                    state.clients.forEach(c => {
-                        // 대기상태이거나 공란(-)인 데이터 무시
-                        if (c.name === '-' || c.status === '대기') return; 
+                        // 👇 신규 추가: 현재 실제 날짜를 기준으로 미래 달인지 판별 👇
+                        const realToday = new Date();
+                        const isFutureMonth = (year > realToday.getFullYear()) || (year === realToday.getFullYear() && m > realToday.getMonth() + 1);
 
-                        const sDate = c.serviceStartDate || '9999-12-31';
-                        const eDate = (c.status === '종결' && c.endDate) ? c.endDate : '9999-12-31';
+                        // 👇 추가된 if문: 미래 달이 아닐 때만 대상자 카운트를 실행합니다. 👇
+                        if (!isFutureMonth) {
+                            state.clients.forEach(c => {
+                                // 대기상태이거나 공란(-)인 데이터 무시
+                                if (c.name === '-' || c.status === '대기') return; 
+                                
+                                const sDate = c.serviceStartDate || '9999-12-31';
+                                const eDate = (c.status === '종결' && c.endDate) ? c.endDate : '9999-12-31';
+                                
+                                const isActive = sDate <= monthEnd && eDate >= monthStart;
+                                const isNew = sDate >= monthStart && sDate <= monthEnd;
+                                const isEnd = c.status === '종결' && eDate >= monthStart && eDate <= monthEnd;
+                                
+                                const isMale = c.gender === '남' || c.gender === '남자';
+                                const isHeavy = c.group === '중점' || c.group === '중점군';
+                                const isGen = !isHeavy;
 
-                        const isActive = sDate <= monthEnd && eDate >= monthStart;
-                        const isNew = sDate >= monthStart && sDate <= monthEnd;
-                        const isEnd = c.status === '종결' && eDate >= monthStart && eDate <= monthEnd;
+                                if (isActive) {
+                                    if (isMale) cur_m++; else cur_f++;
+                                    if (isHeavy) cur_heavy++; else cur_gen++;
 
-                        const isMale = c.gender === '남성';
-                        const isHeavy = c.careLevel === '중점';
-                        const isGen = c.careLevel === '일반';
+                                    const income = c.income || '';
+                                    if (income.includes('기초')) inc_basic++;
+                                    else if (income.includes('차상위')) inc_second++;
+                                    else inc_low++;
 
-                        if (isActive) {
-                            if (isMale) cur_m++; else cur_f++;
-                            if (isHeavy) cur_heavy++; else cur_gen++;
+                                    if (c.status === '장기부재') {
+                                        if (isHeavy) long_heavy++; else long_gen++;
+                                    }
 
-                            const income = c.economicStatus || ''; 
-                            if (income.includes('기초수급') || income === '수급자') inc_basic++;
-                            else if (income.includes('차상위')) inc_second++;
-                            else inc_low++;
+                                    let rKey = '';
+                                    if (c.region) {
+                                        if (c.region.includes('감만')) rKey = '감만동';
+                                        else if (c.region.includes('대연')) rKey = '대연동';
+                                        else if (c.region.includes('문현')) rKey = '문현동';
+                                        else if (c.region.includes('우암')) rKey = '우암동';
+                                        else if (c.region.includes('용호') || c.region.includes('용당')) rKey = '용호,용당동';
+                                    }
+                                    if (rKey && regCounts[rKey]) {
+                                        if (isGen && isMale) regCounts[rKey][0]++;
+                                        if (isGen && !isMale) regCounts[rKey][1]++;
+                                        if (isHeavy && isMale) regCounts[rKey][2]++;
+                                        if (isHeavy && !isMale) regCounts[rKey][3]++;
+                                    }
+                                }
+                                if (isNew) { if (isHeavy) new_heavy++; else new_gen++; }
+                                if (isEnd) { if (isHeavy) end_heavy++; else end_gen++; }
+                            });
+                        } 
 
-                            if (c.status === '장기부재') {
-                                if (isHeavy) long_heavy++; else long_gen++;
-                            }
-
-                            let rKey = '';
-                            if (c.region) {
-                                if (c.region.includes('감만')) rKey = '감만동';
-                                else if (c.region.includes('대연')) rKey = '대연동';
-                                else if (c.region.includes('문현')) rKey = '문현동';
-                                else if (c.region.includes('우암')) rKey = '우암동';
-                                else if (c.region.includes('용호') || c.region.includes('용당')) rKey = '용호,용당동';
-                            }
-                            if (rKey && regCounts[rKey]) {
-                                if (isGen && isMale) regCounts[rKey][0]++;
-                                if (isGen && !isMale) regCounts[rKey][1]++;
-                                if (isHeavy && isMale) regCounts[rKey][2]++;
-                                if (isHeavy && !isMale) regCounts[rKey][3]++;
-                            }
-                        }
-                        if (isNew) { if (isHeavy) new_heavy++; else new_gen++; }
-                        if (isEnd) { if (isHeavy) end_heavy++; else end_gen++; }
-                    });
-
-                    const cur_tot = cur_m + cur_f;
+                        const cur_tot = cur_m + cur_f;
                     trs += `<tr class="hover:bg-blue-50 border-b border-slate-200 transition-colors text-[11px]">
                         <td class="px-1 py-1.5 text-center font-bold bg-slate-100 border-r border-slate-300 sticky left-0 z-10">${m}월</td>
                         <td class="px-1 py-1.5 text-center border-r border-slate-200">${cur_tot}</td><td class="px-1 py-1.5 text-center border-r border-slate-200">${cur_m}</td><td class="px-1 py-1.5 text-center border-r border-slate-300 bg-slate-50">${cur_f}</td>
