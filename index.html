@@ -2268,7 +2268,7 @@
 
                                 let isAbsentThisMonth = false;
                                 if (aStart) {
-                                    isAbsentThisMonth = (aStart <= monthEnd && effectiveAEnd >= monthStart);
+                                    isAbsentThisMonth = (aStart <= monthEnd && effectiveAEnd >= monthEnd);
                                 } else if (c.status === '장기부재') {
                                     isAbsentThisMonth = true;
                                 }
