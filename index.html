@@ -2242,7 +2242,21 @@
                             const isHeavy = c.careLevel && c.careLevel.includes('중점');
                             const isGen = !isHeavy;
 
-                            // 👇 4. 장기부재 기간 파악 (날짜 기준 교차 검증) 👇
+                            if (isActive) {
+                                if (isMale) cur_m++; else cur_f++;
+                                if (isHeavy) cur_heavy++; else cur_gen++;
+
+                                // 👇 3. 소득현황 구분
+                                const income = c.economicStatus || ''; 
+                                if (income.includes('기초') || income.includes('수급')) {
+                                    inc_basic++;
+                                } else if (income.includes('차상위')) {
+                                    inc_second++;
+                                } else {
+                                    inc_low++; // 나머지는 전부 저소득(일반)으로 처리
+                                }
+
+                                // 👇 4. 장기부재 기간 파악 (날짜 기준 교차 검증) 👇
                                 let aStart = c.absStart || '';
                                 let aEnd = c.absEnd || '';
                                 
@@ -2268,6 +2282,8 @@
                                 if (isAbsentThisMonth) {
                                     if (isHeavy) long_heavy++; else long_gen++;
                                 }
+
+                                let rKey = '';
                                 if (c.region) {
                                     if (c.region.includes('감만')) rKey = '감만동';
                                     else if (c.region.includes('대연')) rKey = '대연동';
