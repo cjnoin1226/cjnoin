@@ -4737,43 +4737,42 @@
                 const normTargetCat = normalize(category);
                 const normTargetSvc = normalize(serviceName);
 
-                // 대상 일지 필터링 및 메모 추출
+                // 대상 일지 필터링 및 메모 추출 (일지 1건에 같은 서비스가 여러 개면 여러 번 추가되도록 수정)
                 const targetLogs = [];
                 state.logs.forEach(l => {
                     if (!l.date.startsWith(prefix)) return;
                     
-                    let hasService = false;
-                    let memoText = ''; 
-                    
                     if (category === 'all') {
-                        // 👇 'all' 이면 조건 없이 모두 포함하고 메모 합치기
-                        hasService = true;
+                        // 'all' 클릭 시: 모든 서비스 항목을 각각의 건수로 분리해서 모달에 담음
                         if (l.serviceItems && l.serviceItems.length > 0) {
-                            memoText = l.serviceItems.map(i => i.detailNote).filter(Boolean).join(', ');
+                            l.serviceItems.forEach(item => {
+                                targetLogs.push({ ...l, extractedMemo: item.detailNote || '' });
+                            });
                         } else {
-                            memoText = l.content || '';
+                            targetLogs.push({ ...l, extractedMemo: l.content || '' });
                         }
-                    } else if (l.serviceItems && l.serviceItems.length > 0) {
-                        hasService = l.serviceItems.some(item => {
-                            let sName = item.serviceName;
-                            // 과거 호환성 매핑
-                            if (sName === '정서지원서비스(안전안부확인)') sName = '정서지원서비스';
-                            else if (sName === '정서지원서비스') sName = '정서지원서비스(안전안부확인)';
-                            
-                            // 👇 [수정] 엑셀에서 들어온 공백들을 싹 지우고 엄격하게 비교합니다!
-                            const normItemCat = normalize(item.category);
-                            const normItemSvc = normalize(item.serviceName);
-                            const normMappedSvc = normalize(sName);
+                    } else {
+                        // 특정 서비스 클릭 시:
+                        if (l.serviceItems && l.serviceItems.length > 0) {
+                            l.serviceItems.forEach(item => {
+                                let sName = item.serviceName;
+                                // 과거 호환성 매핑
+                                if (sName === '정서지원서비스(안전안부확인)') sName = '정서지원서비스';
+                                else if (sName === '정서지원서비스') sName = '정서지원서비스(안전안부확인)';
+                                
+                                const normItemCat = normalize(item.category);
+                                const normItemSvc = normalize(item.serviceName);
+                                const normMappedSvc = normalize(sName);
 
-                            const isMatch = (normItemCat === normTargetCat && normItemSvc === normTargetSvc) ||
-                                            (normItemCat === normTargetCat && normMappedSvc === normTargetSvc);
-                            
-                            if (isMatch) memoText = item.detailNote || '';
-                            return isMatch;
-                        });
-                    }
-                    if (hasService) {
-                        targetLogs.push({ ...l, extractedMemo: memoText });
+                                const isMatch = (normItemCat === normTargetCat && normItemSvc === normTargetSvc) ||
+                                                (normItemCat === normTargetCat && normMappedSvc === normTargetSvc);
+                                
+                                // 💡 [핵심] 일치하는 항목을 찾을 때마다 targetLogs에 추가! (1개의 일지에 3개가 있으면 3번 쪼개서 추가됨)
+                                if (isMatch) {
+                                    targetLogs.push({ ...l, extractedMemo: item.detailNote || '' });
+                                }
+                            });
+                        }
                     }
                 });
 
