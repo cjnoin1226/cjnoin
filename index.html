@@ -2030,32 +2030,50 @@
                 }
             });
             
+            // 💡 엑셀 업로드 시 발생한 띄어쓰기/공백 오차를 무시하는 마법 함수
+            const normalize = (str) => (str || '').replace(/\s+/g, '');
+
             targetLogs.forEach(l => {
                 const month = parseInt(l.date.split('-')[1]) - 1; 
                 if (month < 0 || month > 11) return;
                 if (l.serviceItems && l.serviceItems.length > 0) {
                     l.serviceItems.forEach(item => {
-                        let key = `${item.category}|${item.serviceName}`;
+                        let sCat = item.category;
+                        let sName = item.serviceName;
+
+                        // 👇 [신규] 설정에 등록된 진짜 서비스 이름과 공백 무시하고 비교해서, 똑같으면 진짜 이름으로 합쳐버림!
+                        const matchSvc = state.services.find(s => normalize(s.category) === normalize(item.category) && normalize(s.name) === normalize(item.serviceName));
+                        if (matchSvc) {
+                            sCat = matchSvc.category;
+                            sName = matchSvc.name;
+                        }
+
+                        let key = `${sCat}|${sName}`;
                         
-                        // [긴급 수정] 과거 데이터 이름 매핑 로직 추가
-                        // 설정에서 서비스명을 바꿨을 때, 과거 기록이 집계되지 않는 문제를 해결하기 위해 매핑
+                        // 과거 데이터 이름 매핑 로직
                         if (!stats[key]) {
-                            // "정서지원서비스(안전안부확인)" -> "정서지원서비스"로 매핑
-                            if (item.serviceName === '정서지원서비스(안전안부확인)') {
-                                const newKey = `${item.category}|정서지원서비스`;
+                            if (sName === '정서지원서비스(안전안부확인)') {
+                                const newKey = `${sCat}|정서지원서비스`;
                                 if (stats[newKey]) key = newKey;
-                            }
-                            // 반대의 경우도 (혹시 몰라) 처리: "정서지원서비스" -> "정서지원서비스(안전안부확인)"
-                            else if (item.serviceName === '정서지원서비스') {
-                                const oldKey = `${item.category}|정서지원서비스(안전안부확인)`;
+                            } else if (sName === '정서지원서비스') {
+                                const oldKey = `${sCat}|정서지원서비스(안전안부확인)`;
                                 if (stats[oldKey]) key = oldKey;
                             }
                         }
 
-                        if (stats[key]) { 
-                            stats[key].counts[month]++; 
-                            stats[key].dateSets[month].add(l.date); // 👈 신규: 방문한 날짜를 차곡차곡 모아둡니다.
+                        // 미등록 서비스라도 표에 빈 칸을 만들어 잡아냅니다.
+                        if (!stats[key]) {
+                            stats[key] = { 
+                                category: sCat || '기타(미분류)', 
+                                serviceName: sName || '이름없음', 
+                                counts: Array(12).fill(0), 
+                                dateSets: Array.from({length: 12}, () => new Set()), 
+                                total: 0 
+                            };
                         }
+                        
+                        stats[key].counts[month]++; 
+                        stats[key].dateSets[month].add(l.date);
                     });
                 }
             });
@@ -2536,22 +2554,20 @@
                     items.forEach(item => {
                         // [수정] 통계 집계 로직 전면 개선 (상세/분류 모드 간 불일치 해결)
                         
-                        // 1. 서비스 이름 매핑 (과거 데이터 호환성 확보)
+                        // 1. 서비스 이름 매핑 (과거 데이터 호환성 확보 및 공백 오차 무시)
+                        const normalize = (str) => (str || '').replace(/\s+/g, '');
                         let effectiveName = item.serviceName;
                         
-                        // 현재 서비스 목록에 해당 이름이 있는지 확인
-                        let exactMatch = state.services.find(s => s.name === effectiveName);
+                        // 👇 [신규] 공백을 모두 제거한 상태로 똑같은 서비스가 있는지 검사합니다!
+                        let exactMatch = state.services.find(s => normalize(s.name) === normalize(effectiveName));
                         
                         if (!exactMatch) {
-                            // 목록에 없다면 대체 이름 확인 (과거 <-> 현재 매핑)
-                            if (effectiveName === '정서지원서비스(안전안부확인)') {
+                            if (normalize(effectiveName) === normalize('정서지원서비스(안전안부확인)')) {
                                 if (state.services.some(s => s.name === '정서지원서비스')) effectiveName = '정서지원서비스';
-                            } else if (effectiveName === '정서지원서비스') {
+                            } else if (normalize(effectiveName) === normalize('정서지원서비스')) {
                                 if (state.services.some(s => s.name === '정서지원서비스(안전안부확인)')) effectiveName = '정서지원서비스(안전안부확인)';
                             }
-                            
-                            // 매핑된 이름으로 다시 검색
-                            exactMatch = state.services.find(s => s.name === effectiveName);
+                            exactMatch = state.services.find(s => normalize(s.name) === normalize(effectiveName));
                         }
 
                         // [Debug] 매핑 후에도 여전히 목록에 없는 서비스라면 기록
@@ -2562,6 +2578,14 @@
 
                         // 2. 집계 키(Key) 결정
                         let key = '';
+                        if (exactMatch) {
+                            if (type === 'category') {
+                                key = exactMatch.category; 
+                            } else {
+                                // 👇 공백이 들어간 오타 이름 대신, 설정에 등록된 진짜 깔끔한 이름을 사용해 집계합니다!
+                                key = exactMatch.name; 
+                            }
+                        }
                         
                         // [중요] 합계 불일치 해결 핵심:
                         // 상세별 보기와 분류별 보기의 기준을 "현재 서비스 목록에 존재하는지"로 통일합니다.
@@ -4944,6 +4968,7 @@
                 app.showPerformanceDetail(year, month, category, serviceName);
             },
 
+        
             // 👇 여기에 달력 띄우기 함수를 통째로 붙여넣으세요! 👇
             // [신규 추가] 실적 달력 모달 (이중 모달) 띄우기 기능
             openPerfCalendar: (year, month, category, serviceName) => {
@@ -16253,10 +16278,18 @@
         function closeDialog() { document.getElementById('dialog-container').classList.add('hidden'); }
         
         function renderSvcRow(item) {
-            // [수정] 카테고리 목록 생성 (저장된 카테고리가 현재 목록에 없으면 강제 추가)
+            // 💡 [핵심 추가] 공백을 싹 제거하고 글자만 추출해 주는 마법의 함수
+            const normalize = (str) => (str || '').replace(/\s+/g, '');
+            
+            // [수정] 카테고리 목록 생성 (띄어쓰기만 다른 경우는 시스템 표준 카테고리로 자동 흡수!)
             const cats = [...new Set(state.services.map(s => s.category))];
             if (item.category && !cats.includes(item.category)) {
-                cats.push(item.category);
+                const standardCat = cats.find(c => normalize(c) === normalize(item.category));
+                if (standardCat) {
+                    item.category = standardCat; // 엑셀에 공백이 있었더라도, 찰떡같이 시스템 이름으로 바꿈
+                } else {
+                    cats.push(item.category); // 완전히 쌩판 없는 이름이면 새로 추가
+                }
             }
 
             const div = document.createElement('div');
@@ -16272,15 +16305,22 @@
             `;
             document.getElementById('svc-container').appendChild(div);
             
-            // [수정] 서비스명 옵션 처리 (저장된 서비스명이 목록에 없으면 강제 추가)
+            // [수정] 서비스명 옵션 처리 (띄어쓰기 무시 비교 추가)
             if(item.category) { 
                 const sel = div.querySelector('.svc-sel'); 
                 const svcs = state.services.filter(s => s.category === item.category); 
                 
+                // 💡 [핵심 추가] 엑셀 데이터의 서비스 이름과 시스템 서비스 이름을 공백 빼고 비교!
+                const existsMatch = svcs.find(s => normalize(s.name) === normalize(item.serviceName));
+                
+                if (existsMatch && existsMatch.name !== item.serviceName) {
+                    item.serviceName = existsMatch.name; // 공백만 달랐다면 시스템 표준 이름으로 교정
+                }
+
                 // 현재 유효한 서비스 목록 옵션 생성
                 let opts = svcs.map(s => `<option value="${s.name}" ${s.name===item.serviceName?'selected':''}>${s.name}</option>`).join('');
                 
-                // 저장된 서비스명이 있고, 유효 목록에 없다면 추가
+                // 저장된 서비스명이 유효 목록에 완벽히 없다면 (미등록) 처리
                 const exists = svcs.some(s => s.name === item.serviceName);
                 if (item.serviceName && !exists) {
                     opts = `<option value="${item.serviceName}" selected>${item.serviceName} (미등록)</option>` + opts;
