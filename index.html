@@ -4732,6 +4732,11 @@
                 // 👇 'all' 인 경우 연도 전체로 prefix 설정
                 const prefix = month === 'all' ? String(year) : `${year}-${String(month).padStart(2, '0')}`;
                 
+                // 💡 [신규] 모달창 검색 시에도 띄어쓰기/공백 무시 마법 함수 추가!
+                const normalize = (str) => (str || '').replace(/\s+/g, '');
+                const normTargetCat = normalize(category);
+                const normTargetSvc = normalize(serviceName);
+
                 // 대상 일지 필터링 및 메모 추출
                 const targetLogs = [];
                 state.logs.forEach(l => {
@@ -4751,11 +4756,17 @@
                     } else if (l.serviceItems && l.serviceItems.length > 0) {
                         hasService = l.serviceItems.some(item => {
                             let sName = item.serviceName;
+                            // 과거 호환성 매핑
                             if (sName === '정서지원서비스(안전안부확인)') sName = '정서지원서비스';
                             else if (sName === '정서지원서비스') sName = '정서지원서비스(안전안부확인)';
                             
-                            const isMatch = (item.category === category && item.serviceName === serviceName) ||
-                                            (item.category === category && sName === serviceName);
+                            // 👇 [수정] 엑셀에서 들어온 공백들을 싹 지우고 엄격하게 비교합니다!
+                            const normItemCat = normalize(item.category);
+                            const normItemSvc = normalize(item.serviceName);
+                            const normMappedSvc = normalize(sName);
+
+                            const isMatch = (normItemCat === normTargetCat && normItemSvc === normTargetSvc) ||
+                                            (normItemCat === normTargetCat && normMappedSvc === normTargetSvc);
                             
                             if (isMatch) memoText = item.detailNote || '';
                             return isMatch;
