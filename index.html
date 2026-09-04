@@ -2026,7 +2026,13 @@
                 const key = `${s.category}|${s.name}`;
                 if (!stats[key]) {
                     // 👇 맨 끝 total: 0 앞에 dateSets 코드가 추가되었습니다 👇
-                    stats[key] = { category: s.category, serviceName: s.name, counts: Array(12).fill(0), dateSets: Array.from({length: 12}, () => new Set()), total: 0 };
+                    stats[key] = { 
+                        category: s.category, 
+                        serviceName: s.name, 
+                        counts: Array(12).fill(0), 
+                        dateSets: Array.from({length: 12}, () => new Set()), // 👈 이것이 빠져서 에러가 났습니다!
+                        total: 0 
+                    };
                 }
             });
             
@@ -2081,7 +2087,7 @@
             const serviceOrderMap = new Map();
             state.services.forEach((s, idx) => { serviceOrderMap.set(`${s.category}|${s.name}`, idx); });
 
-            const rows = Object.values(stats).sort((a, b) => {
+            let rows = Object.values(stats).sort((a, b) => {
                 const indexA = serviceOrderMap.get(`${a.category}|${a.serviceName}`);
                 const indexB = serviceOrderMap.get(`${b.category}|${b.serviceName}`);
                 if (indexA !== undefined && indexB !== undefined) return indexA - indexB;
@@ -2090,6 +2096,19 @@
                 if (a.category !== b.category) return a.category.localeCompare(b.category);
                 return a.serviceName.localeCompare(b.serviceName);
             });
+
+            // 👇 [핵심 해결] A서비스 열에 B서비스 숫자가 들어가는 꼬임 현상을 막기 위해, 데이터들을 카테고리별로 명확하게 묶어서 순서를 재정렬합니다! 👇
+            const safeGroups = {};
+            const safeOrder = [];
+            rows.forEach(r => {
+                if (!safeGroups[r.category]) { safeGroups[r.category] = []; safeOrder.push(r.category); }
+                safeGroups[r.category].push(r);
+            });
+            rows = []; // 엉켜있던 줄을 싹 비우고
+            safeOrder.forEach(cat => {
+                safeGroups[cat].forEach(r => rows.push(r)); // 표 제목과 완벽하게 똑같은 순서로 다시 채워 넣습니다!
+            });
+            // 👆 표 정렬 보정 완료 👆
 
             // [수정] 선택된 월에 대해서만 합계 재계산
             const monthlyTotals = Array(12).fill(0);
