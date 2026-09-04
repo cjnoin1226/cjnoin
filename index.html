@@ -4729,6 +4729,8 @@
             },
 
             showPerformanceDetail: (year, month, category, serviceName) => {
+                // 👇 [신규 추가] 저장 및 삭제 시 모달 자동 갱신을 위해 현재 인자값 저장 👇
+                state.ui.lastPerfDetailArgs = { year, month, category, serviceName };
                 // 👇 'all' 인 경우 연도 전체로 prefix 설정
                 const prefix = month === 'all' ? String(year) : `${year}-${String(month).padStart(2, '0')}`;
                 
@@ -4796,10 +4798,11 @@
 
                 // 엑셀 복붙이 쉽도록 table 구성
                 const trs = targetLogs.map((l, idx) => `
-                    <tr class="hover:bg-slate-50 border-b border-slate-200">
+                    <!-- 👇 [수정] 행에 마우스를 올리면 파란색이 되고, 클릭하면 일지 수정 창이 뜨도록 onclick 이벤트 추가 👇 -->
+                    <tr class="hover:bg-blue-50 border-b border-slate-200 cursor-pointer transition-colors group" onclick="app.openLogModal('${l.id}')" title="클릭하여 일지 상세 보기 및 수정">
                         <td class="p-2 text-center border-r border-slate-200">${idx + 1}</td>
                         <td class="p-2 text-center border-r border-slate-200" style="mso-number-format:'\\@'">${l.date}</td>
-                        <td class="p-2 text-center border-r border-slate-200 font-bold">${l.clientName}</td>
+                        <td class="p-2 text-center border-r border-slate-200 font-bold group-hover:text-blue-600">${l.clientName}</td>
                         <td class="p-2 border-r border-slate-200 text-slate-600 text-xs">${l.extractedMemo || '-'}</td>
                         <td class="p-2 text-center text-slate-500 text-xs truncate max-w-[100px]">${l.provider || '-'}</td>
                     </tr>
@@ -14224,6 +14227,9 @@
                 }
 
                 showModal(html, false, targetContainerId);
+
+                // 👇 [신규 추가] 실적 상세창(다이얼로그) 위로 일지 모달이 무조건 보이도록 z-index 강제 상향! 👇
+                document.getElementById(targetContainerId).style.zIndex = '210';
                 
                 // 초기 데이터 렌더링
                 app.renderLogClients(isEdit);
@@ -14661,8 +14667,14 @@
                     if(state.viewMode==='single') {
                         if(state.activeTab === 'logs') updateTabContent('logs');
                         else if(state.activeTab === 'clients') updateTabContent('clients');
+                        else if(state.activeTab === 'performance') updateTabContent('performance'); // 👈 신규: 실적 탭 배경 화면 갱신
                     } else {
                         render();
+                    }
+
+                    // 👇 [신규 추가] 실적 상세 모달창이 열려있다면 방금 수정한 내용을 즉시 반영하여 모달 새로고침! 👇
+                    if (state.ui.lastPerfDetailArgs && !document.getElementById('dialog-container').classList.contains('hidden')) {
+                        app.showPerformanceDetail(state.ui.lastPerfDetailArgs.year, state.ui.lastPerfDetailArgs.month, state.ui.lastPerfDetailArgs.category, state.ui.lastPerfDetailArgs.serviceName);
                     }
                 }
             },
@@ -14732,8 +14744,14 @@
                         else if(collectionName === 'services') updateTabContent('services');
                         else if(collectionName === 'meetings') updateTabContent('meeting');
                         else if(collectionName === 'integratedCares') updateTabContent('integratedCare');
+                        else if(state.activeTab === 'performance') updateTabContent('performance'); // 👈 신규: 실적 탭 배경 화면 갱신
                     } else {
                         render();
+                    }
+
+                    // 👇 [신규 추가] 삭제 후 실적 상세 모달창이 열려있다면 즉시 새로고침! 👇
+                    if (collectionName === 'logs' && state.ui.lastPerfDetailArgs && !document.getElementById('dialog-container').classList.contains('hidden')) {
+                        app.showPerformanceDetail(state.ui.lastPerfDetailArgs.year, state.ui.lastPerfDetailArgs.month, state.ui.lastPerfDetailArgs.category, state.ui.lastPerfDetailArgs.serviceName);
                     }
                 } catch (err) { 
                     console.error("Delete failed", err);
