@@ -10571,6 +10571,8 @@
                                <td class="p-3 text-center text-slate-500 text-xs truncate max-w-[150px]" title="${m.attendees}">${m.attendees}</td>
                                <td class="p-3 text-center text-slate-600">${m.writer}</td>
                                <td class="p-3 flex justify-center gap-1">
+                                    <!-- 👇 [신규 추가] 개별 인쇄 버튼 👇 -->
+                                    <button type="button" onclick="app.printMeeting('${m.id}')" class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors" title="이 회의록 인쇄"><i data-lucide="printer" size="14"></i></button>
                                     <button type="button" onclick="app.duplicateMeeting('${m.id}')" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors" title="복사"><i data-lucide="copy" size="14"></i></button>
                                     <button type="button" onclick="app.deleteData('meetings', '${m.id}')" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="삭제"><i data-lucide="trash-2" size="14"></i></button>
                                 </td>
@@ -11554,6 +11556,8 @@
                     else if (subTab === 'evaluation') docType = 'evaluation';
                     else if (subTab === 'history-list') docType = 'history-list';
                     else if (subTab === 'servicePlan') docType = 'servicePlan'; 
+                    // 👇 [신규 추가] 사례회의록 탭일 때의 안내 문구 추가 👇
+                    else if (subTab === 'meeting-list') return alert("사례회의록은 아래 목록 우측의 [프린터 아이콘]을 눌러 개별 인쇄해 주세요.");
                     else return alert("인쇄할 문서를 선택해주세요.");
                 }
 
@@ -11710,8 +11714,14 @@
                 if (docType === 'selection') {
                     docTitle = '선정기준표';
 
-                    // 데이터 추출 (getVal 함수 대신 직접 데이터를 참조하도록 딱 1줄 수정!)
-                    const sData = cm.selection || {};
+                    // 👇 [오류 완벽 수정] 무조건 원본만 가져오던 것을, 선택된 연도(history)의 최신 데이터 우선 적용으로 변경 👇
+                    let sData = {};
+                    if (cm.history && cm.history[year] && cm.history[year].selection) {
+                        sData = cm.history[year].selection;
+                    } else if (cm.selection) {
+                        sData = cm.selection;
+                    }
+                    
                     const eco = sData.economic || {};
                     const phy = sData.physical || {};
                     const men = sData.mental || {};
