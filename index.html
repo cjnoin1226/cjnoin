@@ -386,7 +386,7 @@
     <div id="modal-container" class="fixed inset-0 z-[60] hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto" onclick="if(event.target === this) app.handleModalOverlayClick()"></div>
     <div id="perf-detail-container" class="fixed inset-0 z-[55] hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto" onclick="if(event.target === this) this.classList.add('hidden')"></div>
     <!-- [추가] 서브 모달 컨테이너 (이중 모달용, z-index 65로 설정하여 기존 모달(60) 위에 표시) -->
-    <div id="sub-modal-container" class="fixed inset-0 z-[55] hidden flex items-center justify-center modal-overlay p-4 overflow-y-auto" onclick="if(event.target === this) app.handleSubModalOverlayClick()"></div>
+    <div id="sub-modal-container" class="fixed inset-0 bg-black bg-opacity-50 hidden z-[999] flex justify-center items-center">
     <div id="dialog-container" class="fixed inset-0 z-[9999] hidden flex items-center justify-center bg-black/50 p-4"></div>
 
     <!-- [신규] 진행 상태 로딩 모달 -->
