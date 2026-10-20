@@ -1471,7 +1471,7 @@
                     </div>
 
                     <!-- [추가] 대상자 목록 구분 헤더 (PC 화면에서만 보임) -->
-                    <div class="hidden md:grid md:grid-cols-[150px_140px_110px_130px_1fr_70px] gap-1 items-center px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 shadow-sm mb-2 mr-1">
+                    <div class="hidden md:grid md:grid-cols-[150px_140px_120px_120px_1fr_70px] gap-1 items-center px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 shadow-sm mb-2 mr-1">
                         <div class="pl-6">이름 (생년월일)</div>
                         <div>기본 정보</div>
                         <div>관리번호</div>
@@ -1513,7 +1513,7 @@
                             const activeDot = (!isEtcClient && targetYear && wasActiveInPeriod) ? `<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 ml-0.5 shadow-sm" title="해당 기간 이용 이력 있음"></div>` : '';
 
                             return `
-                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[150px_140px_110px_130px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
+                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[150px_160px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
                                 <div class="flex items-center gap-2 w-full overflow-hidden">
                                     <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer flex-shrink-0" onchange="app.toggleClientSelection('${c.id}')" ${state.ui.selectedClientIds.has(c.id) ? 'checked' : ''}>
                                     <div class="flex items-center gap-1 overflow-hidden">
@@ -5890,9 +5890,8 @@
                                         <div class="col-span-1 sm:col-span-1">
                                             <label class="block text-sm font-bold text-slate-700 mb-1">성별</label>
                                             <select name="gender" class="input-field" onchange="app.generateManageCode()">
-                                                <option value="">선택</option>
-                                                <option value="남성" ${c.gender === '남성' ? 'selected' : ''}>남성</option>
-                                                <option value="여성" ${c.gender === '여성' ? 'selected' : ''}>여성</option>
+                                                <option value="남" ${ic.gender === '남' ? 'selected' : ''}>남</option>
+                                                <option value="여" ${ic.gender === '여' ? 'selected' : ''}>여</option>
                                             </select>
                                         </div>
                                         <div class="col-span-1 sm:col-span-1"><label class="block text-sm font-bold text-slate-700 mb-1">생년월일</label><input type="text" name="birthDate" class="input-field" value="${ic.birthDate || ''}" placeholder="YY-MM-DD" oninput="app.formatShortDateInput(this)"></div>
@@ -7765,50 +7764,49 @@
                             <button type="button" class="modal-tab-btn ${state.ui.clientModalTab === 'changes' ? 'active' : ''}" data-tab="changes" onclick="app.setClientModalTab('changes')">변경 이력</button>
                         </div>
                         <div class="px-4 sm:px-6 pb-4 sm:pb-6 overflow-y-auto flex-1 bg-white">
-                            <form onsubmit="app.saveClient(event, '${c.id \vert{}\vert{} ''}')" id="client-form" data-id="${c.id||''}" onchange="app.updateTotalSelectionScore()" onkeyup="app.updateTotalSelectionScore()">
-    <div id="tab-basic" class="modal-tab-content ${state.ui.clientModalTab === 'basic' ? 'active' : ''} space-y-4 pt-4 sm:pt-6">
-        
-        <!-- 👇👇 수정된 1번째 줄: 가로 한 줄 배치 (총 12칸) 👇👇 -->
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-            
-            <!-- 1. 이름 (2칸) -->
-            <div class="md:col-span-2">
-                <label class="text-sm block mb-1 font-bold text-slate-700">이름</label>
-                <input name="name" class="input-field" value="${c.name||''}" required>
-            </div>
-            
-            <!-- 2. 성별 (2칸) - 주민번호와 관리번호 둘 다 자동 계산되도록 연결 -->
-            <div class="md:col-span-2">
-                <label class="text-sm block mb-1 font-bold text-slate-700">성별</label>
-                <select name="gender" id="gender-select" class="input-field" onchange="app.autoFillResidentNum(); app.generateManageCode()">
-                    <option value="">선택</option>
-                    <option value="남성" ${c.gender==='남성'?'selected':''}>남성</option>
-                    <option value="여성" ${c.gender==='여성'?'selected':''}>여성</option>
-                </select>
-            </div>
-
-            <!-- 3. 생년월일 & 나이 (3칸) -->
-            <div class="md:col-span-3">
-                <label class="text-sm block mb-1 font-bold text-slate-700">생년월일</label>
-                <div class="flex items-center gap-2">
-                    <input type="text" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" placeholder="YYYY-MM-DD" oninput="app.autoFillResidentNum()" maxlength="10">
-                    <input id="age-display" class="input-field !w-[30%] min-w-[50px] text-center bg-slate-50 text-slate-500 focus:outline-none cursor-default font-bold text-xs p-1" readonly value="${initialAge || ''}" placeholder="나이" tabindex="-1">
-                </div>
-            </div>
-
-            <!-- 4. 주민등록번호 (3칸) -->
-            <div class="md:col-span-3">
-                <label class="text-sm block mb-1 font-bold text-slate-700">주민등록번호</label>
-                <input type="text" name="residentNum" id="resident-num-input" class="input-field" placeholder="자동 생성됨..." value="${c.residentNum||''}" maxlength="14">
-            </div>
-
-            <!-- 5. 관리번호 (2칸) - 직접 수정 가능하도록 버튼 제거 -->
-            <div class="md:col-span-2">
-                <label class="text-sm block mb-1 font-bold text-slate-700">관리번호</label>
-                <input type="text" id="manage-code-input" name="manageCode" class="input-field bg-white" value="${c.manageCode || ''}" placeholder="자동/수동">
-            </div>
-
+                            <form onsubmit="app.saveClient(event, '${c.id || ''}')" id="client-form" data-id="${c.id||''}" onchange="app.updateTotalSelectionScore()" onkeyup="app.updateTotalSelectionScore()">
+                                <div id="tab-basic" class="modal-tab-content ${state.ui.clientModalTab === 'basic' ? 'active' : ''} space-y-4 pt-4 sm:pt-6">
+                                    <div class="grid grid-cols-2 sm:grid-cols-12 gap-3">
+    <div class="col-span-1 sm:col-span-6 md:col-span-3">
+        <label class="text-sm block mb-1">이름</label>
+        <input name="name" class="input-field" value="${c.name||''}" required>
+    </div>
+    <div class="col-span-1 sm:col-span-6 md:col-span-2">
+        <label class="text-sm block mb-1">성별</label>
+        <!-- [수정] 성별이 바뀔 때도 주민번호 자동 완성을 다시 계산하도록 추가 -->
+        <select name="gender" class="input-field" id="gender-select" onchange="app.autoFillResidentNum()">
+            <option value="남성">남성</option>
+            <option value="여성" ${c.gender==='여성'?'selected':''}>여성</option>
+        </select>
+    </div>
+    <!-- [수정] 생년월일 칸을 주민번호 앞으로 위치 이동 및 oninput 연결 -->
+    <div class="col-span-1 sm:col-span-6 md:col-span-4">
+        <label class="text-sm block mb-1">생년월일</label>
+        <div class="flex items-center gap-2">
+            <input type="text" name="birthDate" id="birth-date-input" class="input-field flex-1" value="${c.birthDate||''}" placeholder="YYYY-MM-DD" oninput="app.autoFillResidentNum()" maxlength="10">
+            <input id="age-display" class="input-field !w-[25%] min-w-[60px] text-center bg-slate-100 text-slate-600 focus:outline-none cursor-default font-bold" readonly value="${initialAge}" placeholder="나이" tabindex="-1">
         </div>
+    </div>
+    <!-- [수정] 주민번호 칸을 생년월일 뒤로 이동, ID 추가 -->
+    <div class="col-span-1 sm:col-span-6 md:col-span-3">
+        <label class="text-sm block mb-1">주민등록번호</label>
+        <input type="text" name="residentNum" id="resident-num-input" class="input-field" placeholder="자동 생성됨..." value="${c.residentNum||''}" maxlength="14">
+    </div>
+        <div class="col-span-1 sm:col-span-6 md:col-span-3">
+        <label class="text-sm block mb-1 font-bold text-slate-700">관리번호</label>
+        <div class="flex gap-2">
+            <input type="text" id="manage-code-input" name="manageCode" class="input-field flex-1 bg-slate-50" value="${c.manageCode || ''}" placeholder="자동 생성" readonly>
+            
+            <button type="button" onclick="app.generateManageCode()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 whitespace-nowrap shadow-sm transition-colors">
+                번호 부여
+            </button>
+            
+            <button type="button" onclick="document.getElementById('manage-code-input').readOnly = false; document.getElementById('manage-code-input').classList.remove('bg-slate-50'); document.getElementById('manage-code-input').focus();" class="text-slate-400 hover:text-blue-500 p-1.5 border border-slate-200 rounded hover:bg-slate-50 transition-colors" title="잠금 해제 후 직접 수정">
+                <i data-lucide="edit-2" size="14"></i>
+            </button>
+        </div>
+    </div>
+</div>
 
 <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
     <div class="col-span-1">
@@ -7832,8 +7830,7 @@
     <div class="col-span-1">
         <label class="text-sm block mb-1">행정동</label>
         <select name="region" class="input-field" onchange="app.generateManageCode()">
-           <option value="">선택</option>
-           ${CONSTANTS.DONG_LIST.map(d => `<option value="${d}" ${c.region === d ? 'selected' : ''}>${d}</option>`).join('')}
+            ${CONSTANTS.DONG_LIST.map(d=>`<option value="${d}" ${c.region===d?'selected':''}>${d}</option>`).join('')}
         </select>
     </div>
     <div class="col-span-3">
