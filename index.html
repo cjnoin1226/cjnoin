@@ -1471,13 +1471,14 @@
                     </div>
 
                     <!-- [추가] 대상자 목록 구분 헤더 (PC 화면에서만 보임) -->
-                    <div class="hidden md:grid md:grid-cols-[150px_160px_140px_1fr_70px] gap-1 items-center px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 shadow-sm mb-2 mr-1">
+                    <div class="hidden md:grid md:grid-cols-[150px_140px_120px_120px_1fr_70px] gap-1 items-center px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 shadow-sm mb-2 mr-1">
                         <div class="pl-6">이름 (생년월일)</div>
                         <div>기본 정보</div>
+                        <div>관리번호</div>
                         <div>연락처</div>
                         <div>주소</div>
                         <div class="text-right pr-2">관리</div>
-                    </div>   
+                    </div>
 
                     <div id="client-list-container" class="${listClass}">
                         ${filtered.length === 0 ? `<div class="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">검색 결과가 없습니다.</div>` :
@@ -1528,6 +1529,11 @@
                                     ${statusBadge}
                                     ${activeDot}
                                 </div>
+
+                               <div class="flex items-center gap-2 w-full overflow-hidden" title="관리번호">
+                                       <span class="truncate text-sm text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">${isEtcClient ? '' : (c.manageCode || '-')}</span>
+                               </div>
+                                
                                 <!-- [수정] 연락처 - 모바일(text-base), PC(sm:text-base) -->
                                 <div class="flex items-center gap-2 w-full overflow-hidden" title="${c.phone||''}${c.phone2 ? ' / ' + c.phone2 : ''}"><span class="truncate text-sm sm:text-base text-slate-900">${isEtcClient ? '' : (c.phone||'-')}${!isEtcClient && c.phone2 ? ' / ' + c.phone2 : ''}</span></div>
                                 <!-- [수정] 주소 - 모바일(text-sm), PC(sm:text-base) -->
@@ -3454,6 +3460,63 @@
                     state.ui.isDirty = true; // 변경사항 자동 감지
                 }
             },
+
+            generateManageCode: () => {
+                // 1. 등록연도 가져오기 (서비스 시작일 기준, 비어있으면 올해)
+                const startDateInput = document.querySelector('input[name="serviceStartDate"]');
+                let year = new Date().getFullYear();
+                if (startDateInput && startDateInput.value) {
+                    year = startDateInput.value.substring(0, 4);
+                }
+
+                // 2. 성별 가져와서 변환 (남자 1, 여자 2)
+                const genderSelect = document.querySelector('select[name="gender"]');
+                const gender = genderSelect ? genderSelect.value : '';
+                let genderCode = '';
+                if (gender === '남성' || gender === '남') genderCode = '1';
+                else if (gender === '여성' || gender === '여') genderCode = '2';
+
+                // 3. 행정동 가져오기
+                const regionSelect = document.querySelector('select[name="region"]');
+                const region = regionSelect ? regionSelect.value : '';
+
+                // 유효성 검사 (다 입력했는지 확인)
+                if (!genderCode || !region) {
+                    alert('관리번호를 부여하려면 먼저 "성별"과 "행정동"을 입력(선택)해주세요.');
+                    return;
+                }
+
+                // 4. 번호 기본 뼈대 만들기 (예: 20241-대연동-)
+                const prefix = `${year}${genderCode}-${region}-`;
+
+                // 5. 같은 연도/성별/동 조건을 가진 기존 사람들의 마지막 순번 찾기
+                let maxSeq = 0;
+                state.clients.forEach(c => {
+                    if (c.manageCode && c.manageCode.startsWith(prefix)) {
+                        const parts = c.manageCode.split('-');
+                        if (parts.length >= 3) {
+                            const seqStr = parts[2]; // 순번 부분
+                            const seqNum = parseInt(seqStr, 10);
+                            if (!isNaN(seqNum) && seqNum > maxSeq) {
+                                maxSeq = seqNum;
+                            }
+                        }
+                    }
+                });
+
+                // 6. 새로운 순번 부여 (001, 002 형태)
+                const nextSeq = String(maxSeq + 1).padStart(3, '0');
+                const newManageCode = `${prefix}${nextSeq}`;
+
+                // 7. 모달창 입력칸에 적용
+                const codeInput = document.getElementById('manage-code-input');
+                if (codeInput) {
+                    codeInput.value = newManageCode;
+                    state.ui.isDirty = true; // 내용이 변경되었음을 시스템에 알림
+                    if(window.lucide) lucide.createIcons();
+                }
+            },
+            
         addSatGoalRow: () => {
                 const tbody = document.querySelector('#sec-sat-1 tbody');
                 if (!tbody) return;
@@ -7733,6 +7796,20 @@
     <div class="col-span-1 sm:col-span-6 md:col-span-3">
         <label class="text-sm block mb-1">주민등록번호</label>
         <input type="text" name="residentNum" id="resident-num-input" class="input-field" placeholder="자동 생성됨..." value="${c.residentNum||''}" maxlength="14">
+    </div>
+        <div class="col-span-1 sm:col-span-6 md:col-span-3">
+        <label class="text-sm block mb-1 font-bold text-slate-700">관리번호</label>
+        <div class="flex gap-2">
+            <input type="text" id="manage-code-input" name="manageCode" class="input-field flex-1 bg-slate-50" value="${c.manageCode || ''}" placeholder="자동 생성" readonly>
+            
+            <button type="button" onclick="app.generateManageCode()" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 whitespace-nowrap shadow-sm transition-colors">
+                번호 부여
+            </button>
+            
+            <button type="button" onclick="document.getElementById('manage-code-input').readOnly = false; document.getElementById('manage-code-input').classList.remove('bg-slate-50'); document.getElementById('manage-code-input').focus();" class="text-slate-400 hover:text-blue-500 p-1.5 border border-slate-200 rounded hover:bg-slate-50 transition-colors" title="잠금 해제 후 직접 수정">
+                <i data-lucide="edit-2" size="14"></i>
+            </button>
+        </div>
     </div>
 </div>
 
