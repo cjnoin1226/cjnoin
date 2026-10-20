@@ -2177,7 +2177,7 @@
                             const daysCount = r.dateSets[monthIdx].size; // 👈 신규
                             const clickAttr = count > 0 ? `onclick="app.showPerformanceDetail('${year}', ${m}, '${r.category}', '${r.serviceName}')"` : '';
                             const cellClass = count > 0 ? 'text-blue-600 font-bold bg-blue-50/30 cursor-pointer hover:underline decoration-2 underline-offset-2' : 'text-slate-300';
-                            const daysHtml = (count > 0 && daysCount > 0) ? `<span class="text-[10px] text-emerald-600 font-medium ml-1">(${daysCount})</span>` : ''; // 👈 신규
+                            const daysHtml = (count > 0 && daysCount > 0) ? `<span class="text-[10px] text-emerald-600 font-medium ml-1 excel-exclude">(${daysCount})</span>` : ''; // 👈 신규
                             rowHTML += `<td class="py-2 px-1 border-r text-center ${cellClass}" ${clickAttr} title="${count > 0 ? '상세 내역 보기' : ''}">${count || '-'}${daysHtml}</td>`;
                         });
                         // 👇 우측 끝에 붙는 '해당 월의 전체 합계' (클릭 기능 포함)
@@ -2218,7 +2218,7 @@
                                 const daysCount = r.dateSets[m - 1].size; // 👈 신규
                                 const clickAttr = count > 0 ? `onclick="app.showPerformanceDetail('${year}', ${m}, '${r.category}', '${r.serviceName}')"` : '';
                                 const cellClass = count > 0 ? 'text-blue-600 font-bold bg-blue-50/30 cursor-pointer hover:underline decoration-2 underline-offset-2' : 'text-slate-300';
-                                const daysHtml = (count > 0 && daysCount > 0) ? `<span class="text-[10px] text-emerald-600 font-medium ml-1">(${daysCount})</span>` : ''; // 👈 신규
+                                const daysHtml = (count > 0 && daysCount > 0) ? `<span class="text-[10px] text-emerald-600 font-medium ml-1 excel-exclude">(${daysCount})</span>` : ''; // 👈 신규
                                 return `<td class="py-2 px-2 border-r text-center ${cellClass}" ${clickAttr} title="${count > 0 ? '상세 내역 보기' : ''}">${count || '-'}${daysHtml}</td>`;
                             }).join('');
                             
@@ -16022,25 +16022,23 @@
 
             // [수정] 현재 화면에 보이는 표 형태 그대로 엑셀 다운로드
             downloadPerformanceExcel: () => {
-                // 1. 화면에 그려져 있는 실적 표(Table) 태그를 찾습니다.
-                const tableEl = document.querySelector('#perf-table-container table');
-                if (!tableEl) return alert("다운로드할 표 데이터가 없습니다.");
-
-                // 2. 현재 어떤 뷰를 보고 있는지에 따라 파일 이름을 정합니다.
-                const { year, viewMode } = state.filters.performance;
-                let fileName = `사업실적_${year}년`;
+                const originalTable = document.querySelector('#perf-table-container table');
+                if (!originalTable) {
+                    alert('다운로드할 데이터가 없습니다.');
+                    return;
+                }
                 
-                if (viewMode === 'monthRows') fileName += '_월별보기';
-                else if (viewMode === 'serviceRows') fileName += '_서비스별보기';
-                else if (viewMode === 'clientStats') fileName += '_대상자현황';
-
-                // 3. 화면의 표를 통째로 복사해서 엑셀 시트로 만듭니다. 
-                // (표의 병합된 칸들도 엑셀에 그대로 똑같이 병합됩니다!)
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.table_to_sheet(tableEl, { raw: false }); // raw:false면 숫자 자동 인식
+                // 1. 화면에 있는 원본 테이블을 복제합니다. (화면이 깨지는 것을 방지)
+                const clonedTable = originalTable.cloneNode(true);
                 
-                XLSX.utils.book_append_sheet(wb, ws, "실적 데이터");
-                XLSX.writeFile(wb, `${fileName}.xlsx`);
+                // 2. 복제된 테이블에서 'excel-exclude' 클래스가 붙은 초록색 숫자 괄호를 모두 찾아 지웁니다.
+                const extraSpans = clonedTable.querySelectorAll('.excel-exclude');
+                extraSpans.forEach(span => span.remove());
+                
+                // 3. 불필요한 숫자가 지워진 복제 테이블을 엑셀 파일로 변환하여 다운로드합니다.
+                const wb = XLSX.utils.table_to_book(clonedTable, { sheet: "실적관리" });
+                const fileName = `${state.filters.performance.year}년_실적관리.xlsx`;
+                XLSX.writeFile(wb, fileName);
             },
         };
 
