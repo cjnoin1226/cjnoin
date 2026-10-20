@@ -1682,9 +1682,37 @@
                                 </select>
 
                                 <div class="relative z-[100] w-full sm:w-auto">
-                                     <!-- 💡 [크기조절 8. 행정동] sm:w-28 부분 수정 -->
-                                     <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-28"><span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '행정동' : region.join(',')) : '전체 동'}</span><i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i></button>
-                                     ${state.ui.logRegionDropdownOpen ? `<div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div><div class="absolute top-full left-0 mt-1 w-40 bg-white border border-slate-200 rounded-lg shadow-xl z-[100] p-2 max-h-60 overflow-y-auto animate-fade-in">${CONSTANTS.DONG_LIST.map(d => `<label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none"><input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')"><span class="text-slate-700">${d}</span></label>`).join('')}</div>` : ''}
+                                    <!-- 💡 [크기조절 8. 행정동] sm:w-28 부분 수정 -->
+                                    <button onclick="app.toggleLogRegionDropdown()" class="input-field h-9 py-1 px-2 text-sm flex items-center justify-between min-w-[100px] bg-white cursor-pointer text-left w-full sm:w-28">
+                                        <span class="truncate max-w-[80px] text-slate-700">${region.length > 0 ? (region.length === CONSTANTS.DONG_LIST.length ? '행정동' : region.join(',')) : '전체 동'}</span>
+                                        <i data-lucide="chevron-down" size="14" class="text-slate-400 ml-2"></i>
+                                    </button>
+                                    ${state.ui.logRegionDropdownOpen ? `
+                                    <div class="fixed inset-0 z-40" onclick="app.toggleLogRegionDropdown()"></div>
+                                    <!-- 💡 가로로 넓게 펼쳐지도록 width 와 grid 속성 추가 -->
+                                    <div class="absolute top-full left-0 mt-1 w-[300px] sm:w-[380px] bg-white border border-slate-200 rounded-lg shadow-xl z-[100] p-2 max-h-[250px] overflow-y-auto animate-fade-in">
+                                        <div class="grid grid-cols-3 sm:grid-cols-4 gap-1">
+                                            ${CONSTANTS.DONG_LIST.map(d => `
+                                            <label class="flex items-center gap-1.5 text-sm p-1.5 hover:bg-slate-50 rounded cursor-pointer select-none">
+                                                <input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300 flex-shrink-0" ${region.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')">
+                                                <span class="text-slate-700 truncate">${d}</span>
+                                            </label>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                    ` : ''}
+                                </div>
+    
+                                    <!-- 드롭다운 메뉴 본체 -->
+                                    <div id="dropdown-log-region-menu" class="absolute top-full left-0 mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-[100] p-2 max-h-60 overflow-y-auto animate-fade-in">
+                                        ${CONSTANTS.DONG_LIST.map(d => `
+                                        <label class="flex items-center gap-2 text-sm p-2 hover:bg-slate-50 rounded cursor-pointer select-none">
+                                            <input type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 border-slate-300" ${state.filters.logRegion.includes(d) ? 'checked' : ''} onchange="app.toggleLogRegionFilter('${d}')">
+                                            <span class="text-slate-700">${d}</span>
+                                        </label>
+                                        `).join('')}
+                                    </div>
+                                    ` : ''}
                                 </div>
                                 <div class="flex flex-wrap gap-2 w-full sm:w-auto flex-1 min-w-[200px]">
                                     <!-- 💡 [크기조절 9. 서비스 분류] sm:w-20 부분 수정 -->
