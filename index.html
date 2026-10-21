@@ -1471,7 +1471,7 @@
                     </div>
 
                     <!-- [추가] 대상자 목록 구분 헤더 (PC 화면에서만 보임) -->
-                    <div class="hidden md:grid md:grid-cols-[150px_140px_120px_120px_1fr_70px] gap-1 items-center px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 shadow-sm mb-2 mr-1">
+                    <div class="hidden md:grid md:grid-cols-[150px_140px_110px_130px_1fr_70px] gap-1 items-center px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 shadow-sm mb-2 mr-1">
                         <div class="pl-6">이름 (생년월일)</div>
                         <div>기본 정보</div>
                         <div>관리번호</div>
@@ -1513,7 +1513,7 @@
                             const activeDot = (!isEtcClient && targetYear && wasActiveInPeriod) ? `<div class="w-2.5 h-2.5 rounded-full bg-emerald-500 ml-0.5 shadow-sm" title="해당 기간 이용 이력 있음"></div>` : '';
 
                             return `
-                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[150px_160px_140px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
+                            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-col md:grid md:grid-cols-[150px_140px_110px_130px_1fr_70px] gap-1 md:items-center group hover:bg-slate-50 transition-colors">
                                 <div class="flex items-center gap-2 w-full overflow-hidden">
                                     <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer flex-shrink-0" onchange="app.toggleClientSelection('${c.id}')" ${state.ui.selectedClientIds.has(c.id) ? 'checked' : ''}>
                                     <div class="flex items-center gap-1 overflow-hidden">
